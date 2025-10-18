@@ -217,5 +217,10 @@ tables:
         columns: [student_user_id]
         description: "For student's enrolled classes queries"
     notes:
+      - "is_enrolled is NOT a soft delete flag. It represents enrollment/withdrawal status."
+      - "is_enrolled = true: Student is actively enrolled and appears in roster"
+      - "is_enrolled = false: Student has withdrawn but historical attendance is preserved"
+      - "To query active roster: WHERE is_enrolled = true"
+      - "To query all enrollments (including withdrawn): No filter needed"
+      - "Difference from soft delete: Withdrawn students can be re-enrolled by setting is_enrolled = true"
       - "When is_enrolled = false, student is withdrawn and hidden from roster but historical attendance is preserved (see BR-33)"
-      - "Field renamed from 'is_active' to 'is_enrolled' for clearer semantic distinction from soft delete flags in other tables"

@@ -24,7 +24,7 @@ business_rules:
       description: "The primary login identifier username for a user must be their Student ID (for Students) or Staff ID (for Staff)."
       domain: "Authentication"
       priority: "High"
-      related_use_cases: ["UC-01", "UC-36"]
+      related_use_cases: ["UC-01", "UC-34"]
       validation_points: ["User creation", "Login process"]
 
     BR-02:
@@ -40,7 +40,7 @@ business_rules:
       description: "If a user account is found but is inactive (is_active = false), access must be denied."
       domain: "Authentication"
       priority: "High"
-      related_use_cases: ["UC-01", "UC-40"]
+      related_use_cases: ["UC-01", "UC-38"]
       validation_points: ["Login process", "Account status check"]
 
     BR-04:
@@ -48,7 +48,7 @@ business_rules:
       description: "Each username and email must be unique across the entire system."
       domain: "Authentication"
       priority: "High"
-      related_use_cases: ["UC-01", "UC-36"]
+      related_use_cases: ["UC-01", "UC-34"]
       validation_points: ["User creation", "User update"]
 
     BR-05:
@@ -56,7 +56,7 @@ business_rules:
       description: "A user with the STUDENT role cannot be concurrently assigned the LECTURER or SUPERVISOR role."
       domain: "Roles"
       priority: "High"
-      related_use_cases: ["UC-36", "UC-39"]
+      related_use_cases: ["UC-34", "UC-37"]
       validation_points: ["Role assignment", "Role update"]
 
     BR-06:
@@ -73,7 +73,7 @@ business_rules:
       description: "A new user account must be linked to a specialized profile (student_profiles or staff_profiles) to define its specific attributes."
       domain: "User Management"
       priority: "High"
-      related_use_cases: ["UC-36"]
+      related_use_cases: ["UC-34"]
       validation_points: ["User creation workflow"]
 
   # Identity Management (BR-08 to BR-11)
@@ -91,7 +91,7 @@ business_rules:
       description: "All identity registration or update requests must be manually approved by a user with the appropriate permissions (e.g., IDENTITY_SUBMISSION_APPROVE)."
       domain: "Identity"
       priority: "High"
-      related_use_cases: ["UC-12", "UC-13", "UC-41", "UC-42", "UC-43"]
+      related_use_cases: ["UC-12", "UC-13", "UC-39", "UC-40", "UC-41"]
       validation_points: ["Identity submission workflow"]
 
     BR-10:
@@ -108,7 +108,7 @@ business_rules:
       description: "When an identity submission is rejected, the system must automatically send a system notification to the student, stating the reason for rejection."
       domain: "Identity"
       priority: "Medium"
-      related_use_cases: ["UC-11", "UC-43"]
+      related_use_cases: ["UC-11", "UC-41"]
       validation_points: ["Identity rejection workflow"]
 
   # Academic Catalog (BR-12 to BR-17)
@@ -118,8 +118,7 @@ business_rules:
       description: "Each Major, Subject, and Class must have a unique identifier (code or name)."
       domain: "Academic"
       priority: "High"
-      related_use_cases:
-        ["UC-44", "UC-46", "UC-48", "UC-50", "UC-52", "UC-54", "UC-56", "UC-58"]
+      related_use_cases: ["UC-42", "UC-46", "UC-50", "UC-54", "UC-58", "UC-62"]
       validation_points: ["Academic entity creation", "Academic entity update"]
 
     BR-13:
@@ -127,7 +126,7 @@ business_rules:
       description: "A student can only be enrolled in a specific class once."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-64"]
+      related_use_cases: ["UC-62"]
       validation_points: ["Student enrollment"]
 
     BR-14:
@@ -135,7 +134,7 @@ business_rules:
       description: "When a student is unenrolled from a class (enrollments.is_enrolled = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
       domain: "Academic"
       priority: "Medium"
-      related_use_cases: ["UC-65"]
+      related_use_cases: ["UC-63"]
       validation_points:
         [
           "Student unenrollment",
@@ -148,7 +147,7 @@ business_rules:
       description: "Each lecture/exam slot must be associated with a specific slot type and room."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-60", "UC-62"]
+      related_use_cases: ["UC-24", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update"]
 
     BR-16:
@@ -156,7 +155,7 @@ business_rules:
       description: "All active cameras in the slot's assigned room are automatically used for attendance monitoring. No manual camera selection is required."
       domain: "Infrastructure"
       priority: "High"
-      related_use_cases: ["UC-60", "UC-62"]
+      related_use_cases: ["UC-24", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Camera availability check"]
 
     BR-17:
@@ -164,7 +163,7 @@ business_rules:
       description: "Each lecture/exam slot must be assigned to one and only one staff member (Lecturer or Supervisor) at a time."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-15", "UC-30", "UC-60", "UC-62"]
+      related_use_cases: ["UC-15", "UC-24", "UC-28", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update", "Staff assignment"]
 
   # Attendance Management (BR-18 to BR-24)
@@ -174,7 +173,7 @@ business_rules:
       description: "An automated attendance session can only be initiated by the staff member assigned to that slot who has the SLOT_SESSION_START permission."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-15", "UC-30"]
+      related_use_cases: ["UC-15", "UC-28"]
       validation_points: ["Session initiation", "Permission check"]
 
     BR-19:
@@ -182,7 +181,7 @@ business_rules:
       description: "When a face is recognized, the system updates the student's attendance status to PRESENT. The final status and timestamp are recorded in the attendance record."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-16", "UC-17", "UC-31"]
+      related_use_cases: ["UC-16", "UC-17", "UC-29"]
       validation_points: ["Face recognition processing", "Status update logic"]
 
     BR-20:
@@ -198,7 +197,7 @@ business_rules:
       description: "When finalizing a slot, the system must display a 'Finalization Rules Setup' screen. The lecturer must then make a bulk decision for each group of students with intermediate status (e.g., NOT_YET) to convert their final status to either PRESENT or ABSENT."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-21", "UC-34"]
+      related_use_cases: ["UC-21", "UC-32"]
       validation_points: ["Slot finalization workflow"]
 
     BR-22:
@@ -206,7 +205,7 @@ business_rules:
       description: "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC)."
       domain: "Attendance"
       priority: "Medium"
-      related_use_cases: ["UC-19", "UC-32"]
+      related_use_cases: ["UC-19", "UC-30"]
       validation_points:
         ["Attendance edit authorization", "Time-based access control"]
 
@@ -215,7 +214,7 @@ business_rules:
       description: "After 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC), only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
       domain: "Attendance"
       priority: "Medium"
-      related_use_cases: ["UC-19", "UC-32"]
+      related_use_cases: ["UC-19", "UC-30"]
       validation_points:
         ["Attendance edit authorization", "Time-based access control"]
 
@@ -224,7 +223,7 @@ business_rules:
       description: "An attendance record for a student in a specific slot must be unique."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-15", "UC-16", "UC-30"]
+      related_use_cases: ["UC-15", "UC-16", "UC-28"]
       validation_points: ["Attendance record creation"]
 
   # System Administration (BR-25 to BR-27)
@@ -234,7 +233,7 @@ business_rules:
       description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
       domain: "System"
       priority: "Critical"
-      related_use_cases: ["UC-75", "UC-76", "UC-77", "UC-78", "UC-79", "UC-80"]
+      related_use_cases: ["UC-78", "UC-79", "UC-80", "UC-81", "UC-82", "UC-83"]
       validation_points:
         ["System configuration access", "Role-permission management"]
 
@@ -243,7 +242,7 @@ business_rules:
       description: "User account management (creating, updating, assigning roles, etc.) must be controlled by a granular set of permissions (e.g., USER_CREATE, USER_UPDATE_STATUS, USER_ASSIGN_ROLES). By default, these permissions are granted to the DATA_OPERATOR role."
       domain: "User Management"
       priority: "High"
-      related_use_cases: ["UC-36", "UC-37", "UC-38", "UC-39", "UC-40"]
+      related_use_cases: ["UC-34", "UC-35", "UC-36", "UC-37", "UC-38"]
       validation_points: ["User management operations", "Permission validation"]
 
     BR-27:
@@ -254,27 +253,31 @@ business_rules:
       related_use_cases:
         [
           "UC-21",
-          "UC-34",
+          "UC-25",
+          "UC-32",
+          "UC-36",
+          "UC-37",
           "UC-38",
-          "UC-39",
           "UC-40",
-          "UC-42",
-          "UC-43",
-          "UC-46",
-          "UC-50",
-          "UC-54",
-          "UC-58",
-          "UC-62",
+          "UC-41",
+          "UC-44",
+          "UC-45",
+          "UC-48",
+          "UC-49",
+          "UC-52",
+          "UC-53",
+          "UC-56",
+          "UC-57",
+          "UC-60",
+          "UC-61",
           "UC-63",
-          "UC-65",
-          "UC-68",
-          "UC-69",
-          "UC-72",
-          "UC-73",
-          "UC-78",
-          "UC-81",
+          "UC-66",
+          "UC-67",
+          "UC-70",
+          "UC-71",
+          "UC-76",
+          "UC-79",
           "UC-83",
-          "UC-87",
         ]
       validation_points: ["All critical data modifications"]
 
@@ -285,7 +288,7 @@ business_rules:
       description: "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-19", "UC-20", "UC-32", "UC-33"]
+      related_use_cases: ["UC-19", "UC-20", "UC-30", "UC-31"]
       validation_points: ["Manual status update", "Remark validation"]
 
     BR-29:
@@ -293,7 +296,7 @@ business_rules:
       description: "After a slot is finalized, the primary status for all attendance records must be either PRESENT or ABSENT."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-21", "UC-34"]
+      related_use_cases: ["UC-21", "UC-32"]
       validation_points: ["Slot finalization", "Status validation"]
 
     BR-30:
@@ -301,7 +304,8 @@ business_rules:
       description: "Any request to permanently delete a resource (e.g., Major, Semester, Room) must be rejected with a user-friendly error message if the resource has dependent child resources (e.g., Subjects, Classes, Cameras)."
       domain: "Data Integrity"
       priority: "Critical"
-      related_use_cases: ["UC-47", "UC-51", "UC-55", "UC-59", "UC-69"]
+      related_use_cases:
+        ["UC-45", "UC-49", "UC-53", "UC-57", "UC-61", "UC-67", "UC-71"]
       validation_points: ["All hard delete operations in the backend services"]
 
   # Attendance Status Management (BR-31 to BR-32)
@@ -311,7 +315,7 @@ business_rules:
       description: "Defines valid state transitions for attendance records and time-based edit restrictions. Before finalization, all transitions are allowed. After finalization, assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-19", "UC-21", "UC-27", "UC-29", "UC-32", "UC-34"]
+      related_use_cases: ["UC-19", "UC-21", "UC-30", "UC-32"]
       validation_points:
         [
           "Attendance edit API",
@@ -343,7 +347,7 @@ business_rules:
       description: "Rules for managing face embedding versions when identity is updated. Each approved identity submission generates a new embedding with incremented version. Only one embedding per student can be active at a time."
       domain: "Identity"
       priority: "High"
-      related_use_cases: ["UC-12", "UC-13", "UC-37"]
+      related_use_cases: ["UC-12", "UC-13", "UC-40"]
       validation_points:
         ["Identity approval workflow", "Face recognition query"]
       rules:
@@ -359,14 +363,14 @@ business_rules:
           - "Keep last 3 versions for audit and rollback purposes"
           - "Older versions can be archived or deleted after 1 year"
 
-  # Academic Data Management (BR-33)
+  # Academic Data Management (BR-33 to BR-34)
   academic_data_management:
     BR-33:
       title: "Enrollment Status and Roster Visibility"
       description: "When generating roster for a slot, only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-59", "UC-60", "UC-64", "UC-65"]
+      related_use_cases: ["UC-62", "UC-63"]
       validation_points:
         [
           "Roster query API",
@@ -385,14 +389,61 @@ business_rules:
           - "If student is unenrolled AFTER slot is finalized, their attendance record is preserved"
           - "If student is unenrolled BEFORE slot starts, no attendance record is created"
 
-  # Bulk Operations (BR-34)
-  bulk_operations:
     BR-34:
+      title: "Slot Type and Exam Subcategory Validation"
+      description: "The exam_subcategory field can only have a value when slot_type = 'EXAM'. If slot_type = 'LECTURE', exam_subcategory must be NULL. This validation is enforced at the application layer (backend), not via database constraints."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-24", "UC-25", "UC-26", "UC-58", "UC-60"]
+      validation_points: ["Slot creation API", "Slot update API"]
+      rules:
+        validation_logic:
+          - "If slot_type = 'LECTURE', then exam_subcategory MUST be NULL"
+          - "If slot_type = 'EXAM', then exam_subcategory CAN be 'PROGRESS_TEST', 'FINAL_EXAM', or NULL (for generic exams)"
+          - "Validation is performed in Spring Boot service layer before database operation"
+        allowed_values:
+          slot_type: ["LECTURE", "EXAM"]
+          exam_subcategory: ["PROGRESS_TEST", "FINAL_EXAM", null]
+        permission_mapping:
+          - "SLOT_CREATE_PROGRESS_TEST: Can create slots with exam_subcategory = 'PROGRESS_TEST'"
+          - "SLOT_CREATE_FINAL_EXAM: Can create slots with exam_subcategory = 'FINAL_EXAM'"
+          - "SLOT_UPDATE_PROGRESS_TEST: Can update slots with exam_subcategory = 'PROGRESS_TEST'"
+          - "SLOT_UPDATE_FINAL_EXAM: Can update slots with exam_subcategory = 'FINAL_EXAM'"
+
+  # Time-Based Rules (BR-35)
+  time_based_rules:
+    BR-35:
+      title: "Time-Based Edit Window Calculation"
+      description: "Defines how the 23:59:59 cutoff time is calculated for attendance editing. All timestamps are in UTC, cutoff is based on slot start_time date."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-19", "UC-21", "UC-30", "UC-32"]
+      validation_points: ["Attendance edit API", "Permission middleware"]
+      rules:
+        timezone_standard:
+          - "All timestamps stored in database are in UTC"
+          - "Edit window cutoff is calculated based on slot.start_time date in UTC"
+          - "UI displays times in user's local timezone for convenience"
+        cutoff_calculation:
+          - "Extract date from slot.start_time (in UTC)"
+          - "Cutoff = {slot_date} 23:59:59 UTC"
+          - "Example: slot starts 2024-10-19 14:00:00 UTC → cutoff is 2024-10-19 23:59:59 UTC"
+        permission_check_logic:
+          - "When user attempts to edit attendance:"
+          - "1. Check if user is assigned staff (staff_user_id = current_user_id)"
+          - "2. Check if current_time <= slot_date 23:59:59 UTC"
+          - "3. If both true: allow edit"
+          - "4. If time expired: check if user has DATA_OPERATOR role"
+          - "5. If DATA_OPERATOR: allow edit, else deny"
+
+  # Bulk Operations (BR-36)
+  bulk_operations:
+    BR-36:
       title: "Bulk Enrollment CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk student enrollment. File must be UTF-8 encoded with specific columns and validation rules."
       domain: "Academic"
       priority: "Medium"
-      related_use_cases: ["UC-74"]
+      related_use_cases: ["UC-77"]
       validation_points: ["CSV upload API", "Bulk enrollment processing"]
       csv_format:
         encoding: "UTF-8 with BOM (for Excel compatibility)"
@@ -429,32 +480,6 @@ business_rules:
         error_reporting:
           - "Validation errors are collected and shown in UI before import"
           - "Import is all-or-nothing: if any validation fails, no records are created"
-
-  # Time-Based Rules (BR-35)
-  time_based_rules:
-    BR-35:
-      title: "Time-Based Edit Window Calculation"
-      description: "Defines how the 23:59:59 cutoff time is calculated for attendance editing. All timestamps are in UTC, cutoff is based on slot start_time date."
-      domain: "Attendance"
-      priority: "High"
-      related_use_cases: ["UC-19", "UC-21", "UC-27", "UC-29", "UC-32", "UC-34"]
-      validation_points: ["Attendance edit API", "Permission middleware"]
-      rules:
-        timezone_standard:
-          - "All timestamps stored in database are in UTC"
-          - "Edit window cutoff is calculated based on slot.start_time date in UTC"
-          - "UI displays times in user's local timezone for convenience"
-        cutoff_calculation:
-          - "Extract date from slot.start_time (in UTC)"
-          - "Cutoff = {slot_date} 23:59:59 UTC"
-          - "Example: slot starts 2024-10-19 14:00:00 UTC → cutoff is 2024-10-19 23:59:59 UTC"
-        permission_check_logic:
-          - "When user attempts to edit attendance:"
-          - "1. Check if user is assigned staff (staff_user_id = current_user_id)"
-          - "2. Check if current_time <= slot_date 23:59:59 UTC"
-          - "3. If both true: allow edit"
-          - "4. If time expired: check if user has DATA_OPERATOR role"
-          - "5. If DATA_OPERATOR: allow edit, else deny"
 
 # Rule Dependencies and Relationships
 rule_relationships:

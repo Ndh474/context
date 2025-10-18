@@ -530,7 +530,7 @@ system_context:
       finalize_by: "Lecturer/Supervisor"
       finalization_logic: "When a lecturer finalizes a slot, the system displays a 'Finalization Rules Setup' screen. This screen allows the lecturer to batch decide how students with intermediate statuses (Not Yet, Absent After Present) will be converted to final statuses (Present or Absent)."
       editability_rules: "After the first finalization (first_submission), Lecturer/Supervisor can edit attendance results until 23:59:59 of that day. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator."
-      finalization_audit_trail_note: "The timestamp when a slot is finalized is stored in slots.finalized_at for quick queries and reporting. Detailed information about WHO performed the finalization (actor_user_id), along with the complete history of all finalization-related actions (finalize, reopen, re-finalize), is comprehensively recorded in the operational_audit_logs table. This dual approach balances query performance with comprehensive audit trail requirements."
+      finalization_audit_trail_note: "The timestamp of the MOST RECENT finalization is stored in slots.finalized_at for quick queries and reporting. When a slot is re-finalized, this value is updated (overwrites previous value). Detailed information about WHO performed the finalization (actor_user_id), along with the complete history of all finalization-related actions (finalize, reopen, re-finalize), is comprehensively recorded in the operational_audit_logs table. This dual approach balances query performance with comprehensive audit trail requirements."
 
     lecturer_ui_rules:
       description: "Rules on the lecturer/supervisor attendance screen."
@@ -630,7 +630,9 @@ system_context:
           required: false
           description:
             When slot_type is 'EXAM', this field further classifies the exam (e.g., 'PROGRESS_TEST', 'FINAL_EXAM')
-            to apply specific business logic and permissions.
+            to apply specific business logic and permissions. Must be NULL when slot_type = 'LECTURE'.
+            Validation enforced at application layer.
+          allowed_values: ["PROGRESS_TEST", "FINAL_EXAM", null]
 
     enrollment_entity_definition:
       description: "Definition of enrollment record."
@@ -645,7 +647,7 @@ system_context:
       - "enrollments: (class_id, student_user_id) is unique"
       - "attendance_records: (student_user_id, slot_id) is unique"
     notes:
-      - "enrollments.is_enrolled field controls roster visibility (see BR-33)"
+      - "enrollments.is_enrolled field controls roster visibility"
 
     keys:
       slot_enrollment: "class_id + student_user_id"
@@ -786,6 +788,28 @@ system_context:
         decision: "Feature exists (same-day only) but NOT documented as separate UC"
         reason: "Part of normal attendance management flow, covered by existing permissions"
         status: "FINAL - Do not suggest adding separate UC for this"
+
+    validation_and_constraints_clarifications:
+      - item: "Password Reset Token Status Tracking"
+        decision: "NOT implemented - rely on expires_at only"
+        reason: "Token expiration is sufficient for security. No need for additional is_used or used_at fields. Tokens are single-use by design and expire quickly."
+        status: "SKIP - Do not suggest adding status tracking fields"
+
+      - item: "Camera Availability Validation on Slot Creation"
+        decision: "NOT implemented - no validation for room having cameras"
+        reason: "Cameras can be added after slot creation. Validation would be too restrictive for scheduling flexibility. System will handle missing cameras gracefully at runtime."
+        status: "SKIP - Do not suggest adding camera availability validation"
+
+      - item: "attendance_records.recorded_at Index"
+        decision: "NOT implemented - no index on recorded_at field"
+        reason: "No current use case requires querying by recorded_at. Existing indexes on slot_id and student_user_id are sufficient for current requirements."
+        status: "SKIP - Do not suggest adding this index unless specific use case emerges"
+
+    timezone_and_scheduling_clarifications:
+      - item: "Daily Absence Calculation Job Timezone"
+        decision: "NOT explicitly documented in requirements"
+        reason: "Implementation detail to be determined during development. All database timestamps are UTC. Job scheduling timezone will be configured in deployment environment."
+        status: "SKIP - Implementation detail, not a requirements concern"
 
   to_be_discussed_or_backlog:
     - "Dashboard Design: Finalize KPIs displayed for each role"

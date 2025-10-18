@@ -30,7 +30,7 @@ tables:
       finalized_at:
         type: timestamp
         constraints: [NULL]
-        description: "Timestamp when attendance was FIRST finalized by staff. NULL if not yet finalized. This field is used for quick queries (e.g., filtering finalized slots, calculating edit window cutoff). For complete audit trail including WHO finalized, reopen events, and re-finalization history, query operational_audit_logs table with target_entity='slot' and action_type IN ('FINALIZE', 'REOPEN')."
+        description: "Timestamp of the MOST RECENT finalization. NULL if slot has never been finalized. When slot is re-finalized, this value is updated to the new finalization timestamp (overwrites previous value). This field is used for quick queries (e.g., filtering finalized slots, calculating edit window cutoff). For complete audit trail including WHO finalized and all finalization history (first finalize, reopen, re-finalize), query operational_audit_logs table with target_entity='slot' and action_type IN ('FINALIZE', 'REOPEN')."
       class_id:
         type: smallint
         constraints: [NOT NULL]
@@ -67,7 +67,7 @@ tables:
       exam_subcategory:
         type: varchar(30)
         constraints: [NULL]
-        description: "Sub-category for exam slots to distinguish them, e.g., 'PROGRESS_TEST', 'FINAL_EXAM'."
+        description: "Sub-category for exam slots to distinguish them. Valid values: 'PROGRESS_TEST', 'FINAL_EXAM'. Must be NULL when slot_type = 'LECTURE'. Validation enforced at application layer"
       is_active:
         type: boolean
         constraints: [NOT NULL]
