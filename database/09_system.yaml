@@ -1,0 +1,135 @@
+# System Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  system_configurations:
+    primary_key: id
+    description: "System-wide configuration settings"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique configuration identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Configuration creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Configuration last update timestamp"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Configuration status"
+      key:
+        type: varchar(255)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Configuration key/name"
+      value:
+        type: text
+        constraints: [NOT NULL]
+        description: "Configuration value (can be JSON for complex settings)"
+      description:
+        type: text
+        constraints: [NULL]
+        description: "Human-readable description of the configuration"
+    notes:
+      - "Used for AI model settings, similarity thresholds, system behavior"
+      - "Only System Admins can modify these settings"
+      - "Values can be simple strings or JSON objects for complex configurations"
+
+  operational_audit_logs:
+    primary_key: id
+    description: "Audit trail for important business operations"
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique audit log identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "When the action occurred"
+      actor_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "User who performed the action"
+      action_type:
+        type: varchar(50)
+        constraints: [NOT NULL]
+        description: "Type of action (e.g., 'CREATE', 'UPDATE', 'DELETE', 'FINALIZE')"
+      target_entity:
+        type: varchar(50)
+        constraints: [NOT NULL]
+        description: "Entity type that was affected (e.g., 'slot', 'attendance_record')"
+      target_id:
+        type: BIGINT
+        constraints: [NOT NULL]
+        description: "ID of the affected entity"
+      changes:
+        type: jsonb
+        constraints: [NULL]
+        description: "JSON object containing before/after values for changes"
+    notes:
+      - "Provides complete audit trail for compliance and debugging"
+      - "Records who did what, when, and what changed"
+      - "Especially important for attendance finalization actions"
+      - "Changes field contains structured data about what was modified"
+
+example_configurations:
+  - key: "face_recognition.similarity_threshold"
+    value: "0.85"
+    description: "Minimum similarity score for face recognition matches"
+  
+  - key: "attendance.max_absence_percentage"
+    value: "20"
+    description: "The maximum allowed absence percentage for students before being marked ineligible for the final exam."
+  
+  - key: "attendance.auto_finalize_hours"
+    value: "24"
+    description: "Hours after slot end time before auto-finalization"
+  
+  - key: "notification.email_enabled"
+    value: "true"
+    description: "Whether to send email notifications"
+
+example_audit_entries:
+  - action_type: "FINALIZE"
+    target_entity: "slot"
+    target_id: 12345
+    changes: |
+      {
+        "finalized_at": {
+          "before": null,
+          "after": "2024-10-16T14:30:00Z"
+        },
+        "attendance_updates": [
+          {
+            "student_id": 67890,
+            "status": {"before": "not_yet", "after": "absent"}
+          }
+        ]
+      }
+
+  - action_type: "UPDATE"
+    target_entity: "attendance_record"
+    target_id: 98765
+    changes: |
+      {
+        "status": {
+          "before": "absent",
+          "after": "present"
+        },
+        "method": {
+          "before": "auto",
+          "after": "manual"
+        },
+        "reason": "Student provided valid excuse"
+      }

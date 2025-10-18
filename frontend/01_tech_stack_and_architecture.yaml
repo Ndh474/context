@@ -1,0 +1,75 @@
+tech_stack_and_architecture:
+  project_info:
+    project_name: "frontend-web"
+    last_updated: "2025-10-07T13:45:00Z"
+    description: "FUACS - Frontend Web Application Implementation Manifest"
+    platforms: ["web_lecturer", "web_admin_portal"]
+
+  technology_stack:
+    framework:
+      name: "Next.js"
+      version: "15.5.4"
+
+    ui_framework:
+      name: "React"
+      version: "19.1.0"
+
+    styling:
+      primary: "Tailwind CSS"
+      ui_library: "shadcn/ui"
+      icon_library: "Lucide React"
+      theme_system: "next-themes"
+      utility_classes: ["clsx", "tailwind-merge"]
+
+    state_management:
+      server_state: "@tanstack/react-query"
+      client_state: "zustand"
+      form_validation: "zod"
+      form_handling: "react-hook-form"
+
+    http_client:
+      library: "axios"
+
+    authentication_libraries:
+      oauth: "@react-oauth/google"
+      notes: "Google Identity Services used via @react-oauth/google with client ID sourced from NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+
+    ui_component_libraries:
+      notifications: "sonner"
+
+    type_system:
+      language: "TypeScript"
+      validation: "zod"
+
+  architecture_patterns:
+    data_flow_architecture:
+      description: "Three-layer data flow with type-safe validation at the boundaries"
+      
+      layers:
+        data_contract_layer:
+          files: ["lib/zod-schemas.ts"]
+          responsibility: "Defines data contracts and validation rules using Zod schemas"
+
+        type_definition_layer:
+          files: ["types/index.ts"]
+          responsibility: "Derives static TypeScript types from Zod schemas for full type safety"
+
+        transport_layer:
+          files: ["lib/api-axios.ts", "lib/auth.ts"]
+          responsibility: "Handles API communication, authentication, and error handling"
+
+    component_architecture:
+      description: "Provider-based architecture for wrapping the application with global context"
+      
+      providers:
+        AppProviders:
+          file: "components/providers/app-providers.tsx"
+          responsibility: "Root provider that composes GoogleOAuthProvider (when client ID is set), ThemeProvider, and QueryProvider"
+
+        ThemeProvider:
+          file: "components/providers/theme-provider.tsx"
+          responsibility: "Manages theme (light/dark/system)"
+
+        QueryProvider:
+          file: "components/providers/query-provider.tsx"
+          responsibility: "Configures React Query client and devtools"

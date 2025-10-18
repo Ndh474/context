@@ -1,0 +1,788 @@
+[
+    {
+        "id": "UC-01",
+        "use_case": "Authenticate to System",
+        "primary_actors": [
+            "All Users"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a user to log in using either their Username/Password or a linked Google account. The system validates the credentials before granting access."
+    },
+    {
+        "id": "UC-02",
+        "use_case": "Logout",
+        "primary_actors": [
+            "All Authenticated Users"
+        ],
+        "secondary_actor": null,
+        "description": "Allows an authenticated user to securely end their session and return to the Login screen."
+    },
+    {
+        "id": "UC-03",
+        "use_case": "View Role-Specific Dashboard",
+        "primary_actors": [
+            "All Authenticated Users"
+        ],
+        "secondary_actor": null,
+        "description": "After login, the system displays a personalized dashboard with key information and shortcuts relevant to the user's role."
+    },
+    {
+        "id": "UC-04",
+        "use_case": "Request Password Reset",
+        "primary_actors": [
+            "All Users"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a user to initiate the password reset process by submitting their registered email address from the Login screen to receive a reset link."
+    },
+    {
+        "id": "UC-05",
+        "use_case": "Reset Password using Token",
+        "primary_actors": [
+            "All Users"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a user to set a new password by following the secure link sent to their email and successfully validating the reset token."
+    },
+    {
+        "id": "UC-06",
+        "use_case": "Change Own Password",
+        "primary_actors": [
+            "All Authenticated Users"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a logged-in user to change their current password by providing their old password and a new one, typically via their Profile screen."
+    },
+    {
+        "id": "UC-07",
+        "use_case": "View Personal Schedule",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a student to view their personal class and exam schedule for a selected semester."
+    },
+    {
+        "id": "UC-08",
+        "use_case": "View Slot Details",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a student to view detailed information for a specific slot from their schedule, including announcements."
+    },
+    {
+        "id": "UC-09",
+        "use_case": "Send Pre-Slot Message",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": "Lecturer",
+        "description": "Allows a student to send a one-way message to the lecturer of a specific class slot."
+    },
+    {
+        "id": "UC-10",
+        "use_case": "View Attendance History",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a student to view their own attendance history for past slots."
+    },
+    {
+        "id": "UC-11",
+        "use_case": "View Notifications",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a student to view a feed of notifications, including system alerts and slot-specific announcements."
+    },
+    {
+        "id": "UC-12",
+        "use_case": "Initiate Identity Registration",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": "Data Operator",
+        "description": "Allows a new student to submit their identity credentials (facial video, ID card) for verification by a Data Operator."
+    },
+    {
+        "id": "UC-13",
+        "use_case": "Request Identity Update",
+        "primary_actors": [
+            "Student"
+        ],
+        "secondary_actor": "Data Operator",
+        "description": "Allows a student to submit a request to update their identity profile, which is routed to a Data Operator for approval."
+    },
+    {
+        "id": "UC-14",
+        "use_case": "View Teaching Schedule",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to view their personal teaching and supervision schedule for a selected semester."
+    },
+    {
+        "id": "UC-15",
+        "use_case": "Initiate Attendance Session",
+        "primary_actors": [
+            "Lecturer",
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the assigned staff to start the first automated attendance scan for a slot. This action activates the assigned camera(s) and the on-screen button will subsequently change to \"Re-scan\"."
+    },
+    {
+        "id": "UC-16",
+        "use_case": "Perform Re-scan during Session",
+        "primary_actors": [
+            "Lecturer",
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the assigned staff to trigger a new attendance scan while a session is active. The system will update student statuses based on the latest recognition results and record the event."
+    },
+    {
+        "id": "UC-17",
+        "use_case": "Monitor Real-Time Roster",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to view the class roster for an active session, where statuses are updated in real-time based on results from all assigned cameras."
+    },
+    {
+        "id": "UC-18",
+        "use_case": "View Detailed Attendance History",
+        "primary_actors": [
+            "Lecturer",
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the assigned staff to view the detailed, timestamped attendance history for a specific student within a slot. The history is displayed as a timeline of all automated scans and manual edits."
+    },
+    {
+        "id": "UC-19",
+        "use_case": "Manually Update Attendance Status",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to manually override a student's attendance status for a slot before finalization. A non-empty remark explaining the reason for the change is mandatory."
+    },
+    {
+        "id": "UC-20",
+        "use_case": "Add/Edit Attendance Remark",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to add or modify a remark for a student's attendance record within a slot."
+    },
+    {
+        "id": "UC-21",
+        "use_case": "Finalize Attendance Session",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to end the attendance session. The system will display a \"Finalization Rules Setup\" screen for the lecturer to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent)."
+    },
+    {
+        "id": "UC-22",
+        "use_case": "Create Slot Announcement",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows a lecturer to create and publish an announcement for a specific lecture slot."
+    },
+    {
+        "id": "UC-23",
+        "use_case": "View Slot Announcements",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to view all announcements they have created for a specific lecture slot."
+    },
+    {
+        "id": "UC-24",
+        "use_case": "Delete Slot Announcement",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows a lecturer to remove an existing announcement from a lecture slot."
+    },
+    {
+        "id": "UC-25",
+        "use_case": "View Pre-Slot Messages",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows a lecturer to view a list of pre-slot messages sent by students for a specific lecture slot."
+    },
+    {
+        "id": "UC-26",
+        "use_case": "Acknowledge Pre-Slot Message",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows a lecturer to mark a student's pre-slot message as 'read' or 'acknowledged'."
+    },
+    {
+        "id": "UC-27",
+        "use_case": "Export Slot Attendance Report",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to export a detailed attendance report for a finalized lecture slot."
+    },
+    {
+        "id": "UC-28",
+        "use_case": "View Class Attendance Summary Report",
+        "primary_actors": [
+            "Lecturer"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a lecturer to view and export a summary attendance report for an entire class over a semester."
+    },
+    {
+        "id": "UC-29",
+        "use_case": "View Supervision Schedule",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to view their personal supervision schedule for assigned exam slots."
+    },
+    {
+        "id": "UC-30",
+        "use_case": "Initiate Attendance Session",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to start the first automated attendance scan for an exam slot. This action activates the assigned camera(s) and the on-screen button will subsequently change to \"Re-scan\"."
+    },
+    {
+        "id": "UC-31",
+        "use_case": "Monitor Real-Time Roster",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to view the exam roster for an active session, where statuses are updated in real-time based on results from all assigned cameras."
+    },
+    {
+        "id": "UC-32",
+        "use_case": "Manually Update Attendance Status",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to manually override a candidate's attendance status for an exam slot before finalization. A non-empty remark explaining the reason for the change is mandatory."
+    },
+    {
+        "id": "UC-33",
+        "use_case": "Add/Edit Attendance Remark",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to add or modify a remark for a candidate's attendance record within an exam slot."
+    },
+    {
+        "id": "UC-34",
+        "use_case": "Finalize Attendance Session",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to end the attendance session. The system will display a \"Finalization Rules Setup\" screen for the supervisor to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent)."
+    },
+    {
+        "id": "UC-35",
+        "use_case": "Export Exam Slot Attendance Report",
+        "primary_actors": [
+            "Supervisor"
+        ],
+        "secondary_actor": null,
+        "description": "Allows a supervisor to export a detailed attendance report for a finalized exam slot."
+    },
+    {
+        "id": "UC-36",
+        "use_case": "Create User Account",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to create a new user by providing core details (username, email, full name). The operator must then create a specialized profile (Student or Staff) for the user to define their specific attributes and assign their base role."
+    },
+    {
+        "id": "UC-37",
+        "use_case": "View User Accounts",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view and search a list of all user accounts in the system."
+    },
+    {
+        "id": "UC-38",
+        "use_case": "Update User Account Details",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the information of an existing user account."
+    },
+    {
+        "id": "UC-39",
+        "use_case": "Update User Role Assignment",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to change the role assigned to a user, subject to system constraints."
+    },
+    {
+        "id": "UC-40",
+        "use_case": "Disable/Enable User Account",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to change the status of a user account to active or inactive."
+    },
+    {
+        "id": "UC-41",
+        "use_case": "View Pending Identity Submissions",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows the DOP to view a queue of all identity registration and update requests that are awaiting manual review."
+    },
+    {
+        "id": "UC-42",
+        "use_case": "Approve Identity Submission",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows the DOP to review the details of an identity submission (facial video, ID card) and approve it."
+    },
+    {
+        "id": "UC-43",
+        "use_case": "Reject Identity Submission",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": "Student",
+        "description": "Allows the DOP to reject an identity submission, providing a reason for the rejection that is sent to the student."
+    },
+    {
+        "id": "UC-44",
+        "use_case": "Create Major",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to add a new academic Major to the system-wide catalog."
+    },
+    {
+        "id": "UC-45",
+        "use_case": "View Majors",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all Majors in the system."
+    },
+    {
+        "id": "UC-46",
+        "use_case": "Update Major",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing Major."
+    },
+    {
+        "id": "UC-47",
+        "use_case": "Delete Major",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to disable a Major from the catalog."
+    },
+    {
+        "id": "UC-48",
+        "use_case": "Create Semester",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to create a new academic semester with a name, code, start date, and end date."
+    },
+    {
+        "id": "UC-49",
+        "use_case": "View Semesters",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all semesters in the system."
+    },
+    {
+        "id": "UC-50",
+        "use_case": "Update Semester",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing semester."
+    },
+    {
+        "id": "UC-51",
+        "use_case": "Delete Semester",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to disable a semester."
+    },
+    {
+        "id": "UC-52",
+        "use_case": "Create Subject",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to add a new academic Subject to the catalog, linking it to a Major."
+    },
+    {
+        "id": "UC-53",
+        "use_case": "View Subjects",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all Subjects in the system."
+    },
+    {
+        "id": "UC-54",
+        "use_case": "Update Subject",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing Subject."
+    },
+    {
+        "id": "UC-55",
+        "use_case": "Delete Subject",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to disable a Subject from the catalog."
+    },
+    {
+        "id": "UC-56",
+        "use_case": "Create Class",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to create a new class, linking it to a subject and semester."
+    },
+    {
+        "id": "UC-57",
+        "use_case": "View Classes",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all classes for a selected semester."
+    },
+    {
+        "id": "UC-58",
+        "use_case": "Update Class",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing class."
+    },
+    {
+        "id": "UC-59",
+        "use_case": "Delete Class",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to disable a class."
+    },
+    {
+        "id": "UC-60",
+        "use_case": "Create Schedule/Slot",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to create a new schedule slot for a class. After selecting the room, the operator must select one or more cameras from the list of available cameras in that room to be used for the session."
+    },
+    {
+        "id": "UC-61",
+        "use_case": "View Schedules",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view the complete schedule for a class or semester."
+    },
+    {
+        "id": "UC-62",
+        "use_case": "Update Schedule/Slot",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of a scheduled slot, including changing the assigned cameras."
+    },
+    {
+        "id": "UC-63",
+        "use_case": "Delete Schedule/Slot",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to cancel a scheduled slot."
+    },
+    {
+        "id": "UC-64",
+        "use_case": "Add Student to Roster",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to enroll a student into a specific class."
+    },
+    {
+        "id": "UC-65",
+        "use_case": "Remove Student from Roster",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to unenroll a student from a class."
+    },
+    {
+        "id": "UC-66",
+        "use_case": "Create Room",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to add a new physical room to the system."
+    },
+    {
+        "id": "UC-67",
+        "use_case": "View Rooms",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all rooms in the system."
+    },
+    {
+        "id": "UC-68",
+        "use_case": "Update Room",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing room."
+    },
+    {
+        "id": "UC-69",
+        "use_case": "Delete Room",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to disable a room."
+    },
+    {
+        "id": "UC-70",
+        "use_case": "Create Camera",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to register a new IP camera by providing its details and assigning it to a specific room."
+    },
+    {
+        "id": "UC-71",
+        "use_case": "View Cameras",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a list of all registered cameras."
+    },
+    {
+        "id": "UC-72",
+        "use_case": "Update Camera",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to edit the details of an existing camera, including re-assigning it to a different room."
+    },
+    {
+        "id": "UC-73",
+        "use_case": "Delete Camera",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to delete a camera."
+    },
+    {
+        "id": "UC-74",
+        "use_case": "Import Academic Data",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to bulk-upload academic data (schedules, rosters) for a semester."
+    },
+    {
+        "id": "UC-75",
+        "use_case": "Export Finalized Attendance Results",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to export system-wide, finalized attendance results for a selected period."
+    },
+    {
+        "id": "UC-76",
+        "use_case": "View System-Wide Reports",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to generate and view aggregate reports on attendance data across various dimensions."
+    },
+    {
+        "id": "UC-77",
+        "use_case": "Search/Lookup Attendance Data",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to perform advanced searches for specific attendance records using a variety of filters."
+    },
+    {
+        "id": "UC-78",
+        "use_case": "View Operational Audit Logs",
+        "primary_actors": [
+            "Data Operator"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the DOP to view a historical log of business data changes, which includes detailed before-and-after values for updates."
+    },
+    {
+        "id": "UC-79",
+        "use_case": "Create Notification Template",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to create new system notification templates (e.g., for password resets, identity rejections)."
+    },
+    {
+        "id": "UC-80",
+        "use_case": "View Notification Templates",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to view and manage all system notification templates."
+    },
+    {
+        "id": "UC-81",
+        "use_case": "Update Notification Template",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to edit the content and properties of an existing notification template."
+    },
+    {
+        "id": "UC-82",
+        "use_case": "View System Configuration",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to view all global, system-level settings."
+    },
+    {
+        "id": "UC-83",
+        "use_case": "Update System Configuration",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to modify core system-level configurations to fine-tune system behavior."
+    },
+    {
+        "id": "UC-84",
+        "use_case": "View System Logs",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to view a comprehensive stream of system-wide activity logs for monitoring and troubleshooting."
+    },
+    {
+        "id": "UC-85",
+        "use_case": "Export System Logs",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to export system logs for a specified time period for offline analysis or archival."
+    },
+    {
+        "id": "UC-86",
+        "use_case": "View Role-Permission Mappings",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to view the current matrix that defines which permissions are granted to each user role."
+    },
+    {
+        "id": "UC-87",
+        "use_case": "Update Role-Permission Mappings",
+        "primary_actors": [
+            "System Admin"
+        ],
+        "secondary_actor": null,
+        "description": "Allows the System Admin to grant or revoke specific permissions for each role, controlling access to system functions."
+    }
+]

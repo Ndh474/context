@@ -1,0 +1,152 @@
+# Identity Management Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  identity_submissions:
+    primary_key: id
+    description: "Student identity registration and update requests"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique submission identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Submission creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Submission last update timestamp"
+      reviewed_at:
+        type: timestamp
+        constraints: [NULL]
+        description: "When submission was reviewed (null if pending)"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Student submitting identity request"
+      reviewed_by_user_id:
+        type: int
+        constraints: [NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Data operator who reviewed the submission"
+      status:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "Submission status: 'pending', 'approved', 'rejected'"
+      submission_type:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "Type of submission: 'initial', 'update'"
+      rejection_reason:
+        type: text
+        constraints: [NULL]
+        description: "Reason for rejection (required if status is 'rejected')"
+    notes:
+      - "Initial submissions require both face video and ID card"
+      - "Update submissions only require face video"
+      - "Approved submissions trigger face embedding generation"
+
+  identity_assets:
+    primary_key: id
+    description: "Files uploaded as part of identity submissions"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique asset identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Asset creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Asset last update timestamp"
+      submission_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: identity_submissions
+          column: id
+        description: "Reference to identity submission"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Asset status"
+      asset_type:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "Type of asset: 'face_video' or 'id_card'"
+      storage_url:
+        type: varchar(255)
+        constraints: [NOT NULL]
+        description: "URL/path to stored file"
+    notes:
+      - "Each submission can have multiple assets"
+      - "Face videos are processed to generate embeddings"
+      - "ID cards are used for manual verification by data operators"
+
+  face_embeddings:
+    primary_key: id
+    description: "Vector embeddings generated from approved face videos for recognition"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique embedding identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Embedding creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Embedding last update timestamp"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Student this embedding belongs to"
+      generated_from_asset_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: identity_assets
+          column: id
+        description: "Source asset used to generate this embedding"
+      version:
+        type: int
+        constraints: [NOT NULL]
+        description: "Embedding version (incremented on updates)"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: false
+        description: "Whether this embedding is currently used for recognition"
+      embedding_vector:
+        type: vector(512)
+        constraints: [NOT NULL]
+        description: "512-dimensional face embedding vector"
+    notes:
+      - "Requires pgvector extension for vector operations"
+      - "Only one embedding per student should be active at a time"
+      - "New embeddings replace old ones when identity is updated"
+      - "Vector similarity search is used for face recognition"
+
+extensions_required:
+  - name: pgvector
+    description: "Required for storing and querying face embedding vectors"
+    tables: [face_embeddings]

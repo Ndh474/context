@@ -1,0 +1,224 @@
+ui_components:
+  base_components:
+    Button:
+      file: "components/ui/button.tsx"
+      purpose: "Primary action button primitive"
+      variants:
+        ["default", "destructive", "outline", "secondary", "ghost", "link"]
+      sizes: ["default", "sm", "lg", "icon"]
+
+    DropdownMenu:
+      file: "components/ui/dropdown-menu.tsx"
+      purpose: "Menu trigger for theme toggle"
+      components:
+        ["DropdownMenuTrigger", "DropdownMenuContent", "DropdownMenuItem"]
+
+    Input:
+      file: "components/ui/input.tsx"
+      purpose: "Text input field used across forms"
+      features: ["Controlled/uncontrolled", "Error states", "Accessibility"]
+
+    Form:
+      file: "components/ui/form.tsx"
+      purpose: "React Hook Form bindings and field primitives"
+      components:
+        [
+          "Form",
+          "FormField",
+          "FormItem",
+          "FormLabel",
+          "FormControl",
+          "FormMessage",
+        ]
+
+    Label:
+      file: "components/ui/label.tsx"
+      purpose: "Accessible form labels"
+      features: ["Proper ARIA associations"]
+
+    Card:
+      file: "components/ui/card.tsx"
+      purpose: "Container for auth layouts"
+      components:
+        [
+          "Card",
+          "CardHeader",
+          "CardTitle",
+          "CardDescription",
+          "CardContent",
+          "CardFooter",
+        ]
+
+    Separator:
+      file: "components/ui/separator.tsx"
+      purpose: "Divider used in auth forms"
+      orientations: ["horizontal", "vertical"]
+
+    Sonner:
+      file: "components/ui/sonner.tsx"
+      purpose: "Toast notifications"
+      features: ["Success", "Error", "Info", "Warning toasts"]
+
+    AlertDialog:
+      file: "components/ui/alert-dialog.tsx"
+      purpose: "Destructive confirmations"
+      use_cases: ["Delete confirmations", "Irreversible actions"]
+
+    Calendar:
+      file: "components/ui/calendar.tsx"
+      purpose: "Date picker calendar"
+      library: "react-day-picker v9"
+
+    Dialog:
+      file: "components/ui/dialog.tsx"
+      purpose: "Modal dialog container"
+      features: ["Backdrop", "Close button", "Focus trap"]
+
+    Pagination:
+      file: "components/ui/pagination.tsx"
+      purpose: "Pagination navigation primitives"
+
+    Popover:
+      file: "components/ui/popover.tsx"
+      purpose: "Floating content container"
+
+    Select:
+      file: "components/ui/select.tsx"
+      purpose: "Dropdown select input"
+      features: ["Keyboard navigation", "Groups"]
+
+    Switch:
+      file: "components/ui/switch.tsx"
+      purpose: "Toggle switch input"
+
+    Table:
+      file: "components/ui/table.tsx"
+      purpose: "Table structure components"
+
+  custom_components:
+    ModeToggle:
+      file: "components/mode-toggle.tsx"
+      dependencies: ["Button", "DropdownMenu"]
+      purpose: "Theme switching (light/dark/system)"
+      features: ["System theme detection", "Persistent theme selection"]
+
+    LoginForm:
+      file: "components/auth/login-form.tsx"
+      dependencies:
+        ["useLogin hook", "Form", "Input", "Button", "Separator", "Label"]
+      purpose: "Username/password form with validation and Google CTA"
+      features:
+        - "Form validation with Zod"
+        - "Google Sign-In integration"
+        - "Error handling and toast feedback"
+        - "Loading states"
+        - "Responsive design"
+
+    SemesterTable:
+      file: "components/semesters/semester-table.tsx"
+      dependencies: ["Table", "TanStack React Table"]
+      purpose: "Data table for semesters with fixed 10-row height"
+      features:
+        - "Empty row padding when < 10 items"
+        - "Conditional pagination display"
+        - "Pagination info (Showing X - Y of Z)"
+
+    SemesterFormDialog:
+      file: "components/semesters/semester-form-dialog.tsx"
+      dependencies: ["Dialog", "Form", "Calendar", "Switch"]
+      purpose: "Create/Edit semester with dual-mode validation"
+      features:
+        - "Code field immutable in edit mode"
+        - "isActive switch only in edit mode"
+        - "Conditional date validation"
+
+    SemesterPagination:
+      file: "components/semesters/semester-pagination.tsx"
+      purpose: "Custom pagination with smart ellipsis"
+      features:
+        - "Dynamic ellipsis (1 ... 5 6 7 ... 20)"
+        - "Show all if <= 7 pages"
+
+    DeleteSemesterDialog:
+      file: "components/semesters/delete-semester-dialog.tsx"
+      dependencies: ["AlertDialog"]
+      purpose: "Delete confirmation with dependency warning"
+
+  component_patterns:
+    form_components:
+      pattern: "React Hook Form + Zod validation"
+      structure:
+        - "Define Zod schema in lib/zod-schemas.ts"
+        - "Use useForm with zodResolver"
+        - "Wrap fields with FormField components"
+        - "Handle submission with React Query mutations"
+
+    layout_components:
+      pattern: "Card-based layouts for auth screens"
+      structure:
+        - "Card container for visual grouping"
+        - "CardHeader for titles and descriptions"
+        - "CardContent for form content"
+        - "Responsive spacing and typography"
+
+    table_components:
+      pattern: "TanStack React Table + fixed height + custom pagination"
+      structure:
+        - "Column definitions via factory function"
+        - "Fixed 10-row height with empty row padding"
+        - "Custom pagination with smart ellipsis"
+        - "Hide pagination when totalItems <= pageSize"
+
+    crud_dialog_pattern:
+      pattern: "Dual-mode dialog with conditional validation"
+      structure:
+        - "Single component for create/edit"
+        - "Different schemas per mode"
+        - "Conditional field visibility"
+        - "Immutable fields disabled in edit"
+
+    search_and_sort_pattern:
+      pattern: "Debounced search + instant sort dropdowns"
+      implementation:
+        - "useDebounce(searchQuery, 500ms)"
+        - "Separate Select for sortBy and sortOrder"
+        - "No debounce on sort (instant response)"
+
+    provider_components:
+      pattern: "Composition of context providers"
+      structure:
+        - "AppProviders as root composition"
+        - "Individual providers for specific concerns"
+        - "Conditional provider wrapping based on environment"
+
+  styling_system:
+    approach: "Utility-first with component variants"
+    tools:
+      - "Tailwind CSS for utility classes"
+      - "class-variance-authority for component variants"
+      - "clsx and tailwind-merge for conditional classes"
+
+    theme_system:
+      provider: "next-themes"
+      modes: ["light", "dark", "system"]
+      css_variables: "CSS custom properties for theme colors"
+
+    responsive_design:
+      breakpoints: "Tailwind default breakpoints"
+      approach: "Mobile-first responsive design"
+
+  accessibility:
+    standards: "WCAG 2.1 AA compliance"
+    implementations:
+      - "Proper ARIA labels and associations"
+      - "Keyboard navigation support"
+      - "Focus management"
+      - "Screen reader compatibility"
+      - "Color contrast compliance"
+
+  component_organization:
+    ui_components: "components/ui/ - Base shadcn/ui components"
+    custom_components: "components/ - Feature-specific components"
+    providers: "components/providers/ - Context providers"
+    auth_components: "components/auth/ - Authentication-related components"
+    semester_components: "components/semesters/ - Semester management components"

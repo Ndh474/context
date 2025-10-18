@@ -1,0 +1,319 @@
+testing_and_gaps:
+  testing_status:
+    summary: "The committed source currently contains only a single Spring Boot context smoke test. Historical Surefire reports under `target/surefire-reports/` reference broader coverage, but the associated test sources are no longer present in `src/test/java`."
+
+    current_test_coverage:
+      application_context_loading:
+        status: "implemented"
+        test: "BackendApplicationTests"
+      service_layer_unit_tests:
+        status: "missing"
+      controller_integration_tests:
+        status: "missing"
+      repository_tests:
+        status: "missing"
+      security_tests:
+        status: "missing"
+
+    test_files_present:
+      - file: "src/test/java/com/fuacs/backend/BackendApplicationTests.java"
+        description: "Loads the Spring context against a PostgreSQL Testcontainers instance"
+
+    historical_evidence:
+      description: "Surefire reports dated 2025-10-14 list 27 executed tests (Semester service/controller) with zero failures. Those classes (`SemesterServiceTest`, `SemesterControllerIntegrationTest`) are not in the current tree and should be considered missing artifacts."
+
+    gap_analysis:
+      - "Domain-specific service logic (authentication, catalog, identity, staff/student) has no automated coverage"
+      - "REST controller behaviour (validation, security, pagination) is untested"
+      - "Repository queries (especially native search/count implementations) lack verification"
+      - "Security flows (JWT, permissions) have no regression tests"
+
+    frameworks_available:
+      unit: ["JUnit 5", "Mockito"]
+      integration: ["Spring Boot Test", "Testcontainers (PostgreSQL)"]
+
+    test_debt: "High — Reinstate deleted modules or rebuild the suite across services, controllers, repositories, and security"
+
+    action_items:
+      - "Recover or recreate Semester test suites referenced in Surefire history"
+      - "Establish service-layer unit tests for each domain (using mocks where appropriate)"
+      - "Add controller integration tests covering validation, permission checks, and pagination contracts"
+      - "Create repository tests to validate native/JPQL search queries"
+      - "Implement security-focused tests for JWT authentication/authorization flows"
+
+  implementation_gaps:
+    critical_missing_components:
+      attendance_management_system:
+        status: "NOT IMPLEMENTED"
+        missing_components:
+          - "AttendanceRecord entity (commented out in Slot.java)"
+          - "AttendanceSession management"
+          - "Real-time attendance updates from Python service"
+          - "Attendance finalization workflows"
+          - "Manual attendance override functionality"
+        note: "Core feature for the system - highest priority"
+
+      slot_interaction_system:
+        status: "NOT IMPLEMENTED"
+        missing_components:
+          - "SlotAnnouncement entity and management"
+          - "PreSlotMessage entity and handling"
+          - "Slot-student communication channels"
+          - "Announcement delivery to students"
+        note: "Required for lecturer-student communication"
+
+      notification_system:
+        status: "PARTIALLY IMPLEMENTED"
+        implemented:
+          - "EmailService with basic email sending (password reset, password delivery)"
+          - "Async email support via @Async"
+          - "JavaMailSender configured with Gmail SMTP"
+        missing_components:
+          - "SystemNotification entity for in-app notifications"
+          - "NotificationDelivery tracking mechanism"
+          - "Push notification integration"
+          - "Email template system (currently hardcoded messages)"
+          - "Notification preferences management"
+        note: "Basic email exists, but comprehensive notification system needed"
+
+      system_administration:
+        status: "NOT IMPLEMENTED"
+        missing_components:
+          - "SystemConfiguration entity and management API"
+          - "OperationalAuditLog entity for tracking business actions"
+          - "System monitoring endpoints"
+          - "Configuration UI/API for system parameters"
+        note: "Required for system admin role functionality"
+
+    technical_debt:
+      security_coverage:
+        status: "IMPLEMENTED BUT NEEDS AUDIT"
+        findings:
+          - "Controllers have @PreAuthorize annotations (verified in SemesterController, StaffController)"
+          - "Permission naming follows DOMAIN_ACTION pattern (e.g., SEMESTER_READ, USER_CREATE)"
+          - "Custom PermissionEvaluatorImpl implemented for granular checks"
+          - "Method security enabled via @EnableMethodSecurity"
+        remaining_issues:
+          - "Need to audit all 13 controllers to ensure 100% endpoint coverage"
+          - "Some endpoints may still lack @PreAuthorize annotations"
+          - "Ownership validation not implemented (e.g., users updating only their own data)"
+          - "No security tests to verify permission enforcement"
+        action: "Conduct comprehensive security audit of all controller endpoints"
+
+      testing_infrastructure:
+        status: "CRITICAL - ZERO COVERAGE"
+        current_state:
+          - "Only 1 smoke test (BackendApplicationTests - context loading)"
+          - "Test directories exist but empty (controller/, service/)"
+          - "Testcontainers configured and working (PostgreSQL 15-alpine)"
+          - "JUnit 5 and Mockito available in dependencies"
+          - "Spring Boot Test and Spring Security Test available"
+        impact: "No regression protection, high risk for bugs in production"
+        priority: "IMMEDIATE"
+        historical_note: "Surefire reports reference 27 tests (Semester service/controller) but test files deleted"
+
+      integration_points:
+        identity_asset_management:
+          status: "NOT IMPLEMENTED"
+          missing:
+            - "File upload handling (MultipartFile)"
+            - "File storage service (local filesystem or cloud storage)"
+            - "Face video and ID card image storage"
+            - "Asset retrieval API for verification workflow"
+          note: "IdentitySubmission entity exists but no file handling infrastructure"
+
+        camera_monitoring:
+          status: "NOT IMPLEMENTED"
+          missing:
+            - "Camera status monitoring (online/offline)"
+            - "RTSP connection health checks"
+            - "Camera feed preview functionality"
+            - "Alert system for camera failures"
+          note: "Camera entity has rtspUrl field but no monitoring service"
+
+        slot_camera_association:
+          status: "IMPLEMENTED"
+          implementation:
+            - "Slot entity has @ManyToMany relationship with Camera"
+            - "slot_cameras join table configured via @JoinTable"
+            - "Bidirectional mapping in Camera entity (mappedBy = 'cameras')"
+            - "Set<Camera> cameras field in Slot entity"
+          note: "CORRECTION: This is fully implemented, not incomplete"
+
+  recommendations:
+    immediate_actions:
+      priority_1_critical:
+        - action: "Implement AttendanceRecord entity and repository"
+          reason: "Core feature blocking attendance functionality"
+          components:
+            [
+              "AttendanceRecord entity",
+              "AttendanceRecordRepository",
+              "AttendanceService",
+              "AttendanceController",
+            ]
+          estimated_effort: "2-3 days"
+          dependencies: "Requires Slot entity (already exists)"
+
+        - action: "Create comprehensive test suite"
+          reason: "Zero test coverage is critical risk for production stability"
+          estimated_effort: "1-2 weeks"
+          approach: "Start with service layer unit tests, then controller integration tests, then repository tests"
+          priority_order:
+            [
+              "Service layer (mocked dependencies)",
+              "Controller layer (integration)",
+              "Repository layer (Testcontainers)",
+              "Security tests",
+            ]
+
+        - action: "Implement file upload handling for IdentitySubmission"
+          reason: "Identity verification cannot work without asset storage"
+          components:
+            [
+              "FileStorageService",
+              "MultipartFile handling",
+              "File validation",
+              "Storage configuration",
+            ]
+          estimated_effort: "2-3 days"
+          technical_decisions:
+            [
+              "Local filesystem vs cloud storage (S3, Azure Blob)",
+              "File naming strategy",
+              "Security considerations",
+            ]
+
+      priority_2_high:
+        - action: "Implement SlotAnnouncement and PreSlotMessage entities"
+          reason: "Required for slot interaction features per system_context.yaml"
+          components:
+            [
+              "SlotAnnouncement entity/service/controller",
+              "PreSlotMessage entity/service/controller",
+              "Notification integration",
+            ]
+          estimated_effort: "3-4 days"
+
+        - action: "Conduct security audit of all endpoints"
+          reason: "Ensure all endpoints have @PreAuthorize annotations"
+          scope: "13 controllers, ~80-100 endpoints"
+          estimated_effort: "1 day"
+          deliverable: "Security audit report with coverage percentage"
+
+        - action: "Implement SystemNotification infrastructure"
+          reason: "Needed for in-app notifications and user alerts"
+          components:
+            [
+              "SystemNotification entity",
+              "NotificationDelivery tracking",
+              "Notification API",
+              "Read/unread status",
+            ]
+          estimated_effort: "3-5 days"
+
+    medium_term_goals:
+      - action: "Complete identity asset management with file storage"
+        components:
+          [
+            "File upload API",
+            "Storage service",
+            "Asset retrieval",
+            "File cleanup jobs",
+          ]
+        estimated_effort: "1 week"
+        note: "Choose storage strategy (local vs cloud) early"
+
+      - action: "Implement camera status monitoring"
+        components:
+          [
+            "Health check service",
+            "Status tracking",
+            "Alert system",
+            "RTSP connection testing",
+          ]
+        estimated_effort: "1 week"
+        integration: "May require Python service coordination"
+
+      - action: "Add comprehensive reporting capabilities"
+        components:
+          [
+            "Report generation",
+            "Data export (CSV/Excel)",
+            "Analytics queries",
+            "Report scheduling",
+          ]
+        estimated_effort: "2 weeks"
+        note: "Attendance reports are core feature per system_context.yaml"
+
+      - action: "Implement SystemConfiguration management"
+        components:
+          [
+            "SystemConfiguration entity",
+            "Admin API",
+            "Configuration validation",
+            "UI integration",
+          ]
+        estimated_effort: "1 week"
+        examples:
+          [
+            "Max absence percentage",
+            "Token expiration times",
+            "Email templates",
+          ]
+
+      - action: "Implement OperationalAuditLog"
+        components:
+          [
+            "AuditLog entity",
+            "AOP interceptor for auto-logging",
+            "Query API",
+            "Audit viewer",
+          ]
+        estimated_effort: "1 week"
+        note: "Required for compliance and debugging"
+
+    long_term_improvements:
+      - action: "Add performance monitoring and metrics"
+        components:
+          [
+            "Spring Boot Actuator",
+            "Micrometer",
+            "Prometheus integration",
+            "Grafana dashboards",
+          ]
+        estimated_effort: "1 week"
+        note: "Currently no actuator endpoints configured"
+
+      - action: "Implement caching strategies"
+        components:
+          [
+            "Redis integration",
+            "@Cacheable annotations",
+            "Cache invalidation",
+            "Cache warming",
+          ]
+        estimated_effort: "1 week"
+        targets:
+          ["Permission lookups", "User profiles", "Academic catalog data"]
+
+      - action: "Add API rate limiting"
+        components:
+          [
+            "Resilience4j rate limiter configuration",
+            "Per-user limits",
+            "Endpoint-specific limits",
+          ]
+        estimated_effort: "3-5 days"
+        note: "Resilience4j already in dependencies but not configured (commented in application-dev.yaml)"
+
+      - action: "Enhance email template system"
+        components:
+          [
+            "Thymeleaf templates",
+            "Template management",
+            "Multi-language support",
+            "Template variables",
+          ]
+        estimated_effort: "1 week"
+        current_state: "EmailService has hardcoded messages"

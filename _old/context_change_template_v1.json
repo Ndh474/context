@@ -1,0 +1,158 @@
+{
+  "template_version": "2025-09-26",
+  "target_schema": "context_final_v12_FINAL",
+  "conventions": {
+    "path_syntax": "JSON Pointer (RFC 6901)",
+    "ops": {
+      "replace": "Override value at path",
+      "add": "Add new key or element at path (if not already exists)",
+      "remove": "Delete value/key at path",
+      "update_array_values": {
+        "desc": "Add/Remove elements for array (string/number)",
+        "fields": [
+          "add",
+          "remove"
+        ]
+      },
+      "upsert_array_object": {
+        "desc": "Add or update 1 object in array based on match condition (not using index)",
+        "fields": [
+          "match",
+          "set",
+          "add",
+          "remove",
+          "object_key"
+        ]
+      },
+      "upsert_map_entry": {
+        "desc": "Add/edit 1 key/value pair in object map",
+        "fields": [
+          "key",
+          "value"
+        ]
+      }
+    },
+    "rules": {
+      "no_delta_language": true,
+      "append_unique_for_arrays": true
+    }
+  },
+  "changes": [
+    {
+      "op": "replace",
+      "path": "/attendance/attendance_mode/description",
+      "value": "TODO: New standard description (do not use 'new/old' terms)."
+    },
+    {
+      "op": "update_array_values",
+      "path": "/function_catalog/student/functions",
+      "add": [
+        "TODO: function name to add"
+      ],
+      "remove": [
+        "TODO: function name to remove"
+      ]
+    },
+    {
+      "op": "update_array_values",
+      "path": "/function_catalog/lecturer/functions",
+      "add": [
+        "TODO: lecturer function to add"
+      ],
+      "remove": [
+        "TODO: lecturer function to remove"
+      ]
+    },
+    {
+      "op": "upsert_array_object",
+      "path": "/screen_catalog/web_lecturer",
+      "match": {
+        "name": "Roster & Attendance"
+      },
+      "set": {},
+      "add": {
+        "features": [
+          "TODO: new feature for this screen"
+        ]
+      },
+      "remove": {
+        "features": [
+          "TODO: feature to remove from this screen"
+        ]
+      }
+    },
+    {
+      "op": "upsert_array_object",
+      "path": "/screen_catalog/mobile_student",
+      "match": {
+        "name": "Slot Details Screen"
+      },
+      "add": {
+        "features": [
+          "TODO: add form/field..."
+        ]
+      },
+      "remove": {
+        "features": [
+          "TODO: remove feature..."
+        ]
+      }
+    },
+    {
+      "op": "upsert_array_object",
+      "path": "/screen_catalog/mobile_student",
+      "object_key": "name",
+      "match": {
+        "name": "TODO: New screen name"
+      },
+      "set": {
+        "name": "TODO: New screen name"
+      },
+      "add": {
+        "features": [
+          "TODO: feature list"
+        ]
+      }
+    },
+    {
+      "op": "replace",
+      "path": "/definitions/ui_aliases/student_notification_to_lecturer",
+      "value": [
+        "Send Notification to Lecturer",
+        "Send Notification to Lecturer",
+        "Compose Notification to Lecturer"
+      ]
+    },
+    {
+      "op": "upsert_array_object",
+      "path": "/terminology_notes/mappings",
+      "match": {
+        "ui_label": "Send Notification to Lecturer"
+      },
+      "set": {
+        "concept": "pre_slot_message"
+      },
+      "remove": {},
+      "add": {}
+    },
+    {
+      "op": "upsert_map_entry",
+      "path": "/idempotency_policies/keys",
+      "key": "pre_slot_message",
+      "value": "slot_id + student_id + hash(body+urls+created_at_iso8601)"
+    },
+    {
+      "op": "replace",
+      "path": "/platforms/student",
+      "value": "Mobile (iOS, Android)"
+    },
+    {
+      "op": "remove",
+      "path": "/system_configuration"
+    },
+    {
+      "op": "remove",
+      "path": "/screen_catalog/web_student"
+    }
+  ]
+}

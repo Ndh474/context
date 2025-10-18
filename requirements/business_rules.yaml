@@ -1,0 +1,434 @@
+# Business Rules Specification
+# FUACS Requirements - Version 1.0
+
+metadata:
+  total_business_rules: 34
+  domains_covered:
+    [
+      Authentication,
+      Roles,
+      Identity,
+      Academic,
+      Attendance,
+      Communication,
+      System,
+      Audit,
+    ]
+  last_updated: "2024-10-16"
+
+business_rules:
+  # Authentication & User Management (BR-01 to BR-07)
+  authentication:
+    BR-01:
+      title: "Primary Login Identifier"
+      description: "The primary login identifier username for a user must be their Student ID (for Students) or Staff ID (for Staff)."
+      domain: "Authentication"
+      priority: "High"
+      related_use_cases: ["UC-01", "UC-36"]
+      validation_points: ["User creation", "Login process"]
+
+    BR-02:
+      title: "Google Login Email Lookup"
+      description: "When a user logs in via Google, the system must use the email address provided by Google to look up the corresponding user account."
+      domain: "Authentication"
+      priority: "High"
+      related_use_cases: ["UC-01"]
+      validation_points: ["Google OAuth callback"]
+
+    BR-03:
+      title: "Inactive Account Access Denial"
+      description: "If a user account is found but is inactive (is_active = false), access must be denied."
+      domain: "Authentication"
+      priority: "High"
+      related_use_cases: ["UC-01", "UC-40"]
+      validation_points: ["Login process", "Account status check"]
+
+    BR-04:
+      title: "Unique Username and Email"
+      description: "Each username and email must be unique across the entire system."
+      domain: "Authentication"
+      priority: "High"
+      related_use_cases: ["UC-01", "UC-36"]
+      validation_points: ["User creation", "User update"]
+
+    BR-05:
+      title: "Role Assignment Constraints"
+      description: "A user with the STUDENT role cannot be concurrently assigned the LECTURER or SUPERVISOR role."
+      domain: "Roles"
+      priority: "High"
+      related_use_cases: ["UC-36", "UC-39"]
+      validation_points: ["Role assignment", "Role update"]
+
+    BR-06:
+      title: "Password Reset Token Security"
+      description: "A password reset token must be unique, have an expiration time, and must be invalidated immediately after successful use."
+      domain: "Authentication"
+      priority: "High"
+      related_use_cases: ["UC-04", "UC-05"]
+      validation_points:
+        ["Token generation", "Token validation", "Password reset"]
+
+    BR-07:
+      title: "User Profile Requirement"
+      description: "A new user account must be linked to a specialized profile (student_profiles or staff_profiles) to define its specific attributes."
+      domain: "User Management"
+      priority: "High"
+      related_use_cases: ["UC-36"]
+      validation_points: ["User creation workflow"]
+
+  # Identity Management (BR-08 to BR-11)
+  identity_management:
+    BR-08:
+      title: "Initial Identity Registration Requirements"
+      description: "A student's initial identity registration request must include a facial video and a national ID card image."
+      domain: "Identity"
+      priority: "High"
+      related_use_cases: ["UC-12"]
+      validation_points: ["Identity submission creation"]
+
+    BR-09:
+      title: "Manual Identity Approval"
+      description: "All identity registration or update requests must be manually approved by a user with the appropriate permissions (e.g., IDENTITY_SUBMISSION_APPROVE)."
+      domain: "Identity"
+      priority: "High"
+      related_use_cases: ["UC-12", "UC-13", "UC-41", "UC-42", "UC-43"]
+      validation_points: ["Identity submission workflow"]
+
+    BR-10:
+      title: "Pending Identity Update Handling"
+      description: "While an identity update request is pending approval, the system must continue to use the previously approved identity data for attendance checking."
+      domain: "Identity"
+      priority: "Medium"
+      related_use_cases: ["UC-13"]
+      validation_points:
+        ["Face recognition process", "Identity update workflow"]
+
+    BR-11:
+      title: "Identity Rejection Notification"
+      description: "When an identity submission is rejected, the system must automatically send a system notification to the student, stating the reason for rejection."
+      domain: "Identity"
+      priority: "Medium"
+      related_use_cases: ["UC-11", "UC-43"]
+      validation_points: ["Identity rejection workflow"]
+
+  # Academic Catalog (BR-12 to BR-17)
+  academic_catalog:
+    BR-12:
+      title: "Unique Academic Identifiers"
+      description: "Each Major, Subject, and Class must have a unique identifier (code or name)."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases:
+        ["UC-44", "UC-46", "UC-48", "UC-50", "UC-52", "UC-54", "UC-56", "UC-58"]
+      validation_points: ["Academic entity creation", "Academic entity update"]
+
+    BR-13:
+      title: "Single Class Enrollment"
+      description: "A student can only be enrolled in a specific class once."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-64"]
+      validation_points: ["Student enrollment"]
+
+    BR-14:
+      title: "Enrollment History Preservation"
+      description: "When a student is unenrolled from a class (enrollments.is_active = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-65"]
+      validation_points:
+        [
+          "Student unenrollment",
+          "Roster generation",
+          "Attendance history queries",
+        ]
+
+    BR-15:
+      title: "Slot Room Assignment"
+      description: "Each lecture/exam slot must be associated with a specific slot type and room."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-60", "UC-62"]
+      validation_points: ["Slot creation", "Slot update"]
+
+    BR-16:
+      title: "Camera Room Validation"
+      description: "When creating or updating a slot, the selected cameras must belong to the list of cameras registered for that slot's assigned room."
+      domain: "Infrastructure"
+      priority: "High"
+      related_use_cases: ["UC-60", "UC-62"]
+      validation_points: ["Slot camera assignment"]
+
+    BR-17:
+      title: "Single Staff Assignment"
+      description: "Each lecture/exam slot must be assigned to one and only one staff member (Lecturer or Supervisor) at a time."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-15", "UC-30", "UC-60", "UC-62"]
+      validation_points: ["Slot creation", "Slot update", "Staff assignment"]
+
+  # Attendance Management (BR-18 to BR-26)
+  attendance_management:
+    BR-18:
+      title: "Attendance Session Authorization"
+      description: "An automated attendance session can only be initiated by the staff member assigned to that slot who has the SLOT_SESSION_START permission."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-15", "UC-30"]
+      validation_points: ["Session initiation", "Permission check"]
+
+    BR-19:
+      title: "Face Recognition Status Update"
+      description: "When a face is recognized, the system updates the student's status based on the latest scan result (e.g., PRESENT for a new arrival, ABSENT_AFTER_PRESENT for a departure). This action is recorded as a new event in the attendance history."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-16", "UC-17", "UC-31"]
+      validation_points: ["Face recognition processing", "Status update logic"]
+
+    BR-20:
+      title: "Unrecognized Face Handling"
+      description: "If a face is not recognized, the system takes no action, and the student's attendance status remains unchanged during that scan."
+      domain: "Attendance"
+      priority: "Medium"
+      related_use_cases: ["UC-16"]
+      validation_points: ["Face recognition processing"]
+
+    BR-21:
+      title: "Finalization Rules Setup"
+      description: "When finalizing a slot, the system must display a 'Finalization Rules Setup' screen. The lecturer must then make a bulk decision for each group of students with an intermediate status (e.g., NOT_YET, ABSENT_AFTER_PRESENT) to convert their final status to either PRESENT or ABSENT."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-21", "UC-34"]
+      validation_points: ["Slot finalization workflow"]
+
+    BR-22:
+      title: "Same-Day Edit Window"
+      description: "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 on the day of the slot."
+      domain: "Attendance"
+      priority: "Medium"
+      related_use_cases: ["UC-19", "UC-32"]
+      validation_points:
+        ["Attendance edit authorization", "Time-based access control"]
+
+    BR-23:
+      title: "Post-Day Edit Restrictions"
+      description: "After 23:59:59 on the day of the slot, only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
+      domain: "Attendance"
+      priority: "Medium"
+      related_use_cases: ["UC-19", "UC-32"]
+      validation_points:
+        ["Attendance edit authorization", "Time-based access control"]
+
+    BR-24:
+      title: "Unique Attendance Record"
+      description: "An attendance record for a student in a specific slot must be unique."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-15", "UC-16", "UC-30"]
+      validation_points: ["Attendance record creation"]
+
+    BR-25:
+      title: "Pre-Slot Message Timing"
+      description: "A student can only send a 'Pre-slot Message' to the Lecturer before the slot's official start_time."
+      domain: "Communication"
+      priority: "Medium"
+      related_use_cases: ["UC-09", "UC-25"]
+      validation_points: ["Message creation", "Time validation"]
+
+    BR-26:
+      title: "Pre-Slot Message Non-Impact"
+      description: "A 'Pre-slot Message' serves as a reference and must not automatically alter a student's attendance status."
+      domain: "Communication"
+      priority: "Medium"
+      related_use_cases: ["UC-09", "UC-25"]
+      validation_points: ["Message processing", "Attendance status logic"]
+
+  # Communication (BR-27 to BR-28)
+  communication:
+    BR-27:
+      title: "Slot Announcement Authorization"
+      description: "Only the assigned Lecturer for a lecture slot (slot_type = LECTURE) can create, edit, or delete a 'Slot Announcement'."
+      domain: "Communication"
+      priority: "Medium"
+      related_use_cases: ["UC-22", "UC-23", "UC-24"]
+      validation_points: ["Announcement management", "Authorization check"]
+
+    BR-28:
+      title: "Slot Announcement Visibility"
+      description: "A 'Slot Announcement' must be visible to all students enrolled in that slot."
+      domain: "Communication"
+      priority: "Medium"
+      related_use_cases: ["UC-08", "UC-11", "UC-22", "UC-24"]
+      validation_points: ["Announcement distribution", "Student notification"]
+
+  # System Administration (BR-29 to BR-31)
+  system_administration:
+    BR-29:
+      title: "System Configuration Permissions"
+      description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
+      domain: "System"
+      priority: "Critical"
+      related_use_cases:
+        ["UC-79", "UC-80", "UC-81", "UC-82", "UC-83", "UC-86", "UC-87"]
+      validation_points:
+        ["System configuration access", "Role-permission management"]
+
+    BR-30:
+      title: "User Management Permissions"
+      description: "User account management (creating, updating, assigning roles, etc.) must be controlled by a granular set of permissions (e.g., USER_CREATE, USER_UPDATE_STATUS, USER_ASSIGN_ROLES). By default, these permissions are granted to the DATA_OPERATOR role."
+      domain: "User Management"
+      priority: "High"
+      related_use_cases: ["UC-36", "UC-37", "UC-38", "UC-39", "UC-40"]
+      validation_points: ["User management operations", "Permission validation"]
+
+    BR-31:
+      title: "Audit Trail Requirement"
+      description: "Critical business data changes (e.g., finalizing attendance, updating student information) must be logged in the operational audit trail (operational_audit_logs)."
+      domain: "Audit"
+      priority: "High"
+      related_use_cases:
+        [
+          "UC-21",
+          "UC-34",
+          "UC-38",
+          "UC-39",
+          "UC-40",
+          "UC-42",
+          "UC-43",
+          "UC-46",
+          "UC-50",
+          "UC-54",
+          "UC-58",
+          "UC-62",
+          "UC-63",
+          "UC-65",
+          "UC-68",
+          "UC-69",
+          "UC-72",
+          "UC-73",
+          "UC-78",
+          "UC-81",
+          "UC-83",
+          "UC-87",
+        ]
+      validation_points: ["All critical data modifications"]
+
+  # Attendance Data Integrity (BR-32 to BR-34)
+  attendance_data_integrity:
+    BR-32:
+      title: "Attendance History Recording"
+      description: "All attendance status changes for a student within a slot, whether automated by the camera or performed manually, must be recorded as a timestamped event in the history. The event must include the new status and the method of change (Auto, Manual, System Finalize)."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-16", "UC-17", "UC-18", "UC-31"]
+      validation_points: ["Status change processing", "History recording"]
+
+    BR-33:
+      title: "Manual Edit Remark Requirement"
+      description: "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-19", "UC-20", "UC-32", "UC-33"]
+      validation_points: ["Manual status update", "Remark validation"]
+
+    BR-34:
+      title: "Final Status Requirement"
+      description: "After a slot is finalized, the primary status for all attendance records must be either PRESENT or ABSENT."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-21", "UC-34"]
+      validation_points: ["Slot finalization", "Status validation"]
+
+    BR-35:
+      title: "Hard Delete Dependency Check"
+      description: "Any request to permanently delete a resource (e.g., Major, Semester, Room) must be rejected with a user-friendly error message if the resource has dependent child resources (e.g., Subjects, Classes, Cameras)."
+      domain: "Data Integrity"
+      priority: "Critical"
+      related_use_cases: ["UC-47", "UC-51", "UC-55", "UC-59", "UC-69"]
+      validation_points: ["All hard delete operations in the backend services."]
+
+    BR-36:
+      title: "Absence Rate Threshold for Exam Ineligibility"
+      description: "A student with an absence rate exceeding the system-configured threshold (e.g., attendance.max_absence_percentage) for all finalized lecture slots (slot_type = 'LECTURE') in a class is deemed ineligible for the final exam. This calculation does not include exam slots (slot_type = 'EXAM')."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-28", "UC-83"]
+      validation_points: ["Absence rate calculation", "Exam eligibility check"]
+
+    BR-37:
+      title: "Automated Absence Warning Notifications"
+      description: "The system must automatically send a system notification to a student the first time their absence rate reaches the 10% and 20% thresholds for a class."
+      domain: "Notification"
+      priority: "Medium"
+      related_use_cases: ["UC-11"]
+      validation_points: ["Absence rate monitoring", "Notification triggering"]
+
+    BR-38:
+      title: "Timing of Absence Calculation and Notifications"
+      description: "The calculation of absence rates and the sending of automated notifications must be executed by a daily scheduled job after 23:59:59. This job processes all slots that were finalized on the preceding day."
+      domain: "System"
+      priority: "High"
+      related_use_cases: []
+      validation_points: ["Scheduled job execution", "Daily batch processing"]
+
+    BR-39:
+      title: "Class Attendance Report Visibility"
+      description: "The comprehensive attendance summary report for a class (SCR-LECTURER-CLASS-REPORT), including absence rates, must only be visible to lecturers after all slots for that class have been finalized."
+      domain: "Reporting"
+      priority: "Medium"
+      related_use_cases: ["UC-28"]
+      validation_points: ["Report access control", "Finalization status check"]
+
+# Rule Dependencies and Relationships
+rule_relationships:
+  authentication_flow:
+    primary_rules: ["BR-01", "BR-02", "BR-03", "BR-04"]
+    description: "Rules governing user authentication and account validation"
+
+  identity_workflow:
+    primary_rules: ["BR-08", "BR-09", "BR-10", "BR-11"]
+    description: "Rules for identity registration and approval process"
+
+  attendance_lifecycle:
+    primary_rules: ["BR-18", "BR-19", "BR-21", "BR-32", "BR-33", "BR-34"]
+    description: "Rules governing the complete attendance management lifecycle"
+
+  data_integrity:
+    primary_rules: ["BR-12", "BR-13", "BR-24", "BR-31"]
+    description: "Rules ensuring data consistency and audit trail"
+
+  permission_control:
+    primary_rules: ["BR-05", "BR-29", "BR-30"]
+    description: "Rules controlling access and permission management"
+
+# Validation Matrix
+validation_requirements:
+  critical_validations:
+    - rule: "BR-01"
+      validation_type: "Format validation"
+      implementation: "Username format check against Student/Staff ID pattern"
+
+    - rule: "BR-05"
+      validation_type: "Business logic validation"
+      implementation: "Role compatibility check before assignment"
+
+    - rule: "BR-21"
+      validation_type: "Workflow validation"
+      implementation: "Finalization rules UI with mandatory status conversion"
+
+    - rule: "BR-31"
+      validation_type: "Audit validation"
+      implementation: "Automatic audit log creation for critical operations"
+
+    - rule: "BR-33"
+      validation_type: "Input validation"
+      implementation: "Non-empty remark validation for manual attendance edits"
+
+  runtime_validations:
+    - rule: "BR-16"
+      validation_type: "Referential integrity"
+      implementation: "Camera-room relationship validation during slot creation"
+
+    - rule: "BR-25"
+      validation_type: "Temporal validation"
+      implementation: "Time-based validation for pre-slot message creation"

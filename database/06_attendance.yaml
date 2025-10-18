@@ -1,0 +1,189 @@
+# Attendance Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  slots:
+    primary_key: id
+    description: "Lecture or exam sessions"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique slot identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      start_time:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Slot start time"
+      end_time:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Slot end time"
+      finalized_at:
+        type: timestamp
+        constraints: [NULL]
+        description: "When attendance was finalized (null if not finalized)"
+      class_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: classes
+          column: id
+        description: "Reference to class"
+      room_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: rooms
+          column: id
+        description: "Room where slot takes place"
+      staff_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Lecturer or supervisor responsible for the slot"
+      slot_type:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "Type of slot: 'LECTURE' or 'EXAM'"
+      title:
+        type: varchar(255)
+        constraints: [NULL]
+        description: "The specific name of the slot, especially for an exam (e.g., 'Progress Test 1')."
+      description:
+        type: text
+        constraints: [NULL]
+        description: "General notes or instructions for the slot, visible to participants."
+      exam_subcategory:
+        type: varchar(30)
+        constraints: [NULL]
+        description: "Sub-category for exam slots to distinguish them, e.g., 'PROGRESS_TEST', 'FINAL_EXAM'."
+      external_exam_url:
+        type: varchar(2048)
+        constraints: [NULL]
+        description: "Optional URL linking to the actual exam on an external platform."
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Slot status (cancelled slots marked inactive)"
+    notes:
+      - "slot_type determines available functions (LECTURE allows announcements, pre-slot messages)"
+      - "finalized_at tracks when attendance was completed by staff"
+
+  attendance_records:
+    primary_key: id
+    description: "Individual student attendance records for slots"
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique attendance record identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      recorded_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "When attendance status was recorded"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to student"
+      slot_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: slots
+          column: id
+        description: "Reference to slot"
+      status:
+        type: varchar(30)
+        constraints: [NOT NULL]
+        description: "Attendance status: 'not_yet', 'present', 'absent', 'absent_after_present'"
+      method:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "How status was determined: 'auto', 'manual', 'system_finalize'"
+      history:
+        type: jsonb
+        constraints: [NULL]
+        description: "JSON array of status changes with timestamps"
+    indexes:
+      - name: attendance_records_student_user_id_slot_id_idx
+        columns: [student_user_id, slot_id]
+        unique: true
+        description: "One attendance record per student per slot"
+    notes:
+      - "Status 'not_yet' is initial state before any attendance check"
+      - "Status 'present' indicates student was detected/marked present"
+      - "Status 'absent' is final absent status"
+      - "Status 'absent_after_present' indicates student left after being marked present"
+      - "Method 'auto' for face recognition results"
+      - "Method 'manual' for lecturer/supervisor manual updates"
+      - "Method 'system_finalize' for batch status updates during finalization"
+
+  attendance_remarks:
+    primary_key: id
+    description: "Additional comments/notes on attendance records"
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique remark identifier"
+      attendance_record_id:
+        type: bigint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: attendance_records
+          column: id
+        description: "Reference to attendance record"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Remark creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Remark last update timestamp"
+      created_by_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Staff member who created the remark"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Remark status (soft delete)"
+      remark:
+        type: text
+        constraints: [NOT NULL]
+        description: "Remark content/explanation"
+    notes:
+      - "Used for explaining attendance status changes or special circumstances"
+      - "Multiple remarks can be added to the same attendance record"
+      - "Remarks are required when manually changing attendance status"

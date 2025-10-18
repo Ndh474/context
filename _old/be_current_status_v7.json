@@ -1,0 +1,1947 @@
+{
+    "project_metadata": {
+        "name": "backend",
+        "version": "0.0.1-SNAPSHOT",
+        "last_updated": "2025-10-14T11:00:00Z",
+        "description": "FUACS - Backend Service Implementation Manifest",
+        "branch": "feature/capstone-4"
+    },
+    "technology_stack": {
+        "runtime": {
+            "framework": "Spring Boot",
+            "version": "3.5.6",
+            "language": "Java 21",
+            "build_tool": "Maven"
+        },
+        "libraries": {
+            "web": [
+                "spring-boot-starter-web"
+            ],
+            "security": [
+                "spring-boot-starter-security",
+                "spring-boot-starter-oauth2-authorization-server"
+            ],
+            "data": [
+                "spring-boot-starter-data-jpa",
+                "postgresql"
+            ],
+            "validation": [
+                "hibernate-validator",
+                "jakarta.validation-api"
+            ],
+            "mapping": [
+                "mapstruct"
+            ],
+            "external_integrations": [
+                "google-api-client",
+                "google-http-client-jackson2",
+                "spring-boot-starter-mail",
+                "resilience4j-spring-boot3",
+                "spring-dotenv"
+            ],
+            "documentation": [
+                "springdoc-openapi-starter-webmvc-ui"
+            ]
+        },
+        "testing": {
+            "unit": [
+                "spring-boot-starter-test",
+                "spring-security-test"
+            ],
+            "integration": [
+                "testcontainers-junit-jupiter",
+                "testcontainers-postgresql"
+            ]
+        },
+        "containerization": {
+            "builder_image": "maven:3.9-eclipse-temurin-21",
+            "runtime_image": "eclipse-temurin:21-jre-alpine",
+            "entrypoint": "java -jar app.jar"
+        }
+    },
+    "architecture_patterns": {
+        "rest_api_layer": {
+            "description": "Controllers expose REST endpoints under /api/v1/* using Spring MVC annotations",
+            "conventions": [
+                "Use @RestController and @RequestMapping for base path",
+                "Return Response<T> or PagingResponse<T> wrapper for consistent API responses",
+                "Apply @PreAuthorize for method-level security with granular permissions",
+                "Use @Valid for request body validation with Jakarta validation"
+            ]
+        },
+        "service_layer": {
+            "description": "Services encapsulate business logic, orchestrating repositories and utilities before returning DTOs",
+            "conventions": [
+                "Use @Service annotation",
+                "Apply @Transactional for write operations",
+                "Apply @Transactional(readOnly = true) for read operations",
+                "Throw domain-specific exceptions (ResourceNotFoundException, ResourceConflictException, InvalidDateRangeException)",
+                "Return DTOs, never entities",
+                "Perform business rule validation before persistence"
+            ]
+        },
+        "security_pipeline": {
+            "description": "Stateless JWT resource server with custom authentication filter and method security permission evaluator",
+            "conventions": [
+                "JWT tokens contain user claims and permissions",
+                "Access tokens expire in 3 minutes",
+                "Refresh tokens expire in 1 day",
+                "Method security uses granular permissions (USER_CREATE, SEMESTER_READ, etc.)",
+                "Password reset tokens expire in 15 minutes"
+            ]
+        },
+        "dto_mapping": {
+            "description": "MapStruct mappers convert between entities and DTO payloads",
+            "conventions": [
+                "Use @Mapper(componentModel = \"spring\")",
+                "Extend DTOMapper<ResponseDTO, Entity> base interface",
+                "Provide toEntity(CreateRequest) for create operations",
+                "Provide update methods with @MappingTarget for update operations"
+            ]
+        },
+        "exception_handling": {
+            "description": "Global exception handler provides consistent error responses",
+            "conventions": [
+                "Use @ControllerAdvice for global exception handling",
+                "Return Response<Void> with appropriate status and message",
+                "Map specific exceptions to HTTP status codes",
+                "Include validation error details for MethodArgumentNotValidException"
+            ]
+        },
+        "data_access": {
+            "description": "JPA repositories with Spring Data JPA",
+            "conventions": [
+                "Extend JpaRepository<Entity, ID>",
+                "Add JpaSpecificationExecutor<Entity> for complex queries",
+                "Use @Query for custom JPQL queries",
+                "Use @Modifying for UPDATE/DELETE queries",
+                "Prefer soft delete (is_active flag) over hard delete"
+            ]
+        }
+    },
+    "coding_standards": {
+        "dto_pattern": {
+            "type": "classes",
+            "description": "Use regular Java classes with getters/setters, NOT records",
+            "request_dto": {
+                "location": "com.fuacs.backend.dto.request",
+                "naming": "{Action}{Entity}Request (e.g., CreateSemesterRequest, UpdateSemesterRequest, LoginRequest)",
+                "validation": "Use jakarta.validation.constraints annotations (@NotBlank, @NotNull, @Size, @Email, @Pattern)"
+            },
+            "response_dto": {
+                "location": "com.fuacs.backend.dto.response",
+                "naming": "{Entity}Response or {Entity}DTO (e.g., SemesterResponse, UserDTO, TokenResponse)",
+                "annotation": "@JsonInclude(JsonInclude.Include.NON_NULL)"
+            }
+        },
+        "mapper_pattern": {
+            "framework": "MapStruct",
+            "base_interface": "DTOMapper<ResponseDTO, Entity>",
+            "component_model": "spring",
+            "conventions": [
+                "Extend DTOMapper for standard CRUD mappers",
+                "Provide toEntity(CreateRequest) for create operations",
+                "Provide update methods with @MappingTarget for updates"
+            ]
+        },
+        "response_wrapper": {
+            "standard": "Response<T>",
+            "paginated": "PagingResponse<T>",
+            "status_codes": {
+                "success": 200,
+                "created": 201,
+                "bad_request": 400,
+                "unauthorized": 401,
+                "forbidden": 403,
+                "not_found": 404,
+                "conflict": 409,
+                "internal_server_error": 500
+            }
+        },
+        "entity_layer": {
+            "base_class": "AuditableEntity provides createdAt and updatedAt timestamps",
+            "naming": "Entity class names are singular (User, Role, Semester)",
+            "table_naming": "Table names are plural lowercase (users, roles, semesters)",
+            "id_strategy": "Use @GeneratedValue(strategy = GenerationType.IDENTITY)",
+            "id_types": "Integer for most entities, Short for lookup tables",
+            "soft_delete": "Use is_active Boolean field for soft delete capability"
+        },
+        "service_layer": {
+            "transaction_management": "Use @Transactional for writes, @Transactional(readOnly = true) for reads",
+            "error_handling": "Throw domain-specific exceptions, never return null",
+            "validation": "Perform business rule validation before persistence",
+            "return_types": "Always return DTOs, never entities"
+        },
+        "controller_layer": {
+            "response_wrapper": "Use Response<T> for single items, PagingResponse<T> for paginated lists",
+            "security": "Apply @PreAuthorize with granular permissions",
+            "validation": "Use @Valid for request body validation",
+            "path_variables": "Use appropriate types (Short, Integer, Long) for path variables"
+        }
+    },
+    "data_models": {
+        "entities": [
+            {
+                "name": "User",
+                "table": "users",
+                "description": "System account with login credentials and activation state",
+                "fields": [
+                    "id (Integer)",
+                    "username",
+                    "email",
+                    "full_name",
+                    "is_active",
+                    "password_hash"
+                ],
+                "relationships": [
+                    "Many-to-many with Role via user_roles"
+                ],
+                "notes": "Extends AuditableEntity for created_at/updated_at"
+            },
+            {
+                "name": "Role",
+                "table": "roles",
+                "description": "Aggregates permissions and is assigned to users",
+                "fields": [
+                    "id (Short)",
+                    "name",
+                    "is_active"
+                ],
+                "relationships": [
+                    "Many-to-many with User",
+                    "Many-to-many with Permission via role_permissions"
+                ],
+                "notes": "Extends AuditableEntity"
+            },
+            {
+                "name": "Permission",
+                "table": "permissions",
+                "description": "Fine-grained capability toggled by roles",
+                "fields": [
+                    "id (Short)",
+                    "name",
+                    "is_active"
+                ],
+                "relationships": [
+                    "Many-to-many with Role"
+                ],
+                "notes": "Extends AuditableEntity"
+            },
+            {
+                "name": "PasswordResetToken",
+                "table": "password_reset_tokens",
+                "description": "Temporary token for password reset flow with expiration",
+                "fields": [
+                    "id (Integer)",
+                    "email",
+                    "token_hash",
+                    "created_at",
+                    "expires_at"
+                ],
+                "relationships": [],
+                "notes": "Tokens expire after 15 minutes. Upsert strategy: existing tokens are updated when a new reset request is made for the same email"
+            }
+        ],
+        "auditing": {
+            "base_class": "AuditableEntity",
+            "description": "Provides created_at and updated_at timestamps via Spring Data JPA auditing",
+            "fields": [
+                "createdAt (Instant)",
+                "updatedAt (Instant)"
+            ]
+        }
+    },
+    "api_surface": {
+        "base_path": "/api/v1",
+        "endpoints": [
+            {
+                "path": "/auth/login",
+                "method": "POST",
+                "summary": "Authenticate using username and password",
+                "controller": "AuthenticationController.login",
+                "related_use_cases": [
+                    "UC-01"
+                ],
+                "security": {
+                    "authentication": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "username": "john_doe",
+                        "password": "SecurePass123"
+                    },
+                    "validation": {
+                        "username": "@NotBlank, @Pattern(alphanumeric only), @Size(1-50)",
+                        "password": "@NotBlank, @Size(1-100)"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentication successful",
+                        "body_example": {
+                            "accessToken": "eyJhbGc...",
+                            "refreshToken": "eyJhbGc...",
+                            "tokenType": "Bearer",
+                            "fullName": "John Doe",
+                            "username": "john_doe",
+                            "roles": [
+                                "STUDENT"
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials"
+                    },
+                    "403": {
+                        "description": "Account is inactive"
+                    }
+                }
+            },
+            {
+                "path": "/auth/google/login",
+                "method": "POST",
+                "summary": "Authenticate using Google ID token",
+                "controller": "AuthenticationController.googleLogin",
+                "related_use_cases": [
+                    "UC-01"
+                ],
+                "security": {
+                    "authentication": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "token": "google_id_token_here"
+                    },
+                    "validation": {
+                        "token": "@NotBlank"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentication successful, returns TokenResponse"
+                    },
+                    "404": {
+                        "description": "Email not registered"
+                    },
+                    "403": {
+                        "description": "Account is inactive"
+                    }
+                },
+                "notes": "Authentication is based purely on matching the email address from Google token"
+            },
+            {
+                "path": "/auth/refresh-token",
+                "method": "POST",
+                "summary": "Exchange refresh token for new access token",
+                "controller": "AuthenticationController.refreshToken",
+                "security": {
+                    "authentication": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "refreshToken": "eyJhbGc..."
+                    },
+                    "validation": {
+                        "refreshToken": "@NotBlank"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New tokens issued, returns TokenResponse"
+                    },
+                    "401": {
+                        "description": "Invalid or expired refresh token"
+                    }
+                },
+                "notes": "Validates refresh token signature, expiry, and user status. Access tokens expire in 3 minutes, refresh tokens in 1 day"
+            },
+            {
+                "path": "/auth/forgot-password",
+                "method": "POST",
+                "summary": "Request a password reset link",
+                "controller": "AuthenticationController.forgotPassword",
+                "related_use_cases": [
+                    "UC-04"
+                ],
+                "security": {
+                    "authentication": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "email": "user@example.com"
+                    },
+                    "validation": {
+                        "email": "@NotBlank, @Email"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reset email sent if email exists",
+                        "body_example": {
+                            "status": 200,
+                            "data": "If the email exists, a password reset link has been sent."
+                        }
+                    },
+                    "404": {
+                        "description": "Email not found"
+                    }
+                },
+                "notes": "Generates UUID token valid for 15 minutes, stores in database, sends email asynchronously. Uses upsert strategy"
+            },
+            {
+                "path": "/auth/reset-password",
+                "method": "POST",
+                "summary": "Set a new password using a valid reset token",
+                "controller": "AuthenticationController.resetPassword",
+                "related_use_cases": [
+                    "UC-05"
+                ],
+                "security": {
+                    "authentication": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "token": "uuid-token-here",
+                        "newPassword": "NewSecurePass123",
+                        "confirmPassword": "NewSecurePass123"
+                    },
+                    "validation": {
+                        "token": "@NotBlank, @Size(max=100)",
+                        "newPassword": "@NotBlank, @Size(8-100)",
+                        "confirmPassword": "@NotBlank, @Size(8-100), must match newPassword"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful",
+                        "body_example": {
+                            "status": 200,
+                            "data": "Reset password successfully."
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid token or passwords don't match"
+                    },
+                    "404": {
+                        "description": "Email not found"
+                    }
+                },
+                "notes": "Validates token from database, checks expiry, updates password hash, deletes used token"
+            },
+            {
+                "path": "/users/{id}/update-password",
+                "method": "POST",
+                "summary": "Update password for an authenticated user",
+                "controller": "AuthenticationController.updatePassword",
+                "related_use_cases": [
+                    "UC-03"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "none"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "oldPassword": "OldPass123",
+                        "newPassword": "NewPass123",
+                        "confirmPassword": "NewPass123"
+                    },
+                    "validation": {
+                        "oldPassword": "@NotBlank",
+                        "newPassword": "@NotBlank, @Size(8-30)",
+                        "confirmPassword": "@NotBlank, must match newPassword"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password updated successfully"
+                    },
+                    "400": {
+                        "description": "Passwords don't match"
+                    },
+                    "401": {
+                        "description": "Invalid old password"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                },
+                "notes": "TODO: Add ownership check to ensure users can only change their own password"
+            },
+            {
+                "path": "/users",
+                "method": "POST",
+                "summary": "Create a new user account",
+                "controller": "UserController.create",
+                "related_use_cases": [
+                    "UC-36"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "USER_CREATE"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "username": "john_doe",
+                        "email": "john@example.com",
+                        "fullName": "John Doe",
+                        "password": "SecurePass123"
+                    },
+                    "validation": {
+                        "username": "@NotBlank, @Size(max=50)",
+                        "email": "@NotBlank, @Email, @Size(max=128)",
+                        "fullName": "@NotBlank, @Size(max=150)",
+                        "password": "@NotBlank, @Size(max=100)"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User created successfully",
+                        "body_example": {
+                            "status": 200,
+                            "data": {
+                                "id": 1,
+                                "username": "john_doe",
+                                "email": "john@example.com",
+                                "fullName": "John Doe"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error"
+                    },
+                    "409": {
+                        "description": "Username or email already exists"
+                    }
+                }
+            },
+            {
+                "path": "/users",
+                "method": "GET",
+                "summary": "Query users with pagination and search",
+                "controller": "UserController.findAll",
+                "related_use_cases": [
+                    "UC-37"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "USER_READ_LIST"
+                },
+                "request": {
+                    "query_params": {
+                        "search": "optional search term",
+                        "page": "page number (1-based)",
+                        "pageSize": "items per page"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Paginated user list",
+                        "body_example": {
+                            "status": 200,
+                            "data": {
+                                "items": [
+                                    {
+                                        "id": 1,
+                                        "username": "john_doe",
+                                        "email": "john@example.com",
+                                        "fullName": "John Doe"
+                                    }
+                                ],
+                                "currentPage": 1,
+                                "pageSize": 10,
+                                "totalItems": 50,
+                                "totalPages": 5
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "path": "/users/{id}",
+                "method": "GET",
+                "summary": "Fetch a user by identifier",
+                "controller": "UserController.findById",
+                "related_use_cases": [
+                    "UC-37"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "USER_READ_DETAIL"
+                },
+                "responses": {
+                    "200": {
+                        "description": "User found, returns UserDTO"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            },
+            {
+                "path": "/users/{id}",
+                "method": "PUT",
+                "summary": "Update username, email, or full name",
+                "controller": "UserController.update",
+                "related_use_cases": [
+                    "UC-38"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "USER_UPDATE_INFO"
+                },
+                "request": {
+                    "content_type": "application/json",
+                    "body_example": {
+                        "username": "john_doe_updated",
+                        "email": "john.updated@example.com",
+                        "fullName": "John Doe Updated",
+                        "password": "ignored_field"
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "409": {
+                        "description": "Username or email already exists"
+                    }
+                }
+            },
+            {
+                "path": "/users/{id}",
+                "method": "DELETE",
+                "summary": "Disable a user account (soft delete)",
+                "controller": "UserController.disableUser",
+                "related_use_cases": [
+                    "UC-40"
+                ],
+                "security": {
+                    "authentication": "required",
+                    "permission": "USER_UPDATE_STATUS"
+                },
+                "responses": {
+                    "200": {
+                        "description": "User disabled successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                },
+                "notes": "Performs soft delete by setting is_active=false via UPDATE query"
+            }
+        ]
+    },
+    "codebase_inventory": {
+        "entities": [
+            {
+                "file": "com/fuacs/backend/entity/User.java",
+                "class": "User",
+                "extends": "AuditableEntity",
+                "table": "users",
+                "primary_key": "Integer id",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Integer",
+                        "column": "id",
+                        "constraints": "@GeneratedValue(IDENTITY)"
+                    },
+                    {
+                        "name": "username",
+                        "type": "String",
+                        "column": "username",
+                        "constraints": "length=50, unique, nullable=false"
+                    },
+                    {
+                        "name": "email",
+                        "type": "String",
+                        "column": "email",
+                        "constraints": "length=128, unique, nullable=false"
+                    },
+                    {
+                        "name": "fullName",
+                        "type": "String",
+                        "column": "full_name",
+                        "constraints": "length=150, nullable=false"
+                    },
+                    {
+                        "name": "isActive",
+                        "type": "Boolean",
+                        "column": "is_active",
+                        "constraints": "nullable=false"
+                    },
+                    {
+                        "name": "passwordHash",
+                        "type": "String",
+                        "column": "password_hash",
+                        "constraints": "length=100, nullable=false"
+                    }
+                ],
+                "relationships": [
+                    {
+                        "type": "ManyToMany",
+                        "target": "Role",
+                        "joinTable": "user_roles",
+                        "field": "roles"
+                    }
+                ],
+                "purpose": "JPA entity mapping for user accounts with authentication credentials"
+            },
+            {
+                "file": "com/fuacs/backend/entity/Role.java",
+                "class": "Role",
+                "extends": "AuditableEntity",
+                "table": "roles",
+                "primary_key": "Short id",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Short",
+                        "column": "id",
+                        "constraints": "@GeneratedValue(IDENTITY)"
+                    },
+                    {
+                        "name": "name",
+                        "type": "String",
+                        "column": "name",
+                        "constraints": "length=100, unique, nullable=false"
+                    },
+                    {
+                        "name": "isActive",
+                        "type": "Boolean",
+                        "column": "is_active",
+                        "constraints": "nullable=false"
+                    }
+                ],
+                "relationships": [
+                    {
+                        "type": "ManyToMany",
+                        "target": "User",
+                        "mappedBy": "roles",
+                        "field": "users"
+                    },
+                    {
+                        "type": "ManyToMany",
+                        "target": "Permission",
+                        "joinTable": "role_permissions",
+                        "field": "permissions"
+                    }
+                ],
+                "purpose": "JPA entity for role-based access control"
+            },
+            {
+                "file": "com/fuacs/backend/entity/Permission.java",
+                "class": "Permission",
+                "extends": "AuditableEntity",
+                "table": "permissions",
+                "primary_key": "Short id",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Short",
+                        "column": "id",
+                        "constraints": "@GeneratedValue(IDENTITY)"
+                    },
+                    {
+                        "name": "name",
+                        "type": "String",
+                        "column": "name",
+                        "constraints": "unique, nullable=false"
+                    },
+                    {
+                        "name": "isActive",
+                        "type": "Boolean",
+                        "column": "is_active",
+                        "constraints": "nullable=false"
+                    }
+                ],
+                "relationships": [
+                    {
+                        "type": "ManyToMany",
+                        "target": "Role",
+                        "mappedBy": "permissions",
+                        "field": "roles"
+                    }
+                ],
+                "purpose": "JPA entity for granular permissions"
+            },
+            {
+                "file": "com/fuacs/backend/entity/PasswordResetToken.java",
+                "class": "PasswordResetToken",
+                "extends": "none",
+                "table": "password_reset_tokens",
+                "primary_key": "Integer id",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "Integer",
+                        "column": "id",
+                        "constraints": "@GeneratedValue(IDENTITY)"
+                    },
+                    {
+                        "name": "email",
+                        "type": "String",
+                        "column": "email",
+                        "constraints": "length=128, unique, nullable=false"
+                    },
+                    {
+                        "name": "tokenHash",
+                        "type": "String",
+                        "column": "token_hash",
+                        "constraints": "length=100, unique, nullable=false"
+                    },
+                    {
+                        "name": "createdAt",
+                        "type": "Instant",
+                        "column": "created_at",
+                        "constraints": "nullable=false, @CreatedDate"
+                    },
+                    {
+                        "name": "expiresAt",
+                        "type": "Instant",
+                        "column": "expires_at",
+                        "constraints": "nullable=false"
+                    }
+                ],
+                "relationships": [],
+                "purpose": "Temporary token storage for password reset flow"
+            },
+            {
+                "file": "com/fuacs/backend/entity/AuditableEntity.java",
+                "class": "AuditableEntity",
+                "type": "@MappedSuperclass",
+                "fields": [
+                    {
+                        "name": "createdAt",
+                        "type": "Instant",
+                        "column": "created_at",
+                        "constraints": "updatable=false, nullable=false, @CreatedDate"
+                    },
+                    {
+                        "name": "updatedAt",
+                        "type": "Instant",
+                        "column": "updated_at",
+                        "constraints": "@LastModifiedDate"
+                    }
+                ],
+                "purpose": "Base class providing automatic timestamp auditing for all entities"
+            }
+        ],
+        "repositories": [
+            {
+                "file": "com/fuacs/backend/repository/UserRepository.java",
+                "interface": "UserRepository",
+                "extends": [
+                    "JpaRepository<User, Integer>"
+                ],
+                "purpose": "Data access layer for User entity",
+                "custom_methods": [
+                    {
+                        "name": "findByFullNameLike",
+                        "returnType": "Page<User>",
+                        "params": [
+                            "String search",
+                            "Pageable pageable"
+                        ],
+                        "query": "JPQL with LIKE",
+                        "purpose": "Search users by full name with pagination"
+                    },
+                    {
+                        "name": "countAll",
+                        "returnType": "Long",
+                        "params": [
+                            "String search"
+                        ],
+                        "query": "Native SQL COUNT",
+                        "purpose": "Count users matching search criteria"
+                    },
+                    {
+                        "name": "findByUsername",
+                        "returnType": "Optional<User>",
+                        "params": [
+                            "String username"
+                        ],
+                        "query": "Derived",
+                        "purpose": "Find user by username"
+                    },
+                    {
+                        "name": "findByEmail",
+                        "returnType": "Optional<User>",
+                        "params": [
+                            "String email"
+                        ],
+                        "query": "Derived",
+                        "purpose": "Find user by email"
+                    },
+                    {
+                        "name": "deactivateUserById",
+                        "returnType": "int",
+                        "params": [
+                            "Integer id"
+                        ],
+                        "query": "UPDATE User u SET u.isActive = false WHERE u.id = :id",
+                        "annotation": "@Modifying",
+                        "purpose": "Soft delete user"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/repository/RoleRepository.java",
+                "interface": "RoleRepository",
+                "extends": [
+                    "JpaRepository<Role, Short>"
+                ],
+                "purpose": "Data access layer for Role entity",
+                "custom_methods": [
+                    {
+                        "name": "findByUsers",
+                        "returnType": "Set<Role>",
+                        "params": [
+                            "Set<User> users"
+                        ],
+                        "query": "Derived",
+                        "purpose": "Find roles for given users"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/repository/PermissionRepository.java",
+                "interface": "PermissionRepository",
+                "extends": [
+                    "JpaRepository<Permission, Short>"
+                ],
+                "purpose": "Data access layer for Permission entity",
+                "custom_methods": [
+                    {
+                        "name": "findByRoles",
+                        "returnType": "Set<Permission>",
+                        "params": [
+                            "Set<Role> roles"
+                        ],
+                        "query": "Derived",
+                        "purpose": "Find permissions for given roles"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/repository/PasswordResetTokenRepository.java",
+                "interface": "PasswordResetTokenRepository",
+                "extends": [
+                    "JpaRepository<PasswordResetToken, Integer>"
+                ],
+                "purpose": "Data access layer for PasswordResetToken entity",
+                "custom_methods": [
+                    {
+                        "name": "updateToken",
+                        "returnType": "int",
+                        "params": [
+                            "String email",
+                            "String token",
+                            "Instant createdAt",
+                            "Instant expiresAt"
+                        ],
+                        "query": "UPDATE PasswordResetToken t SET t.tokenHash = :token, t.createdAt = :createdAt, t.expiresAt = :expiresAt WHERE t.email = :email",
+                        "annotation": "@Modifying",
+                        "purpose": "Upsert token for email"
+                    },
+                    {
+                        "name": "findByTokenHash",
+                        "returnType": "Optional<PasswordResetToken>",
+                        "params": [
+                            "String tokenHash"
+                        ],
+                        "query": "Derived",
+                        "purpose": "Find token by hash for validation"
+                    }
+                ]
+            }
+        ],
+        "services": [
+            {
+                "file": "com/fuacs/backend/service/AuthenticationService.java",
+                "class": "AuthenticationService",
+                "dependencies": [
+                    "UserRepository",
+                    "RoleRepository",
+                    "PermissionRepository",
+                    "PasswordResetTokenRepository",
+                    "TokenProviderUtil",
+                    "EmailService",
+                    "PasswordEncoder"
+                ],
+                "purpose": "Business logic for authentication and password management",
+                "methods": [
+                    {
+                        "name": "login",
+                        "returnType": "TokenResponse",
+                        "params": [
+                            "LoginRequest request"
+                        ],
+                        "transaction": false,
+                        "purpose": "Authenticate user with username/password",
+                        "validations": [
+                            "User exists",
+                            "User is active",
+                            "Password matches"
+                        ]
+                    },
+                    {
+                        "name": "googleLogin",
+                        "returnType": "TokenResponse",
+                        "params": [
+                            "GoogleLoginRequest request"
+                        ],
+                        "transaction": false,
+                        "purpose": "Authenticate user with Google ID token",
+                        "validations": [
+                            "Token is valid",
+                            "Email exists",
+                            "User is active"
+                        ]
+                    },
+                    {
+                        "name": "refreshToken",
+                        "returnType": "TokenResponse",
+                        "params": [
+                            "RefreshTokenRequest request"
+                        ],
+                        "transaction": false,
+                        "purpose": "Issue new tokens using refresh token",
+                        "validations": [
+                            "Token signature valid",
+                            "Token not expired",
+                            "User exists",
+                            "User is active"
+                        ]
+                    },
+                    {
+                        "name": "forgotPassword",
+                        "returnType": "String",
+                        "params": [
+                            "ForgotPasswordRequest request"
+                        ],
+                        "transaction": false,
+                        "purpose": "Generate and send password reset token",
+                        "validations": [
+                            "Email exists",
+                            "User is active"
+                        ]
+                    },
+                    {
+                        "name": "resetPassword",
+                        "returnType": "String",
+                        "params": [
+                            "ResetPasswordRequest request"
+                        ],
+                        "transaction": true,
+                        "purpose": "Reset password using valid token",
+                        "validations": [
+                            "Passwords match",
+                            "Token exists",
+                            "Token not expired",
+                            "User exists",
+                            "User is active"
+                        ]
+                    },
+                    {
+                        "name": "updatePassword",
+                        "returnType": "String",
+                        "params": [
+                            "Integer id",
+                            "UpdatePasswordRequest request"
+                        ],
+                        "transaction": true,
+                        "purpose": "Update user password",
+                        "validations": [
+                            "Passwords match",
+                            "User exists",
+                            "User is active",
+                            "Old password correct"
+                        ]
+                    },
+                    {
+                        "name": "buildTokenResponse",
+                        "returnType": "TokenResponse",
+                        "params": [
+                            "User user"
+                        ],
+                        "visibility": "private",
+                        "purpose": "Build token response with access and refresh tokens"
+                    },
+                    {
+                        "name": "validateUserActive",
+                        "returnType": "void",
+                        "params": [
+                            "User user"
+                        ],
+                        "visibility": "private",
+                        "purpose": "Validate user is active, throw AccessDeniedException if not"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/service/UserService.java",
+                "class": "UserService",
+                "dependencies": [
+                    "UserRepository",
+                    "UserMapper",
+                    "PasswordEncoder"
+                ],
+                "purpose": "Business logic for user CRUD operations",
+                "methods": [
+                    {
+                        "name": "create",
+                        "returnType": "UserDTO",
+                        "params": [
+                            "UserRequest request"
+                        ],
+                        "transaction": true,
+                        "purpose": "Create new user account",
+                        "validations": [
+                            "Username unique",
+                            "Email unique"
+                        ]
+                    },
+                    {
+                        "name": "findAll",
+                        "returnType": "List<UserDTO>",
+                        "params": [
+                            "UserSearchRequest request"
+                        ],
+                        "transaction": "readOnly",
+                        "purpose": "Get paginated list of users with search"
+                    },
+                    {
+                        "name": "countAll",
+                        "returnType": "Long",
+                        "params": [
+                            "String search"
+                        ],
+                        "transaction": "readOnly",
+                        "purpose": "Count users matching search criteria"
+                    },
+                    {
+                        "name": "findById",
+                        "returnType": "UserDTO",
+                        "params": [
+                            "Integer id"
+                        ],
+                        "transaction": "readOnly",
+                        "purpose": "Get user by ID",
+                        "validations": [
+                            "User exists"
+                        ]
+                    },
+                    {
+                        "name": "update",
+                        "returnType": "UserDTO",
+                        "params": [
+                            "Integer id",
+                            "UserRequest request"
+                        ],
+                        "transaction": true,
+                        "purpose": "Update user information",
+                        "validations": [
+                            "User exists",
+                            "Username unique",
+                            "Email unique"
+                        ]
+                    },
+                    {
+                        "name": "disableUser",
+                        "returnType": "void",
+                        "params": [
+                            "Integer id"
+                        ],
+                        "transaction": true,
+                        "purpose": "Soft delete user by setting is_active=false",
+                        "validations": [
+                            "User exists"
+                        ]
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/service/EmailService.java",
+                "class": "EmailService",
+                "dependencies": [
+                    "JavaMailSender"
+                ],
+                "purpose": "Send transactional emails asynchronously",
+                "methods": [
+                    {
+                        "name": "sendPasswordResetEmail",
+                        "returnType": "void",
+                        "params": [
+                            "String to",
+                            "String token"
+                        ],
+                        "async": true,
+                        "purpose": "Send password reset email with reset link"
+                    }
+                ]
+            }
+        ],
+        "controllers": [
+            {
+                "file": "com/fuacs/backend/controller/AuthenticationController.java",
+                "class": "AuthenticationController",
+                "base_path": "/api/v1",
+                "dependencies": [
+                    "AuthenticationService"
+                ],
+                "purpose": "REST endpoints for authentication and password management",
+                "endpoints": [
+                    {
+                        "method": "POST",
+                        "path": "/auth/login",
+                        "handler": "login",
+                        "security": "none",
+                        "returns": "ResponseEntity<TokenResponse>"
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/auth/google/login",
+                        "handler": "googleLogin",
+                        "security": "none",
+                        "returns": "ResponseEntity<TokenResponse>"
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/auth/refresh-token",
+                        "handler": "refreshToken",
+                        "security": "none",
+                        "returns": "ResponseEntity<TokenResponse>"
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/auth/forgot-password",
+                        "handler": "forgotPassword",
+                        "security": "none",
+                        "returns": "ResponseEntity<Response<String>>"
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/auth/reset-password",
+                        "handler": "resetPassword",
+                        "security": "none",
+                        "returns": "ResponseEntity<Response<String>>"
+                    },
+                    {
+                        "method": "POST",
+                        "path": "/users/{id}/update-password",
+                        "handler": "updatePassword",
+                        "security": "authenticated",
+                        "returns": "ResponseEntity<Response<String>>"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/controller/UserController.java",
+                "class": "UserController",
+                "base_path": "/api/v1/users",
+                "dependencies": [
+                    "UserService"
+                ],
+                "purpose": "REST endpoints for user CRUD operations",
+                "endpoints": [
+                    {
+                        "method": "POST",
+                        "path": "/",
+                        "handler": "create",
+                        "security": "USER_CREATE",
+                        "returns": "Response<UserDTO>"
+                    },
+                    {
+                        "method": "GET",
+                        "path": "/",
+                        "handler": "findAll",
+                        "security": "USER_READ_LIST",
+                        "returns": "PagingResponse<UserDTO>"
+                    },
+                    {
+                        "method": "GET",
+                        "path": "/{id}",
+                        "handler": "findById",
+                        "security": "USER_READ_DETAIL",
+                        "returns": "Response<UserDTO>"
+                    },
+                    {
+                        "method": "PUT",
+                        "path": "/{id}",
+                        "handler": "update",
+                        "security": "USER_UPDATE_INFO",
+                        "returns": "Response<UserDTO>"
+                    },
+                    {
+                        "method": "DELETE",
+                        "path": "/{id}",
+                        "handler": "disableUser",
+                        "security": "USER_UPDATE_STATUS",
+                        "returns": "Response<Void>"
+                    }
+                ]
+            }
+        ],
+        "dtos": {
+            "requests": [
+                {
+                    "file": "com/fuacs/backend/dto/request/LoginRequest.java",
+                    "class": "LoginRequest",
+                    "purpose": "Login credentials",
+                    "fields": [
+                        {
+                            "name": "username",
+                            "type": "String",
+                            "validation": "@NotBlank, @Pattern(alphanumeric), @Size(1-50)"
+                        },
+                        {
+                            "name": "password",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(1-100)"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/GoogleLoginRequest.java",
+                    "class": "GoogleLoginRequest",
+                    "purpose": "Google authentication token",
+                    "fields": [
+                        {
+                            "name": "token",
+                            "type": "String",
+                            "validation": "@NotBlank"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/RefreshTokenRequest.java",
+                    "class": "RefreshTokenRequest",
+                    "purpose": "Refresh token for token renewal",
+                    "fields": [
+                        {
+                            "name": "refreshToken",
+                            "type": "String",
+                            "validation": "@NotBlank"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/ForgotPasswordRequest.java",
+                    "class": "ForgotPasswordRequest",
+                    "purpose": "Email for password reset",
+                    "fields": [
+                        {
+                            "name": "email",
+                            "type": "String",
+                            "validation": "@NotBlank, @Email"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/ResetPasswordRequest.java",
+                    "class": "ResetPasswordRequest",
+                    "purpose": "Reset password with token",
+                    "fields": [
+                        {
+                            "name": "token",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(max=100)"
+                        },
+                        {
+                            "name": "newPassword",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(8-100)"
+                        },
+                        {
+                            "name": "confirmPassword",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(8-100)"
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "name": "newPasswordsMatch",
+                            "returnType": "boolean",
+                            "purpose": "Validate passwords match"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/UpdatePasswordRequest.java",
+                    "class": "UpdatePasswordRequest",
+                    "purpose": "Update password for authenticated user",
+                    "fields": [
+                        {
+                            "name": "oldPassword",
+                            "type": "String",
+                            "validation": "@NotBlank"
+                        },
+                        {
+                            "name": "newPassword",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(8-30)"
+                        },
+                        {
+                            "name": "confirmPassword",
+                            "type": "String",
+                            "validation": "@NotBlank"
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "name": "newPasswordsMatch",
+                            "returnType": "boolean",
+                            "purpose": "Validate passwords match"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/UserRequest.java",
+                    "class": "UserRequest",
+                    "purpose": "Create/update user",
+                    "fields": [
+                        {
+                            "name": "username",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(max=50)"
+                        },
+                        {
+                            "name": "email",
+                            "type": "String",
+                            "validation": "@NotBlank, @Email, @Size(max=128)"
+                        },
+                        {
+                            "name": "fullName",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(max=150)"
+                        },
+                        {
+                            "name": "password",
+                            "type": "String",
+                            "validation": "@NotBlank, @Size(max=100)"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/request/UserSearchRequest.java",
+                    "class": "UserSearchRequest",
+                    "purpose": "Search and pagination for users",
+                    "fields": [
+                        {
+                            "name": "search",
+                            "type": "String"
+                        },
+                        {
+                            "name": "page",
+                            "type": "int"
+                        },
+                        {
+                            "name": "pageSize",
+                            "type": "int"
+                        }
+                    ]
+                }
+            ],
+            "responses": [
+                {
+                    "file": "com/fuacs/backend/dto/response/TokenResponse.java",
+                    "class": "TokenResponse",
+                    "purpose": "Authentication token response",
+                    "fields": [
+                        {
+                            "name": "accessToken",
+                            "type": "String"
+                        },
+                        {
+                            "name": "refreshToken",
+                            "type": "String"
+                        },
+                        {
+                            "name": "tokenType",
+                            "type": "String"
+                        },
+                        {
+                            "name": "fullName",
+                            "type": "String"
+                        },
+                        {
+                            "name": "username",
+                            "type": "String"
+                        },
+                        {
+                            "name": "roles",
+                            "type": "Set<String>"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/response/UserDTO.java",
+                    "class": "UserDTO",
+                    "purpose": "User information response",
+                    "annotation": "@JsonInclude(NON_NULL)",
+                    "fields": [
+                        {
+                            "name": "id",
+                            "type": "Integer"
+                        },
+                        {
+                            "name": "username",
+                            "type": "String"
+                        },
+                        {
+                            "name": "email",
+                            "type": "String"
+                        },
+                        {
+                            "name": "fullName",
+                            "type": "String"
+                        },
+                        {
+                            "name": "major",
+                            "type": "MajorDTO"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/response/RoleDTO.java",
+                    "class": "RoleDTO",
+                    "purpose": "Role information response",
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "String"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/response/Response.java",
+                    "class": "Response<T>",
+                    "purpose": "Standard API response wrapper",
+                    "annotation": "@JsonInclude(NON_NULL)",
+                    "fields": [
+                        {
+                            "name": "status",
+                            "type": "int"
+                        },
+                        {
+                            "name": "message",
+                            "type": "String"
+                        },
+                        {
+                            "name": "data",
+                            "type": "T"
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "name": "ok",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 200 response"
+                        },
+                        {
+                            "name": "created",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 201 response"
+                        },
+                        {
+                            "name": "fail",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 400 response"
+                        },
+                        {
+                            "name": "unauthorized",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 401 response"
+                        },
+                        {
+                            "name": "forbidden",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 403 response"
+                        },
+                        {
+                            "name": "notFound",
+                            "returnType": "Response<T>",
+                            "static": true,
+                            "purpose": "Create 404 response"
+                        }
+                    ]
+                },
+                {
+                    "file": "com/fuacs/backend/dto/response/PagingResponse.java",
+                    "class": "PagingResponse<T>",
+                    "extends": "Response",
+                    "purpose": "Paginated API response wrapper",
+                    "annotation": "@JsonInclude(NON_NULL)",
+                    "fields": [
+                        {
+                            "name": "data.items",
+                            "type": "List<T>"
+                        },
+                        {
+                            "name": "data.currentPage",
+                            "type": "int"
+                        },
+                        {
+                            "name": "data.pageSize",
+                            "type": "int"
+                        },
+                        {
+                            "name": "data.totalItems",
+                            "type": "long"
+                        },
+                        {
+                            "name": "data.totalPages",
+                            "type": "int"
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "name": "of",
+                            "returnType": "PagingResponse<T>",
+                            "static": true,
+                            "purpose": "Create paginated response"
+                        }
+                    ]
+                }
+            ]
+        },
+        "mappers": [
+            {
+                "file": "com/fuacs/backend/dto/mapper/DTOMapper.java",
+                "interface": "DTOMapper<D, E>",
+                "purpose": "Base interface for all MapStruct mappers",
+                "methods": [
+                    {
+                        "name": "toDTO",
+                        "returnType": "D",
+                        "params": [
+                            "E e"
+                        ],
+                        "purpose": "Convert entity to DTO"
+                    },
+                    {
+                        "name": "toEntity",
+                        "returnType": "E",
+                        "params": [
+                            "D d"
+                        ],
+                        "purpose": "Convert DTO to entity"
+                    },
+                    {
+                        "name": "toDTO",
+                        "returnType": "List<D>",
+                        "params": [
+                            "List<E> e"
+                        ],
+                        "purpose": "Convert entity list to DTO list"
+                    },
+                    {
+                        "name": "toEntity",
+                        "returnType": "List<E>",
+                        "params": [
+                            "List<D> d"
+                        ],
+                        "purpose": "Convert DTO list to entity list"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/dto/mapper/UserMapper.java",
+                "interface": "UserMapper",
+                "extends": "DTOMapper<UserDTO, User>",
+                "annotation": "@Mapper(componentModel = \"spring\")",
+                "purpose": "Map between User entity and UserDTO",
+                "methods": [
+                    {
+                        "name": "toDTO",
+                        "returnType": "UserDTO",
+                        "params": [
+                            "User entity"
+                        ],
+                        "inherited": true
+                    },
+                    {
+                        "name": "toEntity",
+                        "returnType": "User",
+                        "params": [
+                            "UserDTO dto"
+                        ],
+                        "inherited": true
+                    },
+                    {
+                        "name": "toEntity",
+                        "returnType": "User",
+                        "params": [
+                            "UserRequest request"
+                        ],
+                        "purpose": "Convert create/update request to entity"
+                    }
+                ]
+            },
+            {
+                "file": "com/fuacs/backend/dto/mapper/RoleMapper.java",
+                "interface": "RoleMapper",
+                "extends": "DTOMapper<RoleDTO, Role>",
+                "annotation": "@Mapper(componentModel = \"spring\")",
+                "purpose": "Map between Role entity and RoleDTO",
+                "methods": [
+                    {
+                        "name": "toDTO",
+                        "returnType": "RoleDTO",
+                        "params": [
+                            "Role entity"
+                        ],
+                        "inherited": true
+                    },
+                    {
+                        "name": "toEntity",
+                        "returnType": "Role",
+                        "params": [
+                            "RoleDTO dto"
+                        ],
+                        "inherited": true
+                    }
+                ]
+            }
+        ],
+        "utilities": [
+            {
+                "file": "com/fuacs/backend/util/TokenProviderUtil.java",
+                "class": "TokenProviderUtil",
+                "annotation": "@Component",
+                "dependencies": [
+                    "PasswordResetTokenRepository"
+                ],
+                "purpose": "JWT token generation and validation",
+                "methods": [
+                    {
+                        "name": "createAccessToken",
+                        "returnType": "String",
+                        "params": [
+                            "User user",
+                            "Set<Permission> permissions"
+                        ],
+                        "purpose": "Generate JWT access token with 3-minute expiry"
+                    },
+                    {
+                        "name": "createRefreshToken",
+                        "returnType": "String",
+                        "params": [
+                            "int userId"
+                        ],
+                        "purpose": "Generate JWT refresh token with 1-day expiry"
+                    },
+                    {
+                        "name": "createResetPasswordToken",
+                        "returnType": "String",
+                        "params": [
+                            "String email"
+                        ],
+                        "transaction": true,
+                        "purpose": "Generate UUID-based reset token with 15-minute expiry, store in database"
+                    },
+                    {
+                        "name": "isValidRefreshToken",
+                        "returnType": "boolean",
+                        "params": [
+                            "SignedJWT signedJWT"
+                        ],
+                        "purpose": "Validate refresh token signature, type, and expiry"
+                    },
+                    {
+                        "name": "signToken",
+                        "returnType": "String",
+                        "params": [
+                            "JWTClaimsSet claims"
+                        ],
+                        "visibility": "private",
+                        "purpose": "Sign JWT with HMAC-SHA256"
+                    },
+                    {
+                        "name": "verifySignature",
+                        "returnType": "boolean",
+                        "params": [
+                            "SignedJWT signedJWT"
+                        ],
+                        "visibility": "private",
+                        "purpose": "Verify JWT signature"
+                    },
+                    {
+                        "name": "isExpired",
+                        "returnType": "boolean",
+                        "params": [
+                            "Date expiry"
+                        ],
+                        "visibility": "private",
+                        "purpose": "Check if token is expired"
+                    }
+                ]
+            }
+        ],
+        "exceptions": [
+            {
+                "file": "com/fuacs/backend/exception/ResourceNotFoundException.java",
+                "class": "ResourceNotFoundException",
+                "extends": "RuntimeException",
+                "annotation": "@ResponseStatus(NOT_FOUND)",
+                "httpStatus": "404 NOT_FOUND",
+                "purpose": "Thrown when requested resource does not exist"
+            },
+            {
+                "file": "com/fuacs/backend/exception/ResourceConflictException.java",
+                "class": "ResourceConflictException",
+                "extends": "RuntimeException",
+                "annotation": "@ResponseStatus(CONFLICT)",
+                "httpStatus": "409 CONFLICT",
+                "purpose": "Thrown when resource creation/update conflicts with existing data (e.g., duplicate name/code)"
+            },
+            {
+                "file": "com/fuacs/backend/exception/InvalidDateRangeException.java",
+                "class": "InvalidDateRangeException",
+                "extends": "RuntimeException",
+                "annotation": "@ResponseStatus(BAD_REQUEST)",
+                "httpStatus": "400 BAD_REQUEST",
+                "purpose": "Thrown when date range validation fails (e.g., end_date before start_date)"
+            },
+            {
+                "file": "com/fuacs/backend/exception/GlobalExceptionHandler.java",
+                "class": "GlobalExceptionHandler",
+                "annotation": "@ControllerAdvice",
+                "purpose": "Global exception handler for consistent error responses",
+                "handlers": [
+                    {
+                        "exception": "ResourceNotFoundException",
+                        "status": 404,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "InvalidDateRangeException",
+                        "status": 400,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "ResourceConflictException",
+                        "status": 409,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "InsufficientAuthenticationException",
+                        "status": 401,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "InvalidBearerTokenException",
+                        "status": 401,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "IllegalArgumentException",
+                        "status": 400,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "BadCredentialsException",
+                        "status": 401,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "AccessDeniedException",
+                        "status": 403,
+                        "returns": "Response<Void>"
+                    },
+                    {
+                        "exception": "MethodArgumentNotValidException",
+                        "status": 400,
+                        "returns": "Response<Void> with validation details"
+                    },
+                    {
+                        "exception": "Exception",
+                        "status": 500,
+                        "returns": "Map<String, Object>"
+                    }
+                ]
+            }
+        ]
+    },
+    "feature_status": [
+        {
+            "id": "BE-FEAT-AUTH",
+            "feature": "Authentication Core",
+            "status": "implemented",
+            "components": [
+                "AuthenticationController",
+                "AuthenticationService",
+                "TokenProviderUtil",
+                "EmailService",
+                "PasswordResetTokenRepository"
+            ],
+            "description": "Complete authentication flow with username/password, Google Sign-In, JWT tokens, and password reset"
+        },
+        {
+            "id": "BE-FEAT-AUTHZ",
+            "feature": "Authorization & Security",
+            "status": "implemented",
+            "components": [
+                "Method Security",
+                "PermissionEvaluator",
+                "JWT Filter",
+                "@PreAuthorize annotations"
+            ],
+            "description": "Granular permission-based authorization with method-level security"
+        },
+        {
+            "id": "BE-FEAT-USER-MGMT",
+            "feature": "User Management CRUD",
+            "status": "implemented",
+            "components": [
+                "UserController",
+                "UserService",
+                "UserRepository",
+                "UserMapper"
+            ],
+            "description": "Complete CRUD operations for user accounts with soft delete"
+        }
+    ],
+    "testing": {
+        "summary": "Single Spring Boot context load test backed by PostgreSQL Testcontainer; lacks scenario coverage for authentication and user operations.",
+        "frameworks": {
+            "unit": "JUnit 5 + Mockito",
+            "integration": "Spring Boot Test + Testcontainers (PostgreSQL)"
+        },
+        "test_files": []
+    },
+    "ci_cd": {
+        "pipeline": [
+            {
+                "stage": "test",
+                "description": "Run mvn test inside Alpine image with cached Maven repo"
+            },
+            {
+                "stage": "build_and_push",
+                "description": "Build Docker image and push with branch and commit tags"
+            },
+            {
+                "stage": "deploy",
+                "description": "SSH to target host, render .env, docker compose pull & restart (staging/main)"
+            }
+        ]
+    },
+    "known_gaps": []
+}

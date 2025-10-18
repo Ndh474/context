@@ -1,0 +1,97 @@
+# Infrastructure Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  rooms:
+    primary_key: id
+    description: "Physical rooms/classrooms"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique room identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Room availability status"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Room name/identifier"
+      location:
+        type: varchar(255)
+        constraints: [NULL]
+        description: "Room location description"
+
+  cameras:
+    primary_key: id
+    description: "IP cameras installed in rooms for attendance monitoring"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique camera identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      room_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: rooms
+          column: id
+        description: "Room where camera is installed"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Camera operational status"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Camera name/identifier"
+      rtsp_url:
+        type: varchar(512)
+        constraints: [NOT NULL, UNIQUE]
+        description: "RTSP stream URL for video access"
+
+  slot_cameras:
+    primary_key: [slot_id, camera_id]
+    description: "Assignment of cameras to specific slots for attendance monitoring"
+    columns:
+      slot_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: slots
+          column: id
+        description: "Reference to slot"
+      camera_id:
+        type: smallint
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: cameras
+          column: id
+        description: "Reference to camera"
+
+notes:
+  - "Each room can have multiple cameras for comprehensive coverage"
+  - "Cameras are assigned to rooms but can be selectively used for specific slots"
+  - "RTSP URLs must be unique to prevent conflicts in video stream access"
+  - "slot_cameras table allows flexible camera assignment per slot rather than using all room cameras"

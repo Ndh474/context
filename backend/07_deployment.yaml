@@ -1,0 +1,222 @@
+deployment:
+  cicd_pipeline:
+    platform: "GitLab CI/CD"
+    description: "Automated CI/CD pipeline for backend service deployment"
+    configuration_file: ".gitlab-ci.yml"
+
+    stages:
+      test:
+        description: "Run mvn test inside Alpine image with cached Maven repo"
+        image: "alpine:latest"
+        services: ["docker:dind"]
+        environment: "Alpine Linux with OpenJDK 21 and Maven"
+        actions:
+          - "Install OpenJDK 21 and Maven via apk"
+          - "Cache Maven repository (.m2/repository) based on pom.xml"
+          - "Run mvn test"
+        cache:
+          key: "pom.xml file hash"
+          paths: [".m2/repository"]
+        triggers: "Push to main or staging branch"
+
+      build_and_push:
+        description: "Build Docker image and push with branch and commit tags"
+        image: "docker:24"
+        actions:
+          - "Build Docker image using multi-stage Dockerfile"
+          - "Tag image with commit short SHA ($CI_COMMIT_SHORT_SHA)"
+          - "Tag image with branch name ($CI_COMMIT_REF_NAME)"
+          - "Push both tags to container registry"
+        registry: "localhost:5000 (local registry)"
+        image_naming: "$REGISTRY_URL/$CI_PROJECT_PATH:$TAG"
+        triggers: "Push to main or staging branch"
+
+      deploy:
+        description: "SSH to target host, render .env, docker compose pull & restart"
+        image: "alpine:latest"
+        environments: ["staging", "production"]
+
+        deployment_template:
+          description: "Shared deployment script using YAML anchor"
+          ssh_setup:
+            - "Install openssh-client"
+            - "Configure SSH private key from $SSH_PRIVATE_KEY variable"
+            - "Add target host to known_hosts via ssh-keyscan"
+
+          deployment_steps:
+            - "SSH to target host ($SSH_USER@$SSH_HOST:$SSH_PORT)"
+            - "Navigate to deployment directory (/home/hieund/app)"
+            - "Create environment file from $ENV_FILE_CONTENT variable"
+            - "Pull new Docker image: docker compose -f $COMPOSE_FILE pull $CI_PROJECT_NAME"
+            - "Restart service: docker compose -f $COMPOSE_FILE up -d --no-deps $CI_PROJECT_NAME"
+
+        required_variables:
+          - "SSH_PRIVATE_KEY - SSH key for deployment server access"
+          - "SSH_HOST - Target server hostname/IP"
+          - "SSH_PORT - SSH port"
+          - "SSH_USER - SSH username"
+          - "COMPOSE_FILE - Docker compose file name (environment-specific)"
+          - "ENV_FILE_NAME - Environment file name (environment-specific)"
+          - "ENV_FILE_CONTENT - Environment variables content"
+
+    deployment_environments:
+      staging:
+        job_name: "deploy_staging"
+        trigger: "Push to staging branch"
+        compose_file: "docker-compose.staging.yml"
+        env_file: ".env.staging.backend"
+        environment_variables:
+          - "PROFILE - Spring profile (staging)"
+          - "SPRING_DATASOURCE_URL - Database JDBC URL"
+          - "SPRING_DATASOURCE_USERNAME - Database username"
+          - "SPRING_DATASOURCE_PASSWORD - Database password"
+          - "JWT_SECRET - JWT signing secret"
+        verification: "Docker compose health checks"
+
+      production:
+        job_name: "deploy_production"
+        trigger: "Push to main branch"
+        compose_file: "docker-compose.prod.yml"
+        env_file: ".env.production.backend"
+        environment_variables:
+          - "PROFILE - Spring profile (production)"
+          - "SPRING_DATASOURCE_URL - Database JDBC URL"
+          - "SPRING_DATASOURCE_USERNAME - Database username"
+          - "SPRING_DATASOURCE_PASSWORD - Database password"
+          - "JWT_SECRET - JWT signing secret"
+        verification: "Docker compose health checks"
+        note: "No manual approval gate currently configured"
+
+  containerization:
+    dockerfile_structure:
+      builder_stage:
+        base_image: "maven:3.9-eclipse-temurin-21"
+        purpose: "Build application JAR"
+        actions:
+          - "Copy pom.xml and source code"
+          - "Run mvn clean package"
+          - "Generate application JAR"
+
+      runtime_stage:
+        base_image: "eclipse-temurin:21-jre-alpine"
+        purpose: "Run application"
+        actions:
+          - "Copy JAR from builder stage"
+          - "Set up non-root user"
+          - "Configure entrypoint"
+
+    entrypoint: "java -jar app.jar"
+    exposed_port: 8080
+
+    environment_variables:
+      description: "Application configuration via environment variables and Spring profiles"
+
+      required:
+        database:
+          - "SPRING_DATASOURCE_URL - PostgreSQL JDBC connection string"
+          - "SPRING_DATASOURCE_USERNAME - Database username"
+          - "SPRING_DATASOURCE_PASSWORD - Database password"
+
+        security:
+          - "TOKEN_SIGN_KEY - JWT signing secret key (HS256)"
+          - "GOOGLE_CLIENT_ID - Google OAuth client ID"
+          - "GOOGLE_CLIENT_SECRET - Google OAuth client secret"
+
+        email:
+          - "MAIL - Gmail address for sending emails"
+          - "MAIL_APP_PASSWORD - Gmail app password (2FA)"
+
+      optional:
+        - "PROFILE - Spring profile (dev/staging/prod), default: dev"
+        - "PORT - Server port, default: 8080"
+
+      configuration_sources:
+        - ".env file (local development)"
+        - ".env.example (template with placeholders)"
+        - "GitLab CI/CD variables (staging/production)"
+        - "Environment-specific application-{profile}.yaml files"
+
+  deployment_configuration:
+    docker_compose:
+      description: "Docker Compose orchestration on deployment server"
+      location: "/home/hieund/app on deployment server"
+      files:
+        - "docker-compose.staging.yml - Staging environment"
+        - "docker-compose.prod.yml - Production environment"
+      services:
+        - "backend - Spring Boot application"
+        - "postgresql - Database (likely)"
+        - "Other services as needed"
+      note: "Docker compose files are managed on deployment server, not in repository"
+
+    spring_profiles:
+      dev:
+        description: "Local development profile"
+        database: "jdbc:postgresql://localhost:5432/fuacs_dev"
+        jpa_ddl: "none (manual schema management)"
+        jpa_show_sql: true
+        mail_config: "Gmail SMTP with app password"
+
+      staging:
+        description: "Staging environment profile"
+        jpa_ddl: "update (auto-update schema)"
+        configuration: "Overrides from .env.staging.backend"
+
+      prod:
+        description: "Production environment profile"
+        jpa_ddl: "validate (no schema changes)"
+        configuration: "Overrides from .env.production.backend"
+
+    health_checks:
+      status: "NOT IMPLEMENTED"
+      note: "Spring Boot Actuator not configured in pom.xml or application.yaml"
+      recommendation: "Add spring-boot-starter-actuator dependency and configure /actuator/health endpoint"
+
+    resource_limits:
+      status: "NOT CONFIGURED"
+      note: "No resource limits defined in available configuration files"
+      recommendation: "Configure in docker-compose files on deployment server"
+
+    scaling:
+      status: "NOT CONFIGURED"
+      current: "Single instance deployment"
+      note: "No auto-scaling configuration found"
+
+  monitoring_and_logging:
+    status: "MINIMAL CONFIGURATION"
+
+    application_logs:
+      level: "Default Spring Boot logging (INFO for application, varies by package)"
+      format: "Standard Spring Boot console output (not JSON)"
+      configuration: "No custom logging configuration in application.yaml"
+      dev_profile: "SQL logging enabled (show-sql: true)"
+      recommendation: "Configure logback-spring.xml for structured logging and log levels"
+
+    metrics:
+      status: "NOT CONFIGURED"
+      note: "Spring Boot Actuator not enabled"
+      recommendation: "Add actuator dependency and configure metrics endpoints"
+      potential_metrics:
+        - "Application performance metrics"
+        - "Database connection pool metrics (HikariCP)"
+        - "HTTP request/response metrics"
+        - "JVM metrics (memory, GC, threads)"
+
+    alerts:
+      status: "NOT CONFIGURED"
+      note: "No alerting system configured"
+      recommendation: "Integrate with monitoring solution (Prometheus, Grafana, etc.)"
+
+    observability_gaps:
+      - "No structured logging (JSON format)"
+      - "No metrics collection"
+      - "No distributed tracing"
+      - "No health check endpoints"
+      - "No alerting rules"
+
+    future_improvements:
+      - "Add spring-boot-starter-actuator for health checks and metrics"
+      - "Configure Micrometer for metrics export"
+      - "Implement structured logging with Logback"
+      - "Set up centralized logging (ELK stack or similar)"
+      - "Configure alerting rules for critical errors"

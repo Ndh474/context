@@ -1,0 +1,49 @@
+# User Profiles Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  student_profiles:
+    primary_key: user_id
+    description: "Extended profile information for student users"
+    columns:
+      user_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to user account"
+      major_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: majors
+          column: id
+        description: "Student's major/program"
+      roll_number:
+        type: varchar(20)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Student's unique roll number (e.g., HE180314)"
+
+  staff_profiles:
+    primary_key: user_id
+    description: "Extended profile information for staff users (lecturers, supervisors, etc.)"
+    columns:
+      user_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to user account"
+      staff_code:
+        type: varchar(20)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Staff's unique employee code"
+
+notes:
+  - "Student profiles link users to their academic major"
+  - "Staff profiles are currently minimal but can be extended with additional fields as needed"
+  - "Profile tables use user_id as primary key, ensuring one-to-one relationship with users"
+  - "Users with STUDENT role must have a corresponding student_profile record"
+  - "Users with LECTURER or SUPERVISOR roles must have a corresponding staff_profile record"

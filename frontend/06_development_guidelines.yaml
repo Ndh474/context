@@ -1,0 +1,145 @@
+development_guidelines:
+  ai_development_guidelines:
+    documentation_maintenance:
+      rule: "After implementing a new feature, update this manifest file to reflect the new state of the codebase"
+      files_to_update:
+        - "04_feature_status.yaml: Update feature completion status"
+        - "05_screen_status.yaml: Add new screens and update completion"
+        - "02_data_models_and_api.yaml: Add new entities and API hooks"
+        - "03_ui_components.yaml: Document new components"
+
+    api_integration_workflow:
+      description: "For new entities, follow this sequence"
+      steps:
+        1: "Define endpoints in lib/constants.ts"
+        2: "Create schemas in lib/zod-schemas.ts"
+        3: "Generate types in types/index.ts"
+        4: "Create React Query hooks in hooks/api/"
+        5: "Build UI components using the hooks"
+
+    component_development:
+      rule: "Build new components by composing existing base components from components/ui/"
+      structure: "Place custom, feature-specific components in a structured manner"
+      patterns:
+        - "Use shadcn/ui base components as building blocks"
+        - "Create feature-specific components in appropriate directories"
+        - "Follow the provider pattern for global state"
+        - "Use React Hook Form + Zod for all forms"
+
+    crud_screen_workflow:
+      description: "Standard workflow for admin CRUD screens (based on semester management)"
+
+      phase_1_data_layer:
+        - "Define endpoints in lib/constants.ts"
+        - "Create Zod schemas (entity, paginated response, create/update payloads)"
+        - "Generate TypeScript types from schemas"
+        - "Create React Query hooks with centralized error handling"
+
+      phase_2_components:
+        - "Create column definitions (factory function pattern)"
+        - "Build table component (fixed height, custom pagination)"
+        - "Build form dialog (dual-mode: create/edit)"
+        - "Create delete confirmation dialog"
+
+      phase_3_page:
+        - "Setup state (page, search, sort, dialogs)"
+        - "Wire up hooks with debounced search"
+        - "Implement layout (search + sort dropdowns + table)"
+        - "Handle CRUD operations"
+
+      key_patterns:
+        debounced_search: "useDebounce(searchQuery, 500) → reset to page 1"
+        instant_sort: "No debounce on sort dropdowns"
+        error_handling: "Centralized in hooks with toast notifications"
+        pagination: "Smart ellipsis, hide when <= pageSize"
+
+  coding_standards:
+    file_organization:
+      app_directory: "Next.js App Router pages and layouts"
+      components_ui: "Base shadcn/ui components"
+      components_custom: "Feature-specific custom components"
+      components_providers: "Context providers"
+      hooks_api: "React Query hooks for API calls"
+      lib: "Utilities, schemas, constants, and configurations"
+      types: "TypeScript type definitions"
+
+    naming_conventions:
+      components: "PascalCase (e.g., LoginForm, ModeToggle)"
+      files: "kebab-case for component files (e.g., login-form.tsx)"
+      hooks: "camelCase starting with 'use' (e.g., useLogin, useSemesters)"
+      types: "PascalCase (e.g., Semester, AuthResponse)"
+      constants: "UPPER_SNAKE_CASE (e.g., API_ENDPOINTS)"
+
+    type_safety:
+      validation: "Use Zod schemas for runtime validation"
+      types: "Derive TypeScript types from Zod schemas using z.infer"
+      api_calls: "All API calls must be typed with request/response schemas"
+      forms: "Use zodResolver with React Hook Form for type-safe forms"
+
+    state_management:
+      server_state: "Use React Query for all server state management"
+      client_state: "Use Zustand for complex client state, useState for simple local state"
+      form_state: "Use React Hook Form for all form state management"
+
+      pagination_state:
+        pattern: "Local useState for page, search, sort"
+        sync_with_api: "Pass as params to React Query hooks"
+
+      dialog_state:
+        pattern: "Local useState for visibility + selectedEntity"
+        reset_on_success: "Clear entity and close dialog"
+
+  testing_guidelines:
+    current_status: "No tests implemented yet"
+
+    planned_testing_strategy:
+      unit_tests: "Jest + React Testing Library for component testing"
+      integration_tests: "Test API hooks with MSW (Mock Service Worker)"
+      e2e_tests: "Playwright for end-to-end testing"
+
+    testing_priorities:
+      1: "Authentication flow testing"
+      2: "Form validation testing"
+      3: "API integration testing"
+      4: "Component rendering testing"
+
+  performance_guidelines:
+    optimization_strategies:
+      - "Use React Query caching for API responses"
+      - "Implement proper loading states"
+      - "Use Next.js Image component for optimized images"
+      - "Implement code splitting for large features"
+      - "Use React.memo for expensive components"
+
+    bundle_optimization:
+      - "Tree-shake unused dependencies"
+      - "Use dynamic imports for large libraries"
+      - "Optimize Tailwind CSS with purging"
+      - "Use Next.js built-in optimizations"
+
+  accessibility_guidelines:
+    standards: "Follow WCAG 2.1 AA guidelines"
+
+    implementation_checklist:
+      - "Use semantic HTML elements"
+      - "Provide proper ARIA labels and descriptions"
+      - "Ensure keyboard navigation works"
+      - "Maintain proper color contrast ratios"
+      - "Test with screen readers"
+      - "Provide focus indicators"
+
+  deployment_guidelines:
+    build_process: "Next.js static export or server-side rendering"
+    environment_variables:
+      required:
+        - "NEXT_PUBLIC_API_BASE_URL"
+        - "NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+      optional:
+        - "NEXT_PUBLIC_APP_ENV"
+
+    deployment_checklist:
+      - "Verify all environment variables are set"
+      - "Test build process locally"
+      - "Verify API endpoints are accessible"
+      - "Test authentication flows"
+      - "Verify responsive design on multiple devices"

@@ -1,0 +1,112 @@
+data_models_and_api:
+  implemented_entities:
+    Semester:
+      db_table: "semesters"
+      related_business_rules: ["BR-12"]
+      related_files:
+        schema_definition: "lib/zod-schemas.ts"
+        type_definitions: "types/index.ts"
+        api_endpoints: "lib/constants.ts"
+        query_keys: "lib/constants.ts"
+        react_query_hooks: "hooks/api/useSemesters.ts"
+        ui_components:
+          - "app/admin/semesters/page.tsx"
+          - "components/semesters/"
+      operations: ["CRUD", "Pagination", "Search", "Sort", "Validation"]
+
+      api_specification:
+        endpoint: "/api/semesters"
+        pagination_params: ["page", "pageSize", "sort", "sortBy", "search"]
+        response_format: "PaginatedSemesterResponse"
+
+  api_integration:
+    authentication_configuration:
+      method: "JWT Bearer Token"
+      storage: "localStorage"
+      auto_redirect_on_401: "conditional"
+      redirect_target: "/login"
+      providers: ["Username/password form", "Google Identity Services (OAuth)"]
+
+      keys:
+        access: "fuacs-auth-token"
+        refresh: "fuacs-refresh-token"
+        user: "fuacs-auth-user"
+
+      auto_redirect_notes: "401 responses from authenticated API calls clear the session and route to /login; login failures keep the user on the form; Google login exchanges the Google ID token for FUACS JWT and mirrors inactive/not-found error handling"
+
+    caching_strategy:
+      library: "@tanstack/react-query"
+      stale_time: "5 minutes"
+      cache_invalidation: "Automatic on mutations via queryClient.invalidateQueries"
+
+  data_flow_implementation:
+    validation_layer:
+      file: "lib/zod-schemas.ts"
+      purpose: "Defines Zod schemas for runtime validation"
+      entities:
+        ["Semester", "GoogleLoginPayload", "LoginRequest", "AuthResponse"]
+
+    type_layer:
+      file: "types/index.ts"
+      purpose: "TypeScript types derived from Zod schemas"
+      type_safety: "Full compile-time type checking"
+
+    transport_layer:
+      api_client:
+        file: "lib/api-axios.ts"
+        features:
+          [
+            "JWT authentication interceptors",
+            "Conditional redirect on 401",
+            "Error handling",
+          ]
+
+      auth_utilities:
+        file: "lib/auth.ts"
+        features:
+          ["Token management", "Access/refresh/user cache", "Session clearing"]
+
+      constants:
+        file: "lib/constants.ts"
+        features: ["API endpoints", "Query keys", "Authentication constants"]
+
+  api_hooks:
+    authentication:
+      file: "hooks/api/useAuth.ts"
+      hooks: ["useLogin", "useGoogleLogin", "useRefreshToken", "useLogout"]
+      features:
+        ["React Query mutations", "Error handling alignment", "Toast feedback"]
+
+    semester_management:
+      file: "hooks/api/useSemesters.ts"
+      hooks:
+        [
+          "useGetSemesters",
+          "useCreateSemester",
+          "useUpdateSemester",
+          "useDeleteSemester",
+        ]
+      features:
+        - "CRUD operations with pagination/search/sort"
+        - "Centralized error handling with API message extraction"
+        - "Toast notifications on success/error"
+        - "Automatic cache invalidation"
+        - "Type-safe payloads with Zod validation"
+
+  error_handling:
+    strategy: "Centralized error handling with user-friendly messages"
+    implementation:
+      - "API interceptors catch 401 and redirect to login"
+      - "React Query error boundaries for component-level errors"
+      - "Toast notifications for user feedback"
+      - "Zod validation errors displayed in forms"
+      - "API hooks extract response.data.message for specific errors"
+
+    toast_patterns:
+      location: "API hooks (onSuccess/onError callbacks)"
+      success_examples:
+        ["Entity created successfully!", "Entity updated successfully!"]
+      error_handling:
+        - "Extract: error.response?.data?.message || fallback"
+        - "Status codes: 409 (conflict), 400 (validation), 404 (not found)"
+        - "Provide actionable guidance in error messages"

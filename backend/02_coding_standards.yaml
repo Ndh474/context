@@ -1,0 +1,237 @@
+coding_standards:
+  dto_pattern:
+    type: "classes"
+    description: "Use regular Java classes with getters/setters, NOT records"
+
+    request_dto:
+      location: "com.fuacs.backend.dto.request"
+      naming_conventions:
+        standard_crud:
+          pattern: "{Entity}CreateRequest and {Entity}UpdateRequest"
+          description: "Separate request classes for create and update operations"
+          examples:
+            create:
+              [
+                "SemesterCreateRequest",
+                "MajorCreateRequest",
+                "SubjectCreateRequest",
+                "StaffCreateRequest",
+              ]
+            update:
+              [
+                "SemesterUpdateRequest",
+                "MajorUpdateRequest",
+                "SubjectUpdateRequest",
+                "StaffUpdateRequest",
+              ]
+          note: "Some entities use single {Entity}Request for both operations (e.g., UserRequest)"
+
+        specific_actions:
+          pattern: "{Prefix}{Action}Request or {Action}{Entity}Request"
+          description: "Used for specific actions beyond standard CRUD"
+          examples:
+            [
+              "PasswordForgotRequest",
+              "PasswordResetRequest",
+              "PasswordUpdateRequest",
+              "IdentitySubmissionCreationRequest",
+              "IdentitySubmissionReviewRequest",
+            ]
+
+        authentication:
+          pattern: "Login{Variant}Request"
+          description: "For authentication variants"
+          examples:
+            ["LoginRequest", "LoginGoogleRequest", "RefreshTokenRequest"]
+
+        search_filtering:
+          pattern: "{Entity}SearchRequest"
+          description: "For search and pagination, extends PagedRequest base class"
+          examples:
+            ["SemesterSearchRequest", "UserSearchRequest", "ClassSearchRequest"]
+          base_class: "PagedRequest (provides page, pageSize, sort, sortBy fields)"
+
+      validation:
+        description: "Use jakarta.validation.constraints and hibernate-validator annotations"
+        common_annotations:
+          - "@NotBlank - for required string fields"
+          - "@NotNull - for required non-string fields"
+          - "@Size(max=n) - for string length constraints"
+          - "@Length(max=n) - Hibernate validator for string length"
+          - "@Email - for email format validation"
+          - "@Pattern(regexp=...) - for custom regex validation"
+          - "@Min/@Max - for numeric range validation"
+          - "@Future/@FutureOrPresent - for date validation"
+        examples:
+          - "SemesterCreateRequest: @NotBlank, @Length, @FutureOrPresent"
+          - "UserRequest: @NotBlank, @Size, @Email"
+          - "PagedRequest: @Min, @Max, @Pattern for pagination parameters"
+
+    response_dto:
+      location: "com.fuacs.backend.dto.response"
+      naming_patterns: ["{Entity}DTO"]
+      examples:
+        ["SemesterDTO", "UserDTO", "StaffDTO", "TokenResponse", "ClassDTO"]
+      annotation: "@JsonInclude(JsonInclude.Include.NON_NULL)"
+
+      base_dto:
+        description: "BaseDTO provides common audit fields for response DTOs"
+        class: "BaseDTO"
+        fields:
+          - "isActive: Boolean"
+          - "createdAt: Instant"
+          - "updatedAt: Instant"
+        usage: "Most entity DTOs extend BaseDTO (e.g., SemesterDTO, UserDTO)"
+        json_property: '@JsonProperty("isActive") on getActive() method for proper JSON serialization'
+
+  mapper_pattern:
+    framework: "MapStruct"
+    base_interface: "DTOMapper<ResponseDTO, Entity>"
+    component_model: "spring"
+
+    conventions:
+      - "Extend DTOMapper<ResponseDTO, Entity> for standard CRUD mappers"
+      - 'Use @Mapper(componentModel = "spring") annotation'
+      - "Provide toEntity(CreateRequest) for create operations"
+      - "Provide toEntity(UpdateRequest) for update operations"
+
+    update_pattern:
+      description: "Two approaches for update operations"
+      approach_1:
+        name: "Separate toEntity(UpdateRequest) method"
+        usage: "Most common - used by Semester, Major, Subject, etc."
+        implementation: "Service layer manually maps fields from UpdateRequest to existing entity"
+        example: "SemesterMapper has toEntity(SemesterUpdateRequest), but SemesterService manually sets fields"
+
+      approach_2:
+        name: "@MappingTarget pattern"
+        usage: "Less common - only UserMapper implements this"
+        implementation: "Mapper method with @MappingTarget updates existing entity directly"
+        example: "UserMapper.updateUserFromRequest(UserRequest, @MappingTarget User)"
+        note: "Available but not consistently used across services"
+
+    special_mappings:
+      - "Use @Mappings for complex field mappings (e.g., StudentProfileDTO from StudentProfile)"
+      - "Use @BeanMapping(nullValuePropertyMappingStrategy = IGNORE) for partial updates"
+
+  response_wrapper:
+    standard: "Response (generic type T)"
+    paginated: "PagingResponse (generic type T)"
+    status_codes:
+      success: 200
+      created: 201
+      bad_request: 400
+      unauthorized: 401
+      forbidden: 403
+      not_found: 404
+      conflict: 409
+      internal_server_error: 500
+
+  entity_layer:
+    base_class:
+      name: "BaseEntity"
+      description: "Abstract class providing common audit and lifecycle fields"
+      annotations:
+        ["@MappedSuperclass", "@EntityListeners(AuditingEntityListener.class)"]
+      fields:
+        createdAt: "Instant - auto-populated via @CreatedDate (non-updatable)"
+        updatedAt: "Instant - auto-populated via @LastModifiedDate"
+        isActive: "Boolean - for soft delete capability (manual management)"
+      auditing: "Requires @EnableJpaAuditing in configuration with custom DateTimeProvider"
+
+    naming_conventions:
+      entity_classes: "Singular form (User, Role, Semester, StudyClass)"
+      table_names: "Plural lowercase (users, roles, semesters, classes)"
+      special_cases: "StudyClass entity → 'classes' table (avoid Java keyword conflict)"
+
+    primary_key_strategy:
+      strategy: "@GeneratedValue(strategy = GenerationType.IDENTITY)"
+      id_types:
+        standard_entities: "Integer (User, Slot, IdentitySubmission, PasswordResetToken)"
+        lookup_tables: "Short (Semester, Major, Subject, StudyClass, Room, Camera, Role, Permission)"
+
+    soft_delete:
+      field: "isActive Boolean"
+      implementation: "Service layer sets entity.setActive(false) for deactivation"
+      note: "Soft delete via PUT endpoint, hard delete via DELETE endpoint"
+
+    entities_not_extending_base_entity:
+      - "PasswordResetToken - has own createdAt and expiresAt fields"
+      - "IdentitySubmission - has own timestamp fields (createdAt, updatedAt, reviewedAt)"
+      - "StudentProfile - lifecycle managed through parent User entity via @MapsId"
+
+  service_layer_standards:
+    annotation: "@Service"
+
+    transaction_management:
+      write_operations: "@Transactional (default propagation and isolation)"
+      read_operations: "@Transactional(readOnly = true) for query optimization"
+      note: "Transactional boundaries at service layer, not repository layer"
+
+    error_handling:
+      principle: "Throw exceptions, never return null"
+      exceptions:
+        - "ResourceNotFoundException - for entity not found (404)"
+        - "IllegalArgumentException - for business rule violations (400)"
+        - "DataIntegrityViolationException - for constraint violations (409)"
+      example: "SemesterService throws IllegalArgumentException for duplicate code/name"
+
+    validation:
+      timing: "Perform business rule validation before persistence"
+      examples:
+        - "Check for duplicate codes/names before creating entities"
+        - "Verify foreign key references exist (e.g., majorId, roomId)"
+        - "Validate role assignment rules (e.g., STUDENT cannot have LECTURER role)"
+      note: "Jakarta validation (@Valid) handles request DTO validation at controller layer"
+
+    return_types:
+      principle: "Always return DTOs, never entities"
+      single_item: "Return DTO (e.g., SemesterDTO)"
+      collections: "Return List<DTO> or Set<DTO>"
+      mapping: "Use MapStruct mappers to convert entities to DTOs"
+
+    update_pattern:
+      description: "Standard pattern for update operations"
+      steps:
+        - "1. Fetch existing entity from repository (throw ResourceNotFoundException if not found)"
+        - "2. Validate business rules (uniqueness, constraints)"
+        - "3. Manually map fields from UpdateRequest to existing entity"
+        - "4. Save entity via repository"
+        - "5. Convert saved entity to DTO and return"
+      example: "SemesterService.update() - fetches existing, validates, manually sets fields, saves"
+
+  controller_layer_standards:
+    annotations: ["@RestController", '@RequestMapping("/api/v1/{resource}")']
+
+    response_wrapper:
+      single_item: "Response<T> for single entity responses"
+      paginated_list: "PagingResponse<T> for paginated collections"
+      factory_methods:
+        - "Response.ok(data) - 200 with data"
+        - "Response.ok(message) - 200 with message only"
+        - "Response.created(data) - 201 with data"
+        - "PagingResponse.of(items, total, request) - paginated response"
+
+    security:
+      annotation: '@PreAuthorize("hasPermission(null, ''PERMISSION_NAME'')")'
+      permission_format: "DOMAIN_ACTION (e.g., SEMESTER_READ, USER_CREATE)"
+      enforcement: "Method-level security on all endpoints"
+      technical_debt: "Many endpoints still lack @PreAuthorize annotations"
+
+    validation:
+      request_body: "@Valid @RequestBody for DTO validation"
+      query_params: "@Valid on request objects (e.g., SearchRequest)"
+      error_handling: "GlobalExceptionHandler catches MethodArgumentNotValidException"
+
+    path_variables:
+      type_matching: "Use appropriate types matching entity ID types"
+      examples:
+        - "Short for lookup tables (@PathVariable Short id) - Semester, Major, Subject"
+        - "Integer for standard entities (@PathVariable Integer userId) - User, Slot"
+      note: "Type mismatch will cause 400 Bad Request automatically"
+
+    http_methods:
+      GET: "Retrieve resources (findAll, findById)"
+      POST: "Create new resources"
+      PUT: "Update existing resources (including soft delete via isActive)"
+      DELETE: "Hard delete (permanent removal, requires *_DELETE_HARD permission)"

@@ -1,0 +1,848 @@
+{
+    "project": {
+        "code": "FUACS",
+        "name_en": "FU Attendance Checking Smart",
+        "name_vi": "Hệ thống điểm danh thông minh của Trường Đại học FPT"
+    },
+    "background": "Hệ thống điểm danh và quản lý học vụ độc lập. FUACS đóng vai trò là Nguồn Dữ Liệu Duy Nhất (Source of Record) cho toàn bộ dữ liệu về lớp học, sinh viên, giảng viên và kết quả điểm danh.",
+    "goal": "Hỗ trợ đăng nhập qua Google và tài khoản hệ thống (username/password), lịch học, lịch thi và điểm danh thông minh hỗ trợ giảng viên.",
+    "platform_definitions": {
+        "MOBILE_APP": {
+            "name": "Mobile",
+            "os": [
+                "iOS",
+                "Android"
+            ]
+        },
+        "GENERAL_WEB": {
+            "name": "Web"
+        },
+        "ADMIN_PORTAL": {
+            "name": "Web (Admin Portal)"
+        }
+    },
+    "platforms": {
+        "student": "MOBILE_APP",
+        "lecturer": "GENERAL_WEB",
+        "supervisor": "GENERAL_WEB",
+        "data_operator": "ADMIN_PORTAL",
+        "system_admin": "ADMIN_PORTAL"
+    },
+    "auth_and_role_mapping": {
+        "mapping_method": "system_native",
+        "description": "Người dùng được tạo và quản lý vai trò trực tiếp trong hệ thống bởi Data Operator. Định danh đăng nhập chính (username) của người dùng được quy định là Mã số sinh viên hoặc Mã nhân viên. Hệ thống hỗ trợ đăng nhập bằng Google (để đối soát email) và đăng nhập trực tiếp bằng username/mật khẩu. Hệ thống sử dụng các hồ sơ chuyên biệt (student_profiles, staff_profiles) để quản lý các thuộc tính đặc thù. Quy tắc gán vai trò: vai trò SUPERVISOR hoặc LECTURER không được gán cho người dùng có vai trò STUDENT.",
+        "on_missing_user": "deny_access_403",
+        "on_status_inactive": "deny_access_403"
+    },
+    "master_permission_catalog": {
+        "USER_MANAGEMENT": {
+            "USER_CREATE": "Tạo tài khoản người dùng mới.",
+            "USER_READ_LIST": "Xem danh sách tất cả người dùng.",
+            "USER_READ_DETAIL": "Xem thông tin chi tiết của một người dùng.",
+            "USER_UPDATE_INFO": "Cập nhật thông tin cá nhân của người dùng (tên, email).",
+            "USER_UPDATE_STATUS": "Vô hiệu hóa hoặc kích hoạt tài khoản người dùng (xóa mềm).",
+            "USER_DELETE_HARD": "Xóa vĩnh viễn tài khoản người dùng (hành động nguy hiểm, cần cân nhắc).",
+            "USER_ASSIGN_ROLES": "Gán hoặc thu hồi vai trò từ một người dùng.",
+            "CREATE_SYSTEM_ADMIN": "Tạo tài khoản có vai trò System Admin (quyền hạn cực kỳ nhạy cảm, chỉ dùng cho mục đích thiết lập hệ thống)."
+        },
+        "IDENTITY_MANAGEMENT": {
+            "IDENTITY_SUBMISSION_READ_QUEUE": "Xem danh sách các yêu cầu định danh đang chờ duyệt.",
+            "IDENTITY_SUBMISSION_READ_DETAIL": "Xem chi tiết một yêu cầu định danh (video, CCCD).",
+            "IDENTITY_SUBMISSION_APPROVE": "Phê duyệt một yêu cầu định danh.",
+            "IDENTITY_SUBMISSION_REJECT": "Từ chối một yêu cầu định danh."
+        },
+        "ACADEMIC_CATALOG_MANAGEMENT": {
+            "SEMESTER_CREATE": "Tạo một kỳ học mới.",
+            "SEMESTER_READ": "Xem danh sách và chi tiết các kỳ học.",
+            "SEMESTER_UPDATE": "Cập nhật thông tin một kỳ học.",
+            "SEMESTER_DELETE": "Vô hiệu hóa một kỳ học.",
+            "MAJOR_CREATE": "Tạo một chuyên ngành mới.",
+            "MAJOR_READ": "Xem danh sách và chi tiết các chuyên ngành.",
+            "MAJOR_UPDATE": "Cập nhật thông tin một chuyên ngành.",
+            "MAJOR_DELETE": "Vô hiệu hóa một chuyên ngành.",
+            "SUBJECT_CREATE": "Tạo một môn học mới.",
+            "SUBJECT_READ": "Xem danh sách và chi tiết các môn học.",
+            "SUBJECT_UPDATE": "Cập nhật thông tin một môn học.",
+            "SUBJECT_DELETE": "Vô hiệu hóa một môn học.",
+            "CLASS_CREATE": "Tạo một lớp học mới.",
+            "CLASS_READ": "Xem danh sách và chi tiết các lớp học.",
+            "CLASS_UPDATE": "Cập nhật thông tin một lớp học.",
+            "CLASS_DELETE": "Vô hiệu hóa một lớp học.",
+            "SLOT_CREATE": "Tạo một buổi học/thi mới.",
+            "SLOT_READ": "Xem danh sách và chi tiết các buổi học/thi.",
+            "SLOT_UPDATE": "Cập nhật thông tin một buổi học/thi.",
+            "SLOT_DELETE": "Hủy một buổi học/thi.",
+            "ENROLLMENT_MANAGE": "Thêm hoặc xóa sinh viên ra khỏi một lớp học."
+        },
+        "INFRASTRUCTURE_MANAGEMENT": {
+            "ROOM_CREATE": "Tạo một phòng học mới.",
+            "ROOM_READ": "Xem danh sách và chi tiết các phòng học.",
+            "ROOM_UPDATE": "Cập nhật thông tin một phòng học.",
+            "ROOM_DELETE": "Xóa một phòng học.",
+            "CAMERA_CREATE": "Tạo một camera mới và gán vào phòng học.",
+            "CAMERA_READ": "Xem danh sách và chi tiết các camera.",
+            "CAMERA_UPDATE": "Cập nhật thông tin một camera.",
+            "CAMERA_DELETE": "Xóa một camera."
+        },
+        "ATTENDANCE_MANAGEMENT": {
+            "OWN_SCHEDULE_READ": "Xem lịch trình (dạy/thi/học) của cá nhân.",
+            "SLOT_SESSION_START": "Bắt đầu phiên điểm danh tự động cho một buổi học.",
+            "SLOT_SESSION_RESCAN": "Kích hoạt một lượt quét điểm danh lại.",
+            "SLOT_SESSION_FINALIZE": "Chốt sổ và hoàn tất phiên điểm danh.",
+            "ATTENDANCE_ROSTER_READ": "Xem danh sách và trạng thái điểm danh real-time của một buổi học.",
+            "ATTENDANCE_STATUS_UPDATE_MANUAL": "Cập nhật thủ công trạng thái điểm danh cho sinh viên.",
+            "ATTENDANCE_REMARK_MANAGE": "Thêm, sửa, xóa ghi chú điểm danh.",
+            "SLOT_ANNOUNCEMENT_MANAGE": "Quản lý (tạo/xóa) thông báo của buổi học.",
+            "PRE_SLOT_MESSAGE_READ": "Đọc các tin nhắn trước buổi học do sinh viên gửi.",
+            "PRE_SLOT_MESSAGE_ACKNOWLEDGE": "Đánh dấu đã đọc/ghi nhận tin nhắn của sinh viên."
+        },
+        "REPORTING_AND_DATA": {
+            "REPORT_READ_OWN_SLOT": "Xem báo cáo điểm danh của các buổi học mình phụ trách.",
+            "REPORT_EXPORT_OWN_SLOT": "Xuất file báo cáo của các buổi học mình phụ trách.",
+            "REPORT_READ_CLASS_SUMMARY": "Xem báo cáo chuyên cần tổng hợp của một lớp.",
+            "REPORT_READ_SYSTEM_WIDE": "Xem các báo cáo tổng hợp trên toàn hệ thống.",
+            "REPORT_EXPORT_ACADEMIC_DATA": "Xuất dữ liệu học vụ (danh sách lớp, kết quả điểm danh...).",
+            "AUDIT_LOG_READ": "Xem nhật ký các thay đổi dữ liệu nghiệp vụ quan trọng."
+        },
+        "SYSTEM_ADMINISTRATION": {
+            "SYSTEM_CONFIG_READ": "Xem các cấu hình hệ thống.",
+            "SYSTEM_CONFIG_UPDATE": "Thay đổi các cấu hình hệ thống.",
+            "ROLE_PERMISSION_MAPPING_READ": "Xem ma trận phân quyền vai trò ↔ quyền.",
+            "ROLE_PERMISSION_MAPPING_UPDATE": "Chỉnh sửa ma trận phân quyền.",
+            "SYSTEM_LOG_READ": "Xem nhật ký hoạt động kỹ thuật của hệ thống.",
+            "NOTIFICATION_TEMPLATE_MANAGE": "Quản lý các mẫu thông báo của hệ thống."
+        },
+        "STUDENT_PERMISSIONS": {
+            "OWN_ATTENDANCE_HISTORY_READ": "Xem lịch sử điểm danh của bản thân.",
+            "OWN_IDENTITY_SUBMIT": "Nộp hồ sơ đăng ký hoặc cập nhật định danh.",
+            "PRE_SLOT_MESSAGE_CREATE": "Gửi tin nhắn trước buổi học cho giảng viên."
+        },
+        "GENERAL_PERMISSIONS": {
+            "OWN_PROFILE_READ": "Xem thông tin hồ sơ cá nhân của chính mình.",
+            "OWN_PASSWORD_UPDATE": "Tự thay đổi mật khẩu của chính mình."
+        }
+    },
+    "role_definitions": {
+        "SYSTEM_ADMIN": {
+            "role_name_vi": "Quản trị viên Hệ thống",
+            "description": "Vai trò kỹ thuật cao nhất, chịu trách nhiệm định nghĩa chính sách, cấu hình hệ thống và quản lý cấu trúc phân quyền của các vai trò. Không quản lý tài khoản người dùng hay can thiệp vào nghiệp vụ hàng ngày.",
+            "platform": "ADMIN_PORTAL",
+            "permissions": [
+                "SYSTEM_CONFIG_READ",
+                "SYSTEM_CONFIG_UPDATE",
+                "ROLE_PERMISSION_MAPPING_READ",
+                "ROLE_PERMISSION_MAPPING_UPDATE",
+                "SYSTEM_LOG_READ",
+                "NOTIFICATION_TEMPLATE_MANAGE",
+                "OWN_PROFILE_READ",
+                "OWN_PASSWORD_UPDATE"
+            ]
+        },
+        "DATA_OPERATOR": {
+            "role_name_vi": "Nhân viên Vận hành Dữ liệu",
+            "description": "Vai trò vận hành nghiệp vụ chính, chịu trách nhiệm toàn bộ về dữ liệu học vụ và quản lý vòng đời tài khoản người dùng.",
+            "platform": "ADMIN_PORTAL",
+            "permissions": [
+                "USER_CREATE",
+                "USER_READ_LIST",
+                "USER_READ_DETAIL",
+                "USER_UPDATE_INFO",
+                "USER_UPDATE_STATUS",
+                "USER_ASSIGN_ROLES",
+                "IDENTITY_SUBMISSION_READ_QUEUE",
+                "IDENTITY_SUBMISSION_READ_DETAIL",
+                "IDENTITY_SUBMISSION_APPROVE",
+                "IDENTITY_SUBMISSION_REJECT",
+                "SEMESTER_CREATE",
+                "SEMESTER_READ",
+                "SEMESTER_UPDATE",
+                "SEMESTER_DELETE",
+                "MAJOR_CREATE",
+                "MAJOR_READ",
+                "MAJOR_UPDATE",
+                "MAJOR_DELETE",
+                "SUBJECT_CREATE",
+                "SUBJECT_READ",
+                "SUBJECT_UPDATE",
+                "SUBJECT_DELETE",
+                "CLASS_CREATE",
+                "CLASS_READ",
+                "CLASS_UPDATE",
+                "CLASS_DELETE",
+                "SLOT_CREATE",
+                "SLOT_READ",
+                "SLOT_UPDATE",
+                "SLOT_DELETE",
+                "ENROLLMENT_MANAGE",
+                "ROOM_CREATE",
+                "ROOM_READ",
+                "ROOM_UPDATE",
+                "ROOM_DELETE",
+                "CAMERA_CREATE",
+                "CAMERA_READ",
+                "CAMERA_UPDATE",
+                "CAMERA_DELETE",
+                "REPORT_READ_SYSTEM_WIDE",
+                "REPORT_EXPORT_ACADEMIC_DATA",
+                "AUDIT_LOG_READ",
+                "OWN_PROFILE_READ",
+                "OWN_PASSWORD_UPDATE"
+            ]
+        },
+        "LECTURER": {
+            "role_name_vi": "Giảng viên",
+            "description": "Chịu trách nhiệm quản lý các buổi học, theo dõi danh sách lớp và chốt kết quả điểm danh.",
+            "platform": "GENERAL_WEB",
+            "permissions": [
+                "OWN_SCHEDULE_READ",
+                "SLOT_SESSION_START",
+                "SLOT_SESSION_RESCAN",
+                "SLOT_SESSION_FINALIZE",
+                "ATTENDANCE_ROSTER_READ",
+                "ATTENDANCE_STATUS_UPDATE_MANUAL",
+                "ATTENDANCE_REMARK_MANAGE",
+                "SLOT_ANNOUNCEMENT_MANAGE",
+                "PRE_SLOT_MESSAGE_READ",
+                "PRE_SLOT_MESSAGE_ACKNOWLEDGE",
+                "REPORT_READ_OWN_SLOT",
+                "REPORT_EXPORT_OWN_SLOT",
+                "REPORT_READ_CLASS_SUMMARY",
+                "OWN_PROFILE_READ",
+                "OWN_PASSWORD_UPDATE"
+            ]
+        },
+        "SUPERVISOR": {
+            "role_name_vi": "Giám thị",
+            "description": "Chịu trách nhiệm giám sát các buổi thi, khởi động và chốt kết quả điểm danh cho buổi thi.",
+            "platform": "GENERAL_WEB",
+            "permissions": [
+                "OWN_SCHEDULE_READ",
+                "SLOT_SESSION_START",
+                "SLOT_SESSION_RESCAN",
+                "SLOT_SESSION_FINALIZE",
+                "ATTENDANCE_ROSTER_READ",
+                "ATTENDANCE_STATUS_UPDATE_MANUAL",
+                "ATTENDANCE_REMARK_MANAGE",
+                "REPORT_READ_OWN_SLOT",
+                "REPORT_EXPORT_OWN_SLOT",
+                "OWN_PROFILE_READ",
+                "OWN_PASSWORD_UPDATE"
+            ]
+        },
+        "STUDENT": {
+            "role_name_vi": "Sinh viên",
+            "description": "Sử dụng hệ thống để theo dõi lịch trình, xem lịch sử điểm danh, và gửi thông báo.",
+            "platform": "MOBILE_APP",
+            "permissions": [
+                "OWN_SCHEDULE_READ",
+                "OWN_ATTENDANCE_HISTORY_READ",
+                "OWN_IDENTITY_SUBMIT",
+                "PRE_SLOT_MESSAGE_CREATE",
+                "OWN_PROFILE_READ",
+                "OWN_PASSWORD_UPDATE"
+            ]
+        }
+    },
+    "function_catalog": {
+        "common": [
+            "Phân quyền vai trò",
+            "Import/Export dữ liệu",
+            "Thông báo hệ thống",
+            "Tìm kiếm & lọc",
+            "Dashboard theo vai trò",
+            "Nhật ký hoạt động",
+            "Báo cáo & xuất file"
+        ],
+        "student": {
+            "functions": [
+                "Gửi pre-slot message (text + URL) cho GV/TA trước T0"
+            ]
+        },
+        "lecturer": {
+            "functions": [
+                "Gắn thông báo vào slot",
+                "Xem & đánh dấu đã xem pre-slot messages của SV",
+                "Xem báo cáo chuyên cần tổng hợp theo lớp/kỳ."
+            ]
+        },
+        "data_operator": [
+            "Quản lý Kỳ học",
+            "Quản lý danh mục học vụ",
+            "Nhận và xuất các báo cáo điểm danh",
+            "Tra cứu & đối soát dữ liệu",
+            "Quản lý & Xem xét hồ sơ đăng ký định danh (Identity Registration)",
+            "Quản lý tài khoản người dùng",
+            "Quản lý ghi danh vào buổi học/thi (Slot Enrollment)",
+            "Export dữ liệu học vụ",
+            "Quản lý danh mục Camera và Phòng học",
+            "Xem nhật ký hoạt động nghiệp vụ",
+            "Quản lý Chuyên ngành"
+        ],
+        "system_admin": [
+            "Cấu hình hệ thống (model AI, ngưỡng similarity, ...)",
+            "Giám sát log và dữ liệu bất thường",
+            "Quản lý permission catalog & mapping Role–Permission",
+            "Quản lý Mẫu thông báo hệ thống"
+        ]
+    },
+    "screen_catalog": {
+        "mobile_student": [
+            {
+                "id": "SCR-STUDENT-LOGIN",
+                "name": "Login Screen",
+                "features": [
+                    "Đăng nhập bằng Google",
+                    "Form đăng nhập bằng Username và Mật khẩu",
+                    "Liên kết 'Quên mật khẩu?'"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-DASHBOARD",
+                "name": "Home Screen/Dashboard",
+                "features": [
+                    "Xem slot học/thi sắp tới",
+                    "Lối tắt đến các chức năng chính"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-SCHEDULE",
+                "name": "Schedule Screen",
+                "features": [
+                    "Bộ chọn Kỳ học",
+                    "Lọc Lịch học/Lịch thi",
+                    "Xem lịch dạng tuần/tháng"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-SLOT-DETAILS",
+                "name": "Slot Details Screen",
+                "features": [
+                    "Xem thông tin chi tiết slot (bao gồm loại slot là LECTURE hay EXAM)",
+                    "Xem ghi chú từ GV (read-only)",
+                    "Form 'Gửi pre-slot message (text + URL) cho GV/TA' (chỉ khả dụng cho slot_type = LECTURE và trước T0)",
+                    "Ghi chú: Pre-slot message KHÔNG thay đổi trạng thái điểm danh; chỉ là kênh trao đổi/ghi nhận trước T0. Hệ thống sẽ hiển thị cảnh báo về điều này trước khi gửi."
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-IDENTITY-REG",
+                "name": "Identity Registration Screens",
+                "features": [
+                    "Hướng dẫn đăng ký định danh",
+                    "Giao diện quay video khuôn mặt",
+                    "Giao diện chụp CCCD",
+                    "Màn hình chờ/thông báo kết quả phê duyệt"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-PROFILE",
+                "name": "Profile Screen",
+                "features": [
+                    "Nút 'Yêu cầu cập nhật định danh'",
+                    "Chức năng 'Thay đổi Mật khẩu'"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-NOTIFICATIONS",
+                "name": "Notifications Inbox",
+                "features": [
+                    "Feed gộp: Thông báo hệ thống + Thông báo của buổi học (GV) + Tab xem 'Tin nhắn bạn đã gửi'",
+                    "Bộ lọc: Tất cả | Thông báo hệ thống | Thông báo từ slot (GV) | Tin nhắn bạn đã gửi | Yêu cầu Định danh",
+                    "Chỉ báo 'chưa đọc' (unread indicator) ở cấp độ thông báo và cấp độ bộ lọc.",
+                    "Xem chi tiết thông báo"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-FORGOT-PASSWORD",
+                "name": "Forgot Password Screen",
+                "features": [
+                    "Form nhập email để nhận link reset",
+                    "Nút 'Gửi yêu cầu'"
+                ]
+            },
+            {
+                "id": "SCR-STUDENT-RESET-PASSWORD",
+                "name": "Reset Password Screen",
+                "features": [
+                    "Form nhập mật khẩu mới và xác nhận mật khẩu mới",
+                    "Nút 'Đặt lại Mật khẩu'"
+                ]
+            }
+        ],
+        "web_lecturer": [
+            {
+                "id": "SCR-LECTURER-LOGIN",
+                "name": "Login Screen",
+                "features": [
+                    "Đăng nhập bằng Google",
+                    "Form đăng nhập bằng Username và Mật khẩu",
+                    "Liên kết 'Quên mật khẩu?'"
+                ]
+            },
+            {
+                "id": "SCR-LECTURER-SCHEDULE",
+                "name": "Schedule & Slots",
+                "features": [
+                    "Xem lịch dạy và lịch coi thi theo kỳ trên một giao diện hợp nhất.",
+                    "Bộ lọc nâng cao cho phép lọc các buổi học/thi theo nhiều tiêu chí, bao gồm 'Loại' (slot_type: LECTURE, EXAM).",
+                    "Mở/Đóng/Chốt slot"
+                ]
+            },
+            {
+                "id": "SCR-LECTURER-ROSTER",
+                "name": "Roster & Attendance",
+                "features": [
+                    "Giao diện hiển thị các chức năng phù hợp dựa trên vai trò (Lecturer, Supervisor) và loại slot (LECTURE, EXAM).",
+                    "Hiển thị tên camera và trạng thái kết nối của phòng học được gán cho buổi học.",
+                    "Giao diện cập nhật trạng thái điểm danh real-time từ kết quả của dịch vụ nhận diện.",
+                    "Duyệt/chỉnh sửa trạng thái",
+                    "Thêm/Sửa ghi chú điểm danh cho từng sinh viên",
+                    "Cập nhật trạng thái thông báo của SV (acknowledge/read) (chỉ cho Lecturer & LECTURE slot)",
+                    "Tab 'Hộp thư Pre-slot' (xem/tìm, đánh dấu đã xem/ack) (chỉ cho Lecturer & LECTURE slot)",
+                    "Nút 'Bắt đầu Điểm danh / Điểm danh lại' đa trạng thái để kích hoạt các phiên quét.",
+                    "Cửa sổ chi tiết hiển thị lịch sử điểm danh (dòng thời gian) của từng sinh viên khi được yêu cầu.",
+                    "Cửa sổ chỉnh sửa điểm danh thủ công, yêu cầu bắt buộc nhập lý do (remark) khi thay đổi trạng thái.",
+                    "Màn hình 'Thiết lập Quy tắc Chốt sổ' hiển thị khi chốt buổi học để xử lý hàng loạt các trạng thái chưa xác định."
+                ]
+            },
+            {
+                "id": "SCR-LECTURER-SLOT-DETAILS",
+                "name": "Slot Details",
+                "features": [
+                    "Tab 'Announcements' (tạo/sửa/xoá thông báo gắn với slot) (chỉ cho Lecturer & LECTURE slot)"
+                ]
+            },
+            {
+                "id": "SCR-LECTURER-REPORTS",
+                "name": "Slot Reports",
+                "features": [
+                    "Xem/Xuất báo cáo theo slot/lớp",
+                    "Bao gồm log pre-slot message (tham khảo) tách riêng khỏi bảng điểm danh"
+                ]
+            },
+            {
+                "id": "SCR-LECTURER-CLASS-REPORT",
+                "name": "Class Attendance Report Screen",
+                "features": [
+                    "Bộ lọc chọn Kỳ học (Semester) và Lớp học (Class).",
+                    "Hiển thị báo cáo tổng hợp dưới dạng bảng (matrix): sinh viên theo hàng, các buổi học (slots) theo cột.",
+                    "Hiển thị trạng thái điểm danh (Present/Absent/Not Yet) trong các ô của bảng.",
+                    "Chức năng xuất báo cáo tổng hợp ra file (CSV, Excel)."
+                ]
+            }
+        ],
+        "web_admin_portal": [
+            {
+                "id": "SCR-ADMIN-LOGIN",
+                "name": "Login Screen",
+                "features": [
+                    "Đăng nhập bằng Google",
+                    "Form đăng nhập bằng Username và Mật khẩu",
+                    "Liên kết 'Quên mật khẩu?'"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-DASHBOARD",
+                "name": "Admin Dashboard",
+                "features": [
+                    "Biểu đồ tổng quan",
+                    "Bộ lọc theo kỳ",
+                    "Hiển thị theo quyền"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-EXPORT",
+                "name": "Data Export Screen (Data Operator)",
+                "features": [
+                    "Giao diện cấu hình và thực thi export dữ liệu học vụ (CSV, JSON, ...)",
+                    "Xem lịch sử các lần export"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-CRUD-ACADEMIC",
+                "name": "CRUD Screens (Data Operator)",
+                "features": [
+                    "Quản lý Lớp, Môn, Lịch học/Thi (bao gồm thuộc tính slot_type và room_id)",
+                    "Thêm/Xóa sinh viên khỏi một lớp học (Quản lý Roster)",
+                    "Quản lý Chuyên ngành"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-REPORTING",
+                "name": "Reporting & Lookup Screen (Data Operator)",
+                "features": [
+                    "Bộ lọc tìm kiếm nâng cao",
+                    "Xem và xuất báo cáo tùy chỉnh"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-AUDIT-LOGS",
+                "name": "Operational Audit Log Viewer (Data Operator)",
+                "features": [
+                    "Xem lịch sử các thay đổi dữ liệu nghiệp vụ (ai, làm gì, khi nào).",
+                    "Bộ lọc theo người thực hiện, loại hành động, và khoảng thời gian."
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-IDENTITY-QUEUE",
+                "name": "Identity Registration Approval Queue (Data Operator)",
+                "features": [
+                    "Danh sách các yêu cầu đăng ký/cập nhật định danh đang chờ",
+                    "Giao diện so sánh thông tin (ảnh mới, ảnh cũ, CCCD)",
+                    "Nút Phê duyệt/Từ chối (kèm lý do)"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-USER-MGMT",
+                "name": "User & Role Management (Data Operator)",
+                "features": [
+                    "Thêm/Sửa/Xóa tài khoản",
+                    "Gán một hoặc nhiều vai trò cho người dùng (LECTURER, SUPERVISOR, STUDENT); có kiểm tra ràng buộc không gán SUPERVISOR/LECTURER cho STUDENT.",
+                    "KHÔNG chỉnh sửa permission catalog hay mapping Role–Permission.",
+                    "Tạo hồ sơ chuyên biệt (Student/Staff)"
+                ]
+            },
+            {
+                "id": "SCR-ADMIN-INFRA-MGMT",
+                "name": "Camera & Room Management (Data Operator)",
+                "features": [
+                    "Thêm/Sửa/Xóa thông tin phòng học (Room).",
+                    "Thêm/Sửa/Xóa thông tin camera (Tên, Chuỗi kết nối RTSP, Trạng thái).",
+                    "Gán một camera vào một phòng học.",
+                    "Xem danh sách toàn bộ camera và phòng học trong hệ thống."
+                ]
+            },
+            {
+                "id": "SCR-SYSADMIN-CONFIG",
+                "name": "System Configuration (System Admin)",
+                "features": [
+                    "Cấu hình model AI",
+                    "Quản lý permission catalog & mapping Role–Permission"
+                ]
+            },
+            {
+                "id": "SCR-SYSADMIN-LOGS",
+                "name": "System Logs Viewer (System Admin)",
+                "features": [
+                    "Xem và lọc nhật ký hệ thống"
+                ]
+            },
+            {
+                "id": "SCR-SYSADMIN-NOTIF-TEMPLATES",
+                "name": "Notification Template Management (System Admin)",
+                "features": [
+                    "CRUD các mẫu thông báo hệ thống"
+                ]
+            }
+        ]
+    },
+    "complex_component_catalog": [
+        {
+            "id": "COMPLEX-SEMESTER-DATATABLE",
+            "name": "Semester Data Table",
+            "description": "A reusable data table for displaying and managing semesters. Includes sorting, filtering, and pagination.",
+            "required_features": [
+                "CRUD operations on Semester data"
+            ]
+        }
+    ],
+    "attendance": {
+        "attendance_mode": {
+            "description": "Chế độ điểm danh duy nhất, được kích hoạt bởi Giảng viên (cho buổi học) hoặc Giám thị (cho buổi thi). Hệ thống sử dụng camera IP được lắp đặt sẵn trong phòng học để tự động nhận diện và ghi nhận sinh viên có mặt. Một dịch vụ Python trung gian sẽ xử lý luồng video và gửi kết quả về hệ thống."
+        },
+        "face_recognition": {
+            "decision_flow": {
+                "summary": "Face scan có 2 kết quả duy nhất",
+                "outcomes": [
+                    "match => set attendance = present",
+                    "no_match => no-op (người phụ trách điểm danh tay)"
+                ]
+            }
+        },
+        "statuses": [
+            "not_yet",
+            "present",
+            "absent",
+            "Absent After Present"
+        ],
+        "status_notes": "Hệ thống không phân biệt 'vắng có phép' và 'vắng không phép' ở cấp độ trạng thái. Mọi trường hợp vắng mặt đều được ghi nhận là 'absent'. Giảng viên hoặc Giám thị có thể sử dụng chức năng thêm ghi chú để cung cấp ngữ cảnh khi cần thiết.",
+        "slot_control": {
+            "open_by": "Lecturer/Supervisor",
+            "finalize_by": "Lecturer/Supervisor",
+            "finalization_logic": "Khi giảng viên chốt buổi học, hệ thống sẽ hiển thị một màn hình 'Thiết lập Quy tắc Chốt sổ'. Màn hình này cho phép giảng viên quyết định hàng loạt xem các nhóm sinh viên có trạng thái trung gian (Not Yet, Absent After Present) sẽ được chuyển đổi thành trạng thái cuối cùng (Present hoặc Absent).",
+            "editability_rules": "Sau khi chốt lần đầu (first_submission), Giảng viên/Giám thị có thể chỉnh sửa kết quả điểm danh cho đến 23:59:59 của ngày hôm đó. Sau thời gian này, dữ liệu sẽ bị khóa đối với họ. Các trường hợp ngoại lệ cần được xử lý bởi Data Operator.",
+            "finalization_audit_trail_note": "Thông tin về người dùng thực hiện hành động chốt buổi học (finalize_by) được ghi lại một cách toàn diện trong bảng 'operational_audit_logs'. Thiết kế này tuân thủ nguyên tắc Nguồn Chân lý Duy nhất (Single Source of Truth), tránh trùng lặp dữ liệu và cung cấp lịch sử đầy đủ về các hành động (chốt, mở lại, chốt lại) thay vì chỉ lưu trạng thái cuối cùng trong bảng 'slots'."
+        },
+        "lecturer_ui_rules": {
+            "description": "Quy tắc trên màn hình điểm danh của giảng viên/giám thị.",
+            "real_time_update": "Trạng thái điểm danh được cập nhật real-time ngay khi dịch vụ nhận diện gửi kết quả thành công.",
+            "finalization_confirmation": "Hệ thống phải hiển thị một hộp thoại cảnh báo và yêu cầu xác nhận nếu người dùng chốt buổi học/thi trong khi vẫn còn sinh viên ở trạng thái 'not_yet'."
+        }
+    },
+    "technical_flows": {
+        "identity_registration_flow": {
+            "description": "Quy trình một lần để sinh viên đăng ký định danh (Identity Registration). Sinh viên quay video khuôn mặt và chụp CCCD. Dữ liệu sau đó được gửi đến Data Operator để phê duyệt thủ công. Dữ liệu được duyệt sẽ trở thành ảnh nền (base image)."
+        },
+        "identity_re_registration_flow": {
+            "description": "Sinh viên có thể gửi yêu cầu cập nhật ảnh định danh (chỉ cần quay video mặt, không cần CCCD). Yêu cầu này cũng cần Data Operator phê duyệt. Trong thời gian chờ, hệ thống vẫn dùng ảnh cũ để điểm danh."
+        },
+        "identity_submission_rejection_flow": {
+            "description": "Khi Data Operator từ chối một yêu cầu đăng ký/cập nhật định danh, hệ thống sẽ tự động gửi một thông báo (system notification) đến sinh viên. Thông báo này bao gồm lý do từ chối và sẽ xuất hiện trong Hộp thư Thông báo của sinh viên."
+        },
+        "face_identification_flow": {
+            "description": "Khi giảng viên bắt đầu phiên quét, hệ thống lấy danh sách sinh viên và các camera được chỉ định. Dịch vụ Python xử lý các luồng video và gọi API của Backend để ghi nhận kết quả. Mỗi lần quét, hệ thống sẽ thêm một sự kiện mới vào bản ghi lịch sử của sinh viên và cập nhật trạng thái hiển thị trên giao diện dựa trên kết quả mới nhất. Quá trình này không ghi đè dữ liệu cũ."
+        },
+        "data_export_flow": {
+            "description": "Đây là một luồng thủ công được thực hiện bởi Data Operator. Người dùng truy cập màn hình 'Data Export' trên Admin Portal, chọn loại dữ liệu (ví dụ: kết quả điểm danh), định dạng file (CSV, JSON), và các bộ lọc cần thiết. Hệ thống sau đó sẽ tạo file và cho phép người dùng tải về để import vào các hệ thống bên ngoài như SIS/LMS."
+        },
+        "authentication_flow": {
+            "description": "Người dùng trên mọi nền tảng (Web, Mobile) có thể đăng nhập bằng Google. Khi xác thực thành công, Google sẽ cung cấp một địa chỉ email. Hệ thống FUACS sẽ sử dụng địa chỉ email này để tra cứu trực tiếp tài khoản người dùng tương ứng đã tồn tại trong hệ thống. Nếu tìm thấy một tài khoản đang hoạt động có email trùng khớp, hệ thống sẽ cấp một phiên làm việc (session token) với các quyền được gán cho người dùng đó. Luồng này hoàn toàn dựa vào việc so khớp email."
+        },
+        "system_notification_flow": {
+            "description": "Khi một sự kiện nghiệp vụ xảy ra (VD: từ chối định danh), hệ thống sẽ tìm một mẫu thông báo phù hợp, tạo một bản ghi gửi cho người dùng mục tiêu, và gửi thông báo đẩy."
+        },
+        "username_password_auth_flow": {
+            "description": "Người dùng nhập username và password. Backend tìm user theo username, sau đó sử dụng thuật toán băm (VD: bcrypt) để so sánh password người dùng nhập với password_hash được lưu trong DB. Nếu khớp, cấp session token."
+        },
+        "password_reset_flow": {
+            "description": "Người dùng nhập email. Hệ thống tạo một token reset duy nhất, có thời hạn, lưu vào DB và gửi email chứa link reset. Khi người dùng truy cập link, hệ thống xác thực token, cho phép họ nhập mật khẩu mới, băm và cập nhật password_hash, sau đó vô hiệu hóa token đã sử dụng."
+        }
+    },
+    "information_flows": [
+        "Student ↔ Hệ thống: xem TKB/slot; gửi thông báo cho GV; xem trạng thái.",
+        "Lecturer ↔ Hệ thống: mở/chốt slot; bắt đầu phiên điểm danh tự động; đọc/ack Tin nhắn trước buổi học từ SV; duyệt/chỉnh sửa trạng thái trước khi chốt.",
+        "Supervisor ↔ Hệ thống: mở/chốt buổi thi; bắt đầu phiên điểm danh tự động; duyệt/chỉnh sửa trạng thái.",
+        "Hệ thống → Các hệ thống ngoài (SIS/LMS): export dữ liệu học vụ và kết quả điểm danh theo yêu cầu.",
+        "Hệ thống ↔ Dịch vụ nhận diện Python: gửi yêu cầu bắt đầu phiên; nhận kết quả điểm danh.",
+        "Hệ thống ↔ Nhân viên Vận hành Dữ liệu: báo cáo điểm danh, quản lý danh mục và đồng bộ dữ liệu; phê duyệt đăng ký định danh; quản lý tài khoản người dùng; quản lý phòng học và camera; xem lại lịch sử hoạt động.",
+        "Hệ thống ↔ Quản trị viên Hệ thống: giám sát và cấu hình hệ thống.",
+        "Hệ thống ↔ Google: đăng nhập & hồ sơ cơ bản."
+    ],
+    "integrations": {
+        "outbound_integrations": {
+            "description": "FUACS chia sẻ dữ liệu cho các hệ thống bên ngoài qua export thủ công. Tích hợp qua API là một hạng mục dự kiến cho tương lai.",
+            "methods": [
+                {
+                    "type": "manual_export",
+                    "formats": [
+                        "CSV",
+                        "JSON"
+                    ],
+                    "data_scopes": [
+                        "attendance_summary",
+                        "full_roster",
+                        "academic_catalogs"
+                    ]
+                },
+                {
+                    "type": "api",
+                    "status": "planned",
+                    "endpoints": [
+                        "get_roster",
+                        "get_attendance_by_class"
+                    ]
+                }
+            ]
+        }
+    },
+    "integration_points": [
+        "Hệ thống Camera IP chuyên dụng tại phòng học (nhận luồng video qua RTSP).",
+        "Dịch vụ nhận diện Python (giao tiếp qua API).",
+        "Google: đăng nhập và hồ sơ cơ bản.",
+        "Các hệ thống bên ngoài (nếu có): Nhận dữ liệu từ FUACS (export hiện tại; API planned)."
+    ],
+    "integration_method": {
+        "description": "Hệ thống hoạt động độc lập và là nguồn dữ liệu gốc. Dữ liệu được chia sẻ cho các hệ thống khác qua chức năng export; API tích hợp được lên kế hoạch cho tương lai."
+    },
+    "data_policies": {
+        "conflict_resolution": {
+            "strategy": "Last-Write-Wins",
+            "granularity": "field-level",
+            "description": "Giá trị cập nhật muộn hơn (bởi import hoặc thao tác trong hệ thống) sẽ thắng cho từng trường. Quy tắc ưu tiên giữa dữ liệu FUACS và hệ thống ngoài sẽ được thảo luận chi tiết sau."
+        }
+    },
+    "data_model": {
+        "slot_entity_definition": {
+            "description": "Bổ sung định nghĩa cho thực thể Slot để hỗ trợ phân loại nghiệp vụ.",
+            "fields": {
+                "slot_type": {
+                    "type": "Varchar",
+                    "required": true,
+                    "description": "Phân loại một slot là buổi học ('LECTURE') hay buổi thi ('EXAM'). Giá trị được lưu trực tiếp trong bảng slots để đơn giản hóa mô hình dữ liệu, tuân thủ theo lược đồ cơ sở dữ liệu hiện tại."
+                },
+                "room_id": {
+                    "type": "Reference",
+                    "target_entity": "Room",
+                    "required": true,
+                    "description": "ID của phòng học nơi slot này diễn ra. Dùng để xác định camera cần sử dụng."
+                }
+            }
+        },
+        "enrollment_entity_definition": {
+            "description": "Định nghĩa về bản ghi ghi danh (enrollment).",
+            "fields": {
+                "status": {
+                    "type": "Boolean",
+                    "default": true,
+                    "description": "Đóng vai trò là một 'công tắc xóa mềm' (soft delete). Khi một sinh viên rút học phần, trường này được cập nhật thành 'false'. Điều này giúp ẩn sinh viên khỏi các buổi học trong tương lai nhưng vẫn bảo toàn toàn bộ dữ liệu lịch sử ghi danh và điểm danh cho mục đích báo cáo và truy vết."
+                }
+            }
+        }
+    },
+    "idempotency_policies": {
+        "unique_constraints": [
+            "enrollments: (class_id, student_user_id) là duy nhất",
+            "attendance_records: (student_user_id, slot_id) là duy nhất"
+        ],
+        "keys": {
+            "slot_enrollment": "class_id + student_user_id",
+            "attendance": "student_user_id + slot_id",
+            "slot_announcement": "id (bigint)",
+            "pre_slot_message": "id (bigint)"
+        }
+    },
+    "assumptions": {
+        "reconciliation_report": true,
+        "idempotency_key": "slot_id + student_id",
+        "base_image_quality": "Hệ thống giả định rằng sinh viên sẽ cung cấp video/ảnh định danh với chất lượng đủ tốt để nhận diện. Hệ thống không có cơ chế ràng buộc chất lượng đầu vào.",
+        "single_slot_assignment": "Trong phiên bản hiện tại, mỗi buổi học (slot) chỉ được phân công cho một và chỉ một nhân viên phụ trách (Giảng viên hoặc Giám thị)."
+    },
+    "terminology_notes": {
+        "principles": [
+            "UI dùng tiếng Việt là chính; lần đầu trong mỗi màn hình/section có thể kèm thuật ngữ tiếng Anh trong ngoặc.",
+            "Permission dùng UPPER_SNAKE_CASE; concept dùng snake_case."
+        ],
+        "dictionary": [
+            {
+                "ui_label_vi": "Buổi học/thi (Slot)",
+                "concept_key": "slot",
+                "description": "Một đơn vị buổi học hoặc thi trong thời khóa biểu."
+            },
+            {
+                "ui_label_vi": "Danh sách lớp (Roster)",
+                "concept_key": "roster",
+                "description": "Danh sách sinh viên của một slot dùng để giám sát và duyệt trạng thái điểm danh."
+            },
+            {
+                "ui_label_vi": "Giám thị (Supervisor)",
+                "concept_key": "supervisor",
+                "description": "Người chịu trách nhiệm giám sát và điểm danh cho một buổi thi (exam slot)."
+            },
+            {
+                "ui_label_vi": "Tin nhắn trước buổi học (Pre-slot Message)",
+                "concept_key": "pre_slot_message",
+                "description": "SV gửi riêng tới GV/TA của slot (text + URL), chỉ trước T0. Chức năng này không ảnh hưởng đến trạng thái điểm danh dưới bất kỳ hình thức nào và chỉ mang tính chất cung cấp thông tin tham khảo cho giảng viên."
+            },
+            {
+                "ui_label_vi": "Thông báo của buổi học (Slot Announcement)",
+                "concept_key": "slot_announcement",
+                "description": "Thông báo (title + text) do GV/TA gắn vào một slot; hiển thị cho mọi SV đã ghi danh slot; có thể ghim (pinned)."
+            },
+            {
+                "ui_label_vi": "Thông báo hệ thống (System Notification)",
+                "concept_key": "system_notification",
+                "description": "Thông báo do hệ thống phát hành tới người dùng mục tiêu."
+            },
+            {
+                "ui_label_vi": "Điểm danh tự động (Automated Attendance)",
+                "description": "Hệ thống tự động điểm danh qua camera IP."
+            },
+            {
+                "ui_label_vi": "Trạng thái điểm danh (Attendance Statuses)",
+                "values": [
+                    "not_yet",
+                    "present",
+                    "absent"
+                ]
+            }
+        ],
+        "mappings": [
+            {
+                "ui_label": "Cập nhật trạng thái thông báo của SV",
+                "maps_to_permission": "ACKNOWLEDGE_STUDENT_NOTIFICATION"
+            },
+            {
+                "ui_label": "Gửi tin nhắn cho GV",
+                "concept": "pre_slot_message"
+            },
+            {
+                "ui_label": "Thông báo của buổi học",
+                "concept": "slot_announcement"
+            },
+            {
+                "ui_label": "Thông báo hệ thống",
+                "concept": "system_notification"
+            }
+        ]
+    },
+    "tech_stack": {
+        "frontend": {
+            "web": {
+                "description": "Nền tảng web cho Giảng viên, Giám thị và Admin.",
+                "technology": "Next.js",
+                "ui_library": "shadcn/ui"
+            },
+            "app": {
+                "description": "Ứng dụng di động cho Sinh viên.",
+                "technology": "React Native"
+            }
+        },
+        "backend": {
+            "main_service": {
+                "description": "Dịch vụ chính xử lý logic nghiệp vụ.",
+                "technology": "Java (Spring Boot)",
+                "runtime": "JDK 21+"
+            },
+            "recognition_service": {
+                "description": "Dịch vụ xử lý nhận diện khuôn mặt.",
+                "technology": "Python (FastAPI)"
+            }
+        },
+        "database": {
+            "primary": {
+                "technology": "PostgreSQL",
+                "extensions": [
+                    "pgvector"
+                ]
+            }
+        }
+    },
+    "to_be_discussed_or_backlog": [
+        {
+            "topic": "Thiết kế Dashboard",
+            "details": "Chốt KPIs hiển thị cho từng vai trò."
+        },
+        {
+            "topic": "Chuẩn hóa lý do/biểu mẫu",
+            "details": "Nếu sau này nâng cấp 'Thông báo của buổi học' thành luồng duyệt (request) chuẩn hóa."
+        },
+        {
+            "topic": "API Integration",
+            "details": "Xác định scope/bảo mật/throttling/định dạng trả về cho endpoints planned."
+        },
+        {
+            "topic": "Conflict resolution với hệ thống ngoài (SIS/LMS)",
+            "details": "Quy tắc ưu tiên ghi đè dữ liệu khi import."
+        },
+        {
+            "topic": "Identity Re-registration chi tiết",
+            "details": "Cân nhắc policy 'mỗi loại request chỉ được 1 đơn đang chờ' và UX liên quan."
+        },
+        {
+            "topic": "Mobile cho Giảng viên",
+            "details": "Đánh giá nhu cầu và phạm vi nếu mở rộng."
+        },
+        {
+            "topic": "Nâng cấp cơ chế giao tiếp Backend-Service",
+            "details": "Nghiên cứu và chuyển đổi cơ chế giao tiếp từ 'Direct API Call' sang 'Message Queue' (ví dụ: RabbitMQ) để tăng độ tin cậy và khả năng mở rộng của hệ thống khi triển khai ở quy mô lớn."
+        }
+    ],
+    "notes": [
+        "Toàn bộ dữ liệu được quản lý và lọc theo Kỳ học.",
+        "Nền tảng chính cho Giảng viên & Giám thị là Web. Việc phát triển ứng dụng Mobile cho các vai trò này đang được cân nhắc để tối ưu hóa trải nghiệm.",
+        "Tài khoản người dùng được tạo và quản lý trực tiếp trong hệ thống bởi Data Operator. Đăng nhập Google dùng để đối soát email."
+    ],
+    "in_scope_functions": {
+        "slot_interactions": "GV/TA ghi chú & gắn thông báo vào slot; SV xem thông báo/ghi chú từ GV và có thể gửi pre-slot message (text + URL) cho tới đúng T0."
+    },
+    "version": "13.0.0"
+}

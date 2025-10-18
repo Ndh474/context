@@ -1,0 +1,190 @@
+# Academic Catalog Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  majors:
+    primary_key: id
+    description: "Academic majors/programs"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique major identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Major name"
+      code:
+        type: varchar(20)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Major code"
+
+  semesters:
+    primary_key: id
+    description: "Academic semesters"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique semester identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Semester name"
+      code:
+        type: varchar(20)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Semester code"
+      start_date:
+        type: date
+        constraints: [NOT NULL]
+        description: "Semester start date"
+      end_date:
+        type: date
+        constraints: [NOT NULL]
+        description: "Semester end date"
+
+  subjects:
+    primary_key: id
+    description: "Academic subjects/courses"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique subject identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      major_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: majors
+          column: id
+        description: "Reference to major"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL]
+        description: "Subject name"
+      code:
+        type: varchar(20)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Subject code"
+
+  classes:
+    primary_key: id
+    description: "Class instances (subject + semester combination)"
+    columns:
+      id:
+        type: SMALLINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique class identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      subject_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: subjects
+          column: id
+        description: "Reference to subject"
+      semester_id:
+        type: smallint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: semesters
+          column: id
+        description: "Reference to semester"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag"
+      name:
+        type: varchar(150)
+        constraints: [NOT NULL]
+        description: "Class name"
+    indexes:
+      - name: classes_subject_id_semester_id_name_idx
+        columns: [subject_id, semester_id, name]
+        unique: true
+        description: "Unique constraint for class within subject and semester"
+
+  enrollments:
+    primary_key: [class_id, student_user_id]
+    description: "Student enrollment in classes"
+    columns:
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Enrollment creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Enrollment last update timestamp"
+      class_id:
+        type: smallint
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: classes
+          column: id
+        description: "Reference to class"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to student user"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Enrollment status (soft delete for withdrawals)"

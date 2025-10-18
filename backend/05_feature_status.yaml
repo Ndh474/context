@@ -1,0 +1,276 @@
+feature_status:
+  BE_FEAT_AUTH:
+    name: "Authentication Core"
+    status: "implemented"
+    completion: "90%"
+    components:
+      [
+        "AuthenticationController",
+        "AuthenticationService",
+        "TokenProviderUtil",
+        "EmailService",
+        "PasswordResetTokenRepository",
+      ]
+    description: "Complete authentication flow with username/password, Google Sign-In, JWT tokens, and password reset"
+    missing: "Ownership validation for password updates (TODO noted in code)"
+
+  BE_FEAT_AUTHZ:
+    name: "Authorization & Security"
+    status: "partially implemented"
+    completion: "70%"
+    components:
+      [
+        "Method Security",
+        "PermissionEvaluator",
+        "JWT Filter",
+        "@PreAuthorize annotations",
+      ]
+    description: "Granular permission-based authorization with method-level security"
+    missing: "Full permission coverage for all endpoints (many endpoints lack @PreAuthorize annotations)"
+
+  BE_FEAT_USER_MGMT:
+    name: "User Management CRUD"
+    status: "partially implemented"
+    completion: "60%"
+    components:
+      [
+        "StaffController",
+        "StaffService",
+        "UserRepository",
+        "UserMapper",
+        "AuthenticationService",
+      ]
+    description: "User management through staff profiles and authentication endpoints"
+    missing: "Dedicated UserController for general user CRUD operations, comprehensive user management beyond staff profiles"
+
+  BE_FEAT_ROLE_PERMISSION:
+    name: "Role & Permission Management"
+    status: "implemented"
+    completion: "80%"
+    components:
+      [
+        "RoleController",
+        "PermissionController",
+        "RoleService",
+        "PermissionService and related repositories",
+      ]
+    description: "Role and permission CRUD with role-permission mapping"
+    missing: "Advanced role assignment constraints and validation"
+
+  BE_FEAT_ACADEMIC_CATALOG:
+    name: "Academic Catalog Management"
+    status: "implemented"
+    completion: "85%"
+    components:
+      [
+        "SemesterController",
+        "MajorController",
+        "SubjectController",
+        "ClassController and related services",
+      ]
+    description: "Complete CRUD operations for semesters, majors, subjects, and classes with hierarchical relationships"
+    missing: "Advanced search and filtering capabilities, bulk import/export"
+
+  BE_FEAT_INFRASTRUCTURE:
+    name: "Infrastructure Management"
+    status: "implemented"
+    completion: "85%"
+    components:
+      [
+        "RoomController",
+        "CameraController",
+        "SlotController",
+        "Slot-Camera associations",
+        "related services",
+      ]
+    description: "Room, camera, and slot management with proper associations"
+    implemented:
+      - "Room CRUD operations"
+      - "Camera CRUD operations with room assignment"
+      - "Slot CRUD operations with SlotType (LECTURE/EXAM)"
+      - "Slot-camera many-to-many associations via slot_cameras table"
+      - "Slot finalization tracking (finalizedAt field)"
+    missing: "Camera status monitoring (online/offline), RTSP connection health checks"
+
+  BE_FEAT_IDENTITY_MGMT:
+    name: "Identity Management System"
+    status: "partially implemented"
+    completion: "50%"
+    components:
+      [
+        "IdentitySubmissionController",
+        "IdentitySubmissionService",
+        "IdentitySubmissionMapper",
+        "Enums",
+      ]
+    description: "Identity registration and verification request management"
+    implemented:
+      - "IdentitySubmission entity with status tracking"
+      - "IdentitySubmissionStatus enum (PENDING, APPROVED, REJECTED)"
+      - "IdentitySubmissionType enum (INITIAL_REGISTRATION, UPDATE_REQUEST)"
+      - "Submission creation and review workflows"
+      - "Student and reviewer user relationships"
+    missing: "File upload/storage for face video and ID card images, face embedding processing, integration with Python recognition service"
+
+  BE_FEAT_STUDENT_PROFILES:
+    name: "Student Profile Management"
+    status: "implemented"
+    completion: "75%"
+    components:
+      [
+        "StudentProfileController",
+        "StudentProfileService",
+        "StudentProfileMapper",
+        "User integration",
+        "Enrollment entity",
+      ]
+    description: "Student profile management with user integration and major assignment"
+    implemented:
+      - "StudentProfile entity with @MapsId one-to-one relationship with User"
+      - "Major assignment via major_id field"
+      - "CRUD operations for student profiles"
+      - "Automatic STUDENT role assignment on creation"
+      - "Password generation and email delivery"
+      - "Enrollment entity with composite key for student-class associations"
+      - "Soft delete support via is_active flag in Enrollment"
+    missing: "Enrollment management API (repository, service, controller), class roster operations, bulk enrollment import/export"
+
+  BE_FEAT_ATTENDANCE:
+    name: "Attendance System"
+    status: "partially implemented"
+    completion: "35%"
+    components:
+      [
+        "AttendanceRecord entity",
+        "AttendanceRemark entity",
+        "AttendanceStatus enum",
+        "AttendanceMethod enum",
+      ]
+    description: "Core attendance tracking and management system"
+    implemented:
+      - "AttendanceRecord entity with status, method, and history tracking"
+      - "AttendanceRemark entity for staff notes on attendance"
+      - "AttendanceStatus enum (NOT_YET, PRESENT, ABSENT, ABSENT_AFTER_PRESENT)"
+      - "AttendanceMethod enum (AUTO, MANUAL, SYSTEM_FINALIZE)"
+      - "Unique constraint on (student_user_id, slot_id)"
+      - "One-to-many relationship with Slot"
+      - "History field for tracking status changes (JSON format)"
+    missing: "Repositories, services, controllers, slot session management, real-time attendance updates, finalization workflows, integration with face recognition service"
+
+  BE_FEAT_SLOT_INTERACTION:
+    name: "Slot Communication System"
+    status: "partially implemented"
+    completion: "30%"
+    components: ["SlotAnnouncement entity", "PreSlotMessage entity"]
+    description: "Slot announcements and pre-slot messaging system"
+    implemented:
+      - "SlotAnnouncement entity with title, content, and creator tracking"
+      - "PreSlotMessage entity with content, URL, and acknowledgment tracking"
+      - "Relationships with Slot and User entities"
+      - "acknowledgedAt field to track when lecturer viewed messages"
+    missing: "Repositories, services, controllers, real-time messaging, notification integration, file attachment support"
+
+  BE_FEAT_NOTIFICATIONS:
+    name: "Notification System"
+    status: "partially implemented"
+    completion: "40%"
+    components:
+      [
+        "EmailService",
+        "SystemNotification entity",
+        "NotificationDelivery entity",
+        "NotificationType enum",
+      ]
+    description: "Email and in-app notification system with delivery tracking"
+    implemented:
+      - "EmailService with async email sending"
+      - "Password reset email notifications"
+      - "New user password delivery emails"
+      - "Gmail SMTP integration"
+      - "SystemNotification entity for notification templates"
+      - "NotificationDelivery entity for per-user delivery tracking"
+      - "NotificationType enum (IDENTITY_REJECTED, IDENTITY_APPROVED, SLOT_CANCELLED, ABSENCE_WARNING_10, ABSENCE_WARNING_20, ABSENCE_WARNING_MAX, EXAM_INELIGIBLE)"
+      - "read_at tracking in NotificationDelivery"
+    missing: "Repositories, services, controllers for in-app notifications, push notification integration, email template system (currently hardcoded), notification creation workflows"
+
+  BE_FEAT_REPORTING:
+    name: "Reporting & Analytics"
+    status: "not implemented"
+    completion: "0%"
+    components: []
+    description: "Attendance reports and analytics"
+    missing: "Report generation, data export, attendance analytics"
+
+  BE_FEAT_SYSTEM_ADMIN:
+    name: "System Administration"
+    status: "partially implemented"
+    completion: "30%"
+    components:
+      ["SystemConfiguration entity", "OperationalAuditLog entity"]
+    description: "System configuration and audit logging"
+    implemented:
+      - "SystemConfiguration entity with key-value storage"
+      - "OperationalAuditLog entity for tracking business operations"
+      - "Unique constraint on configuration keys"
+      - "Actor user tracking in audit logs"
+      - "changes field for storing JSON modifications"
+    missing: "Repositories, services, controllers, configuration management UI, audit log query APIs, system monitoring APIs, automatic audit logging interceptors"
+
+summary:
+  total_features: 13
+  implemented: 5
+  partially_implemented: 7
+  not_implemented: 1
+  average_completion: "59%"
+
+  completion_by_status:
+    implemented:
+      - "BE_FEAT_AUTH (90%)"
+      - "BE_FEAT_INFRASTRUCTURE (85%)"
+      - "BE_FEAT_ACADEMIC_CATALOG (85%)"
+      - "BE_FEAT_ROLE_PERMISSION (80%)"
+      - "BE_FEAT_STUDENT_PROFILES (75%)"
+    partially_implemented:
+      - "BE_FEAT_AUTHZ (70%)"
+      - "BE_FEAT_USER_MGMT (60%)"
+      - "BE_FEAT_IDENTITY_MGMT (50%)"
+      - "BE_FEAT_NOTIFICATIONS (40%)"
+      - "BE_FEAT_ATTENDANCE (35%)"
+      - "BE_FEAT_SLOT_INTERACTION (30%)"
+      - "BE_FEAT_SYSTEM_ADMIN (30%)"
+    not_implemented:
+      - "BE_FEAT_REPORTING (0%)"
+
+priority_order:
+  high_priority:
+    - feature: "BE_FEAT_ATTENDANCE"
+      reason: "Core feature - entities implemented, need repositories/services/controllers and face recognition integration"
+      next_steps: "Create AttendanceRecordRepository, AttendanceRecordService, AttendanceRecordController, implement finalization workflow"
+    - feature: "BE_FEAT_SLOT_INTERACTION"
+      reason: "Entities implemented, need repositories/services/controllers for lecturer-student communication"
+      next_steps: "Create repositories, services, controllers for SlotAnnouncement and PreSlotMessage"
+    - feature: "BE_FEAT_NOTIFICATIONS"
+      reason: "Entities implemented, need to complete in-app notification system"
+      next_steps: "Create repositories, services, controllers for SystemNotification and NotificationDelivery, implement notification creation workflows"
+
+  medium_priority:
+    - feature: "BE_FEAT_AUTHZ"
+      reason: "Security audit needed - ensure all endpoints have @PreAuthorize annotations"
+    - feature: "BE_FEAT_USER_MGMT"
+      reason: "Dedicated UserController needed for comprehensive user management"
+    - feature: "BE_FEAT_IDENTITY_MGMT"
+      reason: "File storage implementation needed for face recognition to work"
+    - feature: "BE_FEAT_STUDENT_PROFILES"
+      reason: "Enrollment entity implemented, need enrollment management API"
+      next_steps: "Create EnrollmentRepository, EnrollmentService, EnrollmentController for class roster operations"
+    - feature: "BE_FEAT_SYSTEM_ADMIN"
+      reason: "Entities implemented, need management APIs"
+      next_steps: "Create repositories, services, controllers for SystemConfiguration and OperationalAuditLog, implement audit logging interceptors"
+
+  low_priority:
+    - feature: "BE_FEAT_REPORTING"
+      reason: "Can be added after core attendance features are working"
+    - feature: "BE_FEAT_INFRASTRUCTURE"
+      reason: "Core functionality complete, only monitoring features missing"
+    - feature: "BE_FEAT_ACADEMIC_CATALOG"
+      reason: "Core functionality complete, only advanced features missing"

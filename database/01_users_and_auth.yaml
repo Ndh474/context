@@ -1,0 +1,68 @@
+# Users and Authentication Tables
+# FUACS Database Schema - Version 1.0
+
+tables:
+  users:
+    primary_key: id
+    description: "Core user accounts table"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique user identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag"
+      username:
+        type: varchar(50)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Login username (Student ID or Employee ID)"
+      email:
+        type: varchar(128)
+        constraints: [NOT NULL, UNIQUE]
+        description: "User email address"
+      full_name:
+        type: varchar(150)
+        constraints: [NOT NULL]
+        description: "User's full name"
+      password_hash:
+        type: varchar(255)
+        constraints: [NULL]
+        description: "Hashed password (nullable for Google-only accounts)"
+
+  password_reset_tokens:
+    primary_key: id
+    description: "Password reset tokens for account recovery"
+    columns:
+      id:
+        type: INT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique token identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Token creation timestamp"
+      expires_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Token expiration timestamp"
+      email:
+        type: varchar(128)
+        constraints: [NOT NULL]
+        description: "Email address for password reset"
+      token_hash:
+        type: varchar(100)
+        constraints: [NOT NULL, UNIQUE]
+        description: "Hashed reset token"

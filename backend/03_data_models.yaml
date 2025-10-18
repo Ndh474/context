@@ -1,0 +1,349 @@
+data_models:
+  entities:
+    User:
+      table: "users"
+      description: "System account with login credentials and activation state"
+      fields:
+        [
+          "id (Integer)",
+          "username",
+          "email",
+          "full_name",
+          "is_active",
+          "password_hash",
+        ]
+      relationships: "Many-to-many with Role via user_roles"
+      notes: "Extends BaseEntity for created_at/updated_at/is_active"
+
+    Role:
+      table: "roles"
+      description: "Aggregates permissions and is assigned to users"
+      fields: ["id (Short)", "name", "is_active"]
+      relationships:
+        - "Many-to-many with User via user_roles (bidirectional with Set<User> users)"
+        - "Many-to-many with Permission via role_permissions (bidirectional with Set<Permission> permissions)"
+      notes: "Extends BaseEntity. Bidirectional relationships allow navigation from both sides"
+
+    Permission:
+      table: "permissions"
+      description: "Fine-grained capability toggled by roles"
+      fields: ["id (Short)", "name", "is_active"]
+      relationships: "Many-to-many with Role via role_permissions (bidirectional with Set<Role> roles)"
+      notes: "Extends BaseEntity. Bidirectional relationship allows querying roles by permission"
+
+    PasswordResetToken:
+      table: "password_reset_tokens"
+      description: "Temporary token for password reset flow with expiration"
+      fields:
+        ["id (Integer)", "email", "token_hash", "created_at", "expires_at"]
+      relationships: "None"
+      notes: "Tokens expire after 15 minutes. Upsert strategy: existing tokens are updated when a new reset request is made for the same email"
+
+    Semester:
+      table: "semesters"
+      description: "Academic semester with start and end dates"
+      fields:
+        ["id (Short)", "name", "code", "start_date", "end_date", "is_active"]
+      relationships: "One-to-many with StudyClass"
+      notes: "Extends BaseEntity for created_at/updated_at/is_active"
+
+    Major:
+      table: "majors"
+      description: "Academic major/program for student specialization"
+      fields: ["id (Short)", "name", "code", "is_active"]
+      relationships: "One-to-many with Subject, One-to-many with StudentProfile"
+      notes: "Extends BaseEntity for created_at/updated_at/is_active"
+
+    Subject:
+      table: "subjects"
+      description: "Academic subject/course within a major"
+      fields: ["id (Short)", "name", "code", "major_id", "is_active"]
+      relationships: "Many-to-one with Major, One-to-many with StudyClass"
+      notes: "Extends BaseEntity for created_at/updated_at/is_active"
+
+    StudyClass:
+      table: "classes"
+      description: "Class instance linking subject and semester (named StudyClass to avoid Java keyword conflict)"
+      fields: ["id (Short)", "name", "subject_id", "semester_id", "is_active"]
+      relationships:
+        - "Many-to-one with Subject"
+        - "Many-to-one with Semester"
+        - "One-to-many with Slot"
+        - "One-to-many with Enrollment"
+      notes: "Extends BaseEntity. Unique index on (subject_id, semester_id, name)"
+
+    Room:
+      table: "rooms"
+      description: "Physical classroom or examination room"
+      fields: ["id (Short)", "name", "location", "is_active"]
+      relationships:
+        - "One-to-many with Slot"
+        - "Many-to-one from Camera (unidirectional)"
+      notes: "Extends BaseEntity. Camera relationship is unidirectional (Camera → Room only, no Set<Camera> in Room entity)"
+
+    Camera:
+      table: "cameras"
+      description: "IP camera assigned to rooms for attendance monitoring"
+      fields: ["id (Short)", "name", "rtsp_url", "room_id", "is_active"]
+      relationships: "Many-to-one with Room, Many-to-many with Slot via slot_cameras"
+      notes: "Extends BaseEntity for created_at/updated_at/is_active"
+
+    Slot:
+      table: "slots"
+      description: "Lecture or exam session with time and location details"
+      fields:
+        [
+          "id (Integer)",
+          "start_time (Instant)",
+          "end_time (Instant)",
+          "finalized_at (Instant)",
+          "slot_type (SlotType enum)",
+          "class_id",
+          "room_id",
+          "staff_user_id",
+          "is_active",
+        ]
+      relationships:
+        - "Many-to-one with StudyClass"
+        - "Many-to-one with Room"
+        - "Many-to-one with User (staff)"
+        - "Many-to-many with Camera via slot_cameras (Set<Camera> cameras)"
+        - "One-to-many with AttendanceRecord"
+      notes: "Extends BaseEntity. SlotType enum: LECTURE, EXAM"
+
+    IdentitySubmission:
+      table: "identity_submissions"
+      description: "Student identity registration and update requests for facial recognition"
+      fields:
+        [
+          "id (Integer)",
+          "student_user_id",
+          "reviewed_by_user_id",
+          "status",
+          "submission_type",
+          "rejection_reason",
+          "reviewed_at",
+          "created_at",
+          "updated_at",
+        ]
+      relationships: "Many-to-one with User (student), Many-to-one with User (reviewer)"
+      notes: "Does not extend BaseEntity. Has own timestamp fields"
+
+    StudentProfile:
+      table: "student_profiles"
+      description: "Student-specific profile data with major assignment"
+      fields: ["userId (Integer)", "major_id"]
+      relationships: "One-to-one with User entity, sharing the same primary key via @MapsId"
+      notes: "Uses one-to-one relationship with User entity, sharing the same primary key via @MapsId. Does NOT extend BaseEntity by design - lifecycle management (timestamps, soft delete) is handled through the parent User entity. No separate created_at/updated_at/is_active fields since these are tracked in the associated User entity. This design ensures data consistency and avoids duplication of audit fields"
+
+  auditing:
+    base_class: "BaseEntity"
+    description: "Provides created_at and updated_at timestamps via Spring Data JPA auditing plus isActive flag"
+    fields: ["createdAt (Instant)", "updatedAt (Instant)", "isActive (Boolean)"]
+    configuration: "@EnableJpaAuditing with custom DateTimeProvider in CommonBeanConfig"
+    annotations:
+      ["@MappedSuperclass", "@EntityListeners(AuditingEntityListener.class)"]
+
+  enums:
+    SlotType:
+      description: "Type of slot session"
+      values: ["LECTURE", "EXAM"]
+      usage: "Slot.slotType field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(20)"
+
+    IdentitySubmissionStatus:
+      description: "Status of identity verification request"
+      values: ["PENDING", "APPROVED", "REJECTED"]
+      usage: "IdentitySubmission.status field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(20)"
+
+    IdentitySubmissionType:
+      description: "Type of identity submission"
+      values: ["INITIAL_REGISTRATION", "UPDATE_REQUEST"]
+      usage: "IdentitySubmission.submissionType field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(20)"
+
+    AttendanceStatus:
+      description: "Status of student attendance in a slot"
+      values: ["NOT_YET", "PRESENT", "ABSENT", "ABSENT_AFTER_PRESENT"]
+      usage: "AttendanceRecord.status field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(20)"
+
+    AttendanceMethod:
+      description: "Method used to record attendance"
+      values: ["AUTO", "MANUAL", "SYSTEM_FINALIZE"]
+      usage: "AttendanceRecord.method field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(20)"
+
+    NotificationType:
+      description: "Type of system notification"
+      values: ["IDENTITY_REJECTED", "IDENTITY_APPROVED", "SLOT_CANCELLED", "ABSENCE_WARNING_10", "ABSENCE_WARNING_20", "ABSENCE_WARNING_MAX", "EXAM_INELIGIBLE"]
+      usage: "SystemNotification.notificationType field (@Enumerated(EnumType.STRING))"
+      storage: "VARCHAR(50)"
+
+    AttendanceRecord:
+      table: "attendance_records"
+      description: "Individual attendance record for a student in a slot"
+      fields:
+        [
+          "id (Long)",
+          "recorded_at (Instant)",
+          "status (AttendanceStatus enum)",
+          "method (AttendanceMethod enum)",
+          "history (TEXT)",
+          "student_user_id",
+          "slot_id",
+          "is_active",
+        ]
+      relationships:
+        - "Many-to-one with User (student)"
+        - "Many-to-one with Slot"
+        - "One-to-many with AttendanceRemark"
+      notes: "Extends BaseEntity. Unique constraint on (student_user_id, slot_id). History field stores JSON of status changes"
+
+    AttendanceRemark:
+      table: "attendance_remarks"
+      description: "Staff remarks/notes on attendance records"
+      fields:
+        [
+          "id (Long)",
+          "remark (TEXT)",
+          "attendance_record_id",
+          "created_by_user_id",
+          "is_active",
+        ]
+      relationships:
+        - "Many-to-one with AttendanceRecord"
+        - "Many-to-one with User (created by)"
+      notes: "Extends BaseEntity. Allows staff to add multiple remarks to an attendance record"
+
+    Enrollment:
+      table: "enrollments"
+      description: "Student enrollment in classes with status tracking and soft delete support"
+      fields:
+        [
+          "class_id (Short, composite PK)",
+          "student_user_id (Integer, composite PK)",
+          "is_active (Boolean)",
+          "enrolled_at (Instant)",
+          "updated_at (Instant)",
+        ]
+      relationships:
+        - "Many-to-one with StudyClass via @MapsId"
+        - "Many-to-one with User via @MapsId"
+      notes: "Uses composite primary key (EnrollmentId). Does NOT extend BaseEntity. Uses @EntityListeners for audit fields. Supports soft delete via is_active flag"
+
+    EnrollmentId:
+      description: "Composite primary key for Enrollment entity"
+      fields: ["class_id (Short)", "student_user_id (Integer)"]
+      notes: "@Embeddable class implementing Serializable with equals() and hashCode()"
+
+    SlotAnnouncement:
+      table: "slot_announcements"
+      description: "Announcements attached to slots by lecturers"
+      fields:
+        [
+          "id (Integer)",
+          "title (VARCHAR 255)",
+          "content (TEXT)",
+          "slot_id",
+          "created_by_user_id",
+          "created_at (Instant)",
+          "updated_at (Instant)",
+          "is_active",
+        ]
+      relationships:
+        - "Many-to-one with Slot"
+        - "Many-to-one with User (created by)"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for audit fields"
+
+    PreSlotMessage:
+      table: "pre_slot_messages"
+      description: "Messages sent by students to lecturers before slot starts"
+      fields:
+        [
+          "id (Long)",
+          "content (TEXT)",
+          "url (VARCHAR 2048)",
+          "slot_id",
+          "student_user_id",
+          "created_at (Instant)",
+          "updated_at (Instant)",
+          "acknowledged_at (Instant)",
+        ]
+      relationships:
+        - "Many-to-one with Slot"
+        - "Many-to-one with User (student)"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for audit fields. acknowledged_at tracks when lecturer viewed the message"
+
+    SystemNotification:
+      table: "system_notifications"
+      description: "System-generated notifications (template/master records)"
+      fields:
+        [
+          "id (Long)",
+          "notification_type (NotificationType enum)",
+          "title (VARCHAR 255)",
+          "content (TEXT)",
+          "created_at (Instant)",
+          "updated_at (Instant)",
+          "is_active",
+        ]
+      relationships:
+        - "One-to-many with NotificationDelivery"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for audit fields. Stores notification templates, actual delivery tracked in NotificationDelivery"
+
+    NotificationDelivery:
+      table: "notification_deliveries"
+      description: "Tracks delivery and read status of notifications to individual users"
+      fields:
+        [
+          "id (Long)",
+          "notification_id",
+          "recipient_user_id",
+          "read_at (Instant)",
+          "created_at (Instant)",
+          "updated_at (Instant)",
+          "is_active",
+        ]
+      relationships:
+        - "Many-to-one with SystemNotification"
+        - "Many-to-one with User (recipient)"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for audit fields. read_at is null until user reads the notification"
+
+    SystemConfiguration:
+      table: "system_configurations"
+      description: "System-wide configuration parameters"
+      fields:
+        [
+          "id (Integer)",
+          "key (VARCHAR 255, unique)",
+          "value (TEXT)",
+          "description (TEXT)",
+          "created_at (Instant)",
+          "updated_at (Instant)",
+          "is_active",
+        ]
+      relationships: "None"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for audit fields"
+      examples:
+        - "attendance.max_absence_percentage"
+        - "token.access_expiration_minutes"
+        - "email.template.password_reset"
+
+    OperationalAuditLog:
+      table: "operational_audit_logs"
+      description: "Audit trail for business operations"
+      fields:
+        [
+          "id (Long)",
+          "action_type (VARCHAR 50)",
+          "target_entity (VARCHAR 50)",
+          "target_id (Long)",
+          "changes (TEXT)",
+          "actor_user_id",
+          "created_at (Instant)",
+        ]
+      relationships:
+        - "Many-to-one with User (actor)"
+      notes: "Does NOT extend BaseEntity. Uses @EntityListeners for created_at only. changes field stores JSON of modifications"

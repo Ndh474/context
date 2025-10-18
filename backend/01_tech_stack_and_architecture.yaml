@@ -1,0 +1,186 @@
+tech_stack_and_architecture:
+  project_info:
+    project_code: "FUACS"
+    project_name: "FU Attendance Checking Smart"
+    backend_service_name: "backend"
+    last_updated: "2025-10-16T00:00:00Z"
+    description: "FUACS Backend Service - Main API service handling business logic, authentication, authorization, and data management for the attendance and academic management system"
+
+  technology_stack:
+    runtime:
+      framework: "Spring Boot"
+      version: "3.5.6"
+      language: "Java 21"
+      build_tool: "Maven"
+
+    libraries:
+      web:
+        - "spring-boot-starter-web"
+
+      security:
+        - "spring-boot-starter-security"
+        - "spring-boot-starter-oauth2-authorization-server"
+
+      data:
+        - "spring-boot-starter-data-jpa"
+        - "postgresql"
+
+      validation:
+        - "hibernate-validator"
+        - "jakarta.validation-api"
+
+      mapping:
+        - "mapstruct"
+
+      external_integrations:
+        - "google-api-client"
+        - "google-http-client-jackson2"
+        - "spring-boot-starter-mail"
+        - "resilience4j-spring-boot3"
+        - "spring-dotenv"
+
+      documentation:
+        - "springdoc-openapi-starter-webmvc-ui"
+
+    testing:
+      unit_testing:
+        - "spring-boot-starter-test"
+        - "spring-security-test"
+
+      integration_testing:
+        - "testcontainers-junit-jupiter"
+        - "testcontainers-postgresql"
+
+    containerization:
+      builder_image: "maven:3.9-eclipse-temurin-21"
+      runtime_image: "eclipse-temurin:21-jre-alpine"
+      entrypoint: "java -jar app.jar"
+
+  architecture_patterns:
+    rest_api_layer:
+      description: "Controllers expose REST endpoints under /api/v1/* using Spring MVC annotations"
+      conventions:
+        - "Use @RestController and @RequestMapping for base path"
+        - "Return Response or PagingResponse wrapper for consistent API responses"
+        - "Apply @PreAuthorize for method-level security with granular permissions"
+        - "Use @Valid for request body validation with Jakarta validation"
+
+    service_layer:
+      description: "Services encapsulate business logic, orchestrating repositories and utilities before returning DTOs"
+      conventions:
+        - "Use @Service annotation"
+        - "Apply @Transactional for write operations"
+        - "Apply @Transactional(readOnly = true) for read operations"
+        - "Throw domain-specific exceptions (ResourceNotFoundException)"
+        - "Use IllegalArgumentException for business rule violations (duplicate codes, invalid data)"
+        - "Use DataIntegrityViolationException for database constraint violations (foreign key conflicts)"
+        - "Return DTOs, never entities"
+        - "Perform business rule validation before persistence"
+
+    security_pipeline:
+      description: "Stateless JWT resource server with custom authentication filter and method security permission evaluator"
+
+      jwt_configuration:
+        algorithm: "HS256 (HMAC with SHA-256)"
+        library: "Nimbus JOSE + JWT"
+        token_types:
+          access_token:
+            expiration: "60 minutes"
+            claims:
+              [
+                "subject (username)",
+                "userId",
+                "email",
+                "authorities (permissions)",
+                "isSystemAdmin",
+              ]
+          refresh_token:
+            expiration: "1 day"
+            claims: ["userId", "authType"]
+          password_reset_token:
+            expiration: "15 minutes"
+            storage: "password_reset_tokens table with token hash"
+
+      authentication_methods:
+        username_password:
+          description: "Traditional login with username and password"
+          password_hashing: "BCryptPasswordEncoder (Spring Security)"
+          flow: "Username lookup → BCrypt password verification → JWT token generation"
+
+        google_oauth:
+          description: "Google Sign-In for email verification"
+          library: "google-api-client"
+          flow: "Google token verification → Email-based user lookup → JWT token generation"
+          note: "Users must be pre-created in system by Data Operator"
+
+      authorization:
+        method_security: "@EnableMethodSecurity with @PreAuthorize annotations"
+        permission_evaluator: "Custom PermissionEvaluatorImpl for granular permission checks"
+        permission_format: "hasPermission(null, 'PERMISSION_NAME')"
+        technical_debt: "Many endpoints still lack @PreAuthorize annotations"
+
+      security_filters:
+        - "AuthenticationRequestFilter (custom filter after BearerTokenAuthenticationFilter)"
+        - "JWT decoder with secret key verification"
+        - "Custom authentication entry point for 401 responses"
+
+    dto_mapping:
+      description: "MapStruct mappers convert between entities and DTO payloads"
+      conventions:
+        - 'Use @Mapper(componentModel = "spring")'
+        - "Extend DTOMapper base interface"
+        - "Provide toEntity(CreateRequest) for create operations"
+        - "Provide toEntity(UpdateRequest) for update operations"
+        - "Service layer manually maps fields from UpdateRequest to existing entity (not using @MappingTarget pattern)"
+
+    exception_handling:
+      description: "Global exception handler provides consistent error responses"
+      conventions:
+        - "Use @ControllerAdvice for global exception handling"
+        - "Return Response wrapper with appropriate status and message"
+        - "Map specific exceptions to HTTP status codes"
+        - "Include validation error details for MethodArgumentNotValidException"
+
+      exception_mappings:
+        ResourceNotFoundException: "404 NOT_FOUND"
+        IllegalArgumentException: "400 BAD_REQUEST"
+        DataIntegrityViolationException: "409 CONFLICT"
+        BadCredentialsException: "401 UNAUTHORIZED"
+        AccessDeniedException: "403 FORBIDDEN"
+        InsufficientAuthenticationException: "401 UNAUTHORIZED"
+        InvalidBearerTokenException: "401 UNAUTHORIZED"
+        OAuth2AuthenticationException: "401 UNAUTHORIZED"
+        MethodArgumentNotValidException: "400 BAD_REQUEST (with field-level validation errors)"
+        Exception: "500 INTERNAL_SERVER_ERROR (generic fallback)"
+
+    data_access:
+      description: "JPA repositories with Spring Data JPA"
+      conventions:
+        - "Extend JpaRepository<Entity, ID>"
+        - "Use custom @Query (JPQL or native) for search/count operations"
+        - "Native queries preferred for complex search with LIKE patterns"
+        - "@Modifying annotation not currently used (UPDATE operations done via entity save)"
+
+      base_entity_auditing:
+        description: "Automatic timestamp management via Spring Data JPA auditing"
+        configuration: "@EnableJpaAuditing with custom DateTimeProvider"
+        fields:
+          createdAt: "Auto-populated on entity creation via @CreatedDate"
+          updatedAt: "Auto-populated on entity update via @LastModifiedDate"
+          isActive: "Manual management for soft delete capability"
+
+      delete_operations:
+        soft_delete:
+          description: "Deactivation via PUT endpoint by updating isActive field to false"
+          http_method: "PUT"
+          permission_pattern: "*_UPDATE (e.g., SEMESTER_UPDATE, USER_UPDATE_STATUS)"
+          implementation: "Service layer sets entity.setActive(false) and saves"
+          note: "Preserves data for audit and reporting purposes"
+
+        hard_delete:
+          description: "Permanent deletion via DELETE endpoint"
+          http_method: "DELETE"
+          permission_pattern: "*_DELETE_HARD (e.g., SEMESTER_DELETE_HARD, USER_DELETE_HARD)"
+          implementation: "Repository.deleteById(id) - permanent removal from database"
+          constraint_handling: "Throws DataIntegrityViolationException if foreign key constraints exist"
+          note: "Hard delete permissions are NOT assigned to any role by default for safety"

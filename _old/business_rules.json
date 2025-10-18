@@ -1,0 +1,138 @@
+[
+    {
+        "id": "BR-01",
+        "rule_definition": "The primary login identifier username for a user must be their Student ID (for Students) or Staff ID (for Staff)."
+    },
+    {
+        "id": "BR-02",
+        "rule_definition": "When a user logs in via Google, the system must use the email address provided by Google to look up the corresponding user account."
+    },
+    {
+        "id": "BR-03",
+        "rule_definition": "If a user account is found but is inactive (is_active = false), access must be denied."
+    },
+    {
+        "id": "BR-04",
+        "rule_definition": "Each username and email must be unique across the entire system."
+    },
+    {
+        "id": "BR-05",
+        "rule_definition": "A user with the STUDENT role cannot be concurrently assigned the LECTURER or SUPERVISOR role."
+    },
+    {
+        "id": "BR-06",
+        "rule_definition": "A password reset token must be unique, have an expiration time, and must be invalidated immediately after successful use."
+    },
+    {
+        "id": "BR-07",
+        "rule_definition": "A new user account must be linked to a specialized profile (student_profiles or staff_profiles) to define its specific attributes."
+    },
+    {
+        "id": "BR-08",
+        "rule_definition": "A student's initial identity registration request must include a facial video and a national ID card image."
+    },
+    {
+        "id": "BR-09",
+        "rule_definition": "All identity registration or update requests must be manually approved by a user with the appropriate permissions (e.g., IDENTITY_SUBMISSION_APPROVE)."
+    },
+    {
+        "id": "BR-10",
+        "rule_definition": "While an identity update request is pending approval, the system must continue to use the previously approved identity data for attendance checking."
+    },
+    {
+        "id": "BR-11",
+        "rule_definition": "When an identity submission is rejected, the system must automatically send a system notification to the student, stating the reason for rejection."
+    },
+    {
+        "id": "BR-12",
+        "rule_definition": "Each Major, Subject, and Class must have a unique identifier (code or name)."
+    },
+    {
+        "id": "BR-13",
+        "rule_definition": "A student can only be enrolled in a specific class once."
+    },
+    {
+        "id": "BR-14",
+        "rule_definition": "When a student is unenrolled from a class (enrollments.is_active = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
+    },
+    {
+        "id": "BR-15",
+        "rule_definition": "Each lecture/exam slot must be associated with a specific slot type and room."
+    },
+    {
+        "id": "BR-16",
+        "rule_definition": "When creating or updating a slot, the selected cameras must belong to the list of cameras registered for that slot's assigned room."
+    },
+    {
+        "id": "BR-17",
+        "rule_definition": "Each lecture/exam slot must be assigned to one and only one staff member (Lecturer or Supervisor) at a time."
+    },
+    {
+        "id": "BR-18",
+        "rule_definition": "An automated attendance session can only be initiated by the staff member assigned to that slot who has the SLOT_SESSION_START permission."
+    },
+    {
+        "id": "BR-19",
+        "rule_definition": "When a face is recognized, the system updates the student's status based on the latest scan result (e.g., PRESENT for a new arrival, ABSENT_AFTER_PRESENT for a departure). This action is recorded as a new event in the attendance history."
+    },
+    {
+        "id": "BR-20",
+        "rule_definition": "If a face is not recognized, the system takes no action, and the student's attendance status remains unchanged during that scan."
+    },
+    {
+        "id": "BR-21",
+        "rule_definition": "When finalizing a slot, the system must display a 'Finalization Rules Setup' screen. The lecturer must then make a bulk decision for each group of students with an intermediate status (e.g., NOT_YET, ABSENT_AFTER_PRESENT) to convert their final status to either PRESENT or ABSENT."
+    },
+    {
+        "id": "BR-22",
+        "rule_definition": "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 on the day of the slot."
+    },
+    {
+        "id": "BR-23",
+        "rule_definition": "After 23:59:59 on the day of the slot, only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
+    },
+    {
+        "id": "BR-24",
+        "rule_definition": "An attendance record for a student in a specific slot must be unique."
+    },
+    {
+        "id": "BR-25",
+        "rule_definition": "A student can only send a \"Pre-slot Message\" to the Lecturer before the slot's official start_time."
+    },
+    {
+        "id": "BR-26",
+        "rule_definition": "A \"Pre-slot Message\" serves as a reference and must not automatically alter a student's attendance status."
+    },
+    {
+        "id": "BR-27",
+        "rule_definition": "Only the assigned Lecturer for a lecture slot (slot_type = LECTURE) can create, edit, or delete a \"Slot Announcement\"."
+    },
+    {
+        "id": "BR-28",
+        "rule_definition": "A \"Slot Announcement\" must be visible to all students enrolled in that slot."
+    },
+    {
+        "id": "BR-29",
+        "rule_definition": "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
+    },
+    {
+        "id": "BR-30",
+        "rule_definition": "User account management (creating, updating, assigning roles, etc.) must be controlled by a granular set of permissions (e.g., USER_CREATE, USER_UPDATE_STATUS, USER_ASSIGN_ROLES). By default, these permissions are granted to the DATA_OPERATOR role."
+    },
+    {
+        "id": "BR-31",
+        "rule_definition": "Critical business data changes (e.g., finalizing attendance, updating student information) must be logged in the operational audit trail (operational_audit_logs)."
+    },
+    {
+        "id": "BR-32",
+        "rule_definition": "All attendance status changes for a student within a slot, whether automated by the camera or performed manually, must be recorded as a timestamped event in the history. The event must include the new status and the method of change (Auto, Manual, System Finalize)."
+    },
+    {
+        "id": "BR-33",
+        "rule_definition": "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty."
+    },
+    {
+        "id": "BR-34",
+        "rule_definition": "After a slot is finalized, the primary status for all attendance records must be either PRESENT or ABSENT."
+    }
+]
