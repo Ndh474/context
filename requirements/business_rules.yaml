@@ -4,7 +4,16 @@
 metadata:
   total_business_rules: 36
   domains_covered:
-    [Authentication, Roles, Identity, Academic, Attendance, System, Audit, Infrastructure]
+    [
+      Authentication,
+      Roles,
+      Identity,
+      Academic,
+      Attendance,
+      System,
+      Audit,
+      Infrastructure,
+    ]
   last_updated: "2024-10-19"
 
 business_rules:
@@ -225,8 +234,7 @@ business_rules:
       description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
       domain: "System"
       priority: "Critical"
-      related_use_cases:
-        ["UC-79", "UC-80", "UC-81", "UC-82", "UC-83", "UC-86", "UC-87"]
+      related_use_cases: ["UC-75", "UC-76", "UC-77", "UC-78", "UC-79", "UC-80"]
       validation_points:
         ["System configuration access", "Role-permission management"]
 
@@ -304,7 +312,12 @@ business_rules:
       domain: "Attendance"
       priority: "High"
       related_use_cases: ["UC-19", "UC-21", "UC-27", "UC-29", "UC-32", "UC-34"]
-      validation_points: ["Attendance edit API", "Permission middleware", "Time-based access control"]
+      validation_points:
+        [
+          "Attendance edit API",
+          "Permission middleware",
+          "Time-based access control",
+        ]
       rules:
         valid_transitions:
           before_finalization:
@@ -331,7 +344,8 @@ business_rules:
       domain: "Identity"
       priority: "High"
       related_use_cases: ["UC-12", "UC-13", "UC-37"]
-      validation_points: ["Identity approval workflow", "Face recognition query"]
+      validation_points:
+        ["Identity approval workflow", "Face recognition query"]
       rules:
         version_increment:
           - "Each approved identity submission generates a new embedding with version = max(version) + 1"
@@ -353,7 +367,12 @@ business_rules:
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-59", "UC-60", "UC-64", "UC-65"]
-      validation_points: ["Roster query API", "Attendance record creation", "Student unenrollment workflow"]
+      validation_points:
+        [
+          "Roster query API",
+          "Attendance record creation",
+          "Student unenrollment workflow",
+        ]
       rules:
         roster_generation:
           - "When generating roster for a slot, only include students where enrollments.is_enrolled = true"
@@ -448,7 +467,8 @@ rule_relationships:
     description: "Rules for identity registration and approval process"
 
   attendance_lifecycle:
-    primary_rules: ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29", "BR-31", "BR-35"]
+    primary_rules:
+      ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29", "BR-31", "BR-35"]
     description: "Rules governing the complete attendance management lifecycle"
 
   data_integrity:
