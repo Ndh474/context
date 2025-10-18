@@ -56,11 +56,11 @@ tables:
         default: true
         description: "Soft delete flag"
       name:
-        type: varchar(150)
+        type: varchar(20)
         constraints: [NOT NULL, UNIQUE]
         description: "Semester name"
       code:
-        type: varchar(20)
+        type: varchar(10)
         constraints: [NOT NULL, UNIQUE]
         description: "Semester code"
       start_date:
@@ -89,13 +89,6 @@ tables:
         type: timestamp
         constraints: [NOT NULL]
         description: "Record last update timestamp"
-      major_id:
-        type: smallint
-        constraints: [NOT NULL]
-        foreign_key:
-          table: majors
-          column: id
-        description: "Reference to major"
       is_active:
         type: boolean
         constraints: [NOT NULL]
@@ -109,6 +102,25 @@ tables:
         type: varchar(20)
         constraints: [NOT NULL, UNIQUE]
         description: "Subject code"
+
+  subject_majors:
+    primary_key: [subject_id, major_id]
+    description: "Many-to-many relationship between subjects and majors"
+    columns:
+      subject_id:
+        type: smallint
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: subjects
+          column: id
+        description: "Reference to subject"
+      major_id:
+        type: smallint
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: majors
+          column: id
+        description: "Reference to major"
 
   classes:
     primary_key: id
@@ -146,13 +158,13 @@ tables:
         constraints: [NOT NULL]
         default: true
         description: "Soft delete flag"
-      name:
-        type: varchar(150)
+      code:
+        type: varchar(20)
         constraints: [NOT NULL]
-        description: "Class name"
+        description: "Class code"
     indexes:
-      - name: classes_subject_id_semester_id_name_idx
-        columns: [subject_id, semester_id, name]
+      - name: classes_subject_id_semester_id_code_idx
+        columns: [subject_id, semester_id, code]
         unique: true
         description: "Unique constraint for class within subject and semester"
 
