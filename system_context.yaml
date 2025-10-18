@@ -109,7 +109,6 @@ system_context:
       ROLE_PERMISSION_MAPPING_READ: "View role-permission mapping matrix."
       ROLE_PERMISSION_MAPPING_UPDATE: "Edit role-permission mapping matrix."
       SYSTEM_LOG_READ: "View technical system activity logs."
-      NOTIFICATION_TEMPLATE_MANAGE: "Manage system notification templates."
       ROLE_CREATE: "Create a new user role."
       ROLE_UPDATE: "Update a role's information, including its name and description."
       ROLE_DELETE_HARD: "Permanently delete a role. This action is dangerous and will fail if the role is assigned to any user."
@@ -137,7 +136,6 @@ system_context:
           "ROLE_PERMISSION_MAPPING_READ",
           "ROLE_PERMISSION_MAPPING_UPDATE",
           "SYSTEM_LOG_READ",
-          "NOTIFICATION_TEMPLATE_MANAGE",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
           "ROLE_CREATE",
@@ -307,7 +305,6 @@ system_context:
       - "Configure system (AI model, similarity threshold, etc.)"
       - "Monitor logs and anomalous data"
       - "Manage permission catalog & Role-Permission mapping"
-      - "Manage system notification templates"
 
   screen_catalog:
     mobile_student_screens:
@@ -495,10 +492,6 @@ system_context:
         features:
           - "View and filter system logs"
 
-      SCR_SYSADMIN_NOTIF_TEMPLATES:
-        title: "Notification Template Management (System Admin)"
-        features:
-          - "CRUD system notification templates"
       SCR_ADMIN_BULK_ENROLLMENT:
         title: Bulk Student Enrollment Management Screen
         features:
@@ -557,7 +550,7 @@ system_context:
 
     authentication_flow: "Users on all platforms (Web, Mobile) can log in with Google. Upon successful authentication, Google provides an email address. The FUACS system uses this email address to directly look up the corresponding user account that already exists in the system. If an active account with a matching email is found, the system grants a session token with the permissions assigned to that user. This flow is entirely based on email matching."
 
-    system_notification_flow: "When a business event occurs (e.g., identity rejection), the system finds an appropriate notification template, creates a delivery record for the target user, and sends a push notification."
+    system_notification_flow: "When a business event occurs (e.g., identity rejection), the system generates notification content (hardcoded in backend), creates a notification record and delivery record for the target user, and sends a push notification."
 
     username_password_auth_flow: "User enters username and password. Backend finds user by username, then uses a hashing algorithm (e.g., bcrypt) to compare the entered password with the password_hash stored in the database. If matched, grants session token."
 

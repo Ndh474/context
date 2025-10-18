@@ -3,9 +3,9 @@ use_cases_specification:
   project: "FUACS"
 
 metadata:
-  total_use_cases: 83
+  total_use_cases: 80
   roles_covered: [Student, Lecturer, Supervisor, Data_Operator, System_Admin]
-  last_updated: "2024-10-18"
+  last_updated: "2024-10-19"
 
 use_cases:
   authentication:
@@ -537,51 +537,29 @@ use_cases:
         related_business_rules: ["BR-13", "BR-27"]
 
   system_admin:
-    notification_management:
-      UC-75:
-        title: "Create Notification Template"
-        primary_actors: ["System Admin"]
-        secondary_actors: []
-        description: "Allows the System Admin to create new system notification templates (e.g., for password resets, identity rejections)."
-        related_business_rules: ["BR-25"]
-
-      UC-76:
-        title: "View Notification Templates"
-        primary_actors: ["System Admin"]
-        secondary_actors: []
-        description: "Allows the System Admin to view and manage all system notification templates."
-        related_business_rules: ["BR-25"]
-
-      UC-77:
-        title: "Update Notification Template"
-        primary_actors: ["System Admin"]
-        secondary_actors: []
-        description: "Allows the System Admin to edit the content and properties of an existing notification template."
-        related_business_rules: ["BR-25", "BR-27"]
-
     system_configuration:
-      UC-78:
+      UC-75:
         title: "View System Configuration"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view all global, system-level settings."
         related_business_rules: ["BR-25"]
 
-      UC-79:
+      UC-76:
         title: "Update System Configuration"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to modify core system-level configurations to fine-tune system behavior."
         related_business_rules: ["BR-25", "BR-27"]
 
-      UC-80:
+      UC-77:
         title: "View System Logs"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view a comprehensive stream of system-wide activity logs for monitoring and troubleshooting."
         related_business_rules: []
 
-      UC-81:
+      UC-78:
         title: "Export System Logs"
         primary_actors: ["System Admin"]
         secondary_actors: []
@@ -589,14 +567,14 @@ use_cases:
         related_business_rules: []
 
     role_permission_management:
-      UC-82:
+      UC-79:
         title: "View Role-Permission Mappings"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view the current matrix that defines which permissions are granted to each user role."
         related_business_rules: ["BR-25"]
 
-      UC-83:
+      UC-80:
         title: "Update Role-Permission Mappings"
         primary_actors: ["System Admin"]
         secondary_actors: []
