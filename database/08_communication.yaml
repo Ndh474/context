@@ -2,104 +2,6 @@
 # FUACS Database Schema - Version 1.0
 
 tables:
-  slot_announcements:
-    primary_key: id
-    description: "Announcements created by lecturers for specific slots"
-    columns:
-      id:
-        type: INT
-        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
-        description: "Unique announcement identifier"
-      created_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        default: now()
-        description: "Announcement creation timestamp"
-      updated_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        description: "Announcement last update timestamp"
-      slot_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: slots
-          column: id
-        description: "Slot this announcement belongs to"
-      created_by_user_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: users
-          column: id
-        description: "Lecturer who created the announcement"
-      is_active:
-        type: boolean
-        constraints: [NOT NULL]
-        default: true
-        description: "Announcement status (soft delete)"
-      title:
-        type: varchar(255)
-        constraints: [NOT NULL]
-        description: "Announcement title"
-      content:
-        type: text
-        constraints: [NOT NULL]
-        description: "Announcement content/message"
-    notes:
-      - "Only available for LECTURE type slots"
-      - "Visible to all students enrolled in the slot"
-      - "Can be created, edited, or deleted by the slot's lecturer"
-
-  pre_slot_messages:
-    primary_key: id
-    description: "Messages sent by students to lecturers before slot starts"
-    columns:
-      id:
-        type: BIGINT
-        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
-        description: "Unique message identifier"
-      created_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        default: now()
-        description: "Message creation timestamp"
-      updated_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        description: "Message last update timestamp"
-      acknowledged_at:
-        type: timestamp
-        constraints: [NULL]
-        description: "When lecturer acknowledged/read the message"
-      slot_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: slots
-          column: id
-        description: "Slot this message is about"
-      student_user_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: users
-          column: id
-        description: "Student who sent the message"
-      content:
-        type: text
-        constraints: [NOT NULL]
-        description: "Message content"
-      url:
-        type: varchar(2048)
-        constraints: [NULL]
-        description: "Optional URL attachment"
-    notes:
-      - "Only available for LECTURE type slots"
-      - "Can only be sent before slot start time (T0)"
-      - "Does not affect attendance status - purely informational"
-      - "Lecturers can mark messages as acknowledged"
-
   system_notifications:
     primary_key: id
     description: "System-generated notifications for users"
@@ -184,8 +86,6 @@ tables:
       - "Used to show unread counts and notification history"
 
 communication_flow:
-  - "Lecturers create slot_announcements for their lecture slots"
-  - "Students send pre_slot_messages to lecturers before class starts"
-  - "System generates system_notifications for various events"
+  - "System generates system_notifications for various events (identity rejection, absence warnings, etc.)"
   - "notification_deliveries tracks which users receive which notifications"
-  - "Students see combined feed of slot announcements and system notifications"
+  - "Students see system notifications in their notification inbox"

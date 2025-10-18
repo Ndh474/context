@@ -68,10 +68,6 @@ tables:
         type: varchar(30)
         constraints: [NULL]
         description: "Sub-category for exam slots to distinguish them, e.g., 'PROGRESS_TEST', 'FINAL_EXAM'."
-      external_exam_url:
-        type: varchar(2048)
-        constraints: [NULL]
-        description: "Optional URL linking to the actual exam on an external platform."
       is_active:
         type: boolean
         constraints: [NOT NULL]
@@ -120,15 +116,11 @@ tables:
       status:
         type: varchar(30)
         constraints: [NOT NULL]
-        description: "Attendance status: 'not_yet', 'present', 'absent', 'absent_after_present'"
+        description: "Attendance status: 'not_yet', 'present', 'absent'"
       method:
         type: varchar(20)
         constraints: [NOT NULL]
         description: "How status was determined: 'auto', 'manual', 'system_finalize'"
-      history:
-        type: jsonb
-        constraints: [NULL]
-        description: "JSON array of status changes with timestamps"
     indexes:
       - name: attendance_records_student_user_id_slot_id_idx
         columns: [student_user_id, slot_id]
@@ -138,7 +130,6 @@ tables:
       - "Status 'not_yet' is initial state before any attendance check"
       - "Status 'present' indicates student was detected/marked present"
       - "Status 'absent' is final absent status"
-      - "Status 'absent_after_present' indicates student left after being marked present"
       - "Method 'auto' for face recognition results"
       - "Method 'manual' for lecturer/supervisor manual updates"
       - "Method 'system_finalize' for batch status updates during finalization"

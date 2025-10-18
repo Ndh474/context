@@ -94,9 +94,6 @@ system_context:
       ATTENDANCE_ROSTER_READ: "View the roster and real-time attendance status of a slot."
       ATTENDANCE_STATUS_UPDATE_MANUAL: "Manually update attendance status for students."
       ATTENDANCE_REMARK_MANAGE: "Add, edit, delete attendance remarks."
-      SLOT_ANNOUNCEMENT_MANAGE: "Manage (create/delete) slot announcements."
-      PRE_SLOT_MESSAGE_READ: "Read pre-slot messages sent by students."
-      PRE_SLOT_MESSAGE_ACKNOWLEDGE: "Mark student messages as read/acknowledged."
 
     REPORTING_AND_DATA:
       REPORT_READ_OWN_SLOT: "View attendance reports for slots under own responsibility."
@@ -123,7 +120,6 @@ system_context:
     STUDENT_PERMISSIONS:
       OWN_ATTENDANCE_HISTORY_READ: "View own attendance history."
       OWN_IDENTITY_SUBMIT: "Submit identity registration or update request."
-      PRE_SLOT_MESSAGE_CREATE: "Send pre-slot message to lecturer."
 
     GENERAL_PERMISSIONS:
       OWN_PROFILE_READ: "View own personal profile information."
@@ -217,9 +213,6 @@ system_context:
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ATTENDANCE_REMARK_MANAGE",
-          "SLOT_ANNOUNCEMENT_MANAGE",
-          "PRE_SLOT_MESSAGE_READ",
-          "PRE_SLOT_MESSAGE_ACKNOWLEDGE",
           "REPORT_READ_OWN_SLOT",
           "REPORT_EXPORT_OWN_SLOT",
           "REPORT_READ_CLASS_SUMMARY",
@@ -272,7 +265,6 @@ system_context:
           "OWN_SCHEDULE_READ",
           "OWN_ATTENDANCE_HISTORY_READ",
           "OWN_IDENTITY_SUBMIT",
-          "PRE_SLOT_MESSAGE_CREATE",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
           "ROOM_READ",
@@ -293,12 +285,9 @@ system_context:
       - "Activity logs"
       - "Reports & file export"
 
-    student_functions:
-      - "Send pre-slot message (text + URL) to lecturer/TA before T0"
+    student_functions: []
 
     lecturer_functions:
-      - "Attach announcements to slots"
-      - "View & mark pre-slot messages from students as read"
       - "View comprehensive attendance reports by class/semester"
 
     data_operator_functions:
@@ -347,9 +336,6 @@ system_context:
         title: "Slot Details Screen"
         features:
           - "View detailed slot information (including slot type: LECTURE or EXAM)"
-          - "View notes from lecturer (read-only)"
-          - "Form to 'Send pre-slot message (text + URL) to lecturer/TA' (only available for slot_type = LECTURE and before T0)"
-          - "Note: Pre-slot message does NOT change attendance status; it is only a communication channel before T0. The system will display a warning about this before sending."
 
       SCR_STUDENT_IDENTITY_REG:
         title: "Identity Registration Screens"
@@ -368,8 +354,8 @@ system_context:
       SCR_STUDENT_NOTIFICATIONS:
         title: "Notifications Inbox"
         features:
-          - "Combined feed: System notifications + Slot announcements (from lecturer) + Tab to view 'Messages you sent'"
-          - "Filters: All | System notifications | Slot notifications (from lecturer) | Messages you sent | Identity requests"
+          - "System notifications feed (identity status, absence warnings, etc.)"
+          - "Filters: All | Identity requests | Absence warnings | System alerts"
           - "Unread indicator at notification level and filter level"
           - "View notification details"
 
@@ -404,27 +390,23 @@ system_context:
         title: "Roster & Attendance"
         features:
           - "Interface displays appropriate functions based on role (Lecturer, Supervisor) and slot type (LECTURE, EXAM)"
-          - "Display camera name and connection status of the room assigned to the slot"
+          - "Display camera names and connection status of all cameras in the assigned room"
           - "Interface updates attendance status in real-time from recognition service results"
           - "Review/edit status"
           - "Add/Edit attendance remarks for each student"
-          - "Update student notification status (acknowledge/read) (only for Lecturer & LECTURE slot)"
-          - "'Pre-slot Inbox' tab (view/search, mark as read/ack) (only for Lecturer & LECTURE slot)"
           - "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions"
-          - "Detail window displays attendance history (timeline) for each student when requested"
           - "Manual attendance edit window, requires mandatory reason (remark) input when changing status"
           - "'Finalization Rules Setup' screen displays when finalizing slot to batch process undetermined statuses"
 
       SCR_LECTURER_SLOT_DETAILS:
         title: "Slot Details"
         features:
-          - "'Announcements' tab (create/edit/delete announcements attached to slot) (only for Lecturer & LECTURE slot)"
+          - "View slot information and settings"
 
       SCR_LECTURER_REPORTS:
         title: "Slot Reports"
         features:
           - "View/Export reports by slot/class"
-          - "Includes pre-slot message log (reference) separated from attendance table"
 
       SCR_LECTURER_CLASS_REPORT:
         title: "Class Attendance Report Screen"
@@ -548,7 +530,6 @@ system_context:
       - "not_yet"
       - "present"
       - "absent"
-      - "absent_after_present"
 
     status_notes: "The system does not distinguish between 'excused absence' and 'unexcused absence' at the status level. All absences are recorded as 'absent'. Lecturers or Supervisors can use the remark function to provide context when necessary."
 
@@ -594,8 +575,8 @@ system_context:
         - "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
 
   information_flows:
-    - "Student ↔ System: view schedule/slots; send messages to lecturer; view status"
-    - "Lecturer ↔ System: open/finalize slots; start automated attendance session; read/ack pre-slot messages from students; review/edit status before finalizing"
+    - "Student ↔ System: view schedule/slots; view attendance status"
+    - "Lecturer ↔ System: open/finalize slots; start automated attendance session; review/edit status before finalizing"
     - "Supervisor ↔ System: open/finalize exam slots; start automated attendance session; review/edit status"
     - "System → External systems (SIS/LMS): export academic data and attendance results on demand"
     - "System ↔ Python Recognition Service: send session start request; receive attendance results"
@@ -658,10 +639,7 @@ system_context:
           description:
             When slot_type is 'EXAM', this field further classifies the exam (e.g., 'PROGRESS_TEST', 'FINAL_EXAM')
             to apply specific business logic and permissions.
-        external_exam_url:
-          type: Varchar
-          required: false
-          description: An optional URL that links to an external examination system where the actual test is conducted.
+
 
     enrollment_entity_definition:
       description: "Definition of enrollment record."
@@ -709,15 +687,7 @@ system_context:
         concept_key: "supervisor"
         description: "Person responsible for supervising and taking attendance for an exam slot."
 
-      pre_slot_message:
-        ui_label: "Tin nhắn trước buổi học (Pre-slot Message)"
-        concept_key: "pre_slot_message"
-        description: "Student sends privately to lecturer/TA of the slot (text + URL), only before T0. This function does not affect attendance status in any form and is only for providing reference information to the lecturer."
 
-      slot_announcement:
-        ui_label: "Thông báo của buổi học (Slot Announcement)"
-        concept_key: "slot_announcement"
-        description: "Announcement (title + text) attached to a slot by lecturer/TA; displayed to all students enrolled in the slot; can be pinned."
 
       system_notification:
         ui_label: "Thông báo hệ thống (System Notification)"
@@ -733,12 +703,6 @@ system_context:
         values: ["not_yet", "present", "absent"]
 
     mappings:
-      - ui_label: "Update student notification status"
-        permission: "ACKNOWLEDGE_STUDENT_NOTIFICATION"
-      - ui_label: "Send message to lecturer"
-        concept: "pre_slot_message"
-      - ui_label: "Slot announcement"
-        concept: "slot_announcement"
       - ui_label: "System notification"
         concept: "system_notification"
 
@@ -781,4 +745,4 @@ system_context:
     - "User accounts are created and managed directly in the system by Data Operator. Google login is used for email verification"
 
   in_scope_functions:
-    slot_interactions: "Lecturers/TAs add remarks & attach announcements to slots; Students view announcements/remarks from lecturers and can send pre-slot messages (text + URL) up to T0."
+    slot_interactions: "Lecturers/TAs add remarks to attendance records; Students view slot information."

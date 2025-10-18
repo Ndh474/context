@@ -3,9 +3,9 @@ use_cases_specification:
   project: "FUACS"
 
 metadata:
-  total_use_cases: 87
+  total_use_cases: 83
   roles_covered: [Student, Lecturer, Supervisor, Data_Operator, System_Admin]
-  last_updated: "2024-10-16"
+  last_updated: "2024-10-18"
 
 use_cases:
   authentication:
@@ -63,15 +63,15 @@ use_cases:
       title: "View Slot Details"
       primary_actors: ["Student"]
       secondary_actors: []
-      description: "Allows a student to view detailed information for a specific slot from their schedule, including announcements."
-      related_business_rules: ["BR-28"]
+      description: "Allows a student to view detailed information for a specific slot from their schedule."
+      related_business_rules: []
 
     UC-09:
-      title: "Send Pre-Slot Message"
+      title: "View Personal Profile"
       primary_actors: ["Student"]
-      secondary_actors: ["Lecturer"]
-      description: "Allows a student to send a one-way message to the lecturer of a specific class slot."
-      related_business_rules: ["BR-25", "BR-26"]
+      secondary_actors: []
+      description: "Allows a student to view and manage their personal profile information."
+      related_business_rules: []
 
     UC-10:
       title: "View Attendance History"
@@ -84,8 +84,8 @@ use_cases:
       title: "View Notifications"
       primary_actors: ["Student"]
       secondary_actors: []
-      description: "Allows a student to view a feed of notifications, including system alerts, absence rate warnings, and slot-specific announcements."
-      related_business_rules: ["BR-11", "BR-28", "BR-37"]
+      description: "Allows a student to view a feed of notifications, including system alerts and absence rate warnings."
+      related_business_rules: ["BR-11"]
 
     UC-12:
       title: "Initiate Identity Registration"
@@ -113,144 +113,109 @@ use_cases:
       title: "Initiate Attendance Session"
       primary_actors: ["Lecturer", "Supervisor"]
       secondary_actors: []
-      description: "Allows the assigned staff to start the first automated attendance scan for a slot. This action activates the assigned camera(s) and the on-screen button will subsequently change to 'Re-scan'."
+      description: "Allows the assigned staff to start the first automated attendance scan for a slot. This action activates all cameras in the room."
       related_business_rules: ["BR-17", "BR-18"]
 
     UC-16:
       title: "Perform Re-scan during Session"
       primary_actors: ["Lecturer", "Supervisor"]
       secondary_actors: []
-      description: "Allows the assigned staff to trigger a new attendance scan while a session is active. The system will update student statuses based on the latest recognition results and record the event."
-      related_business_rules: ["BR-19", "BR-20", "BR-32"]
+      description: "Allows the assigned staff to trigger a new attendance scan while a session is active. The system will update student statuses based on the latest recognition results."
+      related_business_rules: ["BR-19", "BR-20"]
 
     UC-17:
       title: "Monitor Real-Time Roster"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to view the class roster for an active session, where statuses are updated in real-time based on results from all assigned cameras."
-      related_business_rules: ["BR-19", "BR-32"]
+      related_business_rules: ["BR-19"]
 
     UC-18:
-      title: "View Detailed Attendance History"
+      title: "View Attendance Status"
       primary_actors: ["Lecturer", "Supervisor"]
       secondary_actors: []
-      description: "Allows the assigned staff to view the detailed, timestamped attendance history for a specific student within a slot. The history is displayed as a timeline of all automated scans and manual edits."
-      related_business_rules: ["BR-32"]
+      description: "Allows the assigned staff to view the current attendance status for a specific student within a slot."
+      related_business_rules: []
 
     UC-19:
       title: "Manually Update Attendance Status"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to manually override a student's attendance status for a slot before finalization. A non-empty remark explaining the reason for the change is mandatory."
-      related_business_rules: ["BR-22", "BR-23", "BR-33"]
+      related_business_rules: ["BR-22", "BR-23", "BR-28"]
 
     UC-20:
       title: "Add/Edit Attendance Remark"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to add or modify a remark for a student's attendance record within a slot."
-      related_business_rules: ["BR-33"]
+      related_business_rules: ["BR-28"]
 
     UC-21:
       title: "Finalize Attendance Session"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to end the attendance session. The system will display a 'Finalization Rules Setup' screen for the lecturer to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent)."
-      related_business_rules: ["BR-21", "BR-31", "BR-34"]
+      related_business_rules: ["BR-21", "BR-27", "BR-29"]
 
     UC-22:
-      title: "Create Slot Announcement"
-      primary_actors: ["Lecturer"]
-      secondary_actors: ["Student"]
-      description: "Allows a lecturer to create and publish an announcement for a specific lecture slot."
-      related_business_rules: ["BR-27", "BR-28"]
-
-    UC-23:
-      title: "View Slot Announcements"
-      primary_actors: ["Lecturer"]
-      secondary_actors: []
-      description: "Allows a lecturer to view all announcements they have created for a specific lecture slot."
-      related_business_rules: ["BR-27"]
-
-    UC-24:
-      title: "Delete Slot Announcement"
-      primary_actors: ["Lecturer"]
-      secondary_actors: ["Student"]
-      description: "Allows a lecturer to remove an existing announcement from a lecture slot."
-      related_business_rules: ["BR-27"]
-
-    UC-25:
-      title: "View Pre-Slot Messages"
-      primary_actors: ["Lecturer"]
-      secondary_actors: ["Student"]
-      description: "Allows a lecturer to view a list of pre-slot messages sent by students for a specific lecture slot."
-      related_business_rules: ["BR-25", "BR-26"]
-
-    UC-26:
-      title: "Acknowledge Pre-Slot Message"
-      primary_actors: ["Lecturer"]
-      secondary_actors: ["Student"]
-      description: "Allows a lecturer to mark a student's pre-slot message as 'read' or 'acknowledged'."
-      related_business_rules: []
-
-    UC-27:
       title: "Export Slot Attendance Report"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to export a detailed attendance report for a finalized lecture slot."
       related_business_rules: []
 
-    UC-28:
+    UC-23:
       title: "View Class Attendance Summary Report"
       primary_actors: ["Lecturer"]
       secondary_actors: []
       description: "Allows a lecturer to view and export a summary attendance report for an entire class over a semester, which includes each student's absence rate and exam eligibility status based on the system-configured threshold. This report is only accessible after all slots for the class have been finalized."
-      related_business_rules: ["BR-36", "BR-39"]
+      related_business_rules: []
 
   supervisor:
-    UC-29:
+    UC-24:
       title: "View Supervision Schedule"
       primary_actors: ["Supervisor"]
       secondary_actors: []
       description: "Allows a supervisor to view their personal supervision schedule for assigned exam slots."
       related_business_rules: []
 
-    UC-30:
+    UC-25:
       title: "Initiate Attendance Session"
       primary_actors: ["Supervisor"]
       secondary_actors: []
-      description: "Allows a supervisor to start the first automated attendance scan for an exam slot. This action activates the assigned camera(s) and the on-screen button will subsequently change to 'Re-scan'."
+      description: "Allows a supervisor to start the first automated attendance scan for an exam slot. This action activates all cameras in the room."
       related_business_rules: ["BR-17", "BR-18"]
 
-    UC-31:
+    UC-26:
       title: "Monitor Real-Time Roster"
       primary_actors: ["Supervisor"]
       secondary_actors: []
       description: "Allows a supervisor to view the exam roster for an active session, where statuses are updated in real-time based on results from all assigned cameras."
-      related_business_rules: ["BR-19", "BR-32"]
+      related_business_rules: ["BR-19"]
 
-    UC-32:
+    UC-27:
       title: "Manually Update Attendance Status"
       primary_actors: ["Supervisor"]
       secondary_actors: []
       description: "Allows a supervisor to manually override a candidate's attendance status for an exam slot before finalization. A non-empty remark explaining the reason for the change is mandatory."
-      related_business_rules: ["BR-22", "BR-23", "BR-33"]
+      related_business_rules: ["BR-22", "BR-23", "BR-28"]
 
-    UC-33:
+    UC-28:
       title: "Add/Edit Attendance Remark"
       primary_actors: ["Supervisor"]
       secondary_actors: []
       description: "Allows a supervisor to add or modify a remark for a candidate's attendance record within an exam slot."
-      related_business_rules: ["BR-33"]
+      related_business_rules: ["BR-28"]
 
-    UC-34:
+    UC-29:
       title: "Finalize Attendance Session"
       primary_actors: ["Supervisor"]
       secondary_actors: []
       description: "Allows a supervisor to end the attendance session. The system will display a 'Finalization Rules Setup' screen for the supervisor to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent)."
-      related_business_rules: ["BR-21", "BR-31", "BR-34"]
+      related_business_rules: ["BR-21", "BR-27", "BR-29"]
 
-    UC-35:
+    UC-30:
       title: "Export Exam Slot Attendance Report"
       primary_actors: ["Supervisor"]
       secondary_actors: []
@@ -259,370 +224,364 @@ use_cases:
 
   data_operator:
     user_management:
-      UC-36:
+      UC-31:
         title: "Create User Account"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to create a new user by providing core details (username, email, full name). The operator must then create a specialized profile (Student or Staff) for the user to define their specific attributes and assign their base role."
-        related_business_rules: ["BR-01", "BR-04", "BR-05", "BR-07", "BR-30"]
+        related_business_rules: ["BR-01", "BR-04", "BR-05", "BR-07", "BR-26"]
 
-      UC-37:
+      UC-32:
         title: "View User Accounts"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view and search a list of all user accounts in the system."
-        related_business_rules: ["BR-30"]
+        related_business_rules: ["BR-26"]
 
-      UC-38:
+      UC-33:
         title: "Update User Account Details"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the information of an existing user account."
-        related_business_rules: ["BR-30", "BR-31"]
+        related_business_rules: ["BR-26", "BR-27"]
 
-      UC-39:
+      UC-34:
         title: "Update User Role Assignment"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to change the role assigned to a user, subject to system constraints."
-        related_business_rules: ["BR-05", "BR-30", "BR-31"]
+        related_business_rules: ["BR-05", "BR-26", "BR-27"]
 
-      UC-40:
+      UC-35:
         title: "Disable/Enable User Account"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to change the status of a user account to active or inactive."
-        related_business_rules: ["BR-03", "BR-30", "BR-31"]
+        related_business_rules: ["BR-03", "BR-26", "BR-27"]
 
     identity_management:
-      UC-41:
+      UC-36:
         title: "View Pending Identity Submissions"
         primary_actors: ["Data Operator"]
         secondary_actors: ["Student"]
         description: "Allows the DOP to view a queue of all identity registration and update requests that are awaiting manual review."
         related_business_rules: ["BR-09"]
 
-      UC-42:
+      UC-37:
         title: "Approve Identity Submission"
         primary_actors: ["Data Operator"]
         secondary_actors: ["Student"]
         description: "Allows the DOP to review the details of an identity submission (facial video, ID card) and approve it."
-        related_business_rules: ["BR-09", "BR-31"]
+        related_business_rules: ["BR-09", "BR-27"]
 
-      UC-43:
+      UC-38:
         title: "Reject Identity Submission"
         primary_actors: ["Data Operator"]
         secondary_actors: ["Student"]
         description: "Allows the DOP to reject an identity submission, providing a reason for the rejection that is sent to the student."
-        related_business_rules: ["BR-09", "BR-11", "BR-31"]
+        related_business_rules: ["BR-09", "BR-11", "BR-27"]
 
     academic_catalog:
-      UC-44:
+      UC-39:
         title: "Create Major"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to add a new academic Major to the system-wide catalog."
         related_business_rules: ["BR-12"]
 
-      UC-45:
+      UC-40:
         title: "View Majors"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all Majors in the system."
         related_business_rules: []
 
-      UC-46:
+      UC-41:
         title: "Update Major"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing Major."
-        related_business_rules: ["BR-12", "BR-31"]
+        related_business_rules: ["BR-12", "BR-27"]
 
-      UC-47:
+      UC-42:
         title: "Delete Major Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Major from the system. The action will be blocked with a clear error message if the Major is still associated with any Subjects. This action requires the 'MAJOR_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-48:
+      UC-43:
         title: "Create Semester"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to create a new academic semester with a name, code, start date, and end date."
         related_business_rules: ["BR-12"]
 
-      UC-49:
+      UC-44:
         title: "View Semesters"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all semesters in the system."
         related_business_rules: []
 
-      UC-50:
+      UC-45:
         title: "Update Semester"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing semester."
-        related_business_rules: ["BR-12", "BR-31"]
+        related_business_rules: ["BR-12", "BR-27"]
 
-      UC-51:
+      UC-46:
         title: "Delete Semester Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Semester from the system. The action will be blocked with a clear error message if the Semester is still associated with any Classes. This action requires the 'SEMESTER_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-52:
+      UC-47:
         title: "Create Subject"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to add a new academic Subject to the catalog, linking it to a Major."
         related_business_rules: ["BR-12"]
 
-      UC-53:
+      UC-48:
         title: "View Subjects"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all Subjects in the system."
         related_business_rules: []
 
-      UC-54:
+      UC-49:
         title: "Update Subject"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing Subject."
-        related_business_rules: ["BR-12", "BR-31"]
+        related_business_rules: ["BR-12", "BR-27"]
 
-      UC-55:
+      UC-50:
         title: "Delete Subject Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Subject from the system. The action will be blocked with a clear error message if the Subject is still associated with any Classes. This action requires the 'SUBJECT_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-56:
+      UC-51:
         title: "Create Class"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to create a new class, linking it to a subject and semester."
         related_business_rules: ["BR-12"]
 
-      UC-57:
+      UC-52:
         title: "View Classes"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all classes for a selected semester."
         related_business_rules: []
 
-      UC-58:
+      UC-53:
         title: "Update Class"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing class."
-        related_business_rules: ["BR-12", "BR-31"]
+        related_business_rules: ["BR-12", "BR-27"]
 
-      UC-59:
+      UC-54:
         title: "Delete Class Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Class from the system. The action will be blocked with a clear error message if the Class is still associated with any Slots or Enrollments. This action requires the 'CLASS_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-60:
+      UC-55:
         title: "Create Schedule/Slot"
         primary_actors: ["Data Operator"]
         secondary_actors: []
-        description: "Allows the DOP to create a new schedule slot for a class. After selecting the room, the operator must select one or more cameras from the list of available cameras in that room to be used for the session."
+        description: "Allows the DOP to create a new schedule slot for a class. All active cameras in the selected room will be automatically used for the session."
         related_business_rules: ["BR-15", "BR-16", "BR-17"]
 
-      UC-61:
+      UC-56:
         title: "View Schedules"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view the complete schedule for a class or semester."
         related_business_rules: []
 
-      UC-62:
+      UC-57:
         title: "Update Schedule/Slot"
         primary_actors: ["Data Operator"]
         secondary_actors: []
-        description: "Allows the DOP to edit the details of a scheduled slot, including changing the assigned cameras."
-        related_business_rules: ["BR-15", "BR-16", "BR-17", "BR-31"]
+        description: "Allows the DOP to edit the details of a scheduled slot. Camera assignment is automatic based on the selected room."
+        related_business_rules: ["BR-15", "BR-16", "BR-17", "BR-27"]
 
-      UC-63:
+      UC-58:
         title: "Delete Schedule/Slot Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Slot from the system. The action will be blocked with a clear error message if the Slot has any Attendance records. This action requires the 'SLOT_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-64:
+      UC-59:
         title: "Add Student to Roster"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to enroll a student into a specific class."
         related_business_rules: ["BR-13"]
 
-      UC-65:
+      UC-60:
         title: "Remove Student from Roster"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to unenroll a student from a class."
-        related_business_rules: ["BR-14", "BR-31"]
+        related_business_rules: ["BR-14", "BR-27"]
 
     infrastructure:
-      UC-66:
+      UC-61:
         title: "Create Room"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to add a new physical room to the system."
         related_business_rules: []
 
-      UC-67:
+      UC-62:
         title: "View Rooms"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all rooms in the system."
         related_business_rules: []
 
-      UC-68:
+      UC-63:
         title: "Update Room"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing room."
-        related_business_rules: ["BR-31"]
+        related_business_rules: ["BR-27"]
 
-      UC-69:
+      UC-64:
         title: "Delete Room Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Room from the system. The action will be blocked with a clear error message if the Room is still associated with any Cameras or Slots. This action requires the 'ROOM_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
-      UC-70:
+      UC-65:
         title: "Create Camera"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to register a new IP camera by providing its details and assigning it to a specific room."
         related_business_rules: []
 
-      UC-71:
+      UC-66:
         title: "View Cameras"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a list of all registered cameras."
         related_business_rules: []
 
-      UC-72:
+      UC-67:
         title: "Update Camera"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to edit the details of an existing camera, including re-assigning it to a different room."
-        related_business_rules: ["BR-31"]
+        related_business_rules: ["BR-27"]
 
-      UC-73:
+      UC-68:
         title: "Delete Camera Permanently"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to permanently delete a Camera from the system. The action will be blocked with a clear error message if the Camera is still assigned to any Slots. This action requires the 'CAMERA_DELETE_HARD' permission."
-        related_business_rules: ["BR-31", "BR-35"]
+        related_business_rules: ["BR-27", "BR-30"]
 
     data_management:
-      UC-74:
+      UC-69:
         title: "Import Academic Data"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to bulk-upload academic data (schedules, rosters) for a semester."
         related_business_rules: []
 
-      UC-75:
+      UC-70:
         title: "Export Finalized Attendance Results"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to export system-wide, finalized attendance results for a selected period."
         related_business_rules: []
 
-      UC-76:
+      UC-71:
         title: "View System-Wide Reports"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to generate and view aggregate reports on attendance data across various dimensions."
         related_business_rules: []
 
-      UC-77:
+      UC-72:
         title: "Search/Lookup Attendance Data"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to perform advanced searches for specific attendance records using a variety of filters."
         related_business_rules: []
 
-      UC-78:
+      UC-73:
         title: "View Operational Audit Logs"
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to view a historical log of business data changes, which includes detailed before-and-after values for updates."
-        related_business_rules: ["BR-31"]
+        related_business_rules: ["BR-27"]
 
-      UC-79:
-        title: Bulk Enroll Students to Classes via CSV
-        primary_actors:
-          - Data Operator
+      UC-74:
+        title: "Bulk Enroll Students to Classes via CSV"
+        primary_actors: ["Data Operator"]
         secondary_actors: []
-        description:
-          Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id)
-          to perform mass enrollment for a selected semester. The system will validate the data before creating the
-          enrollment records.
-        related_business_rules:
-          - BR-13
-          - BR-31
+        description: "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id) to perform mass enrollment for a selected semester. The system will validate the data before creating the enrollment records."
+        related_business_rules: ["BR-13", "BR-27"]
 
   system_admin:
     notification_management:
-      UC-80:
+      UC-75:
         title: "Create Notification Template"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to create new system notification templates (e.g., for password resets, identity rejections)."
-        related_business_rules: ["BR-29"]
+        related_business_rules: ["BR-25"]
 
-      UC-81:
+      UC-76:
         title: "View Notification Templates"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view and manage all system notification templates."
-        related_business_rules: ["BR-29"]
+        related_business_rules: ["BR-25"]
 
-      UC-82:
+      UC-77:
         title: "Update Notification Template"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to edit the content and properties of an existing notification template."
-        related_business_rules: ["BR-29", "BR-31"]
+        related_business_rules: ["BR-25", "BR-27"]
 
     system_configuration:
-      UC-83:
+      UC-78:
         title: "View System Configuration"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view all global, system-level settings."
-        related_business_rules: ["BR-29"]
+        related_business_rules: ["BR-25"]
 
-      UC-84:
+      UC-79:
         title: "Update System Configuration"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to modify core system-level configurations to fine-tune system behavior."
-        related_business_rules: ["BR-29", "BR-31"]
+        related_business_rules: ["BR-25", "BR-27"]
 
-      UC-85:
+      UC-80:
         title: "View System Logs"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view a comprehensive stream of system-wide activity logs for monitoring and troubleshooting."
         related_business_rules: []
 
-      UC-86:
+      UC-81:
         title: "Export System Logs"
         primary_actors: ["System Admin"]
         secondary_actors: []
@@ -630,28 +589,28 @@ use_cases:
         related_business_rules: []
 
     role_permission_management:
-      UC-87:
+      UC-82:
         title: "View Role-Permission Mappings"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to view the current matrix that defines which permissions are granted to each user role."
-        related_business_rules: ["BR-29"]
+        related_business_rules: ["BR-25"]
 
-      UC-88:
+      UC-83:
         title: "Update Role-Permission Mappings"
         primary_actors: ["System Admin"]
         secondary_actors: []
         description: "Allows the System Admin to grant or revoke specific permissions for each role, controlling access to system functions."
-        related_business_rules: ["BR-29", "BR-31"]
+        related_business_rules: ["BR-25", "BR-27"]
 
 cross_references:
   most_referenced_business_rules:
-    - "BR-31": "Critical business data changes must be logged in audit trail"
-    - "BR-29": "System configuration and role-permission changes require special permissions"
+    - "BR-27": "Critical business data changes must be logged in audit trail"
+    - "BR-25": "System configuration and role-permission changes require special permissions"
     - "BR-09": "Identity submissions require manual approval"
     - "BR-12": "Unique identifiers for academic entities"
 
   use_cases_by_complexity:
-    high_complexity: ["UC-15", "UC-16", "UC-21", "UC-34", "UC-60", "UC-62"]
-    medium_complexity: ["UC-19", "UC-32", "UC-36", "UC-42", "UC-43"]
-    low_complexity: ["UC-01", "UC-02", "UC-07", "UC-10", "UC-45", "UC-49"]
+    high_complexity: ["UC-15", "UC-16", "UC-21", "UC-29", "UC-55", "UC-57"]
+    medium_complexity: ["UC-19", "UC-27", "UC-31", "UC-37", "UC-38"]
+    low_complexity: ["UC-01", "UC-02", "UC-07", "UC-10", "UC-40", "UC-44"]

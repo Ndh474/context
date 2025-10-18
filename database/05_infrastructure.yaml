@@ -71,27 +71,8 @@ tables:
         constraints: [NOT NULL, UNIQUE]
         description: "RTSP stream URL for video access"
 
-  slot_cameras:
-    primary_key: [slot_id, camera_id]
-    description: "Assignment of cameras to specific slots for attendance monitoring"
-    columns:
-      slot_id:
-        type: int
-        constraints: [NOT NULL, PRIMARY KEY]
-        foreign_key:
-          table: slots
-          column: id
-        description: "Reference to slot"
-      camera_id:
-        type: smallint
-        constraints: [NOT NULL, PRIMARY KEY]
-        foreign_key:
-          table: cameras
-          column: id
-        description: "Reference to camera"
-
 notes:
   - "Each room can have multiple cameras for comprehensive coverage"
-  - "Cameras are assigned to rooms but can be selectively used for specific slots"
   - "RTSP URLs must be unique to prevent conflicts in video stream access"
-  - "slot_cameras table allows flexible camera assignment per slot rather than using all room cameras"
+  - "All active cameras in a room are automatically used for slots in that room"
+  - "Camera assignment is determined at runtime: SELECT * FROM cameras WHERE room_id = slot.room_id AND is_active = true"
