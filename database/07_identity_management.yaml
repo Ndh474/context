@@ -49,6 +49,18 @@ tables:
         type: text
         constraints: [NULL]
         description: "Reason for rejection (required if status is 'rejected')"
+    indexes:
+      - name: idx_identity_submissions_status
+        columns: [status]
+        description: "For pending queue queries"
+      
+      - name: idx_identity_submissions_student_user_id
+        columns: [student_user_id]
+        description: "For student identity history queries"
+      
+      - name: idx_identity_submissions_reviewed_at
+        columns: [reviewed_at]
+        description: "For filtering reviewed vs pending submissions"
     notes:
       - "Initial submissions require both face video and ID card"
       - "Update submissions only require face video"
@@ -140,11 +152,25 @@ tables:
         type: vector(512)
         constraints: [NOT NULL]
         description: "512-dimensional face embedding vector"
+    indexes:
+      - name: idx_face_embeddings_student_active
+        columns: [student_user_id]
+        where: "is_active = true"
+        unique: true
+        description: "Ensure only one active embedding per student"
+      
+      - name: idx_face_embeddings_vector
+        type: "ivfflat"
+        columns: [embedding_vector]
+        options: "lists = 100"
+        description: "For fast vector similarity search using IVFFlat algorithm. Parameter 'lists' should be adjusted based on data size: lists ≈ sqrt(total_rows). Current value (100) is suitable for ~10,000 students."
     notes:
       - "Requires pgvector extension for vector operations"
-      - "Only one embedding per student should be active at a time"
-      - "New embeddings replace old ones when identity is updated"
+      - "Only one embedding per student can be active at a time (enforced by unique index)"
+      - "Version is incremented with each identity update (see BR-32)"
+      - "Keep last 3 versions for audit and rollback purposes"
       - "Vector similarity search is used for face recognition"
+      - "IVFFlat index performance tuning: Adjust 'lists' parameter as data grows. Rule of thumb: lists = sqrt(total_active_embeddings). Monitor query performance and rebuild index if needed."
 
 extensions_required:
   - name: pgvector

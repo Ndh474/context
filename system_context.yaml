@@ -152,10 +152,9 @@ system_context:
       role_name: "Data Operations Staff"
       description: "The main operational role, responsible for all academic data and user account lifecycle management."
       platform: "ADMIN_PORTAL"
-      # Note: Hard delete permissions (*_DELETE_HARD) are NOT assigned to any role by default for safety.
-      # These include: SEMESTER_DELETE_HARD, MAJOR_DELETE_HARD, SUBJECT_DELETE_HARD, CLASS_DELETE_HARD,
-      # SLOT_DELETE_HARD, ROOM_DELETE_HARD, CAMERA_DELETE_HARD.
-      # Soft delete (deactivate/activate) is handled through *_UPDATE permissions.
+      # Note: Most hard delete permissions (*_DELETE_HARD) are intentionally NOT assigned for safety.
+      # Exception: SLOT_DELETE_HARD_FINAL_EXAM is granted to allow DOP to manage exam schedules.
+      # Soft delete (deactivate/activate) is the preferred method via *_UPDATE permissions.
       permissions:
         [
           "USER_CREATE",
@@ -538,7 +537,7 @@ system_context:
       finalize_by: "Lecturer/Supervisor"
       finalization_logic: "When a lecturer finalizes a slot, the system displays a 'Finalization Rules Setup' screen. This screen allows the lecturer to batch decide how students with intermediate statuses (Not Yet, Absent After Present) will be converted to final statuses (Present or Absent)."
       editability_rules: "After the first finalization (first_submission), Lecturer/Supervisor can edit attendance results until 23:59:59 of that day. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator."
-      finalization_audit_trail_note: "Information about the user who performed the finalization action (finalize_by) is comprehensively recorded in the 'operational_audit_logs' table. This design adheres to the Single Source of Truth principle, avoids data duplication, and provides complete history of actions (finalize, reopen, re-finalize) instead of just storing the final state in the 'slots' table."
+      finalization_audit_trail_note: "The timestamp when a slot is finalized is stored in slots.finalized_at for quick queries and reporting. Detailed information about WHO performed the finalization (actor_user_id), along with the complete history of all finalization-related actions (finalize, reopen, re-finalize), is comprehensively recorded in the operational_audit_logs table. This dual approach balances query performance with comprehensive audit trail requirements."
 
     lecturer_ui_rules:
       description: "Rules on the lecturer/supervisor attendance screen."
@@ -640,19 +639,20 @@ system_context:
             When slot_type is 'EXAM', this field further classifies the exam (e.g., 'PROGRESS_TEST', 'FINAL_EXAM')
             to apply specific business logic and permissions.
 
-
     enrollment_entity_definition:
       description: "Definition of enrollment record."
       fields:
-        status:
+        is_enrolled:
           type: "Boolean"
           default: true
-          description: "Acts as a 'soft delete switch'. When a student withdraws from a course, this field is updated to 'false'. This hides the student from future slots but preserves all enrollment and attendance history data for reporting and audit purposes."
+          description: "Enrollment status. When a student withdraws from a course, this field is updated to 'false'. This hides the student from future slots but preserves all enrollment and attendance history data for reporting and audit purposes."
 
   idempotency_policies:
     unique_constraints:
       - "enrollments: (class_id, student_user_id) is unique"
       - "attendance_records: (student_user_id, slot_id) is unique"
+    notes:
+      - "enrollments.is_enrolled field controls roster visibility (see BR-33)"
 
     keys:
       slot_enrollment: "class_id + student_user_id"
@@ -686,8 +686,6 @@ system_context:
         ui_label: "Giám thị (Supervisor)"
         concept_key: "supervisor"
         description: "Person responsible for supervising and taking attendance for an exam slot."
-
-
 
       system_notification:
         ui_label: "Thông báo hệ thống (System Notification)"
@@ -729,6 +727,72 @@ system_context:
       primary_database:
         technology: "PostgreSQL"
         extensions: ["pgvector"]
+
+  implementation_decisions:
+    description: "Documented decisions about implementation approaches and what NOT to implement. These decisions are final for current and near-future versions."
+
+    backend_validation_only:
+      - item: "Role Assignment Constraint (STUDENT cannot have LECTURER/SUPERVISOR)"
+        decision: "Validate in Spring Boot application layer, NOT database constraint"
+        reason: "More flexible, better error messages, easier to customize business logic"
+        status: "FINAL - Do not suggest database triggers or constraints"
+
+      - item: "Slot Type vs Exam Subcategory Validation"
+        decision: "Check in backend service, NOT database CHECK constraint"
+        reason: "Business logic may evolve, application-level validation is more maintainable"
+        status: "FINAL - Do not suggest database constraints"
+
+    explicitly_not_implemented:
+      - item: "Maximum Students Per Class"
+        decision: "NOT implemented - no capacity limits"
+        reason: "No business requirement for class size limits"
+        status: "SKIP - Do not suggest unless explicitly requested"
+
+      - item: "Identity Submission Retry Limit"
+        decision: "NOT implemented - unlimited submissions allowed"
+        reason: "Not needed in current version, can add later if spam becomes an issue"
+        status: "SKIP - Do not suggest unless explicitly requested"
+
+      - item: "RTSP URL Encryption/Credential Separation"
+        decision: "NOT implemented - store RTSP URLs as-is in database"
+        reason: "Internal network only, security handled at network level, not application priority"
+        status: "SKIP for current and near-future versions - Do not suggest security improvements"
+
+      - item: "Real-time Performance Specifications"
+        decision: "NOT specified - use framework defaults"
+        reason: "Premature optimization, will tune based on actual load testing results"
+        status: "SKIP - Do not suggest performance specs until load testing"
+
+      - item: "Link Password to Google Account"
+        decision: "NOT implemented - Google-only accounts remain Google-only"
+        reason: "Not a priority feature, users can use password reset if needed"
+        status: "SKIP - Do not suggest unless explicitly requested"
+
+      - item: "Attendance History Table"
+        decision: "NOT implemented - use operational_audit_logs for history"
+        reason: "Audit logs already provide complete history, no need for duplicate table"
+        status: "FINAL - Do not suggest separate history table"
+
+      - item: "System Admin Role/Permission Management Use Cases"
+        decision: "NOT documented as separate use cases"
+        reason: "Low-level admin functions, permissions exist but detailed UCs not needed"
+        status: "SKIP - Do not suggest adding these UCs"
+
+      - item: "Student View Exam Eligibility Status Use Case"
+        decision: "Feature exists but NOT documented as separate UC"
+        reason: "Handled in backend logic, no dedicated UI screen needed"
+        status: "SKIP - Do not suggest adding this UC"
+
+    slot_management_clarifications:
+      - item: "Slot Cancellation"
+        decision: "Only Data Operator can cancel slots (set is_active = false)"
+        reason: "Slots are academic data managed by DOP, not by Lecturers"
+        status: "FINAL - Lecturers cannot cancel slots, do not suggest this feature"
+
+      - item: "Slot Reopen after Finalization"
+        decision: "Feature exists (same-day only) but NOT documented as separate UC"
+        reason: "Part of normal attendance management flow, covered by existing permissions"
+        status: "FINAL - Do not suggest adding separate UC for this"
 
   to_be_discussed_or_backlog:
     - "Dashboard Design: Finalize KPIs displayed for each role"

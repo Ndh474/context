@@ -77,6 +77,22 @@ tables:
         type: jsonb
         constraints: [NULL]
         description: "JSON object containing before/after values for changes"
+    indexes:
+      - name: idx_audit_logs_actor_user_id
+        columns: [actor_user_id]
+        description: "For queries: who did what"
+      
+      - name: idx_audit_logs_target_entity_id
+        columns: [target_entity, target_id]
+        description: "For queries: history of a specific entity"
+      
+      - name: idx_audit_logs_created_at
+        columns: [created_at]
+        description: "For date range queries"
+      
+      - name: idx_audit_logs_action_type
+        columns: [action_type]
+        description: "For filtering by action type"
     notes:
       - "Provides complete audit trail for compliance and debugging"
       - "Records who did what, when, and what changed"

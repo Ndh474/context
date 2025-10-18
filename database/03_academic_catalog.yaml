@@ -163,10 +163,18 @@ tables:
         constraints: [NOT NULL]
         description: "Class code"
     indexes:
-      - name: classes_subject_id_semester_id_code_idx
+      - name: idx_classes_subject_semester_code
         columns: [subject_id, semester_id, code]
         unique: true
         description: "Unique constraint for class within subject and semester"
+      
+      - name: idx_classes_semester_id
+        columns: [semester_id]
+        description: "For queries: all classes in a semester"
+      
+      - name: idx_classes_subject_id
+        columns: [subject_id]
+        description: "For queries: all classes of a subject"
 
   enrollments:
     primary_key: [class_id, student_user_id]
@@ -195,8 +203,19 @@ tables:
           table: users
           column: id
         description: "Reference to student user"
-      is_active:
+      is_enrolled:
         type: boolean
         constraints: [NOT NULL]
         default: true
-        description: "Enrollment status (soft delete for withdrawals)"
+        description: "Enrollment status. When false, student is withdrawn from the class but historical attendance is preserved."
+    indexes:
+      - name: idx_enrollments_class_id_enrolled
+        columns: [class_id, is_enrolled]
+        description: "For roster queries (enrolled students only)"
+      
+      - name: idx_enrollments_student_user_id
+        columns: [student_user_id]
+        description: "For student's enrolled classes queries"
+    notes:
+      - "When is_enrolled = false, student is withdrawn and hidden from roster but historical attendance is preserved (see BR-33)"
+      - "Field renamed from 'is_active' to 'is_enrolled' for clearer semantic distinction from soft delete flags in other tables"

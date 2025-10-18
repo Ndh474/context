@@ -30,7 +30,7 @@ tables:
       finalized_at:
         type: timestamp
         constraints: [NULL]
-        description: "When attendance was finalized (null if not finalized)"
+        description: "Timestamp when attendance was first finalized. NULL if not yet finalized. For complete finalization history including actor and re-finalization events, see operational_audit_logs."
       class_id:
         type: smallint
         constraints: [NOT NULL]
@@ -73,6 +73,26 @@ tables:
         constraints: [NOT NULL]
         default: true
         description: "Slot status (cancelled slots marked inactive)"
+    indexes:
+      - name: idx_slots_class_id
+        columns: [class_id]
+        description: "For queries: get all slots for a class"
+      
+      - name: idx_slots_staff_user_id
+        columns: [staff_user_id]
+        description: "For lecturer schedule queries"
+      
+      - name: idx_slots_room_id
+        columns: [room_id]
+        description: "For room utilization queries"
+      
+      - name: idx_slots_start_time
+        columns: [start_time]
+        description: "For date range queries and schedule display"
+      
+      - name: idx_slots_finalized_at
+        columns: [finalized_at]
+        description: "For filtering finalized vs pending slots"
     notes:
       - "slot_type determines available functions (LECTURE allows announcements, pre-slot messages)"
       - "finalized_at tracks when attendance was completed by staff"
@@ -122,10 +142,18 @@ tables:
         constraints: [NOT NULL]
         description: "How status was determined: 'auto', 'manual', 'system_finalize'"
     indexes:
-      - name: attendance_records_student_user_id_slot_id_idx
+      - name: idx_attendance_records_student_slot
         columns: [student_user_id, slot_id]
         unique: true
-        description: "One attendance record per student per slot"
+        description: "One attendance record per student per slot (also serves as query index)"
+      
+      - name: idx_attendance_records_slot_id
+        columns: [slot_id]
+        description: "For queries: get all attendance records for a slot"
+      
+      - name: idx_attendance_records_status
+        columns: [status]
+        description: "For filtering by status (e.g., count not_yet students)"
     notes:
       - "Status 'not_yet' is initial state before any attendance check"
       - "Status 'present' indicates student was detected/marked present"

@@ -2,10 +2,10 @@
 # FUACS Requirements - Version 1.0
 
 metadata:
-  total_business_rules: 30
+  total_business_rules: 36
   domains_covered:
-    [Authentication, Roles, Identity, Academic, Attendance, System, Audit]
-  last_updated: "2024-10-18"
+    [Authentication, Roles, Identity, Academic, Attendance, System, Audit, Infrastructure]
+  last_updated: "2024-10-19"
 
 business_rules:
   # Authentication & User Management (BR-01 to BR-07)
@@ -296,6 +296,147 @@ business_rules:
       related_use_cases: ["UC-47", "UC-51", "UC-55", "UC-59", "UC-69"]
       validation_points: ["All hard delete operations in the backend services"]
 
+  # Attendance Status Management (BR-31 to BR-32)
+  attendance_status_management:
+    BR-31:
+      title: "Attendance Status Transition Rules"
+      description: "Defines valid state transitions for attendance records and time-based edit restrictions. Before finalization, all transitions are allowed. After finalization, assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-19", "UC-21", "UC-27", "UC-29", "UC-32", "UC-34"]
+      validation_points: ["Attendance edit API", "Permission middleware", "Time-based access control"]
+      rules:
+        valid_transitions:
+          before_finalization:
+            - "not_yet → present (auto or manual)"
+            - "not_yet → absent (manual only)"
+            - "present → absent (manual with remark)"
+            - "absent → present (manual with remark)"
+          after_finalization_same_day:
+            - "All transitions allowed until 23:59:59 UTC of slot date"
+            - "Must have ATTENDANCE_STATUS_UPDATE_MANUAL permission"
+            - "Remark is mandatory for all manual changes"
+          after_finalization_next_day:
+            - "Lecturer/Supervisor: NO edit permission"
+            - "Data Operator: Can edit with appropriate permissions"
+            - "All changes must be logged in operational_audit_logs"
+        time_boundary:
+          calculation: "Based on slot.start_time date in server timezone (UTC)"
+          cutoff: "23:59:59 UTC of the slot date"
+          example: "If slot starts 2024-10-19 14:00 UTC, edit window closes 2024-10-19 23:59:59 UTC"
+
+    BR-32:
+      title: "Face Embedding Version Management"
+      description: "Rules for managing face embedding versions when identity is updated. Each approved identity submission generates a new embedding with incremented version. Only one embedding per student can be active at a time."
+      domain: "Identity"
+      priority: "High"
+      related_use_cases: ["UC-12", "UC-13", "UC-37"]
+      validation_points: ["Identity approval workflow", "Face recognition query"]
+      rules:
+        version_increment:
+          - "Each approved identity submission generates a new embedding with version = max(version) + 1"
+          - "Initial registration: version = 1"
+          - "First update: version = 2, etc."
+        active_embedding:
+          - "Only ONE embedding per student can have is_active = true"
+          - "When new embedding is approved, old embedding is set to is_active = false"
+          - "System uses only the active embedding for face recognition"
+        retention_policy:
+          - "Keep last 3 versions for audit and rollback purposes"
+          - "Older versions can be archived or deleted after 1 year"
+
+  # Academic Data Management (BR-33)
+  academic_data_management:
+    BR-33:
+      title: "Enrollment Status and Roster Visibility"
+      description: "When generating roster for a slot, only include students where enrollments.is_active = true. Historical attendance records are preserved even after unenrollment."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-59", "UC-60", "UC-64", "UC-65"]
+      validation_points: ["Roster query API", "Attendance record creation", "Student unenrollment workflow"]
+      rules:
+        roster_generation:
+          - "When generating roster for a slot, only include students where enrollments.is_enrolled = true"
+          - "This applies to ALL slots, regardless of their status (upcoming, ongoing, finalized)"
+        attendance_record_handling:
+          - "If attendance_record already exists before unenrollment, it is preserved (not deleted)"
+          - "Student will not appear in roster UI, but their historical record remains in database"
+          - "Reports can still show historical attendance for unenrolled students"
+        edge_case_handling:
+          - "If student is unenrolled AFTER slot is finalized, their attendance record is preserved"
+          - "If student is unenrolled BEFORE slot starts, no attendance record is created"
+
+  # Bulk Operations (BR-34)
+  bulk_operations:
+    BR-34:
+      title: "Bulk Enrollment CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk student enrollment. File must be UTF-8 encoded with specific columns and validation rules."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-74"]
+      validation_points: ["CSV upload API", "Bulk enrollment processing"]
+      csv_format:
+        encoding: "UTF-8 with BOM (for Excel compatibility)"
+        delimiter: "comma (,)"
+        header_row: "Required (first row)"
+        columns:
+          - name: "student_id"
+            type: "string"
+            required: true
+            description: "Student's username (Student ID)"
+          - name: "class_code"
+            type: "string"
+            required: true
+            description: "Class code (not class_id)"
+          - name: "semester_code"
+            type: "string"
+            required: true
+            description: "Semester code to identify the class"
+      validation_rules:
+        file_level:
+          - "File size must not exceed 5MB"
+          - "Maximum 10,000 rows (excluding header)"
+          - "Must have exactly 3 columns"
+          - "Header row must match exactly: student_id,class_code,semester_code"
+        row_level:
+          - "student_id must exist in users table and have STUDENT role"
+          - "class_code + semester_code must uniquely identify a class"
+          - "Student must not already be enrolled in the class"
+          - "Student must be active (users.is_active = true)"
+          - "Class must be active (classes.is_active = true)"
+        duplicate_handling:
+          - "Within file: If same student_id + class_code appears multiple times, keep first occurrence and warn"
+          - "With database: If enrollment already exists, skip and report as warning (not error)"
+        error_reporting:
+          - "Validation errors are collected and shown in UI before import"
+          - "Import is all-or-nothing: if any validation fails, no records are created"
+
+  # Time-Based Rules (BR-35)
+  time_based_rules:
+    BR-35:
+      title: "Time-Based Edit Window Calculation"
+      description: "Defines how the 23:59:59 cutoff time is calculated for attendance editing. All timestamps are in UTC, cutoff is based on slot start_time date."
+      domain: "Attendance"
+      priority: "High"
+      related_use_cases: ["UC-19", "UC-21", "UC-27", "UC-29", "UC-32", "UC-34"]
+      validation_points: ["Attendance edit API", "Permission middleware"]
+      rules:
+        timezone_standard:
+          - "All timestamps stored in database are in UTC"
+          - "Edit window cutoff is calculated based on slot.start_time date in UTC"
+          - "UI displays times in user's local timezone for convenience"
+        cutoff_calculation:
+          - "Extract date from slot.start_time (in UTC)"
+          - "Cutoff = {slot_date} 23:59:59 UTC"
+          - "Example: slot starts 2024-10-19 14:00:00 UTC → cutoff is 2024-10-19 23:59:59 UTC"
+        permission_check_logic:
+          - "When user attempts to edit attendance:"
+          - "1. Check if user is assigned staff (staff_user_id = current_user_id)"
+          - "2. Check if current_time <= slot_date 23:59:59 UTC"
+          - "3. If both true: allow edit"
+          - "4. If time expired: check if user has DATA_OPERATOR role"
+          - "5. If DATA_OPERATOR: allow edit, else deny"
+
 # Rule Dependencies and Relationships
 rule_relationships:
   authentication_flow:
@@ -307,7 +448,7 @@ rule_relationships:
     description: "Rules for identity registration and approval process"
 
   attendance_lifecycle:
-    primary_rules: ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29"]
+    primary_rules: ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29", "BR-31", "BR-35"]
     description: "Rules governing the complete attendance management lifecycle"
 
   data_integrity:
