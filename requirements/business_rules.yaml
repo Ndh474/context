@@ -123,7 +123,7 @@ business_rules:
 
     BR-14:
       title: "Enrollment History Preservation"
-      description: "When a student is unenrolled from a class (enrollments.is_active = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
+      description: "When a student is unenrolled from a class (enrollments.is_enrolled = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
       domain: "Academic"
       priority: "Medium"
       related_use_cases: ["UC-65"]
@@ -194,7 +194,7 @@ business_rules:
 
     BR-22:
       title: "Same-Day Edit Window"
-      description: "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 on the day of the slot."
+      description: "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC)."
       domain: "Attendance"
       priority: "Medium"
       related_use_cases: ["UC-19", "UC-32"]
@@ -203,7 +203,7 @@ business_rules:
 
     BR-23:
       title: "Post-Day Edit Restrictions"
-      description: "After 23:59:59 on the day of the slot, only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
+      description: "After 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC), only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
       domain: "Attendance"
       priority: "Medium"
       related_use_cases: ["UC-19", "UC-32"]
@@ -349,7 +349,7 @@ business_rules:
   academic_data_management:
     BR-33:
       title: "Enrollment Status and Roster Visibility"
-      description: "When generating roster for a slot, only include students where enrollments.is_active = true. Historical attendance records are preserved even after unenrollment."
+      description: "When generating roster for a slot, only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment."
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-59", "UC-60", "UC-64", "UC-65"]
