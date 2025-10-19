@@ -184,6 +184,7 @@ system_context:
           "SLOT_CREATE_FINAL_EXAM",
           "SLOT_UPDATE_FINAL_EXAM",
           "SLOT_DELETE_HARD_FINAL_EXAM",
+          "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ROOM_CREATE",
           "ROOM_READ",
           "ROOM_UPDATE",
@@ -528,7 +529,7 @@ system_context:
     slot_control:
       open_by: "Lecturer/Supervisor"
       finalize_by: "Lecturer/Supervisor"
-      finalization_logic: "When a lecturer finalizes a slot, the system displays a 'Finalization Rules Setup' screen. This screen allows the lecturer to batch decide how students with intermediate statuses (Not Yet, Absent After Present) will be converted to final statuses (Present or Absent)."
+      finalization_logic: "When a lecturer finalizes a slot, the system displays a 'Finalization Rules Setup' screen. This screen allows the lecturer to batch decide how students with intermediate statuses (Not Yet) will be converted to final statuses (Present or Absent)."
       editability_rules: "After the first finalization (first_submission), Lecturer/Supervisor can edit attendance results until 23:59:59 of that day. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator."
       finalization_audit_trail_note: "The timestamp of the MOST RECENT finalization is stored in slots.finalized_at for quick queries and reporting. When a slot is re-finalized, this value is updated (overwrites previous value). Detailed information about WHO performed the finalization (actor_user_id), along with the complete history of all finalization-related actions (finalize, reopen, re-finalize), is comprehensively recorded in the operational_audit_logs table. This dual approach balances query performance with comprehensive audit trail requirements."
 
