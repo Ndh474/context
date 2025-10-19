@@ -1,0 +1,780 @@
+POST   	| /enrollments 	   		        | ENROLLMENT_MANAGE 
+GET    	| /enrollments 	   		        | CLASS_READ 
+GET    	| /enrollments/{classId}/{studentUserId} | CLASS_READ 
+PUT    	| /enrollments/{classId}/{studentUserId} | ENROLLMENT_MANAGE 
+POST   	| /enrollments/bulk 	   	    | ENROLLMENT_MANAGE
+GET    	| /enrollments/bulk/template    | CLASS_READ
+GET    	| /classes/{classId}/enrollments| CLASS_READ
+
+================================================ Create enrollment ====================================================
+1. POST /api/v1/enrollments
+Permission: ENROLLMENT_MANAGE
+Description: Add a student to a class. If enrollment exists with is_enrolled=false, it will be updated to true (re-enrollment).
+
+Request Body:
+{
+  "classId": 1,
+  "studentUserId": 201
+}
+
+Request Schema:
+| Field          | Type    | Required | Validation 
+| classId        | short   | Yes      | Must exist and be active
+| studentUserId  | integer | Yes      | Must exist, be active, and have STUDENT role
+
+Business Rules:
+- BR-13: A student can only be enrolled once in a specific class
+- If enrollment exists with is_enrolled=true → 409 Conflict
+- If enrollment exists with is_enrolled=false → Update to true (re-enrollment)
+- Class must be active (classes.is_active = true)
+- Student must be active (users.is_active = true)
+- Student must have STUDENT role
+
+201-Success Response (New enrollment):
+{
+  "status": 201,
+  "data": {
+    "classId": 1,
+    "studentUserId": 201,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn",
+      "majorName": "Software Engineering"
+    },
+    "class": {
+      "id": 1,
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24"
+      }
+    },
+    "isEnrolled": true,
+    "createdAt": "2024-10-19T10:00:00Z",
+    "updatedAt": "2024-10-19T10:00:00Z"
+  }
+}
+
+200-Success Response (Re-enrollment):
+{
+  "status": 200,
+  "message": "Student re-enrolled successfully",
+  "data": {
+    "classId": 1,
+    "studentUserId": 201,
+    "student": { ... },
+    "class": { ... },
+    "isEnrolled": true,
+    "createdAt": "2024-09-01T08:00:00Z",
+    "updatedAt": "2024-10-19T10:00:00Z"
+  }
+}
+
+Response Schema:
+| Field         | Type    | Description 
+| classId       | short   | Class ID
+| studentUserId | integer | Student user ID
+| student       | object  | Student details (userId, fullName, rollNumber, email, majorName)
+| class         | object  | Class details with nested subject and semester
+| isEnrolled    | boolean | Enrollment status (always true in success response)
+| createdAt     | string  | YYYY-MM-DDTHH:mm:SSZ (original enrollment date)
+| updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Class ID is required / Student User ID is required",
+  "code": "CLASS_ID_REQUIRED" | "STUDENT_USER_ID_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid user role:
+{
+  "status": 400,
+  "message": "User must have STUDENT role to be enrolled",
+  "code": "INVALID_USER_ROLE"
+}
+
+400-Inactive reference:
+{
+  "status": 400,
+  "message": "Cannot enroll student into inactive class",
+  "code": "INACTIVE_CLASS_NOT_ALLOWED"
+}
+
+Other inactive reference error codes:
+- INACTIVE_STUDENT_NOT_ALLOWED
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+404-Student not found:
+{
+  "status": 404,
+  "message": "User not found: 201",
+  "code": "USER_NOT_FOUND"
+}
+
+409-Already enrolled:
+{
+  "status": 409,
+  "message": "Student is already enrolled in this class",
+  "code": "ALREADY_ENROLLED"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+================================================== Search enrollments =================================================
+
+2. GET /api/v1/enrollments
+Permission: CLASS_READ
+Description: List all enrollments with filtering and pagination support.
+
+Query Parameters:
+| Parameter      | Type    | Required | Default | Validation 
+| page           | integer | No       | 1       | >= 1
+| pageSize       | integer | No       | 10      | 1-50 
+| sort           | string  | No       | asc     | asc, desc 
+| sortBy         | string  | No       | createdAt | createdAt, updatedAt
+| classId        | short   | No       | null    | Filter by class
+| studentUserId  | integer | No       | null    | Filter by student
+| semesterId     | short   | No       | null    | Filter by semester
+| isEnrolled     | boolean | No       | null    | Filter by enrollment status (true/false)
+| search         | string  | No       | ""      | Search in student name, rollNumber, email
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "classId": 1,
+        "studentUserId": 201,
+        "student": {
+          "userId": 201,
+          "fullName": "Tran Thi B",
+          "rollNumber": "HE180314",
+          "email": "tranthib@fpt.edu.vn",
+          "majorName": "Software Engineering"
+        },
+        "class": {
+          "id": 1,
+          "code": "SE1801",
+          "subject": {
+            "id": 1,
+            "name": "Software Development Project",
+            "code": "SWP391"
+          },
+          "semester": {
+            "id": 1,
+            "name": "Fall 2024",
+            "code": "FA24"
+          }
+        },
+        "isEnrolled": true,
+        "createdAt": "2024-09-01T08:00:00Z",
+        "updatedAt": "2024-09-01T08:00:00Z"
+      },
+      {
+        "classId": 1,
+        "studentUserId": 202,
+        "student": {
+          "userId": 202,
+          "fullName": "Le Van C",
+          "rollNumber": "HE180315",
+          "email": "levanc@fpt.edu.vn",
+          "majorName": "Software Engineering"
+        },
+        "class": {
+          "id": 1,
+          "code": "SE1801",
+          "subject": {
+            "id": 1,
+            "name": "Software Development Project",
+            "code": "SWP391"
+          },
+          "semester": {
+            "id": 1,
+            "name": "Fall 2024",
+            "code": "FA24"
+          }
+        },
+        "isEnrolled": false,
+        "createdAt": "2024-09-01T08:05:00Z",
+        "updatedAt": "2024-10-15T14:30:00Z"
+      }
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+Response Schema (items):
+| Field         | Type    | Description 
+| classId       | short   | Class ID
+| studentUserId | integer | Student user ID
+| student       | object  | Student details
+| class         | object  | Class details with nested subject and semester
+| isEnrolled    | boolean | Enrollment status (true=enrolled, false=withdrawn)
+| createdAt     | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must be >= 1 / Page size must be between 1 and 50",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+=======================================================================================================================
+============================================== Get enrollment by composite key ========================================
+
+3. GET /api/v1/enrollments/{classId}/{studentUserId}
+Permission: CLASS_READ
+Description: Get enrollment details for a specific student in a specific class.
+
+Path Parameters:
+| Parameter      | Type    | Required | Description
+| classId        | short   | Yes      | Class ID
+| studentUserId  | integer | Yes      | Student user ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "classId": 1,
+    "studentUserId": 201,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn",
+      "majorName": "Software Engineering"
+    },
+    "class": {
+      "id": 1,
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24"
+      }
+    },
+    "isEnrolled": true,
+    "createdAt": "2024-09-01T08:00:00Z",
+    "updatedAt": "2024-09-01T08:00:00Z"
+  }
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Enrollment not found:
+{
+  "status": 404,
+  "message": "Enrollment not found for class 1 and student 201",
+  "code": "ENROLLMENT_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================ Update enrollment ====================================================
+
+4. PUT /api/v1/enrollments/{classId}/{studentUserId}
+Permission: ENROLLMENT_MANAGE
+Description: Update enrollment status (withdraw or re-enroll student). This does NOT delete attendance records.
+
+Path Parameters:
+| Parameter      | Type    | Required | Description
+| classId        | short   | Yes      | Class ID
+| studentUserId  | integer | Yes      | Student user ID
+
+Request Body:
+{
+  "isEnrolled": false
+}
+
+Request Schema:
+| Field      | Type    | Required | Validation
+| isEnrolled | boolean | Yes      | true (re-enroll) or false (withdraw)
+
+Business Rules:
+- BR-14: When is_enrolled=false (withdraw), student will not appear in future slot rosters
+- BR-14: Past attendance history is preserved
+- BR-33: Only students with is_enrolled=true appear in roster queries
+- Audit log is created for this action
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Enrollment updated successfully",
+  "data": {
+    "classId": 1,
+    "studentUserId": 201,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn",
+      "majorName": "Software Engineering"
+    },
+    "class": {
+      "id": 1,
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24"
+      }
+    },
+    "isEnrolled": false,
+    "createdAt": "2024-09-01T08:00:00Z",
+    "updatedAt": "2024-10-19T14:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "isEnrolled field is required",
+  "code": "IS_ENROLLED_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer/Boolean'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Enrollment not found:
+{
+  "status": 404,
+  "message": "Enrollment not found for class 1 and student 201",
+  "code": "ENROLLMENT_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+============================================== Bulk enrollment from CSV ===============================================
+
+5. POST /api/v1/enrollments/bulk
+Permission: ENROLLMENT_MANAGE
+Description: Bulk import enrollments from CSV file. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+
+Request: Multipart form-data
+Content-Type: multipart/form-data
+Body:
+- file: enrollment.csv (max 5MB, max 10,000 rows)
+
+CSV Format:
+- Encoding: UTF-8 with BOM (for Excel compatibility)
+- Delimiter: comma (,)
+- Header row: Required (first row)
+- Columns: student_id, class_code, semester_code
+
+Example CSV:
+```csv
+student_id,class_code,semester_code
+HE180314,SE1801,FA24
+HE180315,SE1801,FA24
+HE180316,SE1802,FA24
+```
+
+Business Rules:
+- BR-37: CSV format validation (encoding, columns, max rows, max file size)
+- PARTIAL SUCCESS: Import valid rows, skip invalid rows
+- Duplicate handling:
+  - Within file: If same student_id + class_code appears multiple times, only first occurrence is processed
+  - With database: If enrollment already exists with is_enrolled=true, skip with warning
+  - With database: If enrollment exists with is_enrolled=false, update to true (re-enrollment)
+
+Validation Rules:
+File Level:
+- File size must not exceed 5MB
+- Maximum 10,000 rows (excluding header)
+- Must have exactly 3 columns
+- Header row must match exactly: student_id,class_code,semester_code
+
+Row Level:
+- student_id must exist in users table and have STUDENT role
+- class_code + semester_code must uniquely identify a class
+- Student must be active (users.is_active = true)
+- Class must be active (classes.is_active = true)
+
+200-Success Response (Partial success):
+{
+  "status": 200,
+  "message": "Bulk enrollment completed with some errors",
+  "data": {
+    "totalRows": 100,
+    "successCount": 95,
+    "skippedCount": 3,
+    "failedCount": 2,
+    "summary": {
+      "newEnrollments": 92,
+      "reEnrollments": 3,
+      "alreadyEnrolled": 3,
+      "errors": 2
+    },
+    "errors": [
+      {
+        "row": 3,
+        "studentId": "HE999999",
+        "classCode": "SE1801",
+        "semesterCode": "FA24",
+        "reason": "Student not found"
+      },
+      {
+        "row": 7,
+        "studentId": "HE180320",
+        "classCode": "SE9999",
+        "semesterCode": "FA24",
+        "reason": "Class not found for code SE9999 and semester FA24"
+      }
+    ],
+    "warnings": [
+      {
+        "row": 5,
+        "studentId": "HE180318",
+        "classCode": "SE1801",
+        "semesterCode": "FA24",
+        "reason": "Student already enrolled, skipped"
+      },
+      {
+        "row": 12,
+        "studentId": "HE180314",
+        "classCode": "SE1801",
+        "semesterCode": "FA24",
+        "reason": "Duplicate entry in file, only first occurrence processed"
+      }
+    ]
+  }
+}
+
+200-Success Response (All success):
+{
+  "status": 200,
+  "message": "Bulk enrollment completed successfully",
+  "data": {
+    "totalRows": 100,
+    "successCount": 100,
+    "skippedCount": 0,
+    "failedCount": 0,
+    "summary": {
+      "newEnrollments": 100,
+      "reEnrollments": 0,
+      "alreadyEnrolled": 0,
+      "errors": 0
+    }
+  }
+}
+
+Response Schema:
+| Field                    | Type    | Description 
+| totalRows                | integer | Total rows in CSV (excluding header)
+| successCount             | integer | Number of successfully enrolled students
+| skippedCount             | integer | Number of skipped rows (warnings)
+| failedCount              | integer | Number of failed rows (errors)
+| summary.newEnrollments   | integer | New enrollments created
+| summary.reEnrollments    | integer | Students re-enrolled (was withdrawn)
+| summary.alreadyEnrolled  | integer | Students already enrolled (skipped)
+| summary.errors           | integer | Validation errors
+| errors                   | array   | List of error details (row, studentId, classCode, semesterCode, reason)
+| warnings                 | array   | List of warning details (row, studentId, classCode, semesterCode, reason)
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format. Expected header: student_id,class_code,semester_code",
+  "code": "INVALID_CSV_FORMAT"
+}
+
+400-File too large:
+{
+  "status": 400,
+  "message": "File size exceeds maximum limit of 5MB",
+  "code": "FILE_TOO_LARGE"
+}
+
+400-Too many rows:
+{
+  "status": 400,
+  "message": "CSV file exceeds maximum limit of 10,000 rows",
+  "code": "TOO_MANY_ROWS"
+}
+
+400-Missing file:
+{
+  "status": 400,
+  "message": "CSV file is required",
+  "code": "FILE_REQUIRED"
+}
+
+400-Invalid file type:
+{
+  "status": 400,
+  "message": "Invalid file type. Only CSV files are allowed",
+  "code": "INVALID_FILE_TYPE"
+}
+
+=======================================================================================================================
+============================================ Download CSV template ====================================================
+
+6. GET /api/v1/enrollments/bulk/template
+Permission: CLASS_READ
+Description: Download CSV template file for bulk enrollment import.
+
+200-Success Response:
+Content-Type: text/csv
+Content-Disposition: attachment; filename="enrollment_template.csv"
+
+File Content:
+```csv
+student_id,class_code,semester_code
+HE180314,SE1801,FA24
+HE180315,SE1802,FA24
+HE180316,AI2401,SP25
+```
+
+Notes:
+- File includes header row and 3 sample rows
+- UTF-8 with BOM encoding for Excel compatibility
+- Sample data shows correct format
+
+=======================================================================================================================
+========================================= Get enrollments by class (roster) ===========================================
+
+7. GET /api/v1/classes/{classId}/enrollments
+Permission: CLASS_READ
+Description: Get roster (list of enrolled students) for a specific class. Used for roster management.
+
+Path Parameters:
+| Parameter | Type  | Required | Description
+| classId   | short | Yes      | Class ID
+
+Query Parameters:
+| Parameter  | Type    | Required | Default | Validation 
+| page       | integer | No       | 1       | >= 1
+| pageSize   | integer | No       | 50      | 1-100 
+| sort       | string  | No       | asc     | asc, desc 
+| sortBy     | string  | No       | fullName| fullName, rollNumber, createdAt
+| isEnrolled | boolean | No       | true    | Filter by enrollment status (true/false/null)
+| search     | string  | No       | ""      | Search in student name, rollNumber, email
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "class": {
+      "id": 1,
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24"
+      }
+    },
+    "items": [
+      {
+        "studentUserId": 201,
+        "fullName": "Tran Thi B",
+        "rollNumber": "HE180314",
+        "email": "tranthib@fpt.edu.vn",
+        "majorName": "Software Engineering",
+        "majorCode": "SE",
+        "isEnrolled": true,
+        "enrolledAt": "2024-09-01T08:00:00Z",
+        "updatedAt": "2024-09-01T08:00:00Z"
+      },
+      {
+        "studentUserId": 202,
+        "fullName": "Le Van C",
+        "rollNumber": "HE180315",
+        "email": "levanc@fpt.edu.vn",
+        "majorName": "Software Engineering",
+        "majorCode": "SE",
+        "isEnrolled": true,
+        "enrolledAt": "2024-09-01T08:05:00Z",
+        "updatedAt": "2024-09-01T08:05:00Z"
+      }
+    ],
+    "totalEnrolled": 25,
+    "totalWithdrawn": 3,
+    "totalPages": 1,
+    "currentPage": 1,
+    "pageSize": 50,
+    "totalItems": 25
+  }
+}
+
+Response Schema:
+| Field          | Type    | Description 
+| class          | object  | Class details with nested subject and semester
+| items          | array   | List of enrolled students
+| totalEnrolled  | integer | Count of students with is_enrolled=true
+| totalWithdrawn | integer | Count of students with is_enrolled=false
+| totalPages     | integer | Total pages
+| currentPage    | integer | Current page number
+| pageSize       | integer | Items per page
+| totalItems     | integer | Total items (based on isEnrolled filter)
+
+Student Object Schema:
+| Field         | Type    | Description 
+| studentUserId | integer | Student user ID
+| fullName      | string  | Student full name
+| rollNumber    | string  | Student roll number
+| email         | string  | Student email
+| majorName     | string  | Major name
+| majorCode     | string  | Major code
+| isEnrolled    | boolean | Enrollment status
+| enrolledAt    | string  | YYYY-MM-DDTHH:mm:SSZ (enrollment date)
+| updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must be >= 1 / Page size must be between 1 and 100",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+Data Types:
+- Class ID: Short (max value: 32,767)
+- Student User ID: Integer
+- All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+
+Composite Primary Key:
+- Enrollments table uses composite key (class_id, student_user_id)
+- No separate 'id' field
+- URL pattern: /enrollments/{classId}/{studentUserId}
+
+Enrollment Status (is_enrolled):
+- true: Student is actively enrolled, appears in roster
+- false: Student is withdrawn, does NOT appear in roster
+- NOT a soft delete flag - it's enrollment status
+- Can be toggled: false → true (re-enrollment)
+
+Pagination:
+- Default: page=1, pageSize=10 (list endpoint)
+- Default: page=1, pageSize=50 (roster endpoint)
+- Max page size: 50 (list), 100 (roster)
+- 1-based pagination
+
+Response Structure:
+- Nested objects for student and class details
+- Student: userId, fullName, rollNumber, email, majorName
+- Class: id, code, subject (id, name, code), semester (id, name, code)
+
+Bulk Import Strategy:
+- PARTIAL SUCCESS: Import valid rows, skip invalid rows
+- Return 200 with summary even if some rows failed
+- Provide detailed error list for failed rows
+- Provide warning list for skipped rows (duplicates, already enrolled)
+
+CSV Template:
+- UTF-8 with BOM encoding
+- 3 columns: student_id, class_code, semester_code
+- Includes sample data
+- Max 5MB file size
+- Max 10,000 rows
+
+Permissions:
+- ENROLLMENT_MANAGE: Create, update, bulk import (Data Operator)
+- CLASS_READ: View enrollments, download template (Data Operator, Lecturer)
+
+Business Rules:
+- BR-13: Single Class Enrollment (unique constraint)
+- BR-14: Enrollment History Preservation (keep attendance records)
+- BR-33: Roster Generation Rules (only is_enrolled=true)
+- BR-37: Bulk Enrollment CSV Format
+
+Related Use Cases:
+- UC-62: Add Student to Roster
+- UC-63: Remove Student from Roster
+- UC-77: Bulk Enroll Students to Classes via CSV
+
+Audit Trail:
+- All enrollment changes are logged to operational_audit_logs
+- Includes: actor_user_id, action_type, target_entity, target_id, changes (before/after)
+
+Hard Delete:
+- NOT SUPPORTED: No DELETE endpoint
+- Use PUT with is_enrolled=false to withdraw students
+- Preserves audit trail and attendance history
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (enrollment, class, or student not found)
+- 409: Conflict (already enrolled)
+- 500: Internal Server Error

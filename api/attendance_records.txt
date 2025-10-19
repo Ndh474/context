@@ -1,0 +1,828 @@
+GET    	| /attendance-records 	   		        | ATTENDANCE_ROSTER_READ 
+GET    	| /attendance-records/{id} 	   	        | ATTENDANCE_ROSTER_READ 
+PUT    	| /attendance-records/{id} 	   	        | ATTENDANCE_STATUS_UPDATE_MANUAL 
+POST   	| /attendance-records/{id}/remarks 	    | ATTENDANCE_REMARK_MANAGE
+PUT    	| /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
+DELETE 	| /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
+POST   	| /attendance/recognition-result 	    | INTERNAL (API Key authentication)
+
+================================================ Search attendance records ============================================
+1. GET /api/v1/attendance-records
+Permission: ATTENDANCE_ROSTER_READ
+Description: List attendance records with filtering and pagination support.
+
+Query Parameters:
+| Parameter      | Type    | Required | Default | Validation 
+| page           | integer | No       | 1       | >= 1
+| pageSize       | integer | No       | 10      | 1-50 
+| sort           | string  | No       | desc    | asc, desc 
+| sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
+| slotId         | integer | No       | null    | Filter by slot
+| studentUserId  | integer | No       | null    | Filter by student
+| classId        | short   | No       | null    | Filter by class
+| semesterId     | short   | No       | null    | Filter by semester
+| status         | string  | No       | null    | Filter by status: not_yet, present, absent
+| method         | string  | No       | null    | Filter by method: auto, manual, system_finalize
+| startDate      | string  | No       | null    | YYYY-MM-DD (filter slots from this date)
+| endDate        | string  | No       | null    | YYYY-MM-DD (filter slots to this date)
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 501,
+        "student": {
+          "userId": 201,
+          "fullName": "Tran Thi B",
+          "rollNumber": "HE180314",
+          "email": "tranthib@fpt.edu.vn"
+        },
+        "slot": {
+          "id": 1,
+          "title": "Introduction to Software Development",
+          "startTime": "2024-10-17T08:00:00Z",
+          "endTime": "2024-10-17T10:00:00Z",
+          "slotCategory": "LECTURE",
+          "class": {
+            "id": 1,
+            "code": "SE1801",
+            "subject": { "name": "Software Development Project", "code": "SWP391" },
+            "semester": { "name": "Fall 2024", "code": "FA24" }
+          }
+        },
+        "status": "present",
+        "method": "auto",
+        "recordedAt": "2024-10-17T08:15:30Z",
+        "remarks": [
+          {
+            "id": 1001,
+            "remark": "Recognized by camera 1",
+            "createdBy": {
+              "userId": 10,
+              "fullName": "John Lecturer"
+            },
+            "createdAt": "2024-10-17T08:15:30Z"
+          }
+        ],
+        "createdAt": "2024-10-17T08:00:00Z",
+        "updatedAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "totalPages": 10,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 95
+  }
+}
+
+Response Schema (items):
+| Field      | Type    | Description 
+| id         | long    | Attendance record ID
+| student    | object  | Student details (userId, fullName, rollNumber, email)
+| slot       | object  | Slot details with nested class, subject, semester
+| status     | string  | not_yet, present, absent
+| method     | string  | auto, manual, system_finalize
+| recordedAt | string  | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
+| remarks    | array   | List of active remarks (sorted by createdAt DESC)
+| createdAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must be >= 1 / Invalid status value",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_STATUS"
+}
+
+=======================================================================================================================
+=========================================== Get attendance record by ID ===============================================
+
+2. GET /api/v1/attendance-records/{id}
+Permission: ATTENDANCE_ROSTER_READ
+Description: Get attendance record details including all remarks.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Attendance record ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 501,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn",
+      "majorName": "Software Engineering"
+    },
+    "slot": {
+      "id": 1,
+      "title": "Introduction to Software Development",
+      "startTime": "2024-10-17T08:00:00Z",
+      "endTime": "2024-10-17T10:00:00Z",
+      "slotCategory": "LECTURE",
+      "finalizedAt": "2024-10-17T10:30:00Z",
+      "class": {
+        "id": 1,
+        "code": "SE1801",
+        "subject": { "name": "Software Development Project", "code": "SWP391" },
+        "semester": { "name": "Fall 2024", "code": "FA24" }
+      },
+      "staffUser": {
+        "userId": 10,
+        "fullName": "John Lecturer"
+      }
+    },
+    "status": "present",
+    "method": "auto",
+    "recordedAt": "2024-10-17T08:15:30Z",
+    "remarks": [
+      {
+        "id": 1001,
+        "remark": "Recognized by camera 1 with 95% confidence",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-17T08:15:30Z",
+        "updatedAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "createdAt": "2024-10-17T08:00:00Z",
+    "updatedAt": "2024-10-17T08:15:30Z"
+  }
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+=======================================================================================================================
+======================================= Manual update attendance status ===============================================
+
+3. PUT /api/v1/attendance-records/{id}
+Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
+Description: Manually update attendance status. Remark is MANDATORY when changing status (BR-28).
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Attendance record ID
+
+Request Body:
+{
+  "status": "absent",
+  "remark": "Student was sick, provided medical certificate"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| status | string | Yes      | Must be: not_yet, present, absent
+| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
+
+Business Rules:
+- BR-28: Remark is MANDATORY for manual status changes
+- BR-22: Before 23:59:59 UTC of slot date, assigned staff can edit
+- BR-23: After 23:59:59 UTC of slot date, only Data Operator can edit
+- BR-31: Status transition rules apply
+- Method is automatically set to 'manual'
+- recordedAt is updated to current timestamp
+- Audit log is created
+
+Time-Based Edit Window Validation:
+1. Get slot.start_time from attendance record
+2. Calculate cutoff: slot_date 23:59:59 UTC
+3. If current_time <= cutoff:
+   - Check if user is assigned staff (slot.staff_user_id = current_user_id)
+   - If yes: allow edit
+   - If no: 403 Forbidden
+4. If current_time > cutoff:
+   - Check if user has ATTENDANCE_STATUS_UPDATE_MANUAL permission (Data Operator)
+   - If yes: allow edit
+   - If no: 403 Forbidden
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Attendance status updated successfully",
+  "data": {
+    "id": 501,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn"
+    },
+    "slot": {
+      "id": 1,
+      "title": "Introduction to Software Development",
+      "startTime": "2024-10-17T08:00:00Z",
+      "endTime": "2024-10-17T10:00:00Z",
+      "slotCategory": "LECTURE"
+    },
+    "status": "absent",
+    "method": "manual",
+    "recordedAt": "2024-10-19T14:30:00Z",
+    "remarks": [
+      {
+        "id": 1002,
+        "remark": "Student was sick, provided medical certificate",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "createdAt": "2024-10-19T14:30:00Z"
+      },
+      {
+        "id": 1001,
+        "remark": "Recognized by camera 1 with 95% confidence",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "createdAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "createdAt": "2024-10-17T08:00:00Z",
+    "updatedAt": "2024-10-19T14:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Status is required / Remark is required for manual status changes",
+  "code": "STATUS_REQUIRED" | "REMARK_REQUIRED"
+}
+
+400-Invalid status value:
+{
+  "status": 400,
+  "message": "Invalid status value. Must be: not_yet, present, absent",
+  "code": "INVALID_STATUS_VALUE"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank when manually changing attendance status",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+403-Edit window expired:
+{
+  "status": 403,
+  "message": "Edit window has expired. Only Data Operator can edit attendance after 23:59:59 UTC of slot date",
+  "code": "EDIT_WINDOW_EXPIRED"
+}
+
+403-Not assigned to slot:
+{
+  "status": 403,
+  "message": "You are not assigned to this slot and cannot edit attendance",
+  "code": "NOT_ASSIGNED_TO_SLOT"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+============================================ Add remark to attendance record ==========================================
+
+4. POST /api/v1/attendance-records/{id}/remarks
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Add a new remark to an attendance record. Can be used to add additional context without changing status.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Attendance record ID
+
+Request Body:
+{
+  "remark": "Student arrived 10 minutes late but was allowed to attend"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| remark | string | Yes      | Not blank, max 1000 chars
+
+Business Rules:
+- Multiple remarks can be added to the same attendance record
+- Remarks are sorted by createdAt DESC (newest first)
+- created_by_user_id is automatically set to current user
+- is_active is set to true by default
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1003,
+    "attendanceRecordId": 501,
+    "remark": "Student arrived 10 minutes late but was allowed to attend",
+    "createdBy": {
+      "userId": 10,
+      "fullName": "John Lecturer"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:00:00Z"
+  }
+}
+
+Response Schema:
+| Field               | Type    | Description 
+| id                  | long    | Remark ID
+| attendanceRecordId  | long    | Attendance record ID
+| remark              | string  | Remark content
+| createdBy           | object  | User who created the remark (userId, fullName)
+| isActive            | boolean | Remark status (true=active, false=deleted)
+| createdAt           | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt           | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Remark is required",
+  "code": "REMARK_REQUIRED"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+================================================== Update remark ======================================================
+
+5. PUT /api/v1/attendance-records/{id}/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Update an existing remark. Only the creator can update their own remark.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Attendance record ID
+| remarkId  | long | Yes      | Remark ID
+
+Request Body:
+{
+  "remark": "Student arrived 15 minutes late but was allowed to attend (updated)"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| remark | string | Yes      | Not blank, max 1000 chars
+
+Business Rules:
+- Only the creator (created_by_user_id = current_user_id) can update the remark
+- Data Operators can update any remark (override permission)
+- updatedAt is updated to current timestamp
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Remark updated successfully",
+  "data": {
+    "id": 1003,
+    "attendanceRecordId": 501,
+    "remark": "Student arrived 15 minutes late but was allowed to attend (updated)",
+    "createdBy": {
+      "userId": 10,
+      "fullName": "John Lecturer"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Remark is required",
+  "code": "REMARK_REQUIRED"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+403-Not creator:
+{
+  "status": 403,
+  "message": "You can only update your own remarks",
+  "code": "NOT_REMARK_CREATOR"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Remark not found: 1003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+================================================== Delete remark ======================================================
+
+6. DELETE /api/v1/attendance-records/{id}/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Soft delete a remark (set is_active = false). Only the creator can delete their own remark.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Attendance record ID
+| remarkId  | long | Yes      | Remark ID
+
+Business Rules:
+- Soft delete: set is_active = false (not hard delete)
+- Only the creator (created_by_user_id = current_user_id) can delete the remark
+- Data Operators can delete any remark (override permission)
+- Deleted remarks are not shown in attendance record responses
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Remark deleted successfully"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+403-Not creator:
+{
+  "status": 403,
+  "message": "You can only delete your own remarks",
+  "code": "NOT_REMARK_CREATOR"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Remark not found: 1003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================== Python callback: Recognition result ============================================
+
+7. POST /api/v1/attendance/recognition-result
+Authentication: API Key (X-API-Key header)
+Description: Callback endpoint for Python recognition service to send face recognition results. Updates attendance status to 'present' for recognized students.
+
+Request Headers:
+| Header    | Type   | Required | Description
+| X-API-Key | string | Yes      | API key for Python service authentication
+
+Request Body:
+{
+  "slotId": 1,
+  "recognitions": [
+    {
+      "studentUserId": 201,
+      "confidence": 0.95,
+      "timestamp": "2024-10-19T08:15:30Z",
+      "cameraId": 1
+    },
+    {
+      "studentUserId": 202,
+      "confidence": 0.92,
+      "timestamp": "2024-10-19T08:15:31Z",
+      "cameraId": 1
+    },
+    {
+      "studentUserId": 203,
+      "confidence": 0.89,
+      "timestamp": "2024-10-19T08:15:32Z",
+      "cameraId": 2
+    }
+  ]
+}
+
+Request Schema:
+| Field                      | Type    | Required | Validation
+| slotId                     | integer | Yes      | Must exist
+| recognitions               | array   | Yes      | Not empty, max 100 items per request
+| recognitions[].studentUserId | integer | Yes      | Must exist and be enrolled in slot's class
+| recognitions[].confidence  | float   | Yes      | 0.0 to 1.0
+| recognitions[].timestamp   | string  | Yes      | ISO 8601 format
+| recognitions[].cameraId    | short   | Yes      | Must exist
+
+Business Rules:
+- BR-19: When face is recognized, update status to 'present'
+- Only update if current status is 'not_yet' or 'present' (don't override 'absent')
+- Set method = 'auto'
+- Set recordedAt = recognition timestamp
+- Create audit log for each update
+- Concurrent update handling: Last Write Wins
+
+Processing Logic:
+For each recognition:
+1. Find attendance_record by (slot_id, student_user_id)
+2. If not found: skip (student not enrolled or record not created yet)
+3. If current status = 'absent': skip (manual override, don't change)
+4. If current status = 'not_yet' or 'present':
+   - Update status = 'present'
+   - Update method = 'auto'
+   - Update recordedAt = recognition.timestamp
+   - Create audit log
+5. Optionally create remark with confidence and camera info
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Recognition results processed successfully",
+  "data": {
+    "slotId": 1,
+    "totalRecognitions": 3,
+    "successCount": 3,
+    "skippedCount": 0,
+    "results": [
+      {
+        "studentUserId": 201,
+        "status": "updated",
+        "previousStatus": "not_yet",
+        "newStatus": "present"
+      },
+      {
+        "studentUserId": 202,
+        "status": "updated",
+        "previousStatus": "not_yet",
+        "newStatus": "present"
+      },
+      {
+        "studentUserId": 203,
+        "status": "updated",
+        "previousStatus": "present",
+        "newStatus": "present"
+      }
+    ]
+  }
+}
+
+200-Success Response (with skipped):
+{
+  "status": 200,
+  "message": "Recognition results processed with some skipped",
+  "data": {
+    "slotId": 1,
+    "totalRecognitions": 3,
+    "successCount": 2,
+    "skippedCount": 1,
+    "results": [
+      {
+        "studentUserId": 201,
+        "status": "updated",
+        "previousStatus": "not_yet",
+        "newStatus": "present"
+      },
+      {
+        "studentUserId": 202,
+        "status": "updated",
+        "previousStatus": "not_yet",
+        "newStatus": "present"
+      },
+      {
+        "studentUserId": 203,
+        "status": "skipped",
+        "reason": "Current status is 'absent', manual override detected"
+      }
+    ]
+  }
+}
+
+Response Schema:
+| Field             | Type    | Description 
+| slotId            | integer | Slot ID
+| totalRecognitions | integer | Total recognition items in request
+| successCount      | integer | Number of successfully updated records
+| skippedCount      | integer | Number of skipped records
+| results           | array   | Processing result for each recognition
+| results[].studentUserId | integer | Student user ID
+| results[].status  | string  | updated, skipped, error
+| results[].previousStatus | string | Status before update (if updated)
+| results[].newStatus | string | Status after update (if updated)
+| results[].reason  | string  | Reason for skip/error (if applicable)
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Slot ID is required / Recognitions array is required",
+  "code": "SLOT_ID_REQUIRED" | "RECOGNITIONS_REQUIRED"
+}
+
+400-Empty recognitions array:
+{
+  "status": 400,
+  "message": "Recognitions array must not be empty",
+  "code": "RECOGNITIONS_EMPTY"
+}
+
+400-Too many recognitions:
+{
+  "status": 400,
+  "message": "Maximum 100 recognitions per request",
+  "code": "TOO_MANY_RECOGNITIONS"
+}
+
+400-Invalid confidence value:
+{
+  "status": 400,
+  "message": "Confidence must be between 0.0 and 1.0",
+  "code": "INVALID_CONFIDENCE_VALUE"
+}
+
+401-Invalid API key:
+{
+  "status": 401,
+  "message": "Invalid or missing API key",
+  "code": "INVALID_API_KEY"
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+Data Types:
+- Attendance Record ID: Long (BIGINT)
+- Remark ID: Long (BIGINT)
+- Student User ID: Integer
+- Slot ID: Integer
+- Camera ID: Short
+- All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+
+Attendance Status Values:
+- not_yet: Initial state, student not yet marked
+- present: Student is present (auto or manual)
+- absent: Student is absent (manual only)
+
+Method Values:
+- auto: Status set by face recognition (Python service)
+- manual: Status set by lecturer/supervisor manually
+- system_finalize: Status set during slot finalization
+
+Remark Management:
+- Multiple remarks per attendance record
+- Soft delete (is_active = false)
+- Only active remarks shown in responses
+- Sorted by createdAt DESC (newest first)
+- Creator can update/delete their own remarks
+- Data Operators can update/delete any remark
+
+Time-Based Edit Window (BR-22, BR-23):
+- Cutoff: 23:59:59 UTC of slot date (based on slot.start_time)
+- Before cutoff: Assigned staff can edit
+- After cutoff: Only Data Operator can edit
+- Calculation: Extract date from slot.start_time → add 23:59:59 UTC
+
+Concurrent Update Handling:
+- Strategy: Last Write Wins
+- Python auto update + Lecturer manual update → Manual wins (later timestamp)
+- No optimistic locking, no version field
+- Audit logs track all changes
+
+Python Callback Authentication:
+- Method: API Key in X-API-Key header
+- No JWT, no user context needed
+- API key configured in system_configurations table
+- Key rotation supported
+
+Recognition Result Processing:
+- Batch update: Up to 100 recognitions per request
+- Skip if current status = 'absent' (manual override)
+- Update if current status = 'not_yet' or 'present'
+- Create audit log for each update
+- Return detailed results (updated/skipped/error)
+
+Permissions:
+- ATTENDANCE_ROSTER_READ: View attendance records (Lecturer, Supervisor, Data Operator)
+- ATTENDANCE_STATUS_UPDATE_MANUAL: Manual update status (Lecturer, Supervisor, Data Operator)
+- ATTENDANCE_REMARK_MANAGE: Add/edit/delete remarks (Lecturer, Supervisor, Data Operator)
+
+Business Rules:
+- BR-19: Face Recognition Status Update
+- BR-22: Same-Day Edit Window
+- BR-23: Post-Day Edit Restrictions
+- BR-28: Manual Edit Remark Requirement
+- BR-31: Attendance Status Transition Rules
+
+Related Use Cases:
+- UC-19: Manually Update Attendance Status (Lecturer)
+- UC-20: Add/Edit Attendance Remark (Lecturer)
+- UC-30: Manually Update Attendance Status (Supervisor)
+- UC-31: Add/Edit Attendance Remark (Supervisor)
+
+Audit Trail:
+- All status changes logged to operational_audit_logs
+- Includes: actor_user_id, action_type, target_entity, target_id, changes (before/after)
+- Python auto updates also logged (actor = system service account)
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (invalid API key for Python callback)
+- 403: Forbidden (edit window expired, not assigned to slot, not remark creator)
+- 404: Not Found (attendance record, remark, slot not found)
+- 500: Internal Server Error
