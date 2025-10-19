@@ -1,0 +1,422 @@
+GET    	| /exam-attendance 	   		| ATTENDANCE_ROSTER_READ 
+GET    	| /exam-attendance/{id} 	| ATTENDANCE_ROSTER_READ 
+PUT    	| /exam-attendance/{id} 	| ATTENDANCE_STATUS_UPDATE_MANUAL
+
+Note: Exam attendance reuses attendance_remarks table and endpoints for remarks management.
+      See attendance_records.txt for remarks endpoints documentation.
+
+============================================ Search exam attendance records ===========================================
+1. GET /api/v1/exam-attendance
+Permission: ATTENDANCE_ROSTER_READ
+Description: List exam attendance records with filtering and pagination support. Used for LECTURE_WITH_PT and FINAL_EXAM slots.
+
+Query Parameters:
+| Parameter      | Type    | Required | Default | Validation 
+| page           | integer | No       | 1       | >= 1
+| pageSize       | integer | No       | 10      | 1-50 
+| sort           | string  | No       | desc    | asc, desc 
+| sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
+| slotId         | integer | No       | null    | Filter by slot
+| studentUserId  | integer | No       | null    | Filter by student
+| classId        | short   | No       | null    | Filter by class
+| semesterId     | short   | No       | null    | Filter by semester
+| status         | string  | No       | null    | Filter by status: not_yet, present, absent
+| method         | string  | No       | null    | Filter by method: auto, manual, system_finalize
+| startDate      | string  | No       | null    | YYYY-MM-DD (filter slots from this date)
+| endDate        | string  | No       | null    | YYYY-MM-DD (filter slots to this date)
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1001,
+        "student": {
+          "userId": 201,
+          "fullName": "Tran Thi B",
+          "rollNumber": "HE180314",
+          "email": "tranthib@fpt.edu.vn"
+        },
+        "slot": {
+          "id": 1,
+          "title": "Progress Test 1 - Chapter 1-3",
+          "startTime": "2024-10-17T08:00:00Z",
+          "endTime": "2024-10-17T10:00:00Z",
+          "slotCategory": "LECTURE_WITH_PT",
+          "class": {
+            "id": 1,
+            "code": "SE1801",
+            "subject": { "name": "Software Development Project", "code": "SWP391" },
+            "semester": { "name": "Fall 2024", "code": "FA24" }
+          }
+        },
+        "status": "present",
+        "method": "auto",
+        "recordedAt": "2024-10-17T08:15:30Z",
+        "remarks": [
+          {
+            "id": 2001,
+            "remark": "Recognized by camera 1 during exam",
+            "createdBy": {
+              "userId": 10,
+              "fullName": "John Lecturer"
+            },
+            "createdAt": "2024-10-17T08:15:30Z"
+          }
+        ],
+        "createdAt": "2024-10-17T08:00:00Z",
+        "updatedAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+Response Schema (items):
+| Field      | Type    | Description 
+| id         | long    | Exam attendance record ID
+| student    | object  | Student details (userId, fullName, rollNumber, email)
+| slot       | object  | Slot details with nested class, subject, semester
+| status     | string  | not_yet, present, absent
+| method     | string  | auto, manual, system_finalize
+| recordedAt | string  | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
+| remarks    | array   | List of active remarks (sorted by createdAt DESC)
+| createdAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must be >= 1 / Invalid status value",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_STATUS"
+}
+
+=======================================================================================================================
+========================================= Get exam attendance record by ID ============================================
+
+2. GET /api/v1/exam-attendance/{id}
+Permission: ATTENDANCE_ROSTER_READ
+Description: Get exam attendance record details including all remarks.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Exam attendance record ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1001,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn",
+      "majorName": "Software Engineering"
+    },
+    "slot": {
+      "id": 1,
+      "title": "Progress Test 1 - Chapter 1-3",
+      "startTime": "2024-10-17T08:00:00Z",
+      "endTime": "2024-10-17T10:00:00Z",
+      "slotCategory": "LECTURE_WITH_PT",
+      "finalizedAt": "2024-10-17T10:30:00Z",
+      "class": {
+        "id": 1,
+        "code": "SE1801",
+        "subject": { "name": "Software Development Project", "code": "SWP391" },
+        "semester": { "name": "Fall 2024", "code": "FA24" }
+      },
+      "staffUser": {
+        "userId": 10,
+        "fullName": "John Lecturer"
+      }
+    },
+    "status": "present",
+    "method": "auto",
+    "recordedAt": "2024-10-17T08:15:30Z",
+    "remarks": [
+      {
+        "id": 2001,
+        "remark": "Recognized by camera 1 with 95% confidence during exam",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-17T08:15:30Z",
+        "updatedAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "createdAt": "2024-10-17T08:00:00Z",
+    "updatedAt": "2024-10-17T08:15:30Z"
+  }
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Exam attendance record not found:
+{
+  "status": 404,
+  "message": "Exam attendance record not found: 1001",
+  "code": "EXAM_ATTENDANCE_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================== Manual update exam attendance status ===========================================
+
+3. PUT /api/v1/exam-attendance/{id}
+Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
+Description: Manually update exam attendance status. Remark is MANDATORY when changing status (BR-28).
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Exam attendance record ID
+
+Request Body:
+{
+  "status": "absent",
+  "remark": "Student did not show up for the exam"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| status | string | Yes      | Must be: not_yet, present, absent
+| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
+
+Business Rules:
+- BR-28: Remark is MANDATORY for manual status changes
+- BR-22: Before 23:59:59 UTC of slot date, assigned staff can edit
+- BR-23: After 23:59:59 UTC of slot date, only Data Operator can edit
+- BR-31: Status transition rules apply
+- Method is automatically set to 'manual'
+- recordedAt is updated to current timestamp
+- Audit log is created
+
+Time-Based Edit Window Validation:
+1. Get slot.start_time from exam attendance record
+2. Calculate cutoff: slot_date 23:59:59 UTC
+3. If current_time <= cutoff:
+   - Check if user is assigned staff (slot.staff_user_id = current_user_id)
+   - If yes: allow edit
+   - If no: 403 Forbidden
+4. If current_time > cutoff:
+   - Check if user has ATTENDANCE_STATUS_UPDATE_MANUAL permission (Data Operator)
+   - If yes: allow edit
+   - If no: 403 Forbidden
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Exam attendance status updated successfully",
+  "data": {
+    "id": 1001,
+    "student": {
+      "userId": 201,
+      "fullName": "Tran Thi B",
+      "rollNumber": "HE180314",
+      "email": "tranthib@fpt.edu.vn"
+    },
+    "slot": {
+      "id": 1,
+      "title": "Progress Test 1 - Chapter 1-3",
+      "startTime": "2024-10-17T08:00:00Z",
+      "endTime": "2024-10-17T10:00:00Z",
+      "slotCategory": "LECTURE_WITH_PT"
+    },
+    "status": "absent",
+    "method": "manual",
+    "recordedAt": "2024-10-19T14:30:00Z",
+    "remarks": [
+      {
+        "id": 2002,
+        "remark": "Student did not show up for the exam",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "createdAt": "2024-10-19T14:30:00Z"
+      },
+      {
+        "id": 2001,
+        "remark": "Recognized by camera 1 with 95% confidence during exam",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "createdAt": "2024-10-17T08:15:30Z"
+      }
+    ],
+    "createdAt": "2024-10-17T08:00:00Z",
+    "updatedAt": "2024-10-19T14:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Status is required / Remark is required for manual status changes",
+  "code": "STATUS_REQUIRED" | "REMARK_REQUIRED"
+}
+
+400-Invalid status value:
+{
+  "status": 400,
+  "message": "Invalid status value. Must be: not_yet, present, absent",
+  "code": "INVALID_STATUS_VALUE"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank when manually changing exam attendance status",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+403-Edit window expired:
+{
+  "status": 403,
+  "message": "Edit window has expired. Only Data Operator can edit exam attendance after 23:59:59 UTC of slot date",
+  "code": "EDIT_WINDOW_EXPIRED"
+}
+
+403-Not assigned to slot:
+{
+  "status": 403,
+  "message": "You are not assigned to this slot and cannot edit exam attendance",
+  "code": "NOT_ASSIGNED_TO_SLOT"
+}
+
+404-Exam attendance record not found:
+{
+  "status": 404,
+  "message": "Exam attendance record not found: 1001",
+  "code": "EXAM_ATTENDANCE_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+Data Types:
+- Exam Attendance ID: Long (BIGINT)
+- Student User ID: Integer
+- Slot ID: Integer
+- All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+
+Exam Attendance Status Values:
+- not_yet: Initial state, student not yet marked
+- present: Student is present for exam (auto or manual)
+- absent: Student is absent from exam (manual only)
+
+Method Values:
+- auto: Status set by face recognition (Python service)
+- manual: Status set by lecturer/supervisor manually
+- system_finalize: Status set during slot finalization
+
+Relationship with Attendance Records:
+- LECTURE slots: Only attendance_records (regular attendance)
+- LECTURE_WITH_PT slots: Both attendance_records AND exam_attendance
+- FINAL_EXAM slots: Only exam_attendance (no regular attendance)
+
+Remarks Management (Polymorphic Association):
+- Reuses attendance_remarks table
+- attendance_remarks.attendance_record_id can reference:
+  * attendance_records.id (for regular attendance)
+  * exam_attendance.id (for exam attendance)
+- Backend determines record type based on context
+- Use same endpoints as attendance_records:
+  * POST /attendance-records/{id}/remarks
+  * PUT /attendance-records/{id}/remarks/{remarkId}
+  * DELETE /attendance-records/{id}/remarks/{remarkId}
+- When {id} is exam_attendance ID, backend handles accordingly
+
+Python Callback Integration:
+- Reuses /attendance/recognition-result endpoint
+- Backend logic:
+  1. Receive recognition results for slotId
+  2. Check slot.slotCategory
+  3. If LECTURE: update attendance_records only
+  4. If LECTURE_WITH_PT: update BOTH attendance_records AND exam_attendance
+  5. If FINAL_EXAM: update exam_attendance only
+- Python service doesn't need to know about exam vs regular attendance
+- Backend handles routing based on slot category
+
+Time-Based Edit Window (BR-22, BR-23):
+- Cutoff: 23:59:59 UTC of slot date (based on slot.start_time)
+- Before cutoff: Assigned staff (Lecturer/Supervisor) can edit
+- After cutoff: Only Data Operator can edit
+- Calculation: Extract date from slot.start_time → add 23:59:59 UTC
+
+Concurrent Update Handling:
+- Strategy: Last Write Wins
+- Python auto update + Staff manual update → Manual wins (later timestamp)
+- No optimistic locking, no version field
+- Audit logs track all changes
+
+Permissions:
+- ATTENDANCE_ROSTER_READ: View exam attendance (Lecturer, Supervisor, Data Operator)
+- ATTENDANCE_STATUS_UPDATE_MANUAL: Manual update status (Lecturer, Supervisor, Data Operator)
+- ATTENDANCE_REMARK_MANAGE: Add/edit/delete remarks (Lecturer, Supervisor, Data Operator)
+  * Note: Remarks use attendance_records endpoints
+
+Business Rules:
+- BR-22: Same-Day Edit Window
+- BR-23: Post-Day Edit Restrictions
+- BR-28: Manual Edit Remark Requirement
+- BR-31: Attendance Status Transition Rules
+
+Related Use Cases:
+- UC-28: Initiate Attendance Session (Supervisor) - handled by slots endpoints
+- UC-29: Monitor Real-Time Roster (Supervisor) - handled by slots endpoints
+- UC-30: Manually Update Attendance Status (Supervisor)
+- UC-31: Add/Edit Attendance Remark (Supervisor)
+- UC-32: Finalize Attendance Session (Supervisor) - handled by slots endpoints
+
+Audit Trail:
+- All status changes logged to operational_audit_logs
+- Includes: actor_user_id, action_type, target_entity='exam_attendance', target_id, changes
+- Python auto updates also logged (actor = system service account)
+
+Slot Categories and Attendance Types:
+| Slot Category    | Regular Attendance | Exam Attendance | Use Case
+| LECTURE          | ✓                  | ✗               | Regular lecture only
+| LECTURE_WITH_PT  | ✓                  | ✓               | Lecture + progress test
+| FINAL_EXAM       | ✗                  | ✓               | Final exam only
+
+Implementation Notes:
+- exam_attendance table schema is identical to attendance_records
+- Reuse validation logic, business rules, and time-based checks
+- Reuse remarks management (polymorphic association)
+- Backend service layer can extract shared logic for both types
+- Frontend can reuse UI components with different data sources
+
+Common Status Codes:
+- 200: Success
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (edit window expired, not assigned to slot)
+- 404: Not Found (exam attendance record not found)
+- 500: Internal Server Error

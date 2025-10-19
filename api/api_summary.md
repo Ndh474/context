@@ -9,9 +9,9 @@
 
 | Service | Completed | Remaining | Total | Progress |
 |---------|-----------|-----------|-------|----------|
-| **Java Backend** | 11 groups (69 endpoints) | 9 groups (37 endpoints) | 106 | 65% |
+| **Java Backend** | 14 groups (85 endpoints) | 6 groups (21 endpoints) | 106 | 80% |
 | **Python Backend** | 0 groups (0 endpoints) | 4 groups (8 endpoints) | 8 | 0% |
-| **TOTAL** | 69 endpoints | 45 endpoints | 114 | 61% |
+| **TOTAL** | 85 endpoints | 29 endpoints | 114 | 75% |
 
 ---
 
@@ -110,42 +110,42 @@
 - [x] `GET /role-permissions` - Get role-permission mapping (UC-82)
 - [x] `PUT /role-permissions` - Update role-permission mapping (UC-83)
 
+### ✅ 12. Enrollments
+- [x] `POST /enrollments` - Add student to class (UC-62)
+- [x] `GET /enrollments` - List enrollments (paginated, filterable)
+- [x] `GET /enrollments/{classId}/{studentUserId}` - Get enrollment by composite key
+- [x] `PUT /enrollments/{classId}/{studentUserId}` - Update enrollment (withdraw/re-enroll) (UC-63)
+- [x] `POST /enrollments/bulk` - Bulk enrollment from CSV (UC-77) - PARTIAL SUCCESS strategy
+- [x] `GET /enrollments/bulk/template` - Download CSV template
+- [x] `GET /classes/{classId}/enrollments` - Get enrollments by class (roster management)
+
+### ✅ 13. Attendance Records
+- [x] `GET /attendance-records` - List attendance records (paginated, filterable)
+- [x] `GET /attendance-records/{id}` - Get attendance record by ID
+- [x] `PUT /attendance-records/{id}` - Manual update attendance status with remark (UC-19, UC-30)
+- [x] `POST /attendance-records/{id}/remarks` - Add remark (UC-20, UC-31)
+- [x] `PUT /attendance-records/{id}/remarks/{remarkId}` - Update remark
+- [x] `DELETE /attendance-records/{id}/remarks/{remarkId}` - Soft delete remark
+- [x] `POST /attendance/recognition-result` - Receive recognition result from Python (callback)
+
+### ✅ 14. Identity Management
+- [x] `POST /identity-submissions` - Submit identity registration/update (UC-12, UC-13)
+- [x] `GET /identity-submissions` - List submissions (approval queue) (UC-39)
+- [x] `GET /identity-submissions/{id}` - Get submission details (UC-39)
+- [x] `PUT /identity-submissions/{id}/approve` - Approve submission (UC-40)
+- [x] `PUT /identity-submissions/{id}/reject` - Reject submission (UC-41)
+- [x] `GET /identity-submissions/my-submissions` - Get own submissions (student)
+
+### ✅ 15. Exam Attendance
+- [x] `GET /exam-attendance` - List exam attendance records (paginated, filterable)
+- [x] `GET /exam-attendance/{id}` - Get exam attendance by ID
+- [x] `PUT /exam-attendance/{id}` - Manual update exam attendance status with remark
+
 ---
 
 ## 🔴 JAVA BACKEND - REMAINING
 
-### ❌ 1. Enrollments (Priority: CRITICAL)
-- [ ] `POST /enrollments` - Add student to class (UC-62)
-- [ ] `GET /enrollments` - List enrollments (paginated, filterable)
-- [ ] `GET /enrollments/{id}` - Get enrollment by ID
-- [ ] `PUT /enrollments/{id}` - Update enrollment (withdraw student) (UC-63)
-- [ ] `DELETE /enrollments/{id}` - Hard delete enrollment
-- [ ] `POST /enrollments/bulk` - Bulk enrollment from CSV (UC-77)
-- [ ] `GET /classes/{id}/enrollments` - Get enrollments by class (roster management)
-
-### ❌ 2. Attendance Records (Priority: CRITICAL)
-- [ ] `GET /attendance-records` - List attendance records (paginated, filterable)
-- [ ] `GET /attendance-records/{id}` - Get attendance record by ID
-- [ ] `PUT /attendance-records/{id}` - Manual update attendance status (UC-19, UC-30)
-- [ ] `POST /attendance-records/{id}/remarks` - Add remark (UC-20, UC-31)
-- [ ] `PUT /attendance-records/{id}/remarks/{remarkId}` - Update remark
-- [ ] `DELETE /attendance-records/{id}/remarks/{remarkId}` - Delete remark (soft)
-- [ ] `POST /attendance/recognition-result` - Receive recognition result from Python (callback)
-
-### ❌ 3. Exam Attendance (Priority: HIGH)
-- [ ] `GET /exam-attendance` - List exam attendance records (paginated, filterable)
-- [ ] `GET /exam-attendance/{id}` - Get exam attendance by ID
-- [ ] `PUT /exam-attendance/{id}` - Manual update exam attendance status
-
-### ❌ 4. Identity Management (Priority: CRITICAL)
-- [ ] `POST /identity-submissions` - Submit identity registration/update (UC-12, UC-13)
-- [ ] `GET /identity-submissions` - List submissions (approval queue) (UC-39)
-- [ ] `GET /identity-submissions/{id}` - Get submission details (UC-39)
-- [ ] `PUT /identity-submissions/{id}/approve` - Approve submission (UC-40)
-- [ ] `PUT /identity-submissions/{id}/reject` - Reject submission (UC-41)
-- [ ] `GET /identity-submissions/my-submissions` - Get own submissions (student)
-
-### ❌ 5. Bulk Import/Export (Priority: HIGH)
+### ❌ 1. Bulk Import/Export (Priority: HIGH)
 - [ ] `POST /import/students` - Bulk import students from CSV/Excel
   - Input: CSV/Excel file with columns: rollNumber, fullName, email, majorCode
   - Validation: Check duplicates, validate major codes, email format
@@ -170,30 +170,30 @@
 - [ ] `GET /export/classes` - Export classes to CSV/Excel
 - [ ] `GET /export/attendance` - Export attendance records to CSV/Excel
 
-### ❌ 6. Notifications (Priority: LOW - Near End)
+### ❌ 2. Notifications (Priority: LOW - Near End)
 - [ ] `GET /notifications` - List user notifications (UC-11)
 - [ ] `GET /notifications/{id}` - Get notification details
 - [ ] `PUT /notifications/{id}/read` - Mark notification as read
 - [ ] `PUT /notifications/read-all` - Mark all notifications as read
 
-### ❌ 7. Reports & Analytics (Priority: LOW - Near End)
+### ❌ 3. Reports & Analytics (Priority: LOW - Near End)
 - [ ] `GET /reports/slot/{slotId}` - Export slot attendance report (UC-22, UC-33)
 - [ ] `GET /reports/class/{classId}/summary` - Class attendance summary (UC-23)
 - [ ] `GET /reports/system-wide` - System-wide reports (UC-74)
 - [ ] `POST /reports/export` - Export academic data (UC-73)
 
-### ❌ 8. System Configuration (Priority: LOW - Near End)
+### ❌ 4. System Configuration (Priority: LOW - Near End)
 - [ ] `GET /system-configurations` - List system configs (UC-78)
 - [ ] `GET /system-configurations/{key}` - Get config by key
 - [ ] `PUT /system-configurations/{key}` - Update config (UC-79)
 
-### ❌ 9. Audit Logs (Priority: LOW - Near End)
+### ❌ 5. Audit Logs (Priority: LOW - Near End)
 - [ ] `GET /audit-logs` - List operational audit logs (UC-76)
 - [ ] `GET /audit-logs/{id}` - Get audit log details
 - [ ] `GET /system-logs` - List system technical logs (UC-80)
 - [ ] `POST /system-logs/export` - Export system logs (UC-81)
 
-### ❌ 10. Schedule & Dashboard (Priority: LOW - Near End)
+### ❌ 6. Schedule & Dashboard (Priority: LOW - Near End)
 - [ ] `GET /schedules/my-schedule` - Get personal schedule (UC-07, UC-14, UC-27)
 - [ ] `GET /dashboard/stats` - Get dashboard statistics (UC-03)
 
