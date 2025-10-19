@@ -405,7 +405,7 @@ Note:
 Permission: CLASS_READ
 Path Parameters:
 | Parameter  | Type  | Required | Description
-| subjectId  | short | Yes      | Subject ID
+| id         | short | Yes      | Subject ID
 
 Query Parameters:
 | Parameter | Type    | Required | Default | Validation

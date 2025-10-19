@@ -17,8 +17,8 @@ Request Body:
 Request Schema:
 | Field 	| Type 		| Required 	| Validation 
 | name 		| string 	| Yes 		| Not blank, max 150 chars(M)
-| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars(M)
-| roomId 	| short 	| Yes 		| Not null, must be valid room ID
+| rtspUrl | string  | Yes 		| Not blank, max 512 chars(M)
+| roomId 	| short 	| Yes 		  | Not null, must be valid room ID
 
 201-Success Response:
 {
@@ -317,7 +317,7 @@ Path Parameters:
 409 - Conflict (foreign key constraint):
 {
   "status": 409,
-  "message": "Cannot delete camera with active room assignments",
+  "message": "Cannot delete camera. It is still assigned to scheduled slots. Please reassign those slots to another room or delete them first.",
   "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
 }
 

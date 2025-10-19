@@ -308,6 +308,120 @@ Path Parameters:
   "message": "Room not found: 1",
   "code": "ROOM_NOT_FOUND"
 }
+
+
+
+
+
+
+GET /api/v1/rooms/{id}/slots
+Permission: SLOT_READ
+Business Rules:
+Returns a paginated list of all slots (past, present, and future) scheduled in a specific room.
+Useful for viewing a room's schedule and identifying available time slots.
+Path Parameters:
+| Parameter | Type | Required | Description
+| id | short | Yes | Room ID
+Query Parameters:
+| Parameter | Type | Required | Default | Validation
+| page | integer | No | 1 | 1-50
+| pageSize | integer | No | 10 | 1-50
+| sort | string | No | asc | asc/desc
+| sortBy | string | No | startTime | startTime, endTime, slotCategory
+| startTimeFrom | string | No | null | YYYY-MM-DD (filter slots starting from this date)
+| startTimeTo | string | No | null | YYYY-MM-DD (filter slots starting up to this date)
+| isFinalized | boolean | No | null | true, false (filter by finalization status)
+200-Success Response:
+{
+"status": 200,
+"data": {
+"room": {
+"id": 1,
+"name": "Room A101",
+"location": "Building A, Floor 1"
+},
+"items": [
+{
+"id": 1,
+"title": "Regular Lecture",
+"startTime": "2024-10-21T08:00:00Z",
+"endTime": "2024-10-21T10:00:00Z",
+"slotCategory": "LECTURE",
+"finalizedAt": null,
+"class": {
+"id": 1,
+"code": "SE1801"
+},
+"subject": {
+"id": 1,
+"code": "SWP391",
+"name": "Software Development Project"
+},
+"staffUser": {
+"id": 10,
+"fullName": "John Lecturer"
+},
+"isActive": true
+},
+{
+"id": 2,
+"title": "Progress Test 1",
+"startTime": "2024-10-22T10:00:00Z",
+"endTime": "2024-10-22T11:30:00Z",
+"slotCategory": "LECTURE_WITH_PT",
+"finalizedAt": "2024-10-22T11:45:00Z",
+"class": {
+"id": 2,
+"code": "DBI202-A"
+},
+"subject": {
+"id": 5,
+"code": "DBI202",
+"name": "Database Systems"
+},
+"staffUser": {
+"id": 12,
+"fullName": "Jane Supervisor"
+},
+"isActive": true
+}
+],
+"totalPages": 3,
+"currentPage": 1,
+"pageSize": 10,
+"totalItems": 25
+}
+}
+Response Schema (items):
+| Field | Type | Description
+| id | int | Slot ID
+| title | string | Slot title
+| startTime | string | YYYY-MM-DDTHH:mm:SSZ
+| endTime | string | YYYY-MM-DDTHH:mm:SSZ
+| slotCategory | string | LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt | string | YYYY-MM-DDTHH:mm:SSZ or null
+| class | object | Simplified class object (id, code)
+| subject | object | Simplified subject object (id, code, name)
+| staffUser | object | Simplified staff user object (id, fullName)
+| isActive | bool | Slot active status
+400-Invalid query parameters:
+{
+"status": 400,
+"message": "Page must be >= 1 / Invalid date format for startTimeFrom",
+"code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_DATE_FORMAT"
+}
+400 - Invalid Field type:
+{
+"status": 400,
+"message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+"code": "INVALID_FIELD_TYPE"
+}
+404 - Room not found:
+{
+"status": 404,
+"message": "Room not found: 1",
+"code": "ROOM_NOT_FOUND"
+}
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 

@@ -3,7 +3,7 @@ GET    	| /classes 	   		    | CLASS_READ
 GET    	| /classes/{id} 	    | CLASS_READ 
 PUT    	| /classes/{id} 		  | CLASS_UPDATE 
 DELETE 	| /classes/{id} 		  | CLASS_DELETE_HARD(M)
-thêm? : GET    	| /classes/{id}/slots	| SLOT_READ 
+GET    	| /classes/{id}/slots	| SLOT_READ 
 
 ================================================= Create a new class ==================================================
 
@@ -382,7 +382,7 @@ Note:
 Permission: SLOT_READ
 Path Parameters:
 | Parameter | Type  | Required | Description
-| classId   | short | Yes      | Class ID
+| id        | short | Yes      | Class ID
 
 Query Parameters:
 | Parameter       | Type    | Required | Default | Validation

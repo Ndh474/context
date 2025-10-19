@@ -270,7 +270,7 @@ Note:
 Permission: CLASS_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
-| staffId 	  | int   | Yes 		  | Staff Profile ID (user_id)
+| id 	        | int   | Yes 		  | Staff Profile ID (user_id)
 
 Query Parameters:
 | Parameter 	| Type 		| Required| Default | Validation

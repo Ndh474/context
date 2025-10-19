@@ -347,6 +347,122 @@ Query Parameters:
   "message": "Student profile not found: 1",
   "code": "STUDENT_PROFILE_NOT_FOUND"
 }
+
+
+
+
+GET /api/v1/student-profiles/{id}/attendance-history
+Permission:
+OWN_ATTENDANCE_HISTORY_READ (for students viewing their own history)
+REPORT_READ_SYSTEM_WIDE (for Data Operators viewing any student's history)
+Business Rules:
+Returns a paginated list of attendance records for a specific student.
+Students can only access their own history. Data Operators can access any student's history.
+Provides a summary of attendance statistics based on the filtered results.
+Path Parameters:
+| Parameter | Type | Required | Description
+| id | int | Yes | Student Profile ID (user_id)
+Query Parameters:
+| Parameter | Type | Required | Default | Validation
+| page | integer | No | 1 | 1-50
+| pageSize | integer | No | 10 | 1-50
+| sort | string | No | desc | asc/desc
+| sortBy | string | No | slotDate | slotDate, className, subjectName, attendanceStatus
+| semesterId | integer | No | null | Filter by a specific semester
+| classId | integer | No | null | Filter by a specific class
+| attendanceStatus | string | No | null | Filter by status: "present", "absent", "not_yet"
+200-Success Response:
+{
+"status": 200,
+"data": {
+"items": [
+{
+"slotId": 101,
+"slotDate": "2024-10-15",
+"slotTime": "08:00-09:30",
+"slotCategory": "LECTURE",
+"className": "SE1801",
+"subjectName": "Java Programming",
+"lecturerName": "Nguyen Van A",
+"roomName": "Room 101",
+"attendanceStatus": "present",
+"method": "auto",
+"remarks": null,
+"finalizedAt": "2024-10-15T10:00:00Z"
+},
+{
+"slotId": 102,
+"slotDate": "2024-10-12",
+"slotTime": "10:00-11:30",
+"slotCategory": "LECTURE_WITH_PT",
+"className": "SE1801",
+"subjectName": "Java Programming",
+"lecturerName": "Nguyen Van A",
+"roomName": "Room 101",
+"attendanceStatus": "absent",
+"method": "system_finalize",
+"remarks": "Student did not attend the session.",
+"finalizedAt": "2024-10-12T12:00:00Z"
+}
+],
+"totalPages": 8,
+"currentPage": 1,
+"pageSize": 10,
+"totalItems": 75,
+"summary": {
+"totalSlots": 75,
+"presentCount": 68,
+"absentCount": 7,
+"notYetCount": 0,
+"attendanceRate": 90.67
+}
+}
+}
+Response Schema (items):
+| Field | Type | Description
+| slotId | int | ID of the slot
+| slotDate | string | Date of the slot (YYYY-MM-DD)
+| slotTime | string | Time range of the slot (HH:mm-HH:mm)
+| slotCategory | string | LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| className | string | Code of the class
+| subjectName | string | Name of the subject
+| lecturerName | string | Full name of the assigned lecturer/supervisor
+| roomName | string | Name of the room
+| attendanceStatus | string | "present", "absent", or "not_yet"
+| method | string | How status was recorded: "auto", "manual", "system_finalize"
+| remarks | string | Any remarks added for this attendance record
+| finalizedAt | string | Timestamp when the slot was finalized (YYYY-MM-DDTHH:mm:SSZ)
+Response Schema (summary):
+| Field | Type | Description
+| totalSlots | int | Total number of slots in the filtered result
+| presentCount | int | Count of 'present' statuses
+| absentCount | int | Count of 'absent' statuses
+| notYetCount | int | Count of 'not_yet' statuses
+| attendanceRate | float | Percentage of present slots (presentCount / totalSlots * 100)
+400-Invalid query parameters:
+{
+"status": 400,
+"message": "Page must be >= 1 / Invalid attendance status",
+"code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_ATTENDANCE_STATUS"
+}
+400 - Invalid Field type:
+{
+"status": 400,
+"message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+"code": "INVALID_FIELD_TYPE"
+}
+403 - Forbidden:
+{
+"status": 403,
+"message": "You are not authorized to view this student's attendance history",
+"code": "FORBIDDEN"
+}
+404 - Student profile not found:
+{
+"status": 404,
+"message": "Student profile not found: 1",
+"code": "STUDENT_PROFILE_NOT_FOUND"
+}
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 

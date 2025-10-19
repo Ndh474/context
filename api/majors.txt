@@ -289,7 +289,7 @@ Note:
 Permission: SUBJECT_READ
 Path Parameters:
 | Parameter 	| Type 	| Required| Description
-| majorId 	  | short | Yes 		| Major ID
+| id 	        | short | Yes 		| Major ID
 
 Query Parameters:
 | Parameter | Type 		| Required | Default| Validation

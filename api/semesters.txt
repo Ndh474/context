@@ -296,7 +296,7 @@ Note:
 Permission: CLASS_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
-| semesterId 	| short | Yes 		  | Semester ID
+| id 	        | short | Yes 		  | Semester ID
 
 Query Parameters:
 | Parameter 	| Type 		| Required| Default | Validation

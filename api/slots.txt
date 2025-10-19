@@ -103,6 +103,7 @@ SlotCategory Enum Values:
 }
 
 Response Schema:
+Response Schema:
 | Field 		| Type 		| Description 
 | id 			| integer 	| Slot ID
 | title 		| string 	| Slot title (nullable)
@@ -111,9 +112,19 @@ Response Schema:
 | endTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | slotCategory 		| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
 | finalizedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
-| room 			| object 	| Room object (id, name, location)
-| staffUser 		| object 	| Staff/lecturer user object (id, username, fullName)
-| class 		| object 	| Class object with nested subject and semester
+| room 			| object 	| Room object:
+|               |           |   - id (short): Room ID
+|               |           |   - name (string): Room name
+|               |           |   - location (string): Room location
+| staffUser 		| object 	| Staff user object:
+|               |           |   - id (integer): User ID
+|               |           |   - username (string): Login username
+|               |           |   - fullName (string): User's full name
+| class 		| object 	| Class object:
+|               |           |   - id (short): Class ID
+|               |           |   - code (string): Class code
+|               |           |   - subject (object): Subject object (id, name, code)
+|               |           |   - semester (object): Semester object (id, name, code)
 | isActive 		| boolean 	| Active status
 | createdAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | updatedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
@@ -392,13 +403,23 @@ Response Schema:
 | endTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | slotCategory 			| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
 | finalizedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
-| room 				| object 	| Room object (id, name, location)
-| staffUser 			| object 	| Staff/lecturer user object (id, username, fullName)
-| class 			| object 	| Class object with nested subject and semester
+| room 				| object 	| Room object:
+|                   |           |   - id (short): Room ID
+|                   |           |   - name (string): Room name
+|                   |           |   - location (string): Room location
+| staffUser 			| object 	| Staff user object:
+|                   |           |   - id (integer): User ID
+|                   |           |   - username (string): Login username
+|                   |           |   - fullName (string): User's full name
+| class 			| object 	| Class object:
+|                   |           |   - id (short): Class ID
+|                   |           |   - code (string): Class code
+|                   |           |   - subject (object): Subject object (id, name, code)
+|                   |           |   - semester (object): Semester object (id, name, code)
 | totalStudent 			| integer 	| Total enrolled students in the class
-| totalPresentStudent 		| integer 	| Total students marked present
-| totalAbsentStudent 		| integer 	| Total students marked absent
-| totalNotYetStudent 		| integer 	| Total students not yet marked
+| totalPresentStudent 		| integer 	| Total students marked present for this slot
+| totalAbsentStudent 		| integer 	| Total students marked absent for this slot
+| totalNotYetStudent 		| integer 	| Total students not yet marked for this slot
 | isActive 			| boolean 	| Active status
 | createdAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | updatedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
