@@ -11,40 +11,37 @@ thêm? : GET    	| /classes/{id}/slots	| SLOT_READ
 Permission: CLASS_CREATE
 Request Body:
 {
-  "code": "???",
+  "code": "SE1801",
   "subjectId": 1,
   "semesterId": 1
 }
 
 Request Schema:
-| Field 	    | Type 		| Required| Validation 
-| code 		    | string 	| Yes 		| Not blank, max 20 chars(M), unique per subject+semester
-| subjectId 	| short 	| Yes 		| Not null, must exist and active
-| semesterId 	| short 	| Yes 		| Not null, must exist and active
+| Field      | Type   | Required | Validation 
+| code       | string | Yes      | Not blank, max 20 chars(M), unique per subject+semester
+|            |        |          | Pattern: ^[A-Z0-9]+$, Examples: "SE1801", "AI2024A", "DB101"
+| subjectId  | short  | Yes      | Not null, must exist and active
+| semesterId | short  | Yes      | Not null, must exist and active
 
 201-Success Response:
 {
   "status": 201,
   "data": {
     "id": 1,
-    "code": "???",
+    "code": "SE1801",
     "semester": {
       "id": 1,
       "name": "Fall 2024",
       "code": "FA24",
       "startDate": "2024-09-01",
       "endDate": "2024-12-31",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:00:00Z",
-      "updatedAt": "2024-10-16T11:00:00Z"
+      "isActive": true
     },
-   "subject": {
+    "subject": {
       "id": 1,
       "name": "Software Development Project",
       "code": "SWP391",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:30:00Z",
-      "updatedAt": "2024-10-16T11:30:00Z"
+      "isActive": true
     },
     "isActive": true,
     "createdAt": "2024-10-16T12:00:00Z",
@@ -53,20 +50,20 @@ Request Schema:
 }
 
 Response Schema:
-| Field 	  | Type 		| Description 
-| id 		    | integer | Short type in DB
-| code 		  | string 	| Class code 
-| semester 	| object 	| Semester object (nested)
-| subject 	| object 	| Subject object (nested)
-| isActive 	| boolean | Active status
-| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
-| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| Field                | Type    | Description 
+| id                   | integer | Short type in DB
+| code                 | string  | Class code 
+| semester             | object  | Semester object (id, name, code, startDate, endDate, isActive)
+| subject              | object  | Subject object (id, name, code, isActive)
+| isActive             | boolean | Active status
+| createdAt            | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt            | string  | YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
   "status": 400,
-  "message": "Code must not be blank, Subject ID required ...",
-  "code": "CODE_REQUIRED" | "SUBJECT_ID_REQUIRED" | "SEMESTER_ID_REQUIRED"
+  "message": "Code must not be blank / Subject ID required / Semester ID required",
+  "code": "CLASS_CODE_REQUIRED" | "CLASS_SUBJECT_ID_REQUIRED" | "CLASS_SEMESTER_ID_REQUIRED"
 }
 
 400 - Invalid Field type:
@@ -80,7 +77,7 @@ Response Schema:
 {
   "status": 400,
   "message": "Class already exists with subject, semester, and code",
-  "code": "CLASS_EXISTED"	
+  "code": "CLASS_EXISTS"
 }
 
 404-Subject not found:
@@ -136,27 +133,25 @@ Query Parameters:
     "items": [
       {
         "id": 1,
-        "code": "???",
-        "totalStudent": 15,
-        "totalSlot": 20,
+        "code": "SE1801",
         "semester": {
           "id": 1,
           "name": "Fall 2024",
           "code": "FA24",
           "startDate": "2024-09-01",
           "endDate": "2024-12-31",
-          "isActive": true,
-          "createdAt": "2024-10-16T11:00:00Z",
-          "updatedAt": "2024-10-16T11:00:00Z"
+          "isActive": true
         },
-	      "subject": {
+        "subject": {
           "id": 1,
           "name": "Software Development Project",
           "code": "SWP391",
-          "isActive": true,
-          "createdAt": "2024-10-16T11:30:00Z",
-          "updatedAt": "2024-10-16T11:30:00Z"
+          "isActive": true
         },
+        "totalStudent": 15,
+        "totalEnrolledStudent": 12,
+        "totalSlot": 20,
+        "totalActiveSlot": 18,
         "isActive": true,
         "createdAt": "2024-10-16T12:00:00Z",
         "updatedAt": "2024-10-16T12:00:00Z"
@@ -183,27 +178,25 @@ Permission: CLASS_READ
   "status": 200,
   "data": {
     "id": 1,
-    "code": "???",
-    "totalStudent": 15,
-    "totalSlot": 20,
+    "code": "SE1801",
     "semester": {
       "id": 1,
       "name": "Fall 2024",
       "code": "FA24",
       "startDate": "2024-09-01",
       "endDate": "2024-12-31",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:00:00Z",
-      "updatedAt": "2024-10-16T11:00:00Z"
+      "isActive": true
     },
     "subject": {
       "id": 1,
       "name": "Software Development Project",
       "code": "SWP391",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:30:00Z",
-      "updatedAt": "2024-10-16T11:30:00Z"
+      "isActive": true
     },
+    "totalStudent": 15,
+    "totalEnrolledStudent": 12,
+    "totalSlot": 20,
+    "totalActiveSlot": 18,
     "isActive": true,
     "createdAt": "2024-10-16T12:00:00Z",
     "updatedAt": "2024-10-16T12:00:00Z"
@@ -226,6 +219,16 @@ Permission: CLASS_READ
 
 =======================================================================================================================
 ===================================================== Update class ====================================================
+Business Rules:
+1. Subject/Semester Changes:
+   - Can change subject and semester at any time
+   - New subject and semester must exist and be active
+   - Unique constraint still applies: (subject_id, semester_id, code) must be unique
+
+2. Deactivation:
+   - Cannot deactivate if there are active slots (slot.is_active = true)
+   - Cannot deactivate if there are enrolled students (enrollments.is_enrolled = true)
+   - Withdrawn students (is_enrolled = false) don't block deactivation
 
 4. PUT /api/v1/classes/{id}
 Permission: CLASS_UPDATE
@@ -243,11 +246,12 @@ Request Body:
 }
 
 Request Schema:
-| Field 	  | Type 		| Required| Validation
-| code 		  | string 	| Yes 		| Not blank, max 20 chars(M), unique per subject+semester
-| subjectId | short 	| Yes 		| Not null, must be valid subject ID, subject must be active
-| semesterId| short 	| Yes 		| Not null, must be valid semester ID, semester must be active
-| isActive 	| boolean | Yes 		| Not null
+| Field      | Type    | Required | Validation
+| code       | string  | Yes      | Not blank, max 20 chars(M), unique per subject+semester
+|            |         |          | Pattern: ^[A-Z0-9]+$
+| subjectId  | short   | Yes      | Not null, must be valid subject ID, subject must be active
+| semesterId | short   | Yes      | Not null, must be valid semester ID, semester must be active
+| isActive   | boolean | Yes      | Not null
 
 200-Success Response:
 {
@@ -261,9 +265,13 @@ Request Schema:
       "code": "SP25",
       "startDate": "2025-01-15",
       "endDate": "2025-05-31",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:05:00Z",
-      "updatedAt": "2024-10-16T11:05:00Z"
+      "isActive": true
+    },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391",
+      "isActive": true
     },
     "isActive": true,
     "createdAt": "2024-10-16T12:00:00Z",
@@ -274,8 +282,8 @@ Request Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Code must not be blank, Subject ID required ...",
-  "code": "CODE_REQUIRED" | "SUBJECT_ID_REQUIRED" | "SEMESTER_ID_REQUIRED"
+  "message": "Code must not be blank / Subject ID required / Semester ID required",
+  "code": "CLASS_CODE_REQUIRED" | "CLASS_SUBJECT_ID_REQUIRED" | "CLASS_SEMESTER_ID_REQUIRED"
 }
 
 400-Invalid Field type:
@@ -289,7 +297,7 @@ Request Schema:
 {
   "status": 400,
   "message": "Class already exists with subject, semester, and code",
-  "code": "CLASS_EXISTED"	
+  "code": "CLASS_EXISTS"
 }
 
 404-Subject not found:
@@ -321,10 +329,10 @@ HttpMessageNotReadableException:
   "code": "MALFORMED_JSON"
 }
 
-409-Cannot deactivate class with active slots:
+409-Cannot deactivate class:
 {
   "status": 409,
-  "message": "Cannot deactivate class with active slots or enrollments", 
+  "message": "Cannot deactivate class. Found 18 active slots and 12 enrolled students", 
   "code": "CLASS_HAS_ACTIVE_DEPENDENCIES"
 }
 
@@ -357,32 +365,35 @@ Path Parameters:
   "code": "CLASS_NOT_FOUND"
 }
 
-409 - Conflict (foreign key constraint):
+409 - Conflict (has dependencies):
 {
   "status": 409,
-  "message": "Delete all slots/enrollments associated with this class first",
-  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+  "message": "Cannot delete class. Found 20 slots and 15 enrollments. Please delete them first",
+  "code": "CLASS_HAS_DEPENDENCIES"
 }
 
 =======================================================================================================================
 =============================================== Get slots by class id =================================================
-Note: có muốn search slot theo room/staff/class không?
+Note:
+- Returns slots for this class
+- Includes lecture slots and exam slots (Progress Test, Final Exam)
 
 6. GET /api/v1/classes/{id}/slots
 Permission: SLOT_READ
 Path Parameters:
-| Parameter 	| Type 	| Required 	| Description
-| classId 	| short | Yes 		| Class ID
+| Parameter | Type  | Required | Description
+| classId   | short | Yes      | Class ID
 
 Query Parameters:
-| Parameter | Type 		| Required| Default | Validation
-| page 		  | integer | No 		  | 1 		  | 1-50
-| pageSize 	| integer | No 		  | 10 		  | 1-50
-| sort 		  | string 	| No 		  | asc 		| asc/desc
-| sortBy 	  | string 	| No 		  | id 		  | startTime, endTime, slotType, isActive
-| search 	  | string 	| No 		  | "" 		  | Search slotType
-| startTime | date    | No      | null    | Filter slots from date
-| endTime   | date    | No      | null    | Filter slots to date
+| Parameter       | Type    | Required | Default | Validation
+| page            | integer | No       | 1       | 1-50
+| pageSize        | integer | No       | 10      | 1-50
+| sort            | string  | No       | asc     | asc/desc
+| sortBy          | string  | No       | startTime | startTime, endTime, slotCategory, isActive
+| slotCategory    | string  | No       | null    | LECTURE, LECTURE_WITH_PT, FINAL_EXAM (exact match filter)
+| isFinalized     | boolean | No       | null    | true, false (filter finalized slots)
+| startTimeFrom   | string  | No       | null    | YYYY-MM-DD (slots starting from this date)
+| startTimeTo     | string  | No       | null    | YYYY-MM-DD (slots starting before this date)
 
 200-Success Response: 
 {
@@ -391,44 +402,47 @@ Query Parameters:
     "items": [
       {
         "id": 1,
+        "title": "Regular Lecture",
+        "description": "Introduction to Software Development",
         "startTime": "2024-10-17T08:00:00Z",
         "endTime": "2024-10-17T10:00:00Z",
-        "slotType": "LECTURE",
+        "slotCategory": "LECTURE",
+        "finalizedAt": null,
         "room": {
           "id": 1,
           "name": "Room A101",
-          "location": "Building A, Floor 1",
-          "isActive": true,
-          "createdAt": "2024-10-16T10:30:00Z",
-          "updatedAt": "2024-10-16T10:30:00Z"
+          "location": "Building A, Floor 1"
         },
         "staffUser": {
           "id": 10,
           "username": "john.lecturer",
-          "email": "john@example.com",
-          "fullName": "John Lecturer",
-          "isActive": true
-        },
-        "class": {
-          "id": 1,
-          "code": "SE1801",
-          "semester": {
-            "id": 1,
-            "name": "Fall 2024",
-            "code": "FA24",
-            "startDate": "2024-09-01",
-            "endDate": "2024-12-31",
-            "isActive": true,
-            "createdAt": "2024-10-16T11:00:00Z",
-            "updatedAt": "2024-10-16T11:00:00Z"
-          },
-          "isActive": true,
-          "createdAt": "2024-10-16T12:00:00Z",
-          "updatedAt": "2024-10-16T12:00:00Z"
+          "fullName": "John Lecturer"
         },
         "isActive": true,
         "createdAt": "2024-10-16T13:00:00Z",
         "updatedAt": "2024-10-16T13:00:00Z"
+      },
+      {
+        "id": 2,
+        "title": "Progress Test 1 - Chapter 1-3",
+        "description": "Covers chapters 1 to 3",
+        "startTime": "2024-10-18T08:00:00Z",
+        "endTime": "2024-10-18T10:00:00Z",
+        "slotCategory": "LECTURE_WITH_PT",
+        "finalizedAt": "2024-10-18T10:30:00Z",
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1"
+        },
+        "staffUser": {
+          "id": 10,
+          "username": "john.lecturer",
+          "fullName": "John Lecturer"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T13:05:00Z",
+        "updatedAt": "2024-10-18T10:30:00Z"
       },
 	    ...
     ],
@@ -440,17 +454,19 @@ Query Parameters:
 }
 
 Slot Object Schema:
-| Field 		| Type 		| Description 
-| id 			  | integer | Slot ID
-| startTime | string 	| YYYY-MM-DDTHH:mm:SSZ
-| endTime 	| string 	| YYYY-MM-DDTHH:mm:SSZ
-| slotType 	| string 	| LECTURE or EXAM
-| room 			| object 	| Room object (nested)
-| staffUser | object 	| Staff/lecturer user object (nested)
-| class 		| object 	| Class object with nested semester
-| isActive 	| boolean | Active status
-| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
-| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| Field        | Type    | Description 
+| id           | integer | Slot ID
+| title        | string  | Slot title (e.g., "Progress Test 1")
+| description  | string  | Slot description/instructions
+| startTime    | string  | YYYY-MM-DDTHH:mm:SSZ
+| endTime      | string  | YYYY-MM-DDTHH:mm:SSZ
+| slotCategory | string  | LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt  | string  | YYYY-MM-DDTHH:mm:SSZ or null (when attendance was finalized)
+| room         | object  | Room object (id, name, location)
+| staffUser    | object  | Staff user object (id, username, fullName)
+| isActive     | boolean | Active status
+| createdAt    | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt    | string  | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {
@@ -482,12 +498,28 @@ Slot Object Schema:
 - Search parameter searches in class code
 - Pagination is 1-based (page=1 is the first page)
 - Default sort is by id in ascending order
-- Response includes nested semester and subject objects
+- Response includes nested semester and subject objects (simplified, without createdAt/updatedAt)
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if class has slots or enrollments
 - Unique constraint on (subject_id, semester_id, code) - same class code cannot exist for same subject and semester
-- Nested /classes/{classId}/slots endpoint returns full slot details with room, staff, and class information
+- Nested /classes/{classId}/slots endpoint returns slot details without nested class object (to avoid redundancy)
+- totalStudent: Total students (enrolled + withdrawn)
+- totalEnrolledStudent: Currently enrolled students only (is_enrolled = true)
+- totalSlot: Total slots (active + inactive)
+- totalActiveSlot: Active slots only (is_active = true)
+- Subject and semester can be changed at any time via PUT endpoint
 - (M) = Modified
+
+Validation Patterns:
+- Class code: ^[A-Z0-9]+$ (UPPERCASE letters and digits only, no spaces, max 20 chars)
+- Examples: "SE1801", "AI2024A", "DB101"
+
+Slot Category:
+- LECTURE: Regular lecture session (teaching only)
+- LECTURE_WITH_PT: Lecture session with progress test (teaching + testing)
+- FINAL_EXAM: Final exam session (testing only)
+- Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT
+- Only Data Operators can create/manage FINAL_EXAM slots
 
 Common Status Codes:
 - 200: Success

@@ -16,6 +16,7 @@ Query Parameters:
 | sort 		    | string 	      | No 		    | asc 		| asc/desc 
 | sortBy 	    | string 	      | No		    | id 		  | fullName, staffCode, email, isActive 
 | search 	    | string 	      | No 		    | "" 		  | Search in fullName, staffCode, email
+| roleId 	    | smallint 	    | No 		    | null 		| roleId
 
 200-Success Response
 {
@@ -23,10 +24,10 @@ Query Parameters:
   "data": {
     "items": [
       {
-        "id": 1,
         "userId": 101,
         "fullName": "Nguyen Van A",
         "email": "nguyenvana@fpt.edu.vn",
+        "username": "XXXXXX",
         "staffCode": "EMP001",
         "roles": ["LECTURER"],
         "isActive": true,
@@ -61,7 +62,6 @@ Permission: USER_READ_DETAIL
   "status": 200,
   "message": null,
   "data": {
-    "id": 1,
     "userId": 101,
     "fullName": "Nguyen Van A",
     "email": "nguyenvana@fpt.edu.vn",
@@ -113,7 +113,6 @@ Request Body Schema:
 {
   "status": 201,
   "data": {
-    "id": 1,
     "userId": 101,
     "fullName": "Nguyen Van A",
     "email": "nguyenvana@fpt.edu.vn",
@@ -128,7 +127,6 @@ Request Body Schema:
 
 Response Schema:
 | Field 	    | Type 		      | Description 
-| id 		      | int 	        | User ID
 | userId 	    | int 	        | Same as id (reference to users table)
 | fullName 	  | string 	      | Staff full name 
 | email 		  | string 	      | Staff email address 
@@ -201,7 +199,6 @@ Request body schema:
 {
   "status": 200,
   "data": {
-    "id": 1,
     "userId": 101,
     "fullName": "Nguyen Van A - Updated",
     "email": "nguyenvana.updated@fpt.edu.vn",

@@ -173,25 +173,25 @@ use_cases:
       related_business_rules: []
 
     UC-24:
-      title: "Create Progress Test Slot"
+      title: "Change Slot Category to Include Progress Test"
       primary_actors: ["Lecturer"]
       secondary_actors: []
-      description: "Allows a lecturer to create a new Progress Test slot for their assigned class. The slot will have slot_type = 'EXAM' and exam_subcategory = 'PROGRESS_TEST'. All active cameras in the selected room will be automatically used for the session."
-      related_business_rules: ["BR-15", "BR-16", "BR-17", "BR-34"]
+      description: "Allows a lecturer to change slot category from 'LECTURE' to 'LECTURE_WITH_PT' for an existing slot they are responsible for. This represents converting a regular lecture session into a lecture with progress test (part teaching, part testing). All active cameras in the room will be used for both regular attendance and exam attendance. Example Scenario: Lecturer initially planned regular lecture but decides to add progress test component."
+      related_business_rules: ["BR-34", "BR-35"]
 
     UC-25:
-      title: "Update Progress Test Slot"
+      title: "Update Lecture Slot Details"
       primary_actors: ["Lecturer"]
       secondary_actors: []
-      description: "Allows a lecturer to update details of a Progress Test slot they are responsible for, including time, room, title, and description. Cannot change slot_type or exam_subcategory."
-      related_business_rules: ["BR-15", "BR-16", "BR-17", "BR-27", "BR-34"]
+      description: "Allows a lecturer to update details of a lecture slot they are responsible for. Can update: time, room, title, description, and slot_category (between LECTURE and LECTURE_WITH_PT). Cannot change: slot_category to/from FINAL_EXAM. Updating slot_category is subject to constraints defined in BR-35."
+      related_business_rules: ["BR-15", "BR-16", "BR-17", "BR-27", "BR-34", "BR-35"]
 
     UC-26:
-      title: "Delete Progress Test Slot"
+      title: "Change Slot Category to Remove Progress Test"
       primary_actors: ["Lecturer"]
       secondary_actors: []
-      description: "Allows a lecturer to permanently delete a Progress Test slot they created, if no attendance records exist. This action requires the 'SLOT_DELETE_HARD_PROGRESS_TEST' permission."
-      related_business_rules: ["BR-27", "BR-30", "BR-34"]
+      description: "Allows a lecturer to change slot category from 'LECTURE_WITH_PT' to 'LECTURE' if no exam attendance records exist. This action requires the 'SLOT_UPDATE_CATEGORY' permission."
+      related_business_rules: ["BR-27", "BR-30", "BR-34", "BR-35"]
 
   supervisor:
     UC-27:

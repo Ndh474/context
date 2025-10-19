@@ -69,9 +69,7 @@ system_context:
       SLOT_UPDATE: "Update lecture/exam slot information, including cancelling (deactivating) it."
       SLOT_DELETE_HARD: "Permanently delete a lecture/exam slot. This action is dangerous and cannot be undone."
       ENROLLMENT_MANAGE: "Add or remove students from a class."
-      SLOT_CREATE_PROGRESS_TEST: "Create a new slot classified as a Progress Test."
-      SLOT_UPDATE_PROGRESS_TEST: "Update the details of an existing Progress Test slot."
-      SLOT_DELETE_HARD_PROGRESS_TEST: "Permanently delete a Progress Test slot"
+      SLOT_UPDATE_CATEGORY: "Update slot category (Lecturer can change LECTURE ↔ LECTURE_WITH_PT)."
       SLOT_CREATE_FINAL_EXAM: "Create a new slot classified as a Final Exam."
       SLOT_UPDATE_FINAL_EXAM: "Update the details of an existing Final Exam slot."
       SLOT_DELETE_HARD_FINAL_EXAM: "Permanently delete a Final Exam slot."
@@ -223,9 +221,7 @@ system_context:
           "MAJOR_READ",
           "SLOT_READ",
           "SUBJECT_READ",
-          "SLOT_CREATE_PROGRESS_TEST",
-          "SLOT_UPDATE_PROGRESS_TEST",
-          "SLOT_DELETE_HARD_PROGRESS_TEST",
+          "SLOT_UPDATE_CATEGORY",
         ]
 
     SUPERVISOR:
@@ -380,7 +376,7 @@ system_context:
         title: "Schedule & Slots"
         features:
           - "View teaching schedule and exam supervision schedule by semester on a unified interface"
-          - "Advanced filters to filter lecture/exam slots by multiple criteria, including 'Type' (slot_type: LECTURE, EXAM)"
+          - "Advanced filters to filter lecture/exam slots by multiple criteria, including 'Category' (slot_category: LECTURE, LECTURE_WITH_PT, FINAL_EXAM)"
           - "Open/Close/Finalize slot"
 
       SCR_LECTURER_ROSTER:
@@ -442,7 +438,7 @@ system_context:
       SCR_ADMIN_CRUD_ACADEMIC:
         title: "CRUD Screens (Data Operator)"
         features:
-          - "Manage Classes, Subjects, Lecture/Exam Schedules (including slot_type and room_id attributes)"
+          - "Manage Classes, Subjects, Lecture/Exam Schedules (including slot_category and room_id attributes)"
           - "Add/Remove students from a class (Roster Management)"
           - "Manage Majors"
 
@@ -563,7 +559,7 @@ system_context:
       steps:
         - "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time daily (e.g., 00:05 AM)."
         - "2. Read Configuration: The job first reads the value of 'attendance.max_absence_percentage' from the system_configurations table to get the current threshold."
-        - "3. Scan for Finalized Slots: The job queries the database to find all lecture slots (slot_type = 'LECTURE') that were finalized within the previous calendar day (from 00:00:00 to 23:59:59)."
+        - "3. Scan for Finalized Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that were finalized within the previous calendar day (from 00:00:00 to 23:59:59)."
         - "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student."
         - "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
 
@@ -607,10 +603,24 @@ system_context:
     slot_entity_definition:
       description: "Additional definition for the Slot entity to support business classification."
       fields:
-        slot_type:
+        slot_category:
           type: "Varchar"
           required: true
-          description: "Classifies a slot as a lecture ('LECTURE') or exam ('EXAM'). The value is stored directly in the slots table to simplify the data model, adhering to the current database schema."
+          description: |
+            Classifies the type and purpose of a slot. Combines slot type and exam component into a single field.
+
+            Allowed Values:
+            - 'LECTURE': Regular lecture session (teaching only)
+            - 'LECTURE_WITH_PT': Lecture session with progress test (teaching + testing)
+            - 'FINAL_EXAM': Final exam session (testing only)
+
+            Lecturer Workflow:
+            - DOP creates slots with slot_category = 'LECTURE' or 'FINAL_EXAM'
+            - Lecturer can update slot_category: 'LECTURE' ↔ 'LECTURE_WITH_PT'
+            - Cannot change to/from 'FINAL_EXAM' (only DOP can manage final exams)
+
+            Validation enforced at application layer.
+          allowed_values: ["LECTURE", "LECTURE_WITH_PT", "FINAL_EXAM"]
         room_id:
           type: "Reference"
           target_entity: "Room"
@@ -626,14 +636,6 @@ system_context:
           type: Text
           required: false
           description: Optional detailed information or instructions about the slot, visible to students and staff.
-        exam_subcategory:
-          type: Varchar
-          required: false
-          description:
-            When slot_type is 'EXAM', this field further classifies the exam (e.g., 'PROGRESS_TEST', 'FINAL_EXAM')
-            to apply specific business logic and permissions. Must be NULL when slot_type = 'LECTURE'.
-            Validation enforced at application layer.
-          allowed_values: ["PROGRESS_TEST", "FINAL_EXAM", null]
 
     enrollment_entity_definition:
       description: "Definition of enrollment record."

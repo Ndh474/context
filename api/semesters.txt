@@ -15,8 +15,9 @@ Query Parameters:
 | page 		    | integer 	    | No 		    | 1 		  | 1-50 
 | pageSize 	  | integer 	    | No 		    | 10 		  | 1-50 
 | sort 		    | string 	      | No 		    | asc 		| asc/desc 
-| sortBy 	    | string 	      | No		    | id 		  | name, code, startDate, endDate, isActive 
+| sortBy 	    | string 	      | No		    | id 		  | name, code, startDate, endDate
 | search 	    | string 	      | No 		    | "" 		  | Search in name and code
+| isActive  | boolean | No | null | Filter by active status
 
 200-Success Response
 {
@@ -84,7 +85,18 @@ Permission: SEMESTER_READ
 
 =======================================================================================================================
 ================================================ Create a new semester ================================================
-Note: nếu có kỳ từ ngày A đến ngày B và đang inactive, thì không cho tạo semester giống date A và B 
+Business Rules:
+1. Date Range Uniqueness: 
+   - The combination (startDate, endDate) must be unique across ALL semesters
+   - This rule applies regardless of semester status (active or inactive)
+   - Prevents duplicate time periods in the system
+   
+2. Date Validation:
+   - startDate must be before endDate
+   - Both dates must be in YYYY-MM-DD format
+   
+3. Default Status:
+   - New semesters are created with isActive = true by default
 
 1. POST /api/v1/semesters
 Permission: SEMESTER_CREATE
@@ -97,11 +109,13 @@ Request Body:
 }
 
 Request Body Schema:
-| Field 	  | Type 		      | Required| Validation 
-| name 		  | string 	      | Yes 		| Not blank, max 20 chars(M), unique, alphanumeric, digits + spaces
-| code 		  | string 	      | Yes 		| Not blank, max 10 chars(M), unique, alphanumeric, digits + spaces
-| startDate | string (date) | Yes 		| YYYY-MM-DD, start date < end date, (start date + end date)-> unique
-| endDate 	| string (date) | Yes 		| YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+| Field      | Type          | Required | Validation 
+| name       | string        | Yes      | Not blank, max 20 chars(M), unique, allows letters/digits/spaces
+|            |               |          | Pattern: ^[A-Za-z0-9 ]+$, Examples: "Fall 2024", "Spring2025"
+| code       | string        | Yes      | Not blank, max 10 chars(M), unique, allows letters/digits only (NO spaces)
+|            |               |          | Pattern: ^[A-Za-z0-9]+$, Examples: "FA24", "SP2025"
+| startDate  | string (date) | Yes      | YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+| endDate    | string (date) | Yes      | YYYY-MM-DD, start date < end date, (start date + end date)-> unique
 
 201-Success Response:
 {
@@ -289,8 +303,9 @@ Query Parameters:
 | page 		    | integer | No 		  | 1 		  | 1-50
 | pageSize 	  | integer | No 		  | 10 		  | 1-50
 | sort 		    | string 	| No 		  | asc 		| asc/desc
-| sortBy 	    | string 	| No 		  | id 		  | name, code, isActive 
+| sortBy 	    | string 	| No 		  | id 		  | name, code
 | search 	    | string 	| No 		  | "" 		  | Search in class name, code
+| isActive  | boolean | No | null | Filter by active status
 
 200-Success Response: 
 {

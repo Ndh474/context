@@ -5,20 +5,32 @@ PUT    	| /subjects/{id} 		| Update subject 		  | SUBJECT_UPDATE
 DELETE 	| /subjects/{id} 		| Delete subject 		  | SUBJECT_DELETE_HARD(M)
 
 ================================================ Create a new subject =================================================
+Business Rules:
+1. Subject-Major Relationship: Many-to-Many
+   - A subject can belong to multiple majors
+   - A major can have multiple subjects
+   - Managed through subject_majors junction table
+
+2. Major Validation:
+   - All specified majors must exist and be active
+   - At least one major must be provided
+
 1. POST /api/v1/subjects
 Permission: SUBJECT_CREATE
 Request Body:
 {
   "name": "Software Development Project",
   "code": "SWP391",
-  "majorId": 1
+  "majorIds": [1, 2]
 }
 
 Request Schema:
-| Field 	| Type 		| Required 	| Validation 
-| name    | string | Yes | Not blank, max 150 chars, unique, alphanumeric
-| code    | string | Yes | Not blank, max 20 chars, unique,  alphanumeric + no spaces
-| majorId | short  | Yes | Must exist, must be active (for CREATE/UPDATE)
+| Field    | Type          | Required | Validation 
+| name     | string        | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces
+|          |               |          | Pattern: ^[A-Za-z0-9 ]+$, Examples: "Software Development Project"
+| code     | string        | Yes      | Not blank, max 20 chars, unique, UPPERCASE letters/digits only (NO spaces)
+|          |               |          | Pattern: ^[A-Z0-9]+$, Examples: "SWP391", "DBI202"
+| majorIds | array[short]  | Yes      | At least 1 major, all majors must exist and be active
 
 201-Success Response:
 {
@@ -27,14 +39,22 @@ Request Schema:
     "id": 1,
     "name": "Software Development Project",
     "code": "SWP391",
-    "major": {
-      "id": 1,
-      "name": "Software Engineering",
-      "code": "SE",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:00:00Z",
-      "updatedAt": "2024-10-16T11:00:00Z"
-    },
+    "majors": [
+      {
+        "id": 1,
+        "name": "Software Engineering",
+        "code": "SE",
+        "isActive": true
+      },
+      {
+        "id": 2,
+        "name": "Information Assurance",
+        "code": "IA",
+        "isActive": true
+      }
+    ],
+    "totalClass": 0,
+    "totalActiveClass": 0,
     "isActive": true,
     "createdAt": "2024-10-16T11:30:00Z",
     "updatedAt": "2024-10-16T11:30:00Z"
@@ -42,20 +62,29 @@ Request Schema:
 }
 
 Response Schema:
-| Field 	| Type 		| Description 
-| id 		| integer 	| Short type in DB
-| name 		| string 	| Subject name 
-| code 		| string 	| Subject code
-| major 	| object 	| Major object (nested)
-| isActive 	| boolean 	| Active status
-| createdAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
-| updatedAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| Field            | Type          | Description 
+| id               | integer       | Short type in DB
+| name             | string        | Subject name 
+| code             | string        | Subject code
+| majors           | array[object] | Array of major objects (id, name, code, isActive)
+| totalClass       | integer       | Total number of classes (active + inactive)
+| totalActiveClass | integer       | Number of active classes only
+| isActive         | boolean       | Active status
+| createdAt        | string        | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt        | string        | YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank, Code must not be blank ...",
-  "code": "NAME/CODE/MAJOR_ID/_REQUIRED"
+  "message": "Name must not be blank / Code must not be blank / Major IDs required",
+  "code": "SUBJECT_NAME_REQUIRED" | "SUBJECT_CODE_REQUIRED" | "SUBJECT_MAJOR_IDS_REQUIRED"
+}
+
+400-Empty major IDs array:
+{
+  "status": 400,
+  "message": "At least one major must be specified",
+  "code": "SUBJECT_MAJOR_IDS_EMPTY"
 }
 
 400 - Invalid Field type:
@@ -69,7 +98,7 @@ Response Schema:
 {
   "status": 400,
   "message": "Subject code/name already exists: SWP391",
-  "code": "NAME/CODE_EXISTED"	
+  "code": "SUBJECT_NAME_EXISTS" | "SUBJECT_CODE_EXISTS"
 }
 
 404-Major not found:
@@ -77,6 +106,13 @@ Response Schema:
   "status": 404,
   "message": "Major not found: 1",
   "code": "MAJOR_NOT_FOUND"
+}
+
+400-Inactive major not allowed:
+{
+  "status": 400,
+  "message": "Cannot assign subject to inactive major (Major ID: 3, Code: AI)",
+  "code": "INACTIVE_MAJOR_NOT_ALLOWED"
 }
 
 HttpMessageNotReadableException:
@@ -88,10 +124,6 @@ HttpMessageNotReadableException:
 
 =======================================================================================================================
 ================================================== Search subjects ====================================================
-Note: có hiện subject có major inactive không?
-- Subjects với major inactive: VẪN hiển thị nhưng có indicator "Major Inactive"
-- Khi major bị inactive: subjects thuộc major đó vẫn active nhưng có warning
-
 
 2. GET /api/v1/subjects
 Permission: SUBJECT_READ
@@ -112,15 +144,22 @@ Query Parameters:
         "id": 1,
         "name": "Software Development Project",
         "code": "SWP391",
-        "major": {
-          "id": 1,
-          "name": "Software Engineering",
-          "code": "SE",
-          "isActive": true,
-          "totalClass": 15,
-          "createdAt": "2024-10-16T11:00:00Z",
-          "updatedAt": "2024-10-16T11:00:00Z"
-        },
+        "majors": [
+          {
+            "id": 1,
+            "name": "Software Engineering",
+            "code": "SE",
+            "isActive": true
+          },
+          {
+            "id": 2,
+            "name": "Information Assurance",
+            "code": "IA",
+            "isActive": true
+          }
+        ],
+        "totalClass": 8,
+        "totalActiveClass": 5,
         "isActive": true,
         "createdAt": "2024-10-16T11:30:00Z",
         "updatedAt": "2024-10-16T11:30:00Z"
@@ -155,15 +194,22 @@ Permission: SUBJECT_READ
     "id": 1,
     "name": "Software Development Project",
     "code": "SWP391",
-    "major": {
-      "id": 1,
-      "name": "Software Engineering",
-      "code": "SE",
-      "isActive": true,
-      "totalClass": 15,
-      "createdAt": "2024-10-16T11:00:00Z",
-      "updatedAt": "2024-10-16T11:00:00Z"
-    },
+    "majors": [
+      {
+        "id": 1,
+        "name": "Software Engineering",
+        "code": "SE",
+        "isActive": true
+      },
+      {
+        "id": 2,
+        "name": "Information Assurance",
+        "code": "IA",
+        "isActive": true
+      }
+    ],
+    "totalClass": 8,
+    "totalActiveClass": 5,
     "isActive": true,
     "createdAt": "2024-10-16T11:30:00Z",
     "updatedAt": "2024-10-16T11:30:00Z"
@@ -184,16 +230,17 @@ Permission: SUBJECT_READ
   "code": "SUBJECT_NOT_FOUND"
 }
 
-400-Inactive major not allowed:
-{
-  "status": 400,
-  "message": "Cannot assign subject to inactive major",
-  "code": "INACTIVE_MAJOR_NOT_ALLOWED"
-}
-
 =======================================================================================================================
 ==================================================== Update subject ===================================================
-Note: - Khi tạo/update subject: KHÔNG cho phép chọn inactive major
+Business Rules:
+1. Major Assignment:
+   - Can add or remove majors at any time
+   - All specified majors must exist and be active
+   - At least one major must remain assigned
+
+2. Deactivation:
+   - Cannot deactivate subject if there are active classes
+   - Inactive classes don't block deactivation
 
 4. PUT /api/v1/subjects/{id}
 Permission: SUBJECT_UPDATE
@@ -206,16 +253,18 @@ Request Body:
 {
   "name": "Software Development Project - Updated",
   "code": "SWP391",
-  "majorId": 2,
+  "majorIds": [2, 3],
   "isActive": true
 }
 
 Request Schema:
-| Field 	| Type 		| Required 	| Validation
-| name    | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces
-| code    | string | Yes | Not blank, max 20 chars, unique, uppercase alphanumeric
-| majorId | short  | Yes | Must exist, must be active (for CREATE/UPDATE)
-| isActive 	| boolean 	| Yes 		| Not null
+| Field     | Type          | Required | Validation
+| name      | string        | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces
+|           |               |          | Pattern: ^[A-Za-z0-9 ]+$
+| code      | string        | Yes      | Not blank, max 20 chars, unique, UPPERCASE letters/digits only
+|           |               |          | Pattern: ^[A-Z0-9]+$
+| majorIds  | array[short]  | Yes      | At least 1 major, all majors must exist and be active
+| isActive  | boolean       | Yes      | Not null
 
 200-Success Response:
 {
@@ -224,14 +273,22 @@ Request Schema:
     "id": 1,
     "name": "Software Development Project - Updated",
     "code": "SWP391",
-    "major": {
-      "id": 2,
-      "name": "Information Assurance",
-      "code": "IA",
-      "isActive": true,
-      "createdAt": "2024-10-16T11:05:00Z",
-      "updatedAt": "2024-10-16T11:05:00Z"
-    },
+    "majors": [
+      {
+        "id": 2,
+        "name": "Information Assurance",
+        "code": "IA",
+        "isActive": true
+      },
+      {
+        "id": 3,
+        "name": "Artificial Intelligence",
+        "code": "AI",
+        "isActive": true
+      }
+    ],
+    "totalClass": 8,
+    "totalActiveClass": 5,
     "isActive": true,
     "createdAt": "2024-10-16T11:30:00Z",
     "updatedAt": "2024-10-16T12:45:00Z"
@@ -248,8 +305,15 @@ Request Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank, Code must not be blank ...",
-  "code": "NAME/CODE/MAJOR_ID/_REQUIRED"
+  "message": "Name must not be blank / Code must not be blank / Major IDs required",
+  "code": "SUBJECT_NAME_REQUIRED" | "SUBJECT_CODE_REQUIRED" | "SUBJECT_MAJOR_IDS_REQUIRED"
+}
+
+400-Empty major IDs array:
+{
+  "status": 400,
+  "message": "At least one major must be specified",
+  "code": "SUBJECT_MAJOR_IDS_EMPTY"
 }
 
 400-Invalid Field type:
@@ -263,7 +327,7 @@ Request Schema:
 {
   "status": 400,
   "message": "Subject code/name already exists: SWP391",
-  "code": "NAME/CODE_EXISTED"	
+  "code": "SUBJECT_NAME_EXISTS" | "SUBJECT_CODE_EXISTS"
 }
 
 404-Major not found:
@@ -284,22 +348,15 @@ HttpMessageNotReadableException:
 400-Inactive major not allowed:
 {
   "status": 400,
-  "message": "Cannot assign subject to inactive major",
+  "message": "Cannot assign subject to inactive major (Major ID: 3, Code: AI)",
   "code": "INACTIVE_MAJOR_NOT_ALLOWED"
 }
 
 409-Cannot deactivate subject with active classes:
 {
   "status": 409,
-  "message": "Cannot deactivate subject with active classes",
+  "message": "Cannot deactivate subject. Found 5 active classes",
   "code": "SUBJECT_HAS_ACTIVE_CLASSES"
-}
-
-400-Cannot change major with existing classes:
-{
-  "status": 400,
-  "message": "Cannot change major for subject with existing classes",
-  "code": "SUBJECT_HAS_EXISTING_CLASSES"
 }
 
 =======================================================================================================================
@@ -331,33 +388,102 @@ Path Parameters:
   "code": "SUBJECT_NOT_FOUND"
 }
 
-409 - Conflict (foreign key constraint):
+409 - Conflict (has dependencies):
 {
   "status": 409,
-  "message": "Delete all classes associated with this subject first",
-  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+  "message": "Cannot delete subject. Found 8 classes. Please delete them first",
+  "code": "SUBJECT_HAS_DEPENDENCIES"
 }
 
+=======================================================================================================================
+=========================================== Get classes by subject id =================================================
+Note:
+- Returns classes for this subject across all semesters
+- Class code is unique within subject+semester combination
 
-GET /subjects/{id}/classes  | Get classes by subject | CLASS_READ
+6. GET /api/v1/subjects/{id}/classes
+Permission: CLASS_READ
+Path Parameters:
+| Parameter  | Type  | Required | Description
+| subjectId  | short | Yes      | Subject ID
+
+Query Parameters:
+| Parameter | Type    | Required | Default | Validation
+| page      | integer | No       | 1       | 1-50
+| pageSize  | integer | No       | 10      | 1-50
+| sort      | string  | No       | asc     | asc/desc
+| sortBy    | string  | No       | id      | code, isActive
+| search    | string  | No       | ""      | Search in class code
+
+200-Success Response:
 {
   "status": 200,
   "data": {
     "items": [
       {
         "id": 1,
-        "name": "SE1801",
         "code": "SE1801",
+        "subject": {
+          "id": 1,
+          "name": "Software Development Project",
+          "code": "SWP391"
+        },
         "semester": {
           "id": 1,
           "name": "Fall 2024",
           "code": "FA24"
         },
-        "isActive": true
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
       },
-      ...
-    ]
+      {
+        "id": 2,
+        "code": "SE1802",
+        "subject": {
+          "id": 1,
+          "name": "Software Development Project",
+          "code": "SWP391"
+        },
+        "semester": {
+          "id": 1,
+          "name": "Fall 2024",
+          "code": "FA24"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T11:05:00Z",
+        "updatedAt": "2024-10-16T11:05:00Z"
+      }
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 15
   }
+}
+
+Class Object Schema:
+| Field     | Type    | Description 
+| id        | integer | Class ID (Short type in DB)
+| code      | string  | Class code
+| subject   | object  | Subject object (id, name, code)
+| semester  | object  | Semester object (id, name, code)
+| isActive  | boolean | Active status
+| createdAt | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
 }
 
 =======================================================================================================================
@@ -369,13 +495,19 @@ GET /subjects/{id}/classes  | Get classes by subject | CLASS_READ
 - Search parameter searches in both name and code fields
 - Pagination is 1-based (page=1 is the first page)
 - Default sort is by id in ascending order
-- Response includes nested major object with full major details
+- Response includes nested majors array with major details (id, name, code, isActive)
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if subject has classes
 - Subject code and name must be unique
-- Subject can be reassigned to different major via PUT endpoint
-- Subject-class relationship is one-to-many (one subject can have multiple classes)
+- Subject-Major relationship is Many-to-Many via subject_majors junction table
+- Subject-Class relationship is One-to-Many (one subject can have multiple classes)
+- totalClass: Total number of classes (active + inactive)
+- totalActiveClass: Number of active classes only (used for deactivation validation)
 - (M) = Modified
+
+Validation Patterns:
+- Subject name: ^[A-Za-z0-9 ]+$ (letters, digits, spaces, max 150 chars)
+- Subject code: ^[A-Z0-9]+$ (UPPERCASE letters and digits only, no spaces, max 20 chars)
 
 Common Status Codes:
 - 200: Success

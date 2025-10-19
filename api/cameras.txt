@@ -72,6 +72,20 @@ Response Schema:
   "code": "ROOM_NOT_FOUND"
 }
 
+409 - RTSP URL already exists:
+{
+  "status": 409,
+  "message": "RTSP URL already exists: rtsp://192.168.1.100:554/stream1",
+  "code": "RTSP_URL_EXISTS"
+}
+
+409 - Camera name already exists:
+{
+  "status": 409,
+  "message": "Camera name already exists: Camera A101-01",
+  "code": "CAMERA_NAME_EXISTS"
+}
+
 HttpMessageNotReadableException:
 {
   "status": 400,
@@ -89,8 +103,10 @@ Query Parameters:
 | page 		| integer 	| No 		| 1 		| 1-50 
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| id, name, rtspUrl 
-| search 	| string 	| No 		| "" 		| Search in name and rtspUrl 
+| sortBy 	| string 	| No		| id 		| name, rtspUrl 
+| search 	| string 	| No 		| "" 		| Search in name and rtspUrl
+| roomId    | integer | No      | null    | Filter by room
+| isActive  | boolean | No      | null    | Filter by active status
 
 200-Success Response
 {
@@ -301,7 +317,7 @@ Path Parameters:
 409 - Conflict (foreign key constraint):
 {
   "status": 409,
-  "message": "Delete all slot cameras associated with this camera first",
+  "message": "Cannot delete camera with active room assignments",
   "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
 }
 
@@ -317,7 +333,7 @@ Path Parameters:
 - Response includes nested room object with full room details
 - RTSP URL format: rtsp://[username:password@]host[:port]/path
 - Soft delete is done via PUT endpoint by setting isActive = false
-- Hard delete via DELETE endpoint is permanent and may fail if camera is assigned to slots
+- Hard delete via DELETE endpoint is permanent and may fail if camera has dependencies
 - Camera can be reassigned to different room via PUT endpoint
 - (M) = Modified
 

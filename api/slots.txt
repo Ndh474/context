@@ -1,76 +1,100 @@
-POST   	| /slots 	   		| Create new slot 		| SLOT_CREATE 
+POST   	| /slots 	   		| Create new slot 		| SLOT_CREATE | SLOT_CREATE_FINAL_EXAM
 GET    	| /slots 	   		| Get all slots 		| SLOT_READ 
 GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ 
-PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE 
-DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD(M)
+PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE | SLOT_UPDATE_CATEGORY | SLOT_UPDATE_FINAL_EXAM
+DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD
+GET /api/v1/slots/{id}/roster 
+POST /api/v1/slots/{id}/start-session 
+POST /api/v1/slots/{id}/rescan 
+POST /api/v1/slots/{id}/finalize
 
 ================================================= Create a new slot ===================================================
 1. POST /api/v1/slots
-Permission: SLOT_CREATE
+Permission: 
+- SLOT_CREATE: Can create LECTURE and LECTURE_WITH_PT slots (Data Operator)
+- SLOT_CREATE_FINAL_EXAM: Can create FINAL_EXAM slots (Data Operator)
+
+Business Rules:
+- Slot Category:
+  * LECTURE: Regular lecture session (teaching only)
+  * LECTURE_WITH_PT: Lecture with progress test (teaching + testing)
+  * FINAL_EXAM: Final exam session (testing only)
+- Creation Permissions:
+  * Data Operators: Can create LECTURE, LECTURE_WITH_PT, and FINAL_EXAM slots
+  * Lecturers: Cannot create slots (but can update slot_category for existing slots)
+- Unique Constraints:
+  * (startTime, endTime, roomId): One slot per room per time period
+  * (startTime, endTime, staffUserId): One slot per staff per time period
+- Validation:
+  * startTime must be before endTime
+  * Minimum slot duration: 30 minutes
+  * Maximum slot duration: 4 hours
+  * Class, room, and staff must be active
+  * Staff must have LECTURER or SUPERVISOR role
+- Related Business Rules: BR-15, BR-16, BR-17, BR-34
+
 Request Body:
 {
+  "title": "Introduction to Software Development",
+  "description": "Chapter 1: Overview of software development lifecycle",
   "startTime": "2024-10-17T08:00:00Z",
   "endTime": "2024-10-17T10:00:00Z",
+  "slotCategory": "LECTURE",
   "classId": 1,
   "roomId": 1,
-  "staffId": 10,
-  "slotType": "LECTURE"
+  "staffUserId": 10
 }
 
 Request Schema:
-| Field 		| Type 			| Required 	| Validation 
-| startTime 		| string  		| Yes 		| Not null, startTime < endTime
-| endTime 		| string 	 	| Yes 		| Not null, startTime < endTime
-| classId 		| short 		| Yes 		| Not null, must be valid class ID, class must be active, (startTime + endTime + classId + roomId + staffId) -> unique
-| roomId 		| short 		| Yes 		| Not null, must be valid room ID, room must be active, (startTime + endTime + classId + roomId + staffId) -> unique
-| staffId 		| integer 		| Yes 		| Not null, must be valid user ID, staff must be active, (startTime + endTime + classId + roomId + staffId) -> unique
-| slotType 		| string 		| Yes 		| Not null, must be "LECTURE" or "EXAM"
+| Field 		| Type 		| Required 	| Validation 
+| title 		| string 	| No 		| Max 255 chars. Examples: "Regular Lecture", "Progress Test 1", "Final Exam"
+| description 		| string 	| No 		| Max 1000 chars. General notes or instructions for the slot
+| startTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be before endTime, min 30 mins duration
+| endTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be after startTime, max 4 hours duration
+| slotCategory 		| string 	| Yes 		| Must be "LECTURE", "LECTURE_WITH_PT", or "FINAL_EXAM"
+| classId 		| short 	| Yes 		| Must exist and be active
+| roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
+| staffUserId 		| integer 	| Yes 		| Must exist and be active, must have LECTURER or SUPERVISOR role, (startTime + endTime + staffUserId) -> unique
 
-SlotType Enum Values:
-- LECTURE - Regular lecture session
-- EXAM - Examination session
+SlotCategory Enum Values:
+- LECTURE: Regular lecture session (teaching only)
+- LECTURE_WITH_PT: Lecture with progress test (teaching + testing)
+- FINAL_EXAM: Final exam session (testing only)
 
 201-Success Response:
 {
   "status": 201,
   "data": {
     "id": 1,
+    "title": "Introduction to Software Development",
+    "description": "Chapter 1: Overview of software development lifecycle",
     "startTime": "2024-10-17T08:00:00Z",
     "endTime": "2024-10-17T10:00:00Z",
-    "slotType": "LECTURE",
+    "slotCategory": "LECTURE",
+    "finalizedAt": null,
     "room": {
       "id": 1,
       "name": "Room A101",
-      "location": "Building A, Floor 1",
-      "isActive": true,
-      "createdAt": "2024-10-16T10:30:00Z",
-      "updatedAt": "2024-10-16T10:30:00Z"
+      "location": "Building A, Floor 1"
     },
-    "staff": {
+    "staffUser": {
       "id": 10,
       "username": "john.lecturer",
-      "email": "john@example.com",
-      "fullName": "John Lecturer",
-      "isActive": true,
-      "createdAt": "2024-10-15T08:00:00Z",
-      "updatedAt": "2024-10-15T08:00:00Z"
+      "fullName": "John Lecturer"
     },
     "class": {
       "id": 1,
-      "name": "SE1801",
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
       "semester": {
         "id": 1,
         "name": "Fall 2024",
-        "code": "FA24",
-        "startDate": "2024-09-01",
-        "endDate": "2024-12-31",
-        "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
-      },
-      "isActive": true,
-      "createdAt": "2024-10-16T12:00:00Z",
-      "updatedAt": "2024-10-16T12:00:00Z"
+        "code": "FA24"
+      }
     },
     "isActive": true,
     "createdAt": "2024-10-16T13:00:00Z",
@@ -79,37 +103,93 @@ SlotType Enum Values:
 }
 
 Response Schema:
-| Field 		| Type 			| Description 
-| id 			| integer 		| Slot ID
-| startTime 		| string 	 	| YYYY-MM-DDTHH:mm:SSZ
-| endTime 		| string 	 	| YYYY-MM-DDTHH:mm:SSZ
-| slotType 		| string 		| LECTURE or EXAM
-| room 			| object 		| Room object (nested)
-| staff 		| object 		| Staff/lecturer user object (nested)
-| class 		| object 		| Class object with nested semester
-| isActive 		| boolean 		| Active status
-| createdAt 		| string 		| YYYY-MM-DDTHH:mm:SSZ
-| updatedAt 		| string 		| YYYY-MM-DDTHH:mm:SSZ
+| Field 		| Type 		| Description 
+| id 			| integer 	| Slot ID
+| title 		| string 	| Slot title (nullable)
+| description 		| string 	| Slot description (nullable)
+| startTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| endTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| slotCategory 		| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
+| room 			| object 	| Room object (id, name, location)
+| staffUser 		| object 	| Staff/lecturer user object (id, username, fullName)
+| class 		| object 	| Class object with nested subject and semester
+| isActive 		| boolean 	| Active status
+| createdAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
   "status": 400,
-  "message": "Start time cannot be null, Slot type required ...",
-  "code": "START_TIME/END_TIME/CLASS_ID/ROOM_ID/STAFF_USER_ID/SLOT_TYPE/_REQUIRED"
+  "message": "Start time is required",
+  "code": "SLOT_START_TIME_REQUIRED"
 }
 
-400 - Invalid Field type:
+Other field required error codes:
+- SLOT_END_TIME_REQUIRED
+- SLOT_CLASS_ID_REQUIRED
+- SLOT_ROOM_ID_REQUIRED
+- SLOT_STAFF_USER_ID_REQUIRED
+- SLOT_CATEGORY_REQUIRED
+
+400-Invalid field type:
 {
   "status": 400,
   "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
   "code": "INVALID_FIELD_TYPE"
 }
 
-400-Invalid slot type:
+400-Invalid slot category:
 {
   "status": 400,
-  "message": "Invalid slot type. Must be LECTURE or EXAM",
-  "code": "INVALID_SLOT_TYPE"
+  "message": "Invalid slot category. Must be LECTURE, LECTURE_WITH_PT, or FINAL_EXAM",
+  "code": "INVALID_SLOT_CATEGORY"
+}
+
+400-Invalid time range:
+{
+  "status": 400,
+  "message": "End time must be after start time",
+  "code": "INVALID_TIME_RANGE"
+}
+
+400-Invalid slot duration:
+{
+  "status": 400,
+  "message": "Slot duration must be between 30 minutes and 4 hours",
+  "code": "INVALID_SLOT_DURATION"
+}
+
+400-Room time conflict:
+{
+  "status": 400,
+  "message": "Room A101 is already booked from 08:00 to 10:00",
+  "code": "ROOM_TIME_CONFLICT"
+}
+
+400-Staff time conflict:
+{
+  "status": 400,
+  "message": "Staff john.lecturer is already assigned to another slot at this time",
+  "code": "STAFF_TIME_CONFLICT"
+}
+
+400-Inactive reference:
+{
+  "status": 400,
+  "message": "Cannot create slot with inactive class",
+  "code": "INACTIVE_CLASS_NOT_ALLOWED"
+}
+
+Other inactive reference error codes:
+- INACTIVE_ROOM_NOT_ALLOWED
+- INACTIVE_STAFF_NOT_ALLOWED
+
+400-Invalid staff role:
+{
+  "status": 400,
+  "message": "Staff must have LECTURER or SUPERVISOR role",
+  "code": "INVALID_STAFF_ROLE"
 }
 
 404-Class not found:
@@ -133,7 +213,7 @@ Response Schema:
   "code": "USER_NOT_FOUND"
 }
 
-HttpMessageNotReadableException:
+400-Malformed JSON:
 {
   "status": 400,
   "message": "Malformed JSON request",
@@ -145,63 +225,67 @@ HttpMessageNotReadableException:
 
 2. GET /api/v1/slots
 Permission: SLOT_READ
+
 Query Parameters:
 | Parameter 	| Type 		| Required 	| Default 	| Validation 
-| page 		| integer 	| No 		| 1 		| 1-50 
+| page 		| integer 	| No 		| 1 		| >= 1
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
-| sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| id, slotType 
-| search 	| string 	| No 		| "" 		| Search slotType 
+| sort 		| string 	| No 		| asc 		| asc, desc 
+| sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory, isActive
+| slotCategory 	| string 	| No 		| null 		| LECTURE, LECTURE_WITH_PT, FINAL_EXAM
+| classId 	| short 	| No 		| null 		| Filter by class
+| staffUserId 	| integer 	| No 		| null 		| Filter by staff (for lecturer's schedule)
+| roomId 	| short 	| No 		| null 		| Filter by room
+| semesterId 	| short 	| No 		| null 		| Filter by semester
+| isFinalized 	| boolean 	| No 		| null 		| true, false
+| startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (filter slots starting from this date)
+| startTimeTo 	| string 	| No 		| null 		| YYYY-MM-DD (filter slots starting before this date)
 
-200-Success Response
+200-Success Response:
 {
   "status": 200,
   "data": {
     "items": [
       {
         "id": 1,
+        "title": "Introduction to Software Development",
+        "description": "Chapter 1: Overview of software development lifecycle",
         "startTime": "2024-10-17T08:00:00Z",
         "endTime": "2024-10-17T10:00:00Z",
-        "slotType": "LECTURE",
+        "slotCategory": "LECTURE",
+        "finalizedAt": null,
         "room": {
           "id": 1,
           "name": "Room A101",
-          "location": "Building A, Floor 1",
-          "isActive": true,
-          "createdAt": "2024-10-16T10:30:00Z",
-          "updatedAt": "2024-10-16T10:30:00Z"
+          "location": "Building A, Floor 1"
         },
-        "staff": {
+        "staffUser": {
           "id": 10,
           "username": "john.lecturer",
-          "email": "john@example.com",
-          "fullName": "John Lecturer",
-          "isActive": true,
-          "createdAt": "2024-10-15T08:00:00Z",
-          "updatedAt": "2024-10-15T08:00:00Z"
+          "fullName": "John Lecturer"
         },
         "class": {
           "id": 1,
-          "name": "SE1801",
+          "code": "SE1801",
+          "subject": {
+            "id": 1,
+            "name": "Software Development Project",
+            "code": "SWP391"
+          },
           "semester": {
             "id": 1,
             "name": "Fall 2024",
-            "code": "FA24",
-            "startDate": "2024-09-01",
-            "endDate": "2024-12-31",
-            "isActive": true,
-            "createdAt": "2024-10-16T11:00:00Z",
-            "updatedAt": "2024-10-16T11:00:00Z"
-          },
-          "isActive": true,
-          "createdAt": "2024-10-16T12:00:00Z",
-          "updatedAt": "2024-10-16T12:00:00Z"
+            "code": "FA24"
+          }
         },
+        "totalStudent": 25,
+        "totalPresentStudent": 20,
+        "totalAbsentStudent": 3,
+        "totalNotYetStudent": 2,
         "isActive": true,
         "createdAt": "2024-10-16T13:00:00Z",
         "updatedAt": "2024-10-16T13:00:00Z"
-      },
-	...
+      }
     ],
     "totalPages": 10,
     "currentPage": 1,
@@ -210,76 +294,123 @@ Query Parameters:
   }
 }
 
+Response Schema (items):
+| Field 			| Type 		| Description 
+| id 				| integer 	| Slot ID
+| title 			| string 	| Slot title (nullable)
+| description 			| string 	| Slot description (nullable)
+| startTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| endTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| slotCategory 			| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
+| room 				| object 	| Room object (id, name, location)
+| staffUser 			| object 	| Staff/lecturer user object (id, username, fullName)
+| class 			| object 	| Class object with nested subject and semester
+| totalStudent 			| integer 	| Total enrolled students in the class
+| totalPresentStudent 		| integer 	| Total students marked present
+| totalAbsentStudent 		| integer 	| Total students marked absent
+| totalNotYetStudent 		| integer 	| Total students not yet marked
+| isActive 			| boolean 	| Active status
+| createdAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+
 400-Invalid query parameters:
 {
   "status": 400,
-  "message": "Page must >= 1, ...",
-  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+  "message": "Page must be >= 1",
+  "code": "INVALID_PAGE"
 }
+
+Other invalid query parameter error codes:
+- INVALID_PAGE_SIZE
+- INVALID_SORT
+- INVALID_SORT_BY
+- INVALID_SLOT_CATEGORY_FILTER
+- INVALID_DATE_FORMAT
+
 =======================================================================================================================
 ==================================================== Get slot by id ===================================================
 
 3. GET /api/v1/slots/{id}
 Permission: SLOT_READ
-| Parameter 	| Type 	| Required 	| Description
-| id 		| integer | Yes 	| Slot ID
+
+Path Parameters:
+| Parameter 	| Type 		| Required 	| Description
+| id 		| integer 	| Yes 		| Slot ID
 
 200-Success Response:
 {
   "status": 200,
   "data": {
     "id": 1,
+    "title": "Introduction to Software Development",
+    "description": "Chapter 1: Overview of software development lifecycle",
     "startTime": "2024-10-17T08:00:00Z",
     "endTime": "2024-10-17T10:00:00Z",
-    "slotType": "LECTURE",
+    "slotCategory": "LECTURE",
+    "finalizedAt": null,
     "room": {
       "id": 1,
       "name": "Room A101",
-      "location": "Building A, Floor 1",
-      "isActive": true,
-      "createdAt": "2024-10-16T10:30:00Z",
-      "updatedAt": "2024-10-16T10:30:00Z"
+      "location": "Building A, Floor 1"
     },
-    "staff": {
+    "staffUser": {
       "id": 10,
       "username": "john.lecturer",
-      "email": "john@example.com",
-      "fullName": "John Lecturer",
-      "isActive": true,
-      "createdAt": "2024-10-15T08:00:00Z",
-      "updatedAt": "2024-10-15T08:00:00Z"
+      "fullName": "John Lecturer"
     },
     "class": {
       "id": 1,
-      "name": "SE1801",
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
       "semester": {
         "id": 1,
         "name": "Fall 2024",
-        "code": "FA24",
-        "startDate": "2024-09-01",
-        "endDate": "2024-12-31",
-        "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
-      },
-      "isActive": true,
-      "createdAt": "2024-10-16T12:00:00Z",
-      "updatedAt": "2024-10-16T12:00:00Z"
+        "code": "FA24"
+      }
     },
+    "totalStudent": 25,
+    "totalPresentStudent": 20,
+    "totalAbsentStudent": 3,
+    "totalNotYetStudent": 2,
     "isActive": true,
     "createdAt": "2024-10-16T13:00:00Z",
     "updatedAt": "2024-10-16T13:00:00Z"
   }
 }
 
-400 - Invalid Field type:
+Response Schema:
+| Field 			| Type 		| Description 
+| id 				| integer 	| Slot ID
+| title 			| string 	| Slot title (nullable)
+| description 			| string 	| Slot description (nullable)
+| startTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| endTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| slotCategory 			| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
+| room 				| object 	| Room object (id, name, location)
+| staffUser 			| object 	| Staff/lecturer user object (id, username, fullName)
+| class 			| object 	| Class object with nested subject and semester
+| totalStudent 			| integer 	| Total enrolled students in the class
+| totalPresentStudent 		| integer 	| Total students marked present
+| totalAbsentStudent 		| integer 	| Total students marked absent
+| totalNotYetStudent 		| integer 	| Total students not yet marked
+| isActive 			| boolean 	| Active status
+| createdAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid field type:
 {
   "status": 400,
   "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
   "code": "INVALID_FIELD_TYPE"
 }
 
-404 - Slot not found:
+404-Slot not found:
 {
   "status": 404,
   "message": "Slot not found: 1",
@@ -290,74 +421,105 @@ Permission: SLOT_READ
 ===================================================== Update slot =====================================================
 
 4. PUT /api/v1/slots/{id}
-Permission: SLOT_UPDATE
+Permission: 
+- SLOT_UPDATE: Full update (all fields) - Data Operator
+- SLOT_UPDATE_CATEGORY: Update slot_category only (LECTURE ↔ LECTURE_WITH_PT) - Lecturer
+- SLOT_UPDATE_FINAL_EXAM: Update FINAL_EXAM slots - Data Operator
+
+Business Rules:
+1. Data Operator Updates (SLOT_UPDATE or SLOT_UPDATE_FINAL_EXAM):
+   - Can update all fields: title, description, time, room, staff, class, slotCategory, isActive
+   - Can update any slot category including FINAL_EXAM
+   
+2. Lecturer Updates (SLOT_UPDATE_CATEGORY):
+   - Can ONLY update slotCategory field: LECTURE ↔ LECTURE_WITH_PT
+   - Cannot update other fields (time, room, staff, class, title, description)
+   - Constraints:
+     * Slot must belong to lecturer's assigned class
+     * Slot must not be finalized
+     * Cannot change to/from FINAL_EXAM
+     * Cannot change from LECTURE_WITH_PT to LECTURE if exam_attendance records exist
+   
+3. Deactivation:
+   - Cannot deactivate if slot is finalized
+   - Cannot deactivate if there are attendance records
+
+4. Related Business Rules: BR-34, BR-35
+
+// TODO: DOP ABLE TO DELETE HARD IF NOW() < START_TIME - 30 minute
 
 Path Parameters:
 | Parameter 	| Type 		| Required 	| Description
 | id 		| integer 	| Yes 		| Slot ID
 
-Request Body:
+Request Body (Data Operator - Full Update):
 {
+  "title": "Updated Lecture Title",
+  "description": "Updated description for the lecture",
   "startTime": "2024-10-17T08:30:00Z",
   "endTime": "2024-10-17T10:30:00Z",
+  "slotCategory": "LECTURE_WITH_PT",
   "classId": 1,
   "roomId": 2,
-  "staffId": 10,
-  "slotType": "LECTURE",
+  "staffUserId": 10,
   "isActive": true
 }
 
-Request Schema:
-| Field 		| Type 			| Required 	| Validation
-| startTime 		| string (ISO 8601) 	| Yes 		| Not null, 
-| endTime 		| string (ISO 8601) 	| Yes 		| Not null, 
-| classId 		| short 		| Yes 		| Not null, must be valid class ID, class active, (startTime + endTime + classId + roomId + staffId) -> unique
-| roomId 		| short 		| Yes 		| Not null, must be valid room ID, room active, (startTime + endTime + classId + roomId + staffId) -> unique
-| staffId 		| integer 		| Yes 		| Not null, must be valid user ID, user active, (startTime + endTime + classId + roomId + staffId) -> unique
-| slotType 		| string 		| Yes 		| Not null, must be "LECTURE" or "EXAM"
-| isActive 		| boolean 		| Yes 		| Not null
+Request Body (Lecturer - Category Update Only):
+{
+  "slotCategory": "LECTURE_WITH_PT"
+}
+
+Request Schema (Full Update):
+| Field 		| Type 		| Required 	| Validation
+| title 		| string 	| No 		| Max 255 chars
+| description 		| string 	| No 		| Max 1000 chars
+| startTime 		| string 	| Yes 		| ISO 8601, must be before endTime, min 30 mins duration
+| endTime 		| string 	| Yes 		| ISO 8601, must be after startTime, max 4 hours duration
+| slotCategory 		| string 	| Yes 		| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| classId 		| short 	| Yes 		| Must exist and be active
+| roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
+| staffUserId 		| integer 	| Yes 		| Must exist and be active, (startTime + endTime + staffUserId) -> unique
+| isActive 		| boolean 	| Yes 		| true or false
+
+Request Schema (Category Update Only):
+| Field 		| Type 		| Required 	| Validation
+| slotCategory 		| string 	| Yes 		| LECTURE or LECTURE_WITH_PT only (cannot change to/from FINAL_EXAM)
 
 200-Success Response:
 {
   "status": 200,
   "data": {
     "id": 1,
+    "title": "Updated Lecture Title",
+    "description": "Updated description for the lecture",
     "startTime": "2024-10-17T08:30:00Z",
     "endTime": "2024-10-17T10:30:00Z",
-    "slotType": "LECTURE",
+    "slotCategory": "LECTURE_WITH_PT",
+    "finalizedAt": null,
     "room": {
       "id": 2,
       "name": "Room A102",
-      "location": "Building A, Floor 1",
-      "isActive": true,
-      "createdAt": "2024-10-16T10:35:00Z",
-      "updatedAt": "2024-10-16T10:35:00Z"
+      "location": "Building A, Floor 1"
     },
-    "staff": {
+    "staffUser": {
       "id": 10,
       "username": "john.lecturer",
-      "email": "john@example.com",
-      "fullName": "John Lecturer",
-      "isActive": true,
-      "createdAt": "2024-10-15T08:00:00Z",
-      "updatedAt": "2024-10-15T08:00:00Z"
+      "fullName": "John Lecturer"
     },
     "class": {
       "id": 1,
-      "name": "SE1801",
+      "code": "SE1801",
+      "subject": {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
       "semester": {
         "id": 1,
         "name": "Fall 2024",
-        "code": "FA24",
-        "startDate": "2024-09-01",
-        "endDate": "2024-12-31",
-        "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
-      },
-      "isActive": true,
-      "createdAt": "2024-10-16T12:00:00Z",
-      "updatedAt": "2024-10-16T12:00:00Z"
+        "code": "FA24"
+      }
     },
     "isActive": true,
     "createdAt": "2024-10-16T13:00:00Z",
@@ -375,22 +537,104 @@ Request Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Start time cannot be null, Slot type required ...",
-  "code": "START_TIME/END_TIME/CLASS_ID/ROOM_ID/STAFF_USER_ID/SLOT_TYPE/_REQUIRED"
+  "message": "Start time is required",
+  "code": "SLOT_START_TIME_REQUIRED"
 }
 
-400-Invalid Field type:
+Other field required error codes:
+- SLOT_END_TIME_REQUIRED
+- SLOT_CLASS_ID_REQUIRED
+- SLOT_ROOM_ID_REQUIRED
+- SLOT_STAFF_USER_ID_REQUIRED
+- SLOT_CATEGORY_REQUIRED
+- SLOT_IS_ACTIVE_REQUIRED
+
+400-Invalid field type:
 {
   "status": 400,
   "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
   "code": "INVALID_FIELD_TYPE"
 }
 
-400-Invalid slot type:
+400-Invalid slot category:
 {
   "status": 400,
-  "message": "Invalid slot type. Must be LECTURE or EXAM",
-  "code": "INVALID_SLOT_TYPE"
+  "message": "Invalid slot category. Must be LECTURE, LECTURE_WITH_PT, or FINAL_EXAM",
+  "code": "INVALID_SLOT_CATEGORY"
+}
+
+400-Invalid category transition:
+{
+  "status": 400,
+  "message": "Cannot change slot category. Only LECTURE ↔ LECTURE_WITH_PT transitions are allowed for lecturers",
+  "code": "INVALID_SLOT_CATEGORY_TRANSITION"
+}
+
+400-Cannot remove progress test:
+{
+  "status": 400,
+  "message": "Cannot change from LECTURE_WITH_PT to LECTURE. Exam attendance records exist",
+  "code": "EXAM_ATTENDANCE_EXISTS"
+}
+
+400-Slot already finalized:
+{
+  "status": 400,
+  "message": "Cannot update finalized slot",
+  "code": "SLOT_ALREADY_FINALIZED"
+}
+
+400-Invalid time range:
+{
+  "status": 400,
+  "message": "End time must be after start time",
+  "code": "INVALID_TIME_RANGE"
+}
+
+400-Invalid slot duration:
+{
+  "status": 400,
+  "message": "Slot duration must be between 30 minutes and 4 hours",
+  "code": "INVALID_SLOT_DURATION"
+}
+
+400-Room time conflict:
+{
+  "status": 400,
+  "message": "Room A102 is already booked from 08:30 to 10:30",
+  "code": "ROOM_TIME_CONFLICT"
+}
+
+400-Staff time conflict:
+{
+  "status": 400,
+  "message": "Staff john.lecturer is already assigned to another slot at this time",
+  "code": "STAFF_TIME_CONFLICT"
+}
+
+400-Inactive reference:
+{
+  "status": 400,
+  "message": "Cannot update slot with inactive class",
+  "code": "INACTIVE_CLASS_NOT_ALLOWED"
+}
+
+Other inactive reference error codes:
+- INACTIVE_ROOM_NOT_ALLOWED
+- INACTIVE_STAFF_NOT_ALLOWED
+
+403-Insufficient permissions:
+{
+  "status": 403,
+  "message": "Lecturers can only update slotCategory field. Other fields require SLOT_UPDATE permission",
+  "code": "INSUFFICIENT_PERMISSIONS_FOR_FULL_UPDATE"
+}
+
+403-Not assigned to class:
+{
+  "status": 403,
+  "message": "You can only update slots for classes you are assigned to",
+  "code": "NOT_ASSIGNED_TO_CLASS"
 }
 
 404-Class not found:
@@ -414,18 +658,10 @@ Request Schema:
   "code": "USER_NOT_FOUND"
 }
 
-400-Invalid Json format
-HttpMessageNotReadableException:
+400-Malformed JSON:
 {
   "status": 400,
   "message": "Malformed JSON request",
-  "code": "MALFORMED_JSON"
-}
-
-400-Invalid unique constraint 
-{
-  "status": 400,
-  "message": "Slot already exits with classId, semesterId, roomId",
   "code": "MALFORMED_JSON"
 }
 
@@ -433,7 +669,8 @@ HttpMessageNotReadableException:
 ===================================================== Delete slot =====================================================
 
 5. DELETE /api/v1/slots/{id}
-Permission: SLOT_DELETE_HARD(M)
+Permission: SLOT_DELETE_HARD
+
 Path Parameters:
 | Parameter 	| Type 		| Required 	| Description
 | id 		| integer 	| Yes 		| Slot ID
@@ -441,49 +678,390 @@ Path Parameters:
 200-Success Response:
 {
   "status": 200,
-  "message": "Delete slot successfully"
+  "message": "Slot deleted successfully"
 }
 
-400 - Invalid Field type:
+400-Invalid field type:
 {
   "status": 400,
   "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
   "code": "INVALID_FIELD_TYPE"
 }
 
-404 - Slot not found:
+404-Slot not found:
 {
   "status": 404,
   "message": "Slot not found: 1",
   "code": "SLOT_NOT_FOUND"
 }
 
-409 - Conflict (foreign key constraint):
+409-Slot has dependencies:
 {
   "status": 409,
-  "message": "Delete all attendance records associated with this slot first",
-  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+  "message": "Cannot delete slot. Found 25 attendance records and 15 exam attendance records. Please delete them first or contact administrator",
+  "code": "SLOT_HAS_DEPENDENCIES"
 }
+
+================================================================================
+GET SLOT ROSTER
+================================================================================
+Endpoint: GET /api/v1/slots/{id}/roster
+Permission: ATTENDANCE_ROSTER_READ
+
+Business Rules:
+  • Returns the list of actively enrolled students (enrollments.is_enrolled = true)
+  • Includes the current attendance status for each student within this specific slot
+  • The user making the request must be the staff member assigned to this slot
+  • Related Business Rules: BR-14, BR-33
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+--------------------------------------------------------------------------------
+200 - Success Response:
+  {
+    "status": 200,
+    "data": {
+      "items": [
+        {
+          "userId": 201,
+          "fullName": "Tran Thi B",
+          "rollNumber": "HE180314",
+          "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180314.jpg",
+          "attendanceRecordId": 501,
+          "attendanceStatus": "present",
+          "method": "auto",
+          "remarks": null
+        },
+        {
+          "userId": 202,
+          "fullName": "Le Van C",
+          "rollNumber": "HE180315",
+          "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180315.jpg",
+          "attendanceRecordId": 502,
+          "attendanceStatus": "not_yet",
+          "method": null,
+          "remarks": null
+        }
+      ]
+    }
+  }
+Response Schema (items):
+  | Field              | Type    | Description                                                                  |
+  |--------------------|---------|------------------------------------------------------------------------------|
+  | userId             | integer | Student's User ID                                                            |
+  | fullName           | string  | Student's full name                                                          |
+  | rollNumber         | string  | Student's roll number                                                        |
+  | avatarUrl          | string  | URL to the student's approved identity photo                                 |
+  | attendanceRecordId | long    | ID of the attendance record for this slot                                    |
+  | attendanceStatus   | string  | Current status: "not_yet", "present", "absent"                               |
+  | method             | string  | How status was recorded: "auto", "manual", "system_finalize" (null if not_yet)|
+  | remarks            | string  | Any remarks added by the lecturer/supervisor (null if none)                  |
+
+--------------------------------------------------------------------------------
+400 - Invalid field type:
+  {
+    "status": 400,
+    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+    "code": "INVALID_FIELD_TYPE"
+  }
+
+--------------------------------------------------------------------------------
+403 - Not assigned to slot:
+  {
+    "status": 403,
+    "message": "You are not assigned to this slot and cannot view its roster",
+    "code": "NOT_ASSIGNED_TO_SLOT"
+  }
+
+--------------------------------------------------------------------------------
+404 - Slot not found:
+  {
+    "status": 404,
+    "message": "Slot not found: 1",
+    "code": "SLOT_NOT_FOUND"
+  }
+
+
+================================================================================
+START ATTENDANCE SESSION
+================================================================================
+Endpoint: POST /api/v1/slots/{id}/start-session
+Permission: SLOT_SESSION_START
+
+Business Rules:
+  • Initiates the first automated attendance scan for a slot
+  • Triggers the communication with the Python recognition service
+  • Can only be called by the assigned staff member
+  • The slot must not be finalized
+  • Related Business Rules: BR-18
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+--------------------------------------------------------------------------------
+200 - Success Response:
+  {
+    "status": 200,
+    "message": "Attendance session started successfully."
+  }
+
+--------------------------------------------------------------------------------
+400 - Invalid field type:
+  {
+    "status": 400,
+    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+    "code": "INVALID_FIELD_TYPE"
+  }
+
+--------------------------------------------------------------------------------
+403 - Not assigned to slot:
+  {
+    "status": 403,
+    "message": "You are not assigned to this slot and cannot start the session",
+    "code": "NOT_ASSIGNED_TO_SLOT"
+  }
+
+--------------------------------------------------------------------------------
+404 - Slot not found:
+  {
+    "status": 404,
+    "message": "Slot not found: 1",
+    "code": "SLOT_NOT_FOUND"
+  }
+
+--------------------------------------------------------------------------------
+409 - Slot already finalized:
+  {
+    "status": 409,
+    "message": "Cannot start session for a finalized slot",
+    "code": "SLOT_ALREADY_FINALIZED"
+  }
+
+
+================================================================================
+TRIGGER RE-SCAN
+================================================================================
+Endpoint: POST /api/v1/slots/{id}/rescan
+Permission: SLOT_SESSION_RESCAN
+
+Business Rules:
+  • Triggers a new attendance scan while a session is active
+  • The slot must have an active session and must not be finalized
+  • Can only be called by the assigned staff member
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+--------------------------------------------------------------------------------
+200 - Success Response:
+  {
+    "status": 200,
+    "message": "Re-scan triggered successfully."
+  }
+
+--------------------------------------------------------------------------------
+400 - Invalid field type:
+  {
+    "status": 400,
+    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+    "code": "INVALID_FIELD_TYPE"
+  }
+
+--------------------------------------------------------------------------------
+403 - Not assigned to slot:
+  {
+    "status": 403,
+    "message": "You are not assigned to this slot and cannot trigger a re-scan",
+    "code": "NOT_ASSIGNED_TO_SLOT"
+  }
+
+--------------------------------------------------------------------------------
+404 - Slot not found:
+  {
+    "status": 404,
+    "message": "Slot not found: 1",
+    "code": "SLOT_NOT_FOUND"
+  }
+
+--------------------------------------------------------------------------------
+409 - Slot already finalized:
+  {
+    "status": 409,
+    "message": "Cannot re-scan a finalized slot",
+    "code": "SLOT_ALREADY_FINALIZED"
+  }
+
+--------------------------------------------------------------------------------
+409 - Session not started:
+  {
+    "status": 409,
+    "message": "Cannot trigger re-scan because the attendance session has not been started",
+    "code": "SESSION_NOT_STARTED"
+  }
+
+
+================================================================================
+FINALIZE ATTENDANCE SESSION
+================================================================================
+Endpoint: POST /api/v1/slots/{id}/finalize
+Permission: SLOT_SESSION_FINALIZE
+
+Business Rules:
+  • Ends the attendance session and sets the final status for all students
+  • Requires a rule to resolve students who are still in 'not_yet' status
+  • Sets the finalizedAt timestamp on the slot
+  • Can only be called by the assigned staff member
+  • The slot must not already be finalized
+  • Related Business Rules: BR-21, BR-29
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+--------------------------------------------------------------------------------
+Request Body:
+  {
+    "notYetStatusResolution": "MARK_AS_ABSENT"
+  }
+
+Request Schema:
+  | Field                  | Type   | Required | Validation                                      |
+  |------------------------|--------|----------|-------------------------------------------------|
+  | notYetStatusResolution | string | Yes      | Must be "MARK_AS_ABSENT" or "MARK_AS_PRESENT"   |
+
+--------------------------------------------------------------------------------
+200 - Success Response:
+  {
+    "status": 200,
+    "message": "Slot finalized successfully.",
+    "data": {
+      "id": 1,
+      "title": "Introduction to Software Development",
+      "startTime": "2024-10-17T08:00:00Z",
+      "endTime": "2024-10-17T10:00:00Z",
+      "slotCategory": "LECTURE",
+      "finalizedAt": "2024-10-17T10:05:12Z",
+      // ... other slot fields ...
+      "totalStudent": 25,
+      "totalPresentStudent": 20,
+      "totalAbsentStudent": 5,
+      "totalNotYetStudent": 0,
+      "isActive": true,
+      "updatedAt": "2024-10-17T10:05:12Z"
+    }
+  }
+
+--------------------------------------------------------------------------------
+400 - Invalid field type:
+  {
+    "status": 400,
+    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+    "code": "INVALID_FIELD_TYPE"
+  }
+
+--------------------------------------------------------------------------------
+400 - Invalid finalization rule:
+  {
+    "status": 400,
+    "message": "Invalid value for notYetStatusResolution. Must be MARK_AS_ABSENT or MARK_AS_PRESENT",
+    "code": "INVALID_FINALIZATION_RULE"
+  }
+
+--------------------------------------------------------------------------------
+403 - Not assigned to slot:
+  {
+    "status": 403,
+    "message": "You are not assigned to this slot and cannot finalize it",
+    "code": "NOT_ASSIGNED_TO_SLOT"
+  }
+
+--------------------------------------------------------------------------------
+404 - Slot not found:
+  {
+    "status": 404,
+    "message": "Slot not found: 1",
+    "code": "SLOT_NOT_FOUND"
+  }
+
+--------------------------------------------------------------------------------
+409 - Slot already finalized:
+  {
+    "status": 409,
+    "message": "This slot has already been finalized",
+    "code": "SLOT_ALREADY_FINALIZED"
+  }
 
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 
-- Slot ID is of type Integer (not Short like other entities)
-- Class ID, Room ID are of type Short
-- Staff User ID is of type Integer
-- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
-- Pagination is 1-based (page=1 is the first page)
-- Default sort is by id in ascending order
-- Sortable fields: id, slotType
-- Response includes nested objects: room, staff, class (with semester)
-- SlotType enum: LECTURE or EXAM
-- @FutureOrPresent validation on startTime allows creating slots starting now
-- @Future validation on endTime requires end time to be in the future
-- TODO: endTime > startTime validation not implemented (mentioned in code comments)
-- Soft delete is done via PUT endpoint by setting isActive = false
-- Hard delete via DELETE endpoint is permanent and may fail if slot has attendance records
-- Slot can be reassigned to different room, class, or staff via PUT endpoint
-- (M) = Modified
+Data Types:
+- Slot ID: Integer
+- Class ID, Room ID: Short
+- Staff User ID: Integer
+- All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+
+Pagination:
+- 1-based pagination (page=1 is the first page)
+- Default sort: startTime ascending
+- Sortable fields: startTime, endTime, slotCategory, isActive
+
+Response Structure:
+- Simplified nested objects (only essential fields)
+- Room: id, name, location
+- StaffUser: id, username, fullName
+- Class: id, code, subject (id, name, code), semester (id, name, code)
+
+SlotCategory Enum:
+- LECTURE: Regular lecture session (teaching only)
+- LECTURE_WITH_PT: Lecture with progress test (teaching + testing)
+- FINAL_EXAM: Final exam session (testing only)
+
+Permissions:
+- SLOT_CREATE: Create LECTURE and LECTURE_WITH_PT slots (Data Operator)
+- SLOT_CREATE_FINAL_EXAM: Create FINAL_EXAM slots (Data Operator)
+- SLOT_READ: Read slot information (All roles)
+- SLOT_UPDATE: Full update of slots (Data Operator)
+- SLOT_UPDATE_CATEGORY: Update slotCategory only (Lecturer)
+- SLOT_UPDATE_FINAL_EXAM: Update FINAL_EXAM slots (Data Operator)
+- SLOT_DELETE_HARD: Permanently delete slots (Data Operator)
+
+Validation Rules:
+- Time format: ISO 8601 (YYYY-MM-DDTHH:mm:SSZ)
+- Slot duration: 30 minutes to 4 hours
+- startTime must be before endTime
+- Unique constraints: (startTime, endTime, roomId) and (startTime, endTime, staffUserId)
+- Staff must have LECTURER or SUPERVISOR role
+- Class, room, and staff must be active
+
+Attendance Counts:
+- totalStudent: Total enrolled students in the class
+- totalPresentStudent: Students marked present
+- totalAbsentStudent: Students marked absent
+- totalNotYetStudent: Students not yet marked
+- Only included in GET endpoints (list and by id)
+
+Soft Delete:
+- Done via PUT endpoint by setting isActive = false
+- Cannot deactivate if slot is finalized or has attendance records
+
+Hard Delete:
+- Permanent deletion via DELETE endpoint
+- Fails if slot has attendance or exam attendance records
+
+Business Rules:
+- BR-15: Slot Room Assignment
+- BR-16: Camera Room Validation
+- BR-17: Single Staff Assignment
+- BR-34: Slot Category Validation
+- BR-35: Lecturer Can Update Slot Category
 
 Common Status Codes:
 - 200: Success
@@ -492,5 +1070,5 @@ Common Status Codes:
 - 401: Unauthorized (missing or invalid token)
 - 403: Forbidden (insufficient permissions)
 - 404: Not Found (slot, class, room, or user not found)
-- 409: Conflict (foreign key constraint violation)
+- 409: Conflict (dependencies exist, time conflicts)
 - 500: Internal Server Error

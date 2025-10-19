@@ -1,0 +1,89 @@
+# Exam Attendance Table
+# FUACS Database Schema - Version 1.0
+
+tables:
+  exam_attendance:
+    primary_key: id
+    description: "Attendance records for exam component of slots (progress tests and final exams)"
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique exam attendance identifier"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp"
+      recorded_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "When exam attendance status was recorded"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to student"
+      slot_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: slots
+          column: id
+        description: "Reference to slot"
+      status:
+        type: varchar(30)
+        constraints: [NOT NULL]
+        description: "Exam attendance status: 'not_yet', 'present', 'absent'"
+      method:
+        type: varchar(20)
+        constraints: [NOT NULL]
+        description: "How status was determined: 'auto', 'manual', 'system_finalize'"
+    indexes:
+      - name: idx_exam_attendance_student_slot
+        columns: [student_user_id, slot_id]
+        unique: true
+        description: "One exam attendance record per student per slot"
+
+      - name: idx_exam_attendance_slot_id
+        columns: [slot_id]
+        description: "For queries: get all exam attendance records for a slot"
+
+      - name: idx_exam_attendance_status
+        columns: [status]
+        description: "For filtering by status"
+    notes:
+      - "Used for tracking attendance during exam component of slots"
+      - "For LECTURE_WITH_PT slots: Both attendance_records and exam_attendance exist"
+      - "For FINAL_EXAM slots: Only exam_attendance exists (no regular attendance_records)"
+      - "Status 'not_yet' is initial state before any attendance check"
+      - "Status 'present' indicates student was detected/marked present during exam"
+      - "Status 'absent' is final absent status for exam"
+      - "Method 'auto' for face recognition results"
+      - "Method 'manual' for lecturer/supervisor manual updates"
+      - "Method 'system_finalize' for batch status updates during finalization"
+
+relationship_with_attendance_records:
+  description: "exam_attendance is separate from attendance_records to track exam participation independently"
+  use_cases:
+    regular_lecture:
+      slot_category: "LECTURE"
+      tables_used: ["attendance_records"]
+      description: "Only regular attendance is tracked"
+    
+    lecture_with_progress_test:
+      slot_category: "LECTURE_WITH_PT"
+      tables_used: ["attendance_records", "exam_attendance"]
+      description: "Both regular attendance and exam attendance are tracked separately"
+    
+    final_exam:
+      slot_category: "FINAL_EXAM"
+      tables_used: ["exam_attendance"]
+      description: "Only exam attendance is tracked (no regular attendance)"

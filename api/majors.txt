@@ -15,9 +15,11 @@ Request Body:
 }
 
 Request Schema:
-| Field 	| Type 		| Required| Validation 
-| name 		| string 	| Yes 		| Not blank, max 150 chars(M), unique
-| code 		| string 	| Yes 		| Not blank, max 20 chars(M), unique
+| Field | Type   | Required | Validation 
+| name  | string | Yes      | Not blank, max 150 chars(M), unique, allows letters/digits/spaces/special chars
+|       |        |          | Pattern: ^[A-Za-z0-9 &-]+$, Examples: "Software Engineering", "AI & ML"
+| code  | string | Yes      | Not blank, max 20 chars(M), unique, allows letters/digits only (NO spaces)
+|       |        |          | Pattern: ^[A-Za-z0-9]+$, Examples: "SE", "AI", "DS101"
 
 201-Success Response:
 {
@@ -59,7 +61,7 @@ Response Schema:
 {
   "status": 400,
   "message": "Major code/name already exists: SE",
-  "code": "NAME/CODE_EXISTED"	
+  "code": "NAME/CODE_EXISTS"	
 }
 
 400-Malformed request body:
@@ -71,9 +73,6 @@ Response Schema:
 
 =======================================================================================================================
 =================================================== Search majors =====================================================
-Note: 
-có muốn thêm?
-"studentCount": 245,    // Số students thuộc major này
 
 2. GET /api/v1/majors
 Permission: MAJOR_READ
@@ -160,9 +159,11 @@ Permission: MAJOR_READ
 
 =======================================================================================================================
 ===================================================== Update major ====================================================
-Note:
-- When setting major isActive = false: All subjects under this major remain unchanged
-- Student profiles reference majors, so major deletion requires cleanup first
+Business Rules:
+1. Deactivation Check:
+   - Can deactivate major ONLY if ALL dependencies are inactive
+   - Dependencies include: subjects (subject.isActive = false) and student profiles
+   - If any subject is still active OR any student is enrolled, deactivation is blocked
 
 4. PUT /api/v1/majors/{id}
 Permission: MAJOR_UPDATE
@@ -179,10 +180,12 @@ Request Body:
 }
 
 Request Schema:
-| Field 	  | Type 		| Required| Validation
-| name 		  | string 	| Yes 		| Not blank, max 150 chars(M), unique, alphanumeric + spaces
-| code 		  | string 	| Yes 		| Not blank, max 20 chars(M), unique, alphanumeric + spaces
-| isActive 	| boolean | Yes 		| Not null
+| Field    | Type    | Required | Validation
+| name     | string  | Yes      | Not blank, max 150 chars(M), unique, allows letters/digits/spaces/special chars
+|          |         |          | Pattern: ^[A-Za-z0-9 &-]+$
+| code     | string  | Yes      | Not blank, max 20 chars(M), unique, allows letters/digits only (NO spaces)
+|          |         |          | Pattern: ^[A-Za-z0-9]+$
+| isActive | boolean | Yes      | Not null
 
 200-Success Response:
 {
@@ -222,7 +225,7 @@ Request Schema:
 {
   "status": 400,
   "message": "Major code/name already exists: SE",
-  "code": "NAME/CODE_EXISTED"	
+  "code": "NAME/CODE_EXISTS"	
 }
 
 400-Invalid Json format
@@ -233,10 +236,10 @@ HttpMessageNotReadableException:
   "code": "MALFORMED_JSON"
 }
 
-409-Cannot deactivate major with active subjects:
+409-Cannot deactivate major with active dependencies:
 {
   "status": 409,
-  "message": "Cannot deactivate major with active subjects or enrolled students",
+  "message": "Cannot deactivate major. Found 5 active subjects and 245 enrolled students",
   "code": "MAJOR_HAS_ACTIVE_DEPENDENCIES"
 }
 =======================================================================================================================
@@ -269,15 +272,18 @@ Path Parameters:
   "code": "MAJOR_NOT_FOUND"
 }
 
-409 - Conflict (foreign key constraint):
+409 - Conflict (has dependencies):
 {
   "status": 409,
-  "message": "Delete all subjects/student profiles associated with this major first",
-  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+  "message": "Cannot delete major. Found 12 subjects and 245 students. Please reassign or delete them first",
+  "code": "MAJOR_HAS_DEPENDENCIES"
 }
 
 =======================================================================================================================
 ============================================ Get subjects by major id =================================================
+Note:
+- Returns subjects linked to this major through subject_majors table (Many-to-Many relationship)
+- A subject can belong to multiple majors, so major info is not included in response (already known from URL)
 
 6. GET /api/v1/majors/{id}/subjects
 Permission: SUBJECT_READ
@@ -306,6 +312,14 @@ Query Parameters:
         "createdAt": "2024-10-16T11:30:00Z",
         "updatedAt": "2024-10-16T11:30:00Z"
       },
+      {
+        "id": 2,
+        "name": "Database Systems",
+        "code": "DBI202",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:35:00Z",
+        "updatedAt": "2024-10-16T11:35:00Z"
+      },
 	...
     ],
     "totalPages": 3,
@@ -316,14 +330,13 @@ Query Parameters:
 }
 
 Subject Object Schema:
-| Field 		| Type 		| Description 
-| id 			  | integer | Subject ID (Short type in DB)
-| name 			| string 	| Subject name
-| code 			| string 	| Subject code
-| major 		| object 	| Major object (nested)
-| isActive 	| boolean | Active status
-| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
-| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| Field     | Type    | Description 
+| id        | integer | Subject ID (Short type in DB)
+| name      | string  | Subject name
+| code      | string  | Subject code
+| isActive  | boolean | Active status
+| createdAt | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt | string  | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {

@@ -4,7 +4,6 @@ GET    	| /rooms/{id} 	      | ROOM_READ
 PUT    	| /rooms/{id} 	      | ROOM_UPDATE 
 DELETE 	| /rooms/{id} 	      | ROOM_DELETE_HARD(M)
 GET     | /rooms/{id}/cameras | CAMERA_READ
-GET     | /rooms/{id}/slots   | SLOT_READ
 
 
 ================================================= Create a new room ===================================================
@@ -18,7 +17,7 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation 
-| name     | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces + hyphens
+| name     | string | Yes | Not blank, max 150 chars, unique, pattern: ^[A-Za-z0-9\s\-]+$ (letters, numbers, spaces, hyphens only)
 | location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
 
 201-Success Response:
@@ -66,10 +65,6 @@ HttpMessageNotReadableException:
 
 =======================================================================================================================
 ==================================================== Search rooms =====================================================
-Note: 
-có muốn thêm:
-"totalCamera": 2,        // Số cameras trong room
-"totalActiveCamera": 1,  // Số cameras đang hoạt động
 
 2. GET /api/v1/rooms
 Permission: ROOM_READ
@@ -79,7 +74,9 @@ Query Parameters:
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
 | sortBy 	| string 	| No		| id 		| name, location, isActive
-| search 	| string 	| No 		| "" 		| Search in name and location 
+| search 	| string 	| No 		| "" 		| Search in name and location
+| isActive  | boolean | No      | null    | Filter by active status
+| hasCamera | boolean | No      | null    | Filter rooms with/without cameras 
 
 200-Success Response
 {
@@ -90,6 +87,8 @@ Query Parameters:
         "id": 1,
         "name": "Room A101",
         "location": "Building A, Floor 1",
+        "totalCameras": 2,
+        "activeCameras": 1,
         "isActive": true,
         "createdAt": "2024-10-16T10:30:00Z",
         "updatedAt": "2024-10-16T10:30:00Z"
@@ -163,7 +162,7 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation
-| name     | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces + hyphens
+| name     | string | Yes | Not blank, max 150 chars, unique, pattern: ^[A-Za-z0-9\s\-]+$ (letters, numbers, spaces, hyphens only)
 | location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
 | isActive 	| boolean 	| Yes 		| Not null
 
@@ -199,6 +198,13 @@ Request Schema:
   "status": 400,
   "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
   "code": "INVALID_FIELD_TYPE"
+}
+
+409 - Room name already exists:
+{
+  "status": 409,
+  "message": "Room name already exists: Room A101",
+  "code": "ROOM_NAME_EXISTS"
 }
 
 400-Invalid Json format
@@ -266,10 +272,21 @@ Path Parameters:
 }
 
 
-GET /api/v1/rooms/{id}/cameras
+6. GET /api/v1/rooms/{id}/cameras
+Permission: CAMERA_READ
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		      | short | Yes 		  | Room ID
+
+200-Success Response:
 {
   "status": 200,
   "data": {
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1"
+    },
     "items": [
       {
         "id": 1,
@@ -280,8 +297,16 @@ GET /api/v1/rooms/{id}/cameras
         "updatedAt": "2024-10-16T10:30:00Z"
       },
       ...
-    ]
+    ],
+    "totalItems": 2
   }
+}
+
+404 - Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
 }
 =======================================================================================================================
 ====================================================== Notes ==========================================================

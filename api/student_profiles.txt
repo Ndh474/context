@@ -25,7 +25,6 @@ Query Parameters:
   "data": {
     "items": [
       {
-        "id": 1,
         "userId": 201,
         "fullName": "Tran Thi B",
         "email": "tranthib@fpt.edu.vn",
@@ -65,7 +64,6 @@ Permission: USER_READ_DETAIL
   "status": 200,
   "message": null,
   "data": {
-    "id": 1,
     "userId": 201,
     "fullName": "Tran Thi B",
     "email": "tranthib@fpt.edu.vn",
@@ -76,7 +74,11 @@ Permission: USER_READ_DETAIL
     "majorCode": "SE",
     "roles": ["STUDENT"],
     "isActive": true,
-    "identityStatus": "APPROVED",
+    "latestIdentitySubmissionStatus": "approved",
+    "latestIdentitySubmissionType": "initial",
+    "latestIdentitySubmissionDate": "2024-10-10T14:00:00Z",
+    "hasActiveEmbedding": true,
+    "canUseFaceRecognition": true,
     "createdAt": "2024-10-16T11:00:00Z",
     "updatedAt": "2024-10-16T11:00:00Z"
   }
@@ -121,7 +123,6 @@ Request Body Schema:
 {
   "status": 201,
   "data": {
-    "id": 1,
     "userId": 201,
     "fullName": "Tran Thi B",
     "email": "tranthib@fpt.edu.vn",
@@ -140,8 +141,7 @@ Request Body Schema:
 
 Response Schema:
 | Field 	      | Type 		      | Description 
-| id 		        | int 	        | User ID
-| userId 	      | int 	        | Same as id (reference to users table)
+| userId 	      | int 	        | User ID (same as user_id in users table)
 | fullName 	    | string 	      | Student full name 
 | email 		    | string 	      | Student email address 
 | username 	    | string 	      | Login username (same as rollNumber)
@@ -224,7 +224,6 @@ Request body schema:
 {
   "status": 200,
   "data": {
-    "id": 1,
     "userId": 201,
     "fullName": "Tran Thi B - Updated",
     "email": "tranthib.updated@fpt.edu.vn",
@@ -303,7 +302,7 @@ Query Parameters:
 | sortBy 	    | string 	| No 		  | id 		  | name, code, isActive
 | search 	    | string 	| No 		  | "" 		  | Search in class name, code
 | semesterId  | integer | No      | null    | Filter by semester
-| enrollmentStatus | boolean | No | null   | Filter by enrollment status
+| enrollmentStatus | boolean | No | null   | Filter by enrollment status (true=enrolled, false=withdrawn)
 
 200-Success Response: 
 {
@@ -316,7 +315,6 @@ Query Parameters:
         "code": "SE1801",
         "semesterName": "Fall 2024",
         "subjectName": "Java Programming",
-        "lecturerName": "Nguyen Van A",
         "enrollmentStatus": true,
         "isActive": true
       },
@@ -349,80 +347,6 @@ Query Parameters:
   "message": "Student profile not found: 1",
   "code": "STUDENT_PROFILE_NOT_FOUND"
 }
-
-=======================================================================================================================
-========================================= Get attendance history by student profile id =====================================
-
-7. GET /api/v1/student-profiles/{studentId}/attendance-history
-Permission: OWN_ATTENDANCE_HISTORY_READ (for own data) | REPORT_READ_SYSTEM_WIDE (for all students)
-Path Parameters:
-| Parameter 	| Type 	| Required 	| Description
-| studentId 	| int   | Yes 		  | Student Profile ID (user_id)
-
-Query Parameters:
-| Parameter 	| Type 		| Required| Default | Validation
-| page 		    | integer | No 		  | 1 		  | 1-50
-| pageSize 	  | integer | No 		  | 10 		  | 1-50
-| sort 		    | string 	| No 		  | desc 	| asc/desc
-| sortBy 	    | string 	| No 		  | slotDate| slotDate, className, subjectName, attendanceStatus
-| semesterId  | integer | No      | null    | Filter by semester
-| classId     | integer | No      | null    | Filter by class
-| attendanceStatus | string | No | null   | Filter by status: present, absent, not_yet, absent_after_present
-
-200-Success Response: 
-{
-  "status": 200,
-  "data": {
-    "items": [
-      {
-        "slotId": 101,
-        "slotDate": "2024-10-15",
-        "slotTime": "08:00-09:30",
-        "slotType": "LECTURE",
-        "className": "SE1801",
-        "subjectName": "Java Programming",
-        "lecturerName": "Nguyen Van A",
-        "roomName": "Room 101",
-        "attendanceStatus": "present",
-        "remarks": null,
-        "finalizedAt": "2024-10-15T10:00:00Z"
-      },
-	    ...
-    ],
-    "totalPages": 8,
-    "currentPage": 1,
-    "pageSize": 10,
-    "totalItems": 75,
-    "summary": {
-      "totalSlots": 75,
-      "presentCount": 68,
-      "absentCount": 7,
-      "attendanceRate": 90.67
-    }
-  }
-}
-
-400-Invalid query parameters:
-{
-  "status": 400,
-  "message": "Page must >= 1, Invalid attendance status...",
-  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_ATTENDANCE_STATUS"
-}
-
-400 - Invalid Field type:
-{
-  "status": 400,
-  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
-  "code": "INVALID_FIELD_TYPE"
-}
-
-404 - Student profile not found:
-{
-  "status": 404,
-  "message": "Student profile not found: 1",
-  "code": "STUDENT_PROFILE_NOT_FOUND"
-}
-
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 
@@ -435,7 +359,6 @@ Query Parameters:
 - Hard delete via DELETE endpoint is permanent and may fail if student has enrollment/attendance history
 - Roll number and email must be unique
 - Username is automatically set to rollNumber
-- Roll number format: HE + 6 digits (e.g., HE180314)
 - Students always have STUDENT role only
 - Identity status tracks face recognition registration: PENDING, APPROVED, REJECTED
 
@@ -448,7 +371,6 @@ Attendance Status Values:
 - not_yet: Student has not been marked (initial state)
 - present: Student is present (detected by face recognition or manually marked)
 - absent: Student is absent (manually marked or finalized as absent)
-- absent_after_present: Student was present but left early (detected by system)
 
 Common Status Codes:
 - 200: Success

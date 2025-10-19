@@ -52,10 +52,10 @@ tables:
           table: users
           column: id
         description: "Lecturer or supervisor responsible for the slot"
-      slot_type:
+      slot_category:
         type: varchar(20)
         constraints: [NOT NULL]
-        description: "Type of slot: 'LECTURE' or 'EXAM'"
+        description: "Category of slot: 'LECTURE' (regular lecture), 'LECTURE_WITH_PT' (lecture with progress test), or 'FINAL_EXAM' (final exam)"
       title:
         type: varchar(255)
         constraints: [NULL]
@@ -64,10 +64,7 @@ tables:
         type: text
         constraints: [NULL]
         description: "General notes or instructions for the slot, visible to participants."
-      exam_subcategory:
-        type: varchar(30)
-        constraints: [NULL]
-        description: "Sub-category for exam slots to distinguish them. Valid values: 'PROGRESS_TEST', 'FINAL_EXAM'. Must be NULL when slot_type = 'LECTURE'. Validation enforced at application layer"
+
       is_active:
         type: boolean
         constraints: [NOT NULL]
@@ -94,7 +91,13 @@ tables:
         columns: [finalized_at]
         description: "For filtering finalized vs pending slots"
     notes:
-      - "slot_type determines available functions (LECTURE allows announcements, pre-slot messages)"
+      - "slot_category determines slot behavior and available functions"
+      - "LECTURE: Regular lecture session (teaching only)"
+      - "LECTURE_WITH_PT: Lecture with progress test (teaching + testing)"
+      - "FINAL_EXAM: Final exam session (testing only)"
+      - "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT"
+      - "Cannot change to/from FINAL_EXAM (only DOP can manage)"
+      - "Cannot change from LECTURE_WITH_PT to LECTURE if exam_attendance records exist"
       - "finalized_at tracks when attendance was completed by staff"
 
   attendance_records:
