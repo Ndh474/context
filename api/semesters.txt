@@ -1,0 +1,355 @@
+POST   	| /semesters 	   			     
+GET    	| /semesters 	   			     
+GET    	| /semesters/{id} 		     
+PUT    	| /semesters/{id} 			   
+DELETE 	| /semesters/{id} 			  
+GET    	| /semesters/{id}/classes
+
+=================================================== Search semesters ==================================================
+Note: tất cả các field không hợp lệ cho về default
+
+2. GET /api/v1/semesters
+Permission: SEMESTER_READ
+Query Parameters:
+| Parameter 	| Type 		      | Required 	| Default | Validation 
+| page 		    | integer 	    | No 		    | 1 		  | 1-50 
+| pageSize 	  | integer 	    | No 		    | 10 		  | 1-50 
+| sort 		    | string 	      | No 		    | asc 		| asc/desc 
+| sortBy 	    | string 	      | No		    | id 		  | name, code, startDate, endDate, isActive 
+| search 	    | string 	      | No 		    | "" 		  | Search in name and code
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24",
+        "startDate": "2024-09-01",
+        "endDate": "2024-12-31",
+        "isActive": true,
+        "totalClass": 15,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+	...
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 15
+  }
+}
+
+=======================================================================================================================
+=================================================== Get semester by id ================================================
+
+3. GET /api/v1/semesters/{id}
+Permission: SEMESTER_READ
+| Parameter 	| Type 	| Required 	| Description
+| id 		      | short | Yes 		  | Semester ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": null,
+  "data": {
+    "id": 1,
+    "name": "Fall 2024",
+    "code": "FA24",
+    "startDate": "2024-09-01",
+    "endDate": "2024-12-31",
+    "isActive": true,
+    "totalClass": 15,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================ Create a new semester ================================================
+Note: nếu có kỳ từ ngày A đến ngày B và đang inactive, thì không cho tạo semester giống date A và B 
+
+1. POST /api/v1/semesters
+Permission: SEMESTER_CREATE
+Request Body:
+{
+  "name": "Fall2024",		
+  "code": "FA24",		
+  "startDate": "2024-09-01",	
+  "endDate": "2024-12-31"	
+}
+
+Request Body Schema:
+| Field 	  | Type 		      | Required| Validation 
+| name 		  | string 	      | Yes 		| Not blank, max 20 chars(M), unique, alphanumeric, digits + spaces
+| code 		  | string 	      | Yes 		| Not blank, max 10 chars(M), unique, alphanumeric, digits + spaces
+| startDate | string (date) | Yes 		| YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+| endDate 	| string (date) | Yes 		| YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "name": "Fall2024",
+    "code": "FA24",
+    "startDate": "2024-09-01",
+    "endDate": "2024-12-31",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	    | Type 		      | Description 
+| id 		      | short 	      | Short type in DB
+| name 		    | string 	      | Semester name 
+| code 		    | string 	      | Semester code 
+| startDate 	| string (date) | YYYY-MM-DD
+| endDate 	  | string (date) | YYYY-MM-DD
+| isActive 	  | boolean 	    | Semester active status
+| totalClass 	| short  	      | Number of classes in this semester
+| createdAt 	| string 	      | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	      | YYYY-MM-DDTHH:mm:SSZ
+
+400-Missing fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank/Start Date required/ ...",
+  "code": "SEMESTER_NAME_REQUIRED" | "SEMESTER_CODE_REQUIRED" | "SEMESTER_START_DATE_REQUIRED" | "SEMESTER_END_DATE_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Semester code/name already exists: FA24",
+  "code": "SEMESTER_NAME_EXISTS" | "SEMESTER_CODE_EXISTS"
+}
+
+400-Invalid date format:
+{
+  "status": 400,
+  "message": "Invalid date format for field 'start/endDate'. Expected 'YYYY-MM-DD'",
+  "code": "INVALID_START/END_DATE_FORMAT"
+}
+
+400-Invalid date range:
+{
+  "status": 400,
+  "message": "Start date must be before end date",
+  "code": "SEMESTER_INVALID_DATE_RANGE"
+}
+
+400-Malformed request body:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+400-Semester date range existed:
+{
+  "status": 400,
+  "message": "A semester with this start and end date already exists",
+  "code": "SEMESTER_DATE_RANGE_EXISTS"
+}
+=======================================================================================================================
+=================================================== Update semester ===================================================
+Note:
+- When setting isActive = false: Thì không cho set false nếu count class active > 0
+- Kỳ đang diễn ra thì chỉ update code, name(TODO: check lại)
+
+4. PUT /api/v1/semesters/{id}
+Permission: SEMESTER_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		      | short | Yes 		  | Semester ID
+
+Request Body:
+{
+  "name": "Fall2024 - Updated",
+  "code": "FA24",
+  "startDate": "2024-09-01",
+  "endDate": "2024-12-31",
+  "isActive": true
+}
+
+Request body schema:
+| Field     | Type          | Required  | Validation
+| name      | string        | Yes       | Not blank, max 20 chars(M), unique, alphanumeric, digits + spaces
+| code      | string        | Yes       | Not blank, max 10 chars(M), unique, alphanumeric, digits + spaces
+| startDate | string (date) | Yes       | YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+| endDate   | string (date) | Yes       | YYYY-MM-DD, start date < end date, (start date + end date)-> unique
+| isActive  | boolean       | Yes       | Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Fall 2024 - Updated",
+    "code": "FA24",
+    "startDate": "2024-09-01",
+    "endDate": "2024-12-31",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+Các lỗi khác tương tự Create Semester + thêm các lỗi sau:
+404-Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+409 - Cannot Deactivate Active Semester:
+{
+  "status": 409,
+  "message": "Cannot deactivate semester with ongoing classes, deactivate classes first",
+  "code": "SEMESTER_HAS_ACTIVE_CLASSES"
+}
+=======================================================================================================================
+=================================================== Delete semester ===================================================
+
+5. DELETE /api/v1/semesters/{id}
+Permission: SEMESTER_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 	| Required | Description
+| id 		      | short | Yes 		 | Semester ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete semester successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all class associate with this semester first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+============================================ Get classes by semester id ===============================================
+Note: 
+- Only get active class with only name and id? i think not
+- sortBy: có thể kết hợp nhiều 
+/api/v1/semesters/{id}/classes
+6. GET 
+Permission: CLASS_READ
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| semesterId 	| short | Yes 		  | Semester ID
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | asc 		| asc/desc
+| sortBy 	    | string 	| No 		  | id 		  | name, code, isActive 
+| search 	    | string 	| No 		  | "" 		  | Search in class name, code
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "???",
+        "code": "???",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T12:30:00Z"
+      },
+	    ...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Semester ID is of type Short (max value: 32,767)
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Dates are in ISO 8601 date format: YYYY-MM-DD
+- Search parameter searches in both name and code fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if semester has classes
+- Semester code and name must be unique
+- Start date + end date combination must be unique
+- Start date must be < end date
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate code/name)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (semester not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

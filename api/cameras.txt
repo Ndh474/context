@@ -1,0 +1,332 @@
+POST   	| /cameras 	   		| CAMERA_CREATE 
+GET    	| /cameras 	   		| CAMERA_READ 
+GET    	| /cameras/{id} 	| CAMERA_READ 
+PUT    	| /cameras/{id} 	| CAMERA_UPDATE 
+DELETE 	| /cameras/{id} 	| CAMERA_DELETE_HARD(M)
+
+================================================ Create a new camera ==================================================
+1. POST /api/v1/cameras
+Permission: CAMERA_CREATE
+Request Body:
+{
+  "name": "Camera A101-01",
+  "rtspUrl": "rtsp://192.168.1.100:554/stream1",
+  "roomId": 1
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation 
+| name 		| string 	| Yes 		| Not blank, max 150 chars(M)
+| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars(M)
+| roomId 	| short 	| Yes 		| Not null, must be valid room ID
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "name": "Camera A101-01",
+    "rtspUrl": "rtsp://192.168.1.100:554/stream1",
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:30:00Z",
+      "updatedAt": "2024-10-16T10:30:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	| Type 		| Description 
+| id 		| short 	| Camera ID
+| name 		| string 	| Camera name 
+| rtspUrl 	| string 	| RTSP stream URL
+| room 		| object 	| Room object (nested)
+| isActive 	| boolean 	| Active status
+| createdAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, RTSP URL must not be blank ...",
+  "code": "NAME/RTSP_URL/ROOM_ID/_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
+}
+
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+=================================================== Search cameras ====================================================
+
+2. GET /api/v1/cameras
+Permission: CAMERA_READ
+Query Parameters:
+| Parameter 	| Type 		| Required 	| Default 	| Validation 
+| page 		| integer 	| No 		| 1 		| 1-50 
+| pageSize 	| integer 	| No 		| 10 		| 1-50 
+| sort 		| string 	| No 		| asc 		| asc/desc 
+| sortBy 	| string 	| No		| id 		| id, name, rtspUrl 
+| search 	| string 	| No 		| "" 		| Search in name and rtspUrl 
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Camera A101-01",
+        "rtspUrl": "rtsp://192.168.1.100:554/stream1",
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1",
+          "isActive": true,
+          "createdAt": "2024-10-16T10:30:00Z",
+          "updatedAt": "2024-10-16T10:30:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      {
+        "id": 2,
+        "name": "Camera A101-02",
+        "rtspUrl": "rtsp://192.168.1.101:554/stream1",
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1",
+          "isActive": true,
+          "createdAt": "2024-10-16T10:30:00Z",
+          "updatedAt": "2024-10-16T10:30:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T11:05:00Z",
+        "updatedAt": "2024-10-16T11:05:00Z"
+      },
+	...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+=======================================================================================================================
+=================================================== Get camera by id ==================================================
+
+3. GET /api/v1/cameras/{id}
+Permission: CAMERA_READ
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Camera ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Camera A101-01",
+    "rtspUrl": "rtsp://192.168.1.100:554/stream1",
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:30:00Z",
+      "updatedAt": "2024-10-16T10:30:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Camera not found:
+{
+  "status": 404,
+  "message": "Camera not found: 1",
+  "code": "CAMERA_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================================== Update camera ===================================================
+
+4. PUT /api/v1/cameras/{id}
+Permission: CAMERA_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Camera ID
+
+Request Body:
+{
+  "name": "Camera A101-01 - Updated",
+  "rtspUrl": "rtsp://192.168.1.100:554/stream2",
+  "roomId": 2,
+  "isActive": true
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation
+| name 		| string 	| Yes 		| Not blank, max 150 chars(M)
+| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars(M)
+| roomId 	| short 	| Yes 		| Not null, must be valid room ID
+| isActive 	| boolean 	| Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Camera A101-01 - Updated",
+    "rtspUrl": "rtsp://192.168.1.100:554/stream2",
+    "room": {
+      "id": 2,
+      "name": "Room A102",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:35:00Z",
+      "updatedAt": "2024-10-16T10:35:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+404-Camera not found:
+{
+  "status": 404,
+  "message": "Camera not found: 1",
+  "code": "CAMERA_NOT_FOUND"
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, RTSP URL must not be blank ...",
+  "code": "NAME/RTSP_URL/ROOM_ID/_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 2",
+  "code": "ROOM_NOT_FOUND"
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+===================================================== Delete camera ===================================================
+
+5. DELETE /api/v1/cameras/{id}
+Permission: CAMERA_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Camera ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete camera successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Camera not found:
+{
+  "status": 404,
+  "message": "Camera not found: 1",
+  "code": "CAMERA_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all slot cameras associated with this camera first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Camera ID is of type Short (max value: 32,767)
+- Room ID is also of type Short
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in both name and rtspUrl fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Response includes nested room object with full room details
+- RTSP URL format: rtsp://[username:password@]host[:port]/path
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if camera is assigned to slots
+- Camera can be reassigned to different room via PUT endpoint
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (camera or room not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

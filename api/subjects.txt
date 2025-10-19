@@ -1,0 +1,388 @@
+POST   	| /subjects 	   		| Create new subject 	| SUBJECT_CREATE 
+GET    	| /subjects 	   		| Get all subjects 		| SUBJECT_READ 
+GET    	| /subjects/{id} 		| Get subject by id 	| SUBJECT_READ 
+PUT    	| /subjects/{id} 		| Update subject 		  | SUBJECT_UPDATE 
+DELETE 	| /subjects/{id} 		| Delete subject 		  | SUBJECT_DELETE_HARD(M)
+
+================================================ Create a new subject =================================================
+1. POST /api/v1/subjects
+Permission: SUBJECT_CREATE
+Request Body:
+{
+  "name": "Software Development Project",
+  "code": "SWP391",
+  "majorId": 1
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation 
+| name    | string | Yes | Not blank, max 150 chars, unique, alphanumeric
+| code    | string | Yes | Not blank, max 20 chars, unique,  alphanumeric + no spaces
+| majorId | short  | Yes | Must exist, must be active (for CREATE/UPDATE)
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "name": "Software Development Project",
+    "code": "SWP391",
+    "major": {
+      "id": 1,
+      "name": "Software Engineering",
+      "code": "SE",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:00:00Z",
+      "updatedAt": "2024-10-16T11:00:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:30:00Z",
+    "updatedAt": "2024-10-16T11:30:00Z"
+  }
+}
+
+Response Schema:
+| Field 	| Type 		| Description 
+| id 		| integer 	| Short type in DB
+| name 		| string 	| Subject name 
+| code 		| string 	| Subject code
+| major 	| object 	| Major object (nested)
+| isActive 	| boolean 	| Active status
+| createdAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, Code must not be blank ...",
+  "code": "NAME/CODE/MAJOR_ID/_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Subject code/name already exists: SWP391",
+  "code": "NAME/CODE_EXISTED"	
+}
+
+404-Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+================================================== Search subjects ====================================================
+Note: có hiện subject có major inactive không?
+- Subjects với major inactive: VẪN hiển thị nhưng có indicator "Major Inactive"
+- Khi major bị inactive: subjects thuộc major đó vẫn active nhưng có warning
+
+
+2. GET /api/v1/subjects
+Permission: SUBJECT_READ
+Query Parameters:
+| Parameter 	| Type 		| Required 	| Default 	| Validation 
+| page 		  | integer 	| No 		| 1 		| 1-50 
+| pageSize 	| integer 	| No 		| 10 		| 1-50 
+| sort 		| string 	| No 		| asc 		| asc/desc 
+| sortBy 	| string 	| No		| id 		| name, code, isActive, majorName, majorCode
+| search 	| string 	| No 		| "" 		| Search in name and code 
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391",
+        "major": {
+          "id": 1,
+          "name": "Software Engineering",
+          "code": "SE",
+          "isActive": true,
+          "totalClass": 15,
+          "createdAt": "2024-10-16T11:00:00Z",
+          "updatedAt": "2024-10-16T11:00:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T11:30:00Z",
+        "updatedAt": "2024-10-16T11:30:00Z"
+      },
+	...
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+=======================================================================================================================
+=================================================== Get subject by id =================================================
+
+3. GET /api/v1/subjects/{id}
+Permission: SUBJECT_READ
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Subject ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Software Development Project",
+    "code": "SWP391",
+    "major": {
+      "id": 1,
+      "name": "Software Engineering",
+      "code": "SE",
+      "isActive": true,
+      "totalClass": 15,
+      "createdAt": "2024-10-16T11:00:00Z",
+      "updatedAt": "2024-10-16T11:00:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:30:00Z",
+    "updatedAt": "2024-10-16T11:30:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+400-Inactive major not allowed:
+{
+  "status": 400,
+  "message": "Cannot assign subject to inactive major",
+  "code": "INACTIVE_MAJOR_NOT_ALLOWED"
+}
+
+=======================================================================================================================
+==================================================== Update subject ===================================================
+Note: - Khi tạo/update subject: KHÔNG cho phép chọn inactive major
+
+4. PUT /api/v1/subjects/{id}
+Permission: SUBJECT_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Subject ID
+
+Request Body:
+{
+  "name": "Software Development Project - Updated",
+  "code": "SWP391",
+  "majorId": 2,
+  "isActive": true
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation
+| name    | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces
+| code    | string | Yes | Not blank, max 20 chars, unique, uppercase alphanumeric
+| majorId | short  | Yes | Must exist, must be active (for CREATE/UPDATE)
+| isActive 	| boolean 	| Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Software Development Project - Updated",
+    "code": "SWP391",
+    "major": {
+      "id": 2,
+      "name": "Information Assurance",
+      "code": "IA",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:05:00Z",
+      "updatedAt": "2024-10-16T11:05:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T11:30:00Z",
+    "updatedAt": "2024-10-16T12:45:00Z"
+  }
+}
+
+404-Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, Code must not be blank ...",
+  "code": "NAME/CODE/MAJOR_ID/_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Subject code/name already exists: SWP391",
+  "code": "NAME/CODE_EXISTED"	
+}
+
+404-Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 2",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+400-Inactive major not allowed:
+{
+  "status": 400,
+  "message": "Cannot assign subject to inactive major",
+  "code": "INACTIVE_MAJOR_NOT_ALLOWED"
+}
+
+409-Cannot deactivate subject with active classes:
+{
+  "status": 409,
+  "message": "Cannot deactivate subject with active classes",
+  "code": "SUBJECT_HAS_ACTIVE_CLASSES"
+}
+
+400-Cannot change major with existing classes:
+{
+  "status": 400,
+  "message": "Cannot change major for subject with existing classes",
+  "code": "SUBJECT_HAS_EXISTING_CLASSES"
+}
+
+=======================================================================================================================
+==================================================== Delete subject ===================================================
+
+5. DELETE /api/v1/subjects/{id}
+Permission: SUBJECT_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Subject ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete subject successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all classes associated with this subject first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+
+GET /subjects/{id}/classes  | Get classes by subject | CLASS_READ
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "SE1801",
+        "code": "SE1801",
+        "semester": {
+          "id": 1,
+          "name": "Fall 2024",
+          "code": "FA24"
+        },
+        "isActive": true
+      },
+      ...
+    ]
+  }
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Subject ID is of type Short (max value: 32,767)
+- Major ID is also of type Short
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in both name and code fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Response includes nested major object with full major details
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if subject has classes
+- Subject code and name must be unique
+- Subject can be reassigned to different major via PUT endpoint
+- Subject-class relationship is one-to-many (one subject can have multiple classes)
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate code/name)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (subject or major not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

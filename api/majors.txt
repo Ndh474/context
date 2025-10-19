@@ -1,0 +1,371 @@
+POST   	| /majors 	   		 		  | MAJOR_CREATE 
+GET    	| /majors 	   		      | MAJOR_READ 
+GET    	| /majors/{id} 				  | MAJOR_READ 
+PUT    	| /majors/{id} 			    | MAJOR_UPDATE 
+DELETE 	| /majors/{id} 					| MAJOR_DELETE_HARD(M)
+GET    	| /majors/{id}/subjects	| SUBJECT_READ 
+
+================================================= Create a new major ==================================================
+1. POST /api/v1/majors
+Permission: MAJOR_CREATE
+Request Body:
+{
+  "name": "Software Engineering",
+  "code": "SE"
+}
+
+Request Schema:
+| Field 	| Type 		| Required| Validation 
+| name 		| string 	| Yes 		| Not blank, max 150 chars(M), unique
+| code 		| string 	| Yes 		| Not blank, max 20 chars(M), unique
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "name": "Software Engineering",
+    "code": "SE",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	| Type 		| Description 
+| id 		| integer 	| Short type in DB
+| name 		| string 	| Major name 
+| code 		| string 	| Major code
+| isActive 	| boolean 	| Active status
+| createdAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, Code must not be blank ...",
+  "code": "NAME/CODE/_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Major code/name already exists: SE",
+  "code": "NAME/CODE_EXISTED"	
+}
+
+400-Malformed request body:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+=================================================== Search majors =====================================================
+Note: 
+có muốn thêm?
+"studentCount": 245,    // Số students thuộc major này
+
+2. GET /api/v1/majors
+Permission: MAJOR_READ
+Query Parameters:
+| Parameter | Type 		| Required| Default | Validation 
+| page 		  | integer | No 		  | 1 		  | 1-50 
+| pageSize 	| integer | No 		  | 10 		  | 1-50 
+| sort 		  | string 	| No 		  | asc 	  | asc/desc 
+| sortBy 	  | string 	| No		  | id 		  | name, code, isActive
+| search 	  | string 	| No 		  | "" 		  | Search in name and code 
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Software Engineering",
+        "code": "SE",
+        "isActive": true,
+        "totalSubject": 12,    
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      {
+        "id": 2,
+        "name": "Information Assurance",
+        "code": "IA",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:05:00Z",
+        "updatedAt": "2024-10-16T11:05:00Z"
+      },
+	...
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 15
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+=======================================================================================================================
+==================================================== Get major by id ==================================================
+
+3. GET /api/v1/majors/{id}
+Permission: MAJOR_READ
+| Parameter | Type 	| Required| Description
+| id 		    | short | Yes 		| Major ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Software Engineering",
+    "code": "SE",
+    "isActive": true,
+    "totalSubject": 12,    
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================================== Update major ====================================================
+Note:
+- When setting major isActive = false: All subjects under this major remain unchanged
+- Student profiles reference majors, so major deletion requires cleanup first
+
+4. PUT /api/v1/majors/{id}
+Permission: MAJOR_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Major ID
+
+Request Body:
+{
+  "name": "Software Engineering - Updated",
+  "code": "SE",
+  "isActive": true
+}
+
+Request Schema:
+| Field 	  | Type 		| Required| Validation
+| name 		  | string 	| Yes 		| Not blank, max 150 chars(M), unique, alphanumeric + spaces
+| code 		  | string 	| Yes 		| Not blank, max 20 chars(M), unique, alphanumeric + spaces
+| isActive 	| boolean | Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Software Engineering - Updated",
+    "code": "SE",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+404-Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank, Code must not be blank ...",
+  "code": "NAME/CODE/_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Major code/name already exists: SE",
+  "code": "NAME/CODE_EXISTED"	
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+409-Cannot deactivate major with active subjects:
+{
+  "status": 409,
+  "message": "Cannot deactivate major with active subjects or enrolled students",
+  "code": "MAJOR_HAS_ACTIVE_DEPENDENCIES"
+}
+=======================================================================================================================
+===================================================== Delete major ====================================================
+Note: - When deleting major: Must not have any subjects or student profiles
+
+5. DELETE /api/v1/majors/{id}
+Permission: MAJOR_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Major ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete major successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all subjects/student profiles associated with this major first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+============================================ Get subjects by major id =================================================
+
+6. GET /api/v1/majors/{id}/subjects
+Permission: SUBJECT_READ
+Path Parameters:
+| Parameter 	| Type 	| Required| Description
+| majorId 	  | short | Yes 		| Major ID
+
+Query Parameters:
+| Parameter | Type 		| Required | Default| Validation
+| page 		  | integer | No 		   | 1 		  | 1-50
+| pageSize 	| integer | No 		   | 10 		| 1-50
+| sort 		  | string 	| No 		   | asc 		| asc/desc
+| sortBy 	  | string 	| No 		   | id 		| name, code, isActive
+| search 	  | string 	| No 		   | "" 		| Search in subject name and code
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Project Management",
+        "code": "PRJ301",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:30:00Z",
+        "updatedAt": "2024-10-16T11:30:00Z"
+      },
+	...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+Subject Object Schema:
+| Field 		| Type 		| Description 
+| id 			  | integer | Subject ID (Short type in DB)
+| name 			| string 	| Subject name
+| code 			| string 	| Subject code
+| major 		| object 	| Major object (nested)
+| isActive 	| boolean | Active status
+| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Major not found:
+{
+  "status": 404,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Major ID is of type Short (max value: 32,767)
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in both name and code fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if major has subjects or student profiles
+- Major code and name must be unique
+- Nested /majors/{majorId}/subjects endpoint returns subjects with full major object
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate code/name)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (major not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

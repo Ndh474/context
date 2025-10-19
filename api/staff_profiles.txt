@@ -1,0 +1,359 @@
+POST   	| /staff-profiles 	   			     
+GET    	| /staff-profiles 	   			     
+GET    	| /staff-profiles/{id} 		     
+PUT    	| /staff-profiles/{id} 			   
+DELETE 	| /staff-profiles/{id} 			  
+GET    	| /staff-profiles/{id}/classes
+
+=================================================== Search staff profiles ==================================================
+
+2. GET /api/v1/staff-profiles
+Permission: USER_READ_LIST
+Query Parameters:
+| Parameter 	| Type 		      | Required 	| Default | Validation 
+| page 		    | integer 	    | No 		    | 1 		  | 1-50 
+| pageSize 	  | integer 	    | No 		    | 10 		  | 1-50 
+| sort 		    | string 	      | No 		    | asc 		| asc/desc 
+| sortBy 	    | string 	      | No		    | id 		  | fullName, staffCode, email, isActive 
+| search 	    | string 	      | No 		    | "" 		  | Search in fullName, staffCode, email
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "userId": 101,
+        "fullName": "Nguyen Van A",
+        "email": "nguyenvana@fpt.edu.vn",
+        "staffCode": "EMP001",
+        "roles": ["LECTURER"],
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+	...
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 15
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+=======================================================================================================================
+=================================================== Get staff profile by id ================================================
+
+3. GET /api/v1/staff-profiles/{id}
+Permission: USER_READ_DETAIL
+| Parameter 	| Type 	| Required 	| Description
+| id 		| int   | Yes 		| Staff Profile ID (user_id)
+
+200-Success Response:
+{
+  "status": 200,
+  "message": null,
+  "data": {
+    "id": 1,
+    "userId": 101,
+    "fullName": "Nguyen Van A",
+    "email": "nguyenvana@fpt.edu.vn",
+    "username": "EMP001",
+    "staffCode": "EMP001",
+    "roles": ["LECTURER", "SUPERVISOR"],
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Staff profile not found:
+{
+  "status": 404,
+  "message": "Staff profile not found: 1",
+  "code": "STAFF_PROFILE_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================ Create a new staff profile ================================================
+1. POST /api/v1/staff-profiles
+Permission: USER_CREATE
+Request Body:
+{
+  "fullName": "Nguyen Van A",		
+  "email": "nguyenvana@fpt.edu.vn",		
+  "staffCode": "EMP001",	
+  "password": "defaultPassword123",
+  "roles": ["LECTURER"]
+}
+
+Request Body Schema:
+| Field 	  | Type 		      | Required| Validation 
+| fullName 	| string 	      | Yes 		| Not blank, max 150 chars
+| email 		| string 	      | Yes 		| Valid email format, max 128 chars, unique
+| staffCode | string        | Yes 		| Not blank, max 20 chars, unique, alphanumeric
+| password 	| string        | No 		  | Min 8 chars, if not provided system generates default
+| roles 	  | array[string] | Yes 		| Valid roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "userId": 101,
+    "fullName": "Nguyen Van A",
+    "email": "nguyenvana@fpt.edu.vn",
+    "username": "EMP001",
+    "staffCode": "EMP001",
+    "roles": ["LECTURER"],
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	    | Type 		      | Description 
+| id 		      | int 	        | User ID
+| userId 	    | int 	        | Same as id (reference to users table)
+| fullName 	  | string 	      | Staff full name 
+| email 		  | string 	      | Staff email address 
+| username 	  | string 	      | Login username (same as staffCode)
+| staffCode 	| string        | Staff employee code
+| roles 	    | array[string] | Assigned roles
+| isActive 	  | boolean 	    | Account active status
+| createdAt 	| string 	      | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	      | YYYY-MM-DDTHH:mm:SSZ
+
+400-Missing fields required:
+{
+  "status": 400,
+  "message": "Full name must not be blank/Email required/Staff code required...",
+  "code": "FULL_NAME_REQUIRED" | "EMAIL_REQUIRED" | "STAFF_CODE_REQUIRED" | "ROLES_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Invalid email format/Invalid role...",
+  "code": "INVALID_EMAIL_FORMAT" | "INVALID_ROLE"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Email/Staff code already exists: nguyenvana@fpt.edu.vn",
+  "code": "EMAIL_EXISTS" | "STAFF_CODE_EXISTS"
+}
+
+400-Malformed request body:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+=======================================================================================================================
+=================================================== Update staff profile ===================================================
+Note:
+- When setting isActive = false: Staff account will be deactivated (soft delete)
+- When setting isActive = true: Staff account will be reactivated
+- Role constraints: SUPERVISOR or LECTURER roles cannot be assigned to users with STUDENT role
+
+4. PUT /api/v1/staff-profiles/{id}
+Permission: USER_UPDATE_INFO, USER_UPDATE_STATUS, USER_ASSIGN_ROLES
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		      | int   | Yes 		  | Staff Profile ID (user_id)
+
+Request Body:
+{
+  "fullName": "Nguyen Van A - Updated",
+  "email": "nguyenvana.updated@fpt.edu.vn",
+  "staffCode": "EMP001",
+  "roles": ["LECTURER", "SUPERVISOR"],
+  "isActive": true
+}
+
+Request body schema:
+| Field     | Type          | Required  | Validation
+| fullName  | string        | Yes       | Not blank, max 150 chars
+| email     | string        | Yes       | Valid email format, max 128 chars, unique
+| staffCode | string        | Yes       | Not blank, max 20 chars, unique, alphanumeric
+| roles     | array[string] | Yes       | Valid roles, cannot assign STUDENT role to staff
+| isActive  | boolean       | Yes       | Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "userId": 101,
+    "fullName": "Nguyen Van A - Updated",
+    "email": "nguyenvana.updated@fpt.edu.vn",
+    "username": "EMP001",
+    "staffCode": "EMP001",
+    "roles": ["LECTURER", "SUPERVISOR"],
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+Các lỗi khác tương tự Create Staff Profile + thêm các lỗi sau:
+404-Staff profile not found:
+{
+  "status": 404,
+  "message": "Staff profile not found: 1",
+  "code": "STAFF_PROFILE_NOT_FOUND"
+}
+
+409 - Role assignment conflict:
+{
+  "status": 409,
+  "message": "Cannot assign SUPERVISOR/LECTURER roles to users with STUDENT role",
+  "code": "ROLE_ASSIGNMENT_CONFLICT"
+}
+=======================================================================================================================
+=================================================== Delete staff profile ===================================================
+
+5. DELETE /api/v1/staff-profiles/{id}
+Permission: USER_DELETE_HARD
+Path Parameters:
+| Parameter 	| Type 	| Required | Description
+| id 		      | int   | Yes 		 | Staff Profile ID (user_id)
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete staff profile successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Staff profile not found:
+{
+  "status": 404,
+  "message": "Staff profile not found: 1",
+  "code": "STAFF_PROFILE_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Cannot delete staff profile with active assignments (classes, slots, etc.)",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+============================================ Get classes by staff profile id ===============================================
+Note: 
+- Get classes where this staff member is assigned as lecturer or supervisor
+
+6. GET /api/v1/staff-profiles/{staffId}/classes
+Permission: CLASS_READ
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| staffId 	  | int   | Yes 		  | Staff Profile ID (user_id)
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | asc 		| asc/desc
+| sortBy 	    | string 	| No 		  | id 		  | name, code, isActive
+| search 	    | string 	| No 		  | "" 		  | Search in class name, code
+| semesterId  | integer | No      | null    | Filter by semester
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Java Programming - SE1801",
+        "code": "SE1801",
+        "semesterName": "Fall 2024",
+        "subjectName": "Java Programming",
+        "role": "LECTURER",
+        "isActive": true
+      },
+	    ...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Staff profile not found:
+{
+  "status": 404,
+  "message": "Staff profile not found: 1",
+  "code": "STAFF_PROFILE_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Staff Profile ID is of type Integer (same as user_id)
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in fullName, staffCode, and email fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if staff has active assignments
+- Staff code and email must be unique
+- Username is automatically set to staffCode
+- Role assignment follows business rules (no STUDENT role for staff)
+
+Available Staff Roles:
+- LECTURER: Can manage lecture sessions and attendance
+- SUPERVISOR: Can supervise exam sessions
+- DATA_OPERATOR: Can manage system data and user accounts
+- SYSTEM_ADMIN: Can configure system settings and permissions
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate email/staffCode)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (staff profile not found)
+- 409: Conflict (foreign key constraint violation, role assignment conflict)
+- 500: Internal Server Error

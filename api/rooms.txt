@@ -1,0 +1,307 @@
+POST   	| /rooms 	   		      | ROOM_CREATE 
+GET    	| /rooms 	   		      | ROOM_READ 
+GET    	| /rooms/{id} 	      | ROOM_READ 
+PUT    	| /rooms/{id} 	      | ROOM_UPDATE 
+DELETE 	| /rooms/{id} 	      | ROOM_DELETE_HARD(M)
+GET     | /rooms/{id}/cameras | CAMERA_READ
+GET     | /rooms/{id}/slots   | SLOT_READ
+
+
+================================================= Create a new room ===================================================
+1. POST /api/v1/rooms
+Permission: ROOM_CREATE
+Request Body:
+{
+  "name": "Room A101",
+  "location": "Building A, Floor 1"
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation 
+| name     | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces + hyphens
+| location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "name": "Room A101",
+    "location": "Building A, Floor 1",
+    "isActive": true,
+    "createdAt": "2024-10-16T10:30:00Z",
+    "updatedAt": "2024-10-16T10:30:00Z"
+  }
+}
+
+Response Schema:
+| Field 	| Type 		| Description 
+| id 		| integer 	| Short type in DB
+| name 		| string 	| Room name 
+| location 	| string 	| Room location
+| isActive 	| boolean 	| Active status
+| createdAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank ...",
+  "code": "NAME/_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+==================================================== Search rooms =====================================================
+Note: 
+có muốn thêm:
+"totalCamera": 2,        // Số cameras trong room
+"totalActiveCamera": 1,  // Số cameras đang hoạt động
+
+2. GET /api/v1/rooms
+Permission: ROOM_READ
+Query Parameters:
+| Parameter 	| Type 		| Required 	| Default 	| Validation 
+| page 		| integer 	| No 		| 1 		| 1-50 
+| pageSize 	| integer 	| No 		| 10 		| 1-50 
+| sort 		| string 	| No 		| asc 		| asc/desc 
+| sortBy 	| string 	| No		| id 		| name, location, isActive
+| search 	| string 	| No 		| "" 		| Search in name and location 
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Room A101",
+        "location": "Building A, Floor 1",
+        "isActive": true,
+        "createdAt": "2024-10-16T10:30:00Z",
+        "updatedAt": "2024-10-16T10:30:00Z"
+      },
+	    ...
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+=======================================================================================================================
+===================================================== Get room by id ==================================================
+
+3. GET /api/v1/rooms/{id}
+Permission: ROOM_READ
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Room ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Room A101",
+    "location": "Building A, Floor 1",
+    "isActive": true,
+    "createdAt": "2024-10-16T10:30:00Z",
+    "updatedAt": "2024-10-16T10:30:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Update room ====================================================
+
+4. PUT /api/v1/rooms/{id}
+Permission: ROOM_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Room ID
+
+Request Body:
+{
+  "name": "Room A101 - Updated",
+  "location": "Building A, Floor 1, Section B",
+  "isActive": true
+}
+
+Request Schema:
+| Field 	| Type 		| Required 	| Validation
+| name     | string | Yes | Not blank, max 150 chars, unique, alphanumeric + spaces + hyphens
+| location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
+| isActive 	| boolean 	| Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "Room A101 - Updated",
+    "location": "Building A, Floor 1, Section B",
+    "isActive": true,
+    "createdAt": "2024-10-16T10:30:00Z",
+    "updatedAt": "2024-10-16T11:45:00Z"
+  }
+}
+
+404-Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Name must not be blank ...",
+  "code": "NAME/_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+409-Cannot deactivate room with active slots:
+{
+  "status": 409,
+  "message": "Cannot deactivate room with ongoing or future slots",
+  "code": "ROOM_HAS_ACTIVE_SLOTS"
+}
+
+409-Cannot deactivate room with active cameras:
+{
+  "status": 409,
+  "message": "Cannot deactivate room with active cameras",
+  "code": "ROOM_HAS_ACTIVE_CAMERAS"
+}
+=======================================================================================================================
+====================================================== Delete room ====================================================
+
+5. DELETE /api/v1/rooms/{id}
+Permission: ROOM_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		| short | Yes 		| Room ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete room successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
+}
+
+409-Room has cameras:
+{
+  "status": 409,
+  "message": "Cannot delete room with cameras. Remove cameras first",
+  "code": "ROOM_HAS_CAMERAS"
+}
+
+409-Room has future slots:
+{
+  "status": 409,
+  "message": "Cannot delete room with scheduled slots",
+  "code": "ROOM_HAS_SCHEDULED_SLOTS"
+}
+
+
+GET /api/v1/rooms/{id}/cameras
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Camera A101-Front",
+        "rtspUrl": "rtsp://camera1.example.com/stream",
+        "isActive": true,
+        "createdAt": "2024-10-16T10:30:00Z",
+        "updatedAt": "2024-10-16T10:30:00Z"
+      },
+      ...
+    ]
+  }
+}
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Room ID is of type Short (max value: 32,767)
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in both name and location fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if room is referenced by slots or cameras
+- Location field is optional
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (room not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

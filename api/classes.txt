@@ -1,0 +1,500 @@
+POST   	| /classes 	   		    | CLASS_CREATE 
+GET    	| /classes 	   		    | CLASS_READ 
+GET    	| /classes/{id} 	    | CLASS_READ 
+PUT    	| /classes/{id} 		  | CLASS_UPDATE 
+DELETE 	| /classes/{id} 		  | CLASS_DELETE_HARD(M)
+thêm? : GET    	| /classes/{id}/slots	| SLOT_READ 
+
+================================================= Create a new class ==================================================
+
+1. POST /api/v1/classes
+Permission: CLASS_CREATE
+Request Body:
+{
+  "code": "???",
+  "subjectId": 1,
+  "semesterId": 1
+}
+
+Request Schema:
+| Field 	    | Type 		| Required| Validation 
+| code 		    | string 	| Yes 		| Not blank, max 20 chars(M), unique per subject+semester
+| subjectId 	| short 	| Yes 		| Not null, must exist and active
+| semesterId 	| short 	| Yes 		| Not null, must exist and active
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "code": "???",
+    "semester": {
+      "id": 1,
+      "name": "Fall 2024",
+      "code": "FA24",
+      "startDate": "2024-09-01",
+      "endDate": "2024-12-31",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:00:00Z",
+      "updatedAt": "2024-10-16T11:00:00Z"
+    },
+   "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:30:00Z",
+      "updatedAt": "2024-10-16T11:30:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T12:00:00Z",
+    "updatedAt": "2024-10-16T12:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	  | Type 		| Description 
+| id 		    | integer | Short type in DB
+| code 		  | string 	| Class code 
+| semester 	| object 	| Semester object (nested)
+| subject 	| object 	| Subject object (nested)
+| isActive 	| boolean | Active status
+| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Code must not be blank, Subject ID required ...",
+  "code": "CODE_REQUIRED" | "SUBJECT_ID_REQUIRED" | "SEMESTER_ID_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Class existed:
+{
+  "status": 400,
+  "message": "Class already exists with subject, semester, and code",
+  "code": "CLASS_EXISTED"	
+}
+
+404-Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+404-Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+400-Malformed request body:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+400-Inactive references:
+{
+  "status": 400, 
+  "message": "Cannot create class with inactive subject or semester",
+  "code": "INACTIVE_REFERENCE_NOT_ALLOWED"
+}
+=======================================================================================================================
+=================================================== Search classes ====================================================
+Note: 
+có muốn search class theo semester/subject không?
+
+Đề xuất:
+- Search theo semester/subject: CẦN THIẾT - thêm filters này
+
+2. GET /api/v1/classes
+Permission: CLASS_READ
+Query Parameters:
+| Parameter | Type 		| Required| Default | Validation 
+| page 		  | integer | No 		  | 1 		  | 1-50 
+| pageSize 	| integer | No 		  | 10 		  | 1-50 
+| sort 		  | string 	| No 		  | asc 		| asc/desc 
+| sortBy 	  | string 	| No		  | id 		  | code, isActive
+| search 	  | string 	| No 		  | "" 		  | Search in class code
+| semesterId| short   | No      | null    | search by semester id
+| subjectId | short   | No      | null    | search by subject id
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "code": "???",
+        "totalStudent": 15,
+        "totalSlot": 20,
+        "semester": {
+          "id": 1,
+          "name": "Fall 2024",
+          "code": "FA24",
+          "startDate": "2024-09-01",
+          "endDate": "2024-12-31",
+          "isActive": true,
+          "createdAt": "2024-10-16T11:00:00Z",
+          "updatedAt": "2024-10-16T11:00:00Z"
+        },
+	      "subject": {
+          "id": 1,
+          "name": "Software Development Project",
+          "code": "SWP391",
+          "isActive": true,
+          "createdAt": "2024-10-16T11:30:00Z",
+          "updatedAt": "2024-10-16T11:30:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T12:00:00Z",
+        "updatedAt": "2024-10-16T12:00:00Z"
+      },
+    	...
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+=======================================================================================================================
+==================================================== Get class by id ==================================================
+
+3. GET /api/v1/classes/{id}
+Permission: CLASS_READ
+| Parameter | Type 	| Required| Description
+| id 		    | short | Yes 		| Class ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "code": "???",
+    "totalStudent": 15,
+    "totalSlot": 20,
+    "semester": {
+      "id": 1,
+      "name": "Fall 2024",
+      "code": "FA24",
+      "startDate": "2024-09-01",
+      "endDate": "2024-12-31",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:00:00Z",
+      "updatedAt": "2024-10-16T11:00:00Z"
+    },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:30:00Z",
+      "updatedAt": "2024-10-16T11:30:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T12:00:00Z",
+    "updatedAt": "2024-10-16T12:00:00Z"
+  }
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================================== Update class ====================================================
+
+4. PUT /api/v1/classes/{id}
+Permission: CLASS_UPDATE
+
+Path Parameters:
+| Parameter | Type 	| Required| Description
+| id 		    | short | Yes 		| Class ID
+
+Request Body:
+{
+  "code": "SE1801",
+  "subjectId": 1,
+  "semesterId": 2,
+  "isActive": true
+}
+
+Request Schema:
+| Field 	  | Type 		| Required| Validation
+| code 		  | string 	| Yes 		| Not blank, max 20 chars(M), unique per subject+semester
+| subjectId | short 	| Yes 		| Not null, must be valid subject ID, subject must be active
+| semesterId| short 	| Yes 		| Not null, must be valid semester ID, semester must be active
+| isActive 	| boolean | Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "code": "SE1801",
+    "semester": {
+      "id": 2,
+      "name": "Spring 2025",
+      "code": "SP25",
+      "startDate": "2025-01-15",
+      "endDate": "2025-05-31",
+      "isActive": true,
+      "createdAt": "2024-10-16T11:05:00Z",
+      "updatedAt": "2024-10-16T11:05:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T12:00:00Z",
+    "updatedAt": "2024-10-16T13:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Code must not be blank, Subject ID required ...",
+  "code": "CODE_REQUIRED" | "SUBJECT_ID_REQUIRED" | "SEMESTER_ID_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Class existed:
+{
+  "status": 400,
+  "message": "Class already exists with subject, semester, and code",
+  "code": "CLASS_EXISTED"	
+}
+
+404-Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 1",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+404-Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 2",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+409-Cannot deactivate class with active slots:
+{
+  "status": 409,
+  "message": "Cannot deactivate class with active slots or enrollments", 
+  "code": "CLASS_HAS_ACTIVE_DEPENDENCIES"
+}
+
+=======================================================================================================================
+===================================================== Delete class ====================================================
+
+5. DELETE /api/v1/classes/{id}
+Permission: CLASS_DELETE_HARD(M)
+Path Parameters:
+| Parameter | Type 	| Required| Description
+| id 		    | short | Yes 		| Class ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete class successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all slots/enrollments associated with this class first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+=============================================== Get slots by class id =================================================
+Note: có muốn search slot theo room/staff/class không?
+
+6. GET /api/v1/classes/{id}/slots
+Permission: SLOT_READ
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| classId 	| short | Yes 		| Class ID
+
+Query Parameters:
+| Parameter | Type 		| Required| Default | Validation
+| page 		  | integer | No 		  | 1 		  | 1-50
+| pageSize 	| integer | No 		  | 10 		  | 1-50
+| sort 		  | string 	| No 		  | asc 		| asc/desc
+| sortBy 	  | string 	| No 		  | id 		  | startTime, endTime, slotType, isActive
+| search 	  | string 	| No 		  | "" 		  | Search slotType
+| startTime | date    | No      | null    | Filter slots from date
+| endTime   | date    | No      | null    | Filter slots to date
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "startTime": "2024-10-17T08:00:00Z",
+        "endTime": "2024-10-17T10:00:00Z",
+        "slotType": "LECTURE",
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1",
+          "isActive": true,
+          "createdAt": "2024-10-16T10:30:00Z",
+          "updatedAt": "2024-10-16T10:30:00Z"
+        },
+        "staffUser": {
+          "id": 10,
+          "username": "john.lecturer",
+          "email": "john@example.com",
+          "fullName": "John Lecturer",
+          "isActive": true
+        },
+        "class": {
+          "id": 1,
+          "code": "SE1801",
+          "semester": {
+            "id": 1,
+            "name": "Fall 2024",
+            "code": "FA24",
+            "startDate": "2024-09-01",
+            "endDate": "2024-12-31",
+            "isActive": true,
+            "createdAt": "2024-10-16T11:00:00Z",
+            "updatedAt": "2024-10-16T11:00:00Z"
+          },
+          "isActive": true,
+          "createdAt": "2024-10-16T12:00:00Z",
+          "updatedAt": "2024-10-16T12:00:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T13:00:00Z",
+        "updatedAt": "2024-10-16T13:00:00Z"
+      },
+	    ...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+Slot Object Schema:
+| Field 		| Type 		| Description 
+| id 			  | integer | Slot ID
+| startTime | string 	| YYYY-MM-DDTHH:mm:SSZ
+| endTime 	| string 	| YYYY-MM-DDTHH:mm:SSZ
+| slotType 	| string 	| LECTURE or EXAM
+| room 			| object 	| Room object (nested)
+| staffUser | object 	| Staff/lecturer user object (nested)
+| class 		| object 	| Class object with nested semester
+| isActive 	| boolean | Active status
+| createdAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt | string 	| YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Class ID is of type Short (max value: 32,767)
+- Subject ID and Semester ID are also of type Short
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in class code
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Response includes nested semester and subject objects
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if class has slots or enrollments
+- Unique constraint on (subject_id, semester_id, code) - same class code cannot exist for same subject and semester
+- Nested /classes/{classId}/slots endpoint returns full slot details with room, staff, and class information
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate class)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (class, subject, or semester not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

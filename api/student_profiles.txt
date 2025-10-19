@@ -1,0 +1,461 @@
+POST   	| /student-profiles 	   			     
+GET    	| /student-profiles 	   			     
+GET    	| /student-profiles/{id} 		     
+PUT    	| /student-profiles/{id} 			   
+DELETE 	| /student-profiles/{id} 			  
+GET    	| /student-profiles/{id}/classes
+GET    	| /student-profiles/{id}/attendance-history
+
+=================================================== Search student profiles ==================================================
+
+2. GET /api/v1/student-profiles
+Permission: USER_READ_LIST
+Query Parameters:
+| Parameter 	| Type 		      | Required 	| Default | Validation 
+| page 		    | integer 	    | No 		    | 1 		  | 1-50 
+| pageSize 	  | integer 	    | No 		    | 10 		  | 1-50 
+| sort 		    | string 	      | No 		    | asc 		| asc/desc 
+| sortBy 	    | string 	      | No		    | id 		  | fullName, rollNumber, email, majorName, isActive 
+| search 	    | string 	      | No 		    | "" 		  | Search in fullName, rollNumber, email
+| majorId 	  | integer       | No 		    | null 		| Filter by major
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "userId": 201,
+        "fullName": "Tran Thi B",
+        "email": "tranthib@fpt.edu.vn",
+        "rollNumber": "HE180314",
+        "majorId": 1,
+        "majorName": "Software Engineering",
+        "majorCode": "SE",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+	...
+    ],
+    "totalPages": 5,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 45
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+=======================================================================================================================
+=================================================== Get student profile by id ================================================
+
+3. GET /api/v1/student-profiles/{id}
+Permission: USER_READ_DETAIL
+| Parameter 	| Type 	| Required 	| Description
+| id 		| int   | Yes 		| Student Profile ID (user_id)
+
+200-Success Response:
+{
+  "status": 200,
+  "message": null,
+  "data": {
+    "id": 1,
+    "userId": 201,
+    "fullName": "Tran Thi B",
+    "email": "tranthib@fpt.edu.vn",
+    "username": "HE180314",
+    "rollNumber": "HE180314",
+    "majorId": 1,
+    "majorName": "Software Engineering",
+    "majorCode": "SE",
+    "roles": ["STUDENT"],
+    "isActive": true,
+    "identityStatus": "APPROVED",
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Student profile not found:
+{
+  "status": 404,
+  "message": "Student profile not found: 1",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================ Create a new student profile ================================================
+1. POST /api/v1/student-profiles
+Permission: USER_CREATE
+Request Body:
+{
+  "fullName": "Tran Thi B",		
+  "email": "tranthib@fpt.edu.vn",		
+  "rollNumber": "HE180314",	
+  "majorId": 1,
+  "password": "defaultPassword123"
+}
+
+Request Body Schema:
+| Field 	  | Type 		      | Required| Validation 
+| fullName 	| string 	      | Yes 		| Not blank, max 150 chars
+| email 		| string 	      | Yes 		| Valid email format, max 128 chars, unique
+| rollNumber| string        | Yes 		| Not blank, max 20 chars, unique, format: HE + 6 digits
+| majorId 	| integer       | Yes 		| Valid major ID, must exist
+| password 	| string        | No 		  | Min 8 chars, if not provided system generates default
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "userId": 201,
+    "fullName": "Tran Thi B",
+    "email": "tranthib@fpt.edu.vn",
+    "username": "HE180314",
+    "rollNumber": "HE180314",
+    "majorId": 1,
+    "majorName": "Software Engineering",
+    "majorCode": "SE",
+    "roles": ["STUDENT"],
+    "isActive": true,
+    "identityStatus": "PENDING",
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 	      | Type 		      | Description 
+| id 		        | int 	        | User ID
+| userId 	      | int 	        | Same as id (reference to users table)
+| fullName 	    | string 	      | Student full name 
+| email 		    | string 	      | Student email address 
+| username 	    | string 	      | Login username (same as rollNumber)
+| rollNumber 	  | string        | Student roll number (e.g., HE180314)
+| majorId 	    | integer       | Major ID
+| majorName 	  | string        | Major name
+| majorCode 	  | string        | Major code
+| roles 	      | array[string] | Always ["STUDENT"]
+| isActive 	    | boolean 	    | Account active status
+| identityStatus| string        | Identity verification status: PENDING, APPROVED, REJECTED
+| createdAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
+
+400-Missing fields required:
+{
+  "status": 400,
+  "message": "Full name must not be blank/Email required/Roll number required/Major ID required...",
+  "code": "FULL_NAME_REQUIRED" | "EMAIL_REQUIRED" | "ROLL_NUMBER_REQUIRED" | "MAJOR_ID_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Invalid email format/Invalid roll number format...",
+  "code": "INVALID_EMAIL_FORMAT" | "INVALID_ROLL_NUMBER_FORMAT"
+}
+
+400-Fields existed:
+{
+  "status": 400,
+  "message": "Email/Roll number already exists: tranthib@fpt.edu.vn",
+  "code": "EMAIL_EXISTS" | "ROLL_NUMBER_EXISTS"
+}
+
+400-Invalid reference:
+{
+  "status": 400,
+  "message": "Major not found: 1",
+  "code": "MAJOR_NOT_FOUND"
+}
+
+400-Malformed request body:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+=======================================================================================================================
+=================================================== Update student profile ===================================================
+Note:
+- When setting isActive = false: Student account will be deactivated (soft delete)
+- When setting isActive = true: Student account will be reactivated
+- Role is always STUDENT and cannot be changed
+
+4. PUT /api/v1/student-profiles/{id}
+Permission: USER_UPDATE_INFO, USER_UPDATE_STATUS
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| id 		      | int   | Yes 		  | Student Profile ID (user_id)
+
+Request Body:
+{
+  "fullName": "Tran Thi B - Updated",
+  "email": "tranthib.updated@fpt.edu.vn",
+  "rollNumber": "HE180314",
+  "majorId": 1,
+  "isActive": true
+}
+
+Request body schema:
+| Field     | Type     | Required  | Validation
+| fullName  | string   | Yes       | Not blank, max 150 chars
+| email     | string   | Yes       | Valid email format, max 128 chars, unique
+| rollNumber| string   | Yes       | Not blank, max 20 chars, unique, format: HE + 6 digits
+| majorId   | integer  | Yes       | Valid major ID, must exist
+| isActive  | boolean  | Yes       | Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "userId": 201,
+    "fullName": "Tran Thi B - Updated",
+    "email": "tranthib.updated@fpt.edu.vn",
+    "username": "HE180314",
+    "rollNumber": "HE180314",
+    "majorId": 1,
+    "majorName": "Software Engineering",
+    "majorCode": "SE",
+    "roles": ["STUDENT"],
+    "isActive": true,
+    "identityStatus": "APPROVED",
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+Các lỗi khác tương tự Create Student Profile + thêm các lỗi sau:
+404-Student profile not found:
+{
+  "status": 404,
+  "message": "Student profile not found: 1",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
+}
+=======================================================================================================================
+=================================================== Delete student profile ===================================================
+
+5. DELETE /api/v1/student-profiles/{id}
+Permission: USER_DELETE_HARD
+Path Parameters:
+| Parameter 	| Type 	| Required | Description
+| id 		      | int   | Yes 		 | Student Profile ID (user_id)
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete student profile successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Student profile not found:
+{
+  "status": 404,
+  "message": "Student profile not found: 1",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Cannot delete student profile with enrollment history or attendance records",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+============================================ Get classes by student profile id ===============================================
+Note: 
+- Get classes where this student is enrolled
+
+6. GET /api/v1/student-profiles/{studentId}/classes
+Permission: CLASS_READ
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| studentId 	| int   | Yes 		  | Student Profile ID (user_id)
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | asc 		| asc/desc
+| sortBy 	    | string 	| No 		  | id 		  | name, code, isActive
+| search 	    | string 	| No 		  | "" 		  | Search in class name, code
+| semesterId  | integer | No      | null    | Filter by semester
+| enrollmentStatus | boolean | No | null   | Filter by enrollment status
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Java Programming - SE1801",
+        "code": "SE1801",
+        "semesterName": "Fall 2024",
+        "subjectName": "Java Programming",
+        "lecturerName": "Nguyen Van A",
+        "enrollmentStatus": true,
+        "isActive": true
+      },
+	    ...
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 12
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Student profile not found:
+{
+  "status": 404,
+  "message": "Student profile not found: 1",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
+}
+
+=======================================================================================================================
+========================================= Get attendance history by student profile id =====================================
+
+7. GET /api/v1/student-profiles/{studentId}/attendance-history
+Permission: OWN_ATTENDANCE_HISTORY_READ (for own data) | REPORT_READ_SYSTEM_WIDE (for all students)
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| studentId 	| int   | Yes 		  | Student Profile ID (user_id)
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | desc 	| asc/desc
+| sortBy 	    | string 	| No 		  | slotDate| slotDate, className, subjectName, attendanceStatus
+| semesterId  | integer | No      | null    | Filter by semester
+| classId     | integer | No      | null    | Filter by class
+| attendanceStatus | string | No | null   | Filter by status: present, absent, not_yet, absent_after_present
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "slotId": 101,
+        "slotDate": "2024-10-15",
+        "slotTime": "08:00-09:30",
+        "slotType": "LECTURE",
+        "className": "SE1801",
+        "subjectName": "Java Programming",
+        "lecturerName": "Nguyen Van A",
+        "roomName": "Room 101",
+        "attendanceStatus": "present",
+        "remarks": null,
+        "finalizedAt": "2024-10-15T10:00:00Z"
+      },
+	    ...
+    ],
+    "totalPages": 8,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 75,
+    "summary": {
+      "totalSlots": 75,
+      "presentCount": 68,
+      "absentCount": 7,
+      "attendanceRate": 90.67
+    }
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid attendance status...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_ATTENDANCE_STATUS"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Student profile not found:
+{
+  "status": 404,
+  "message": "Student profile not found: 1",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Student Profile ID is of type Integer (same as user_id)
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Search parameter searches in fullName, rollNumber, and email fields
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if student has enrollment/attendance history
+- Roll number and email must be unique
+- Username is automatically set to rollNumber
+- Roll number format: HE + 6 digits (e.g., HE180314)
+- Students always have STUDENT role only
+- Identity status tracks face recognition registration: PENDING, APPROVED, REJECTED
+
+Identity Status Values:
+- PENDING: Student has not completed identity registration or waiting for approval
+- APPROVED: Identity registration approved, can use face recognition attendance
+- REJECTED: Identity registration rejected, needs to re-submit
+
+Attendance Status Values:
+- not_yet: Student has not been marked (initial state)
+- present: Student is present (detected by face recognition or manually marked)
+- absent: Student is absent (manually marked or finalized as absent)
+- absent_after_present: Student was present but left early (detected by system)
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters, duplicate email/rollNumber)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (student profile not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error

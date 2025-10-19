@@ -1,0 +1,496 @@
+POST   	| /slots 	   		| Create new slot 		| SLOT_CREATE 
+GET    	| /slots 	   		| Get all slots 		| SLOT_READ 
+GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ 
+PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE 
+DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD(M)
+
+================================================= Create a new slot ===================================================
+1. POST /api/v1/slots
+Permission: SLOT_CREATE
+Request Body:
+{
+  "startTime": "2024-10-17T08:00:00Z",
+  "endTime": "2024-10-17T10:00:00Z",
+  "classId": 1,
+  "roomId": 1,
+  "staffId": 10,
+  "slotType": "LECTURE"
+}
+
+Request Schema:
+| Field 		| Type 			| Required 	| Validation 
+| startTime 		| string  		| Yes 		| Not null, startTime < endTime
+| endTime 		| string 	 	| Yes 		| Not null, startTime < endTime
+| classId 		| short 		| Yes 		| Not null, must be valid class ID, class must be active, (startTime + endTime + classId + roomId + staffId) -> unique
+| roomId 		| short 		| Yes 		| Not null, must be valid room ID, room must be active, (startTime + endTime + classId + roomId + staffId) -> unique
+| staffId 		| integer 		| Yes 		| Not null, must be valid user ID, staff must be active, (startTime + endTime + classId + roomId + staffId) -> unique
+| slotType 		| string 		| Yes 		| Not null, must be "LECTURE" or "EXAM"
+
+SlotType Enum Values:
+- LECTURE - Regular lecture session
+- EXAM - Examination session
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1,
+    "startTime": "2024-10-17T08:00:00Z",
+    "endTime": "2024-10-17T10:00:00Z",
+    "slotType": "LECTURE",
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:30:00Z",
+      "updatedAt": "2024-10-16T10:30:00Z"
+    },
+    "staff": {
+      "id": 10,
+      "username": "john.lecturer",
+      "email": "john@example.com",
+      "fullName": "John Lecturer",
+      "isActive": true,
+      "createdAt": "2024-10-15T08:00:00Z",
+      "updatedAt": "2024-10-15T08:00:00Z"
+    },
+    "class": {
+      "id": 1,
+      "name": "SE1801",
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24",
+        "startDate": "2024-09-01",
+        "endDate": "2024-12-31",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      "isActive": true,
+      "createdAt": "2024-10-16T12:00:00Z",
+      "updatedAt": "2024-10-16T12:00:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T13:00:00Z",
+    "updatedAt": "2024-10-16T13:00:00Z"
+  }
+}
+
+Response Schema:
+| Field 		| Type 			| Description 
+| id 			| integer 		| Slot ID
+| startTime 		| string 	 	| YYYY-MM-DDTHH:mm:SSZ
+| endTime 		| string 	 	| YYYY-MM-DDTHH:mm:SSZ
+| slotType 		| string 		| LECTURE or EXAM
+| room 			| object 		| Room object (nested)
+| staff 		| object 		| Staff/lecturer user object (nested)
+| class 		| object 		| Class object with nested semester
+| isActive 		| boolean 		| Active status
+| createdAt 		| string 		| YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 		| string 		| YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Start time cannot be null, Slot type required ...",
+  "code": "START_TIME/END_TIME/CLASS_ID/ROOM_ID/STAFF_USER_ID/SLOT_TYPE/_REQUIRED"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid slot type:
+{
+  "status": 400,
+  "message": "Invalid slot type. Must be LECTURE or EXAM",
+  "code": "INVALID_SLOT_TYPE"
+}
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+404-Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
+}
+
+404-Staff user not found:
+{
+  "status": 404,
+  "message": "User not found: 10",
+  "code": "USER_NOT_FOUND"
+}
+
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+==================================================== Search slots =====================================================
+
+2. GET /api/v1/slots
+Permission: SLOT_READ
+Query Parameters:
+| Parameter 	| Type 		| Required 	| Default 	| Validation 
+| page 		| integer 	| No 		| 1 		| 1-50 
+| pageSize 	| integer 	| No 		| 10 		| 1-50 
+| sort 		| string 	| No 		| asc 		| asc/desc 
+| sortBy 	| string 	| No		| id 		| id, slotType 
+| search 	| string 	| No 		| "" 		| Search slotType 
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "startTime": "2024-10-17T08:00:00Z",
+        "endTime": "2024-10-17T10:00:00Z",
+        "slotType": "LECTURE",
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1",
+          "isActive": true,
+          "createdAt": "2024-10-16T10:30:00Z",
+          "updatedAt": "2024-10-16T10:30:00Z"
+        },
+        "staff": {
+          "id": 10,
+          "username": "john.lecturer",
+          "email": "john@example.com",
+          "fullName": "John Lecturer",
+          "isActive": true,
+          "createdAt": "2024-10-15T08:00:00Z",
+          "updatedAt": "2024-10-15T08:00:00Z"
+        },
+        "class": {
+          "id": 1,
+          "name": "SE1801",
+          "semester": {
+            "id": 1,
+            "name": "Fall 2024",
+            "code": "FA24",
+            "startDate": "2024-09-01",
+            "endDate": "2024-12-31",
+            "isActive": true,
+            "createdAt": "2024-10-16T11:00:00Z",
+            "updatedAt": "2024-10-16T11:00:00Z"
+          },
+          "isActive": true,
+          "createdAt": "2024-10-16T12:00:00Z",
+          "updatedAt": "2024-10-16T12:00:00Z"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-16T13:00:00Z",
+        "updatedAt": "2024-10-16T13:00:00Z"
+      },
+	...
+    ],
+    "totalPages": 10,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 95
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE/SORT/SORT_BY"
+}
+=======================================================================================================================
+==================================================== Get slot by id ===================================================
+
+3. GET /api/v1/slots/{id}
+Permission: SLOT_READ
+| Parameter 	| Type 	| Required 	| Description
+| id 		| integer | Yes 	| Slot ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "startTime": "2024-10-17T08:00:00Z",
+    "endTime": "2024-10-17T10:00:00Z",
+    "slotType": "LECTURE",
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:30:00Z",
+      "updatedAt": "2024-10-16T10:30:00Z"
+    },
+    "staff": {
+      "id": 10,
+      "username": "john.lecturer",
+      "email": "john@example.com",
+      "fullName": "John Lecturer",
+      "isActive": true,
+      "createdAt": "2024-10-15T08:00:00Z",
+      "updatedAt": "2024-10-15T08:00:00Z"
+    },
+    "class": {
+      "id": 1,
+      "name": "SE1801",
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24",
+        "startDate": "2024-09-01",
+        "endDate": "2024-12-31",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      "isActive": true,
+      "createdAt": "2024-10-16T12:00:00Z",
+      "updatedAt": "2024-10-16T12:00:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T13:00:00Z",
+    "updatedAt": "2024-10-16T13:00:00Z"
+  }
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Slot not found:
+{
+  "status": 404,
+  "message": "Slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+=======================================================================================================================
+===================================================== Update slot =====================================================
+
+4. PUT /api/v1/slots/{id}
+Permission: SLOT_UPDATE
+
+Path Parameters:
+| Parameter 	| Type 		| Required 	| Description
+| id 		| integer 	| Yes 		| Slot ID
+
+Request Body:
+{
+  "startTime": "2024-10-17T08:30:00Z",
+  "endTime": "2024-10-17T10:30:00Z",
+  "classId": 1,
+  "roomId": 2,
+  "staffId": 10,
+  "slotType": "LECTURE",
+  "isActive": true
+}
+
+Request Schema:
+| Field 		| Type 			| Required 	| Validation
+| startTime 		| string (ISO 8601) 	| Yes 		| Not null, 
+| endTime 		| string (ISO 8601) 	| Yes 		| Not null, 
+| classId 		| short 		| Yes 		| Not null, must be valid class ID, class active, (startTime + endTime + classId + roomId + staffId) -> unique
+| roomId 		| short 		| Yes 		| Not null, must be valid room ID, room active, (startTime + endTime + classId + roomId + staffId) -> unique
+| staffId 		| integer 		| Yes 		| Not null, must be valid user ID, user active, (startTime + endTime + classId + roomId + staffId) -> unique
+| slotType 		| string 		| Yes 		| Not null, must be "LECTURE" or "EXAM"
+| isActive 		| boolean 		| Yes 		| Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "startTime": "2024-10-17T08:30:00Z",
+    "endTime": "2024-10-17T10:30:00Z",
+    "slotType": "LECTURE",
+    "room": {
+      "id": 2,
+      "name": "Room A102",
+      "location": "Building A, Floor 1",
+      "isActive": true,
+      "createdAt": "2024-10-16T10:35:00Z",
+      "updatedAt": "2024-10-16T10:35:00Z"
+    },
+    "staff": {
+      "id": 10,
+      "username": "john.lecturer",
+      "email": "john@example.com",
+      "fullName": "John Lecturer",
+      "isActive": true,
+      "createdAt": "2024-10-15T08:00:00Z",
+      "updatedAt": "2024-10-15T08:00:00Z"
+    },
+    "class": {
+      "id": 1,
+      "name": "SE1801",
+      "semester": {
+        "id": 1,
+        "name": "Fall 2024",
+        "code": "FA24",
+        "startDate": "2024-09-01",
+        "endDate": "2024-12-31",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      "isActive": true,
+      "createdAt": "2024-10-16T12:00:00Z",
+      "updatedAt": "2024-10-16T12:00:00Z"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-16T13:00:00Z",
+    "updatedAt": "2024-10-16T14:30:00Z"
+  }
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Start time cannot be null, Slot type required ...",
+  "code": "START_TIME/END_TIME/CLASS_ID/ROOM_ID/STAFF_USER_ID/SLOT_TYPE/_REQUIRED"
+}
+
+400-Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short/Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid slot type:
+{
+  "status": 400,
+  "message": "Invalid slot type. Must be LECTURE or EXAM",
+  "code": "INVALID_SLOT_TYPE"
+}
+
+404-Class not found:
+{
+  "status": 404,
+  "message": "Class not found: 1",
+  "code": "CLASS_NOT_FOUND"
+}
+
+404-Room not found:
+{
+  "status": 404,
+  "message": "Room not found: 2",
+  "code": "ROOM_NOT_FOUND"
+}
+
+404-Staff user not found:
+{
+  "status": 404,
+  "message": "User not found: 10",
+  "code": "USER_NOT_FOUND"
+}
+
+400-Invalid Json format
+HttpMessageNotReadableException:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+400-Invalid unique constraint 
+{
+  "status": 400,
+  "message": "Slot already exits with classId, semesterId, roomId",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+===================================================== Delete slot =====================================================
+
+5. DELETE /api/v1/slots/{id}
+Permission: SLOT_DELETE_HARD(M)
+Path Parameters:
+| Parameter 	| Type 		| Required 	| Description
+| id 		| integer 	| Yes 		| Slot ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete slot successfully"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Slot not found:
+{
+  "status": 404,
+  "message": "Slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+409 - Conflict (foreign key constraint):
+{
+  "status": 409,
+  "message": "Delete all attendance records associated with this slot first",
+  "code": "FOREIGN_KEY_CONSTRAINT_VIOLATION"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+- Slot ID is of type Integer (not Short like other entities)
+- Class ID, Room ID are of type Short
+- Staff User ID is of type Integer
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- Pagination is 1-based (page=1 is the first page)
+- Default sort is by id in ascending order
+- Sortable fields: id, slotType
+- Response includes nested objects: room, staff, class (with semester)
+- SlotType enum: LECTURE or EXAM
+- @FutureOrPresent validation on startTime allows creating slots starting now
+- @Future validation on endTime requires end time to be in the future
+- TODO: endTime > startTime validation not implemented (mentioned in code comments)
+- Soft delete is done via PUT endpoint by setting isActive = false
+- Hard delete via DELETE endpoint is permanent and may fail if slot has attendance records
+- Slot can be reassigned to different room, class, or staff via PUT endpoint
+- (M) = Modified
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 401: Unauthorized (missing or invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found (slot, class, room, or user not found)
+- 409: Conflict (foreign key constraint violation)
+- 500: Internal Server Error
