@@ -554,7 +554,7 @@ use_cases:
         title: "Bulk Enroll Students to Classes via CSV"
         primary_actors: ["Data Operator"]
         secondary_actors: []
-        description: "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id) to perform mass enrollment for a selected semester. The system will validate the data before creating the enrollment records."
+        description: "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id) to perform mass enrollment for a selected semester. The system will validate the data before creating the enrollment records. Note: This use case is for enrolling *existing* students into classes, not for creating new student accounts."
         related_business_rules: ["BR-13", "BR-27", "BR-37"]
 
   system_admin:

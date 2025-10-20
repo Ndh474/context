@@ -503,8 +503,10 @@ business_rules:
           - "Within file: If same student_id + class_code appears multiple times, keep first occurrence and warn"
           - "With database: If enrollment already exists, skip and report as warning (not error)"
         error_reporting:
-          - "Validation errors are collected and shown in UI before import"
-          - "Import is all-or-nothing: if any validation fails, no records are created"
+          - "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows"
+          - "Return 200 with summary even if some rows failed"
+          - "Provide detailed error list for failed rows"
+          - "Provide warning list for skipped rows (duplicates, already enrolled)"
 
 # Rule Dependencies and Relationships
 rule_relationships:

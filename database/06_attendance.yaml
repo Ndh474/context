@@ -167,19 +167,20 @@ tables:
 
   attendance_remarks:
     primary_key: id
-    description: "Additional comments/notes on attendance records"
+    description: "Additional comments/notes on attendance records (regular or exam). Uses polymorphic association."
     columns:
       id:
         type: BIGINT
         constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
         description: "Unique remark identifier"
-      attendance_record_id:
+      attendable_id:
         type: bigint
         constraints: [NOT NULL]
-        foreign_key:
-          table: attendance_records
-          column: id
-        description: "Reference to attendance record"
+        description: "Polymorphic reference to the ID of the attendance record (either from 'attendance_records' or 'exam_attendance')."
+      attendable_type:
+        type: varchar(50)
+        constraints: [NOT NULL]
+        description: "The type of the attendance record being referenced. Allowed values: 'regular', 'exam'."
       created_at:
         type: timestamp
         constraints: [NOT NULL]
@@ -206,9 +207,10 @@ tables:
         constraints: [NOT NULL]
         description: "Remark content/explanation"
     notes:
-      - "Used for explaining attendance status changes or special circumstances"
-      - "Multiple remarks can be added to the same attendance record"
-      - "Remarks are required when manually changing attendance status"
+      - "Used for explaining attendance status changes or special circumstances for both regular and exam attendance."
+      - "Multiple remarks can be added to the same attendance record."
+      - "Remarks are required when manually changing attendance status."
+      - "Polymorphic relationship is defined by 'attendable_id' and 'attendable_type' columns."
 
   regular_attendance_evidences:
     primary_key: id
