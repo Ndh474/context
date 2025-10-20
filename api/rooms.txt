@@ -73,7 +73,7 @@ Query Parameters:
 | page 		| integer 	| No 		| 1 		| 1-50 
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| name, location, isActive
+| sortBy 	| string 	| No		| id 		| name, location
 | search 	| string 	| No 		| "" 		| Search in name and location
 | isActive  | boolean | No      | null    | Filter by active status
 | hasCamera | boolean | No      | null    | Filter rooms with/without cameras 

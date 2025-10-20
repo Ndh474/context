@@ -132,8 +132,10 @@ Query Parameters:
 | page 		  | integer 	| No 		| 1 		| 1-50 
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| name, code, isActive, majorName, majorCode
-| search 	| string 	| No 		| "" 		| Search in name and code 
+| sortBy 	| string 	| No		| id 		| name, code, isActive
+| search 	| string 	| No 		| "" 		| Search in name and code
+| isActive 	| boolean 	| No 		| - 		| Filter by active status (true/false)
+| majorId 	| short 	| No 		| - 		| Filter subjects by major ID 
 
 200-Success Response
 {

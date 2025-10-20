@@ -122,10 +122,11 @@ Query Parameters:
 | page 		  | integer | No 		  | 1 		  | 1-50 
 | pageSize 	| integer | No 		  | 10 		  | 1-50 
 | sort 		  | string 	| No 		  | asc 		| asc/desc 
-| sortBy 	  | string 	| No		  | id 		  | code, isActive
+| sortBy 	  | string 	| No		  | id 		  | code
 | search 	  | string 	| No 		  | "" 		  | Search in class code
-| semesterId| short   | No      | null    | search by semester id
-| subjectId | short   | No      | null    | search by subject id
+| isActive  | boolean | No      | null    | Filter by active status
+| semesterId| short   | No      | null    | Filter by semester id
+| subjectId | short   | No      | null    | Filter by subject id
 200-Success Response
 {
   "status": 200,
