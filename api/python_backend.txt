@@ -1,19 +1,19 @@
 PYTHON BACKEND (FastAPI) - Face Recognition Service
 Technology: Python 3.11+, FastAPI, OpenCV, face_recognition library, pgvector
 
-POST   	| /api/v1/recognition/process-session    | Start face recognition session
-POST   	| /api/v1/recognition/stop-session       | Stop face recognition session
-POST   	| /api/v1/embeddings/generate            | Generate face embedding from video
-POST   	| /api/v1/embeddings/validate            | Validate face video quality
-GET    	| /api/v1/cameras/test-connection        | Test RTSP camera connection
-GET    	| /api/v1/cameras/capture-frame          | Capture preview frame from camera
-GET    	| /api/v1/health                         | Health check endpoint
-GET    	| /api/v1/metrics                        | Performance metrics
+POST    | /api/v1/recognition/process-session    | Start face recognition session
+POST    | /api/v1/recognition/stop-session       | Stop face recognition session
+POST    | /api/v1/embeddings/generate            | Generate face embedding from video
+POST    | /api/v1/embeddings/validate            | Validate face video quality
+GET     | /api/v1/cameras/test-connection        | Test RTSP camera connection
+GET     | /api/v1/cameras/capture-frame          | Capture preview frame from camera
+GET     | /api/v1/health                         | Health check endpoint
+GET     | /api/v1/metrics                        | Performance metrics
 
-========================================= Start face recognition session ==============================================
+========================================== Start face recognition session ==========================================
 1. POST /api/v1/recognition/process-session
 Authentication: API Key (X-API-Key header)
-Description: Start face recognition session for a slot. Connects to cameras, processes video streams, detects faces, matches with embeddings, and sends results to Java backend via callback.
+Description: Start face recognition session for a slot. Connects to cameras, processes video streams, detects faces, matches with embeddings, captures evidence images, and sends results to Java backend via callback.
 
 Request Headers:
 | Header    | Type   | Required | Description
@@ -60,6 +60,7 @@ Request Body:
 
 Request Schema:
 | Field                        | Type    | Required | Validation
+|------------------------------|---------|----------|-----------
 | slotId                       | integer | Yes      | Slot ID for this session
 | roomId                       | short   | Yes      | Room ID
 | students                     | array   | Yes      | List of enrolled students with embeddings
@@ -79,22 +80,21 @@ Request Schema:
 
 Processing Flow:
 1. Validate request (API key, required fields)
-2. Check if session already exists for slotId
-   - If exists: return 409 Conflict
-3. For each camera:
-   - Test RTSP connection
-   - If connection fails: log warning, continue with other cameras
-4. Create session object in memory
+2. Check if session already exists for slotId -> 409 Conflict
+3. For each camera, test RTSP connection.
+4. Create session object in memory.
 5. Start background task for each camera:
    - Connect to RTSP stream
    - Capture frames at scanInterval
    - Detect faces in frames
    - Extract face embeddings
-   - Compare with student embeddings (cosine similarity)
+   - Compare with student embeddings
    - If match found (similarity >= threshold):
-     * Prepare recognition result
-     * Send to Java backend via callback (POST callbackUrl)
-6. Return 200 OK immediately (async processing)
+     * **Crop the matched face from the frame.**
+     * **Save the cropped face image to a temporary file (e.g., /uploads/evidence/{slotId}/{userId}_{timestamp}.jpg).**
+     * Prepare recognition result, **including the URL of the saved evidence image.**
+     * Send to Java backend via callback (POST callbackUrl).
+6. Return 200 OK immediately (async processing).
 
 200-Success Response:
 {
@@ -116,15 +116,16 @@ Processing Flow:
 }
 
 Response Schema:
-| Field            | Type    | Description
-| slotId           | integer | Slot ID
-| roomId           | short   | Room ID
-| totalStudents    | integer | Number of students in session
-| totalCameras     | integer | Total cameras configured
-| activeCameras    | integer | Cameras successfully connected
-| failedCameras    | integer | Cameras failed to connect
-| config           | object  | Session configuration
-| sessionStartedAt | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field            | Type   | Description
+|------------------|--------|-----------
+| slotId           | integer| Slot ID
+| roomId           | short  | Room ID
+| totalStudents    | integer| Number of students in session
+| totalCameras     | integer| Total cameras configured
+| activeCameras    | integer| Cameras successfully connected
+| failedCameras    | integer| Cameras failed to connect
+| config           | object | Session configuration
+| sessionStartedAt | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
@@ -193,6 +194,7 @@ Request Body:
 
 Request Schema:
 | Field  | Type    | Required | Validation
+|--------|---------|----------|-----------
 | slotId | integer | Yes      | Slot ID
 
 Processing Flow:
@@ -217,11 +219,12 @@ Processing Flow:
 }
 
 Response Schema:
-| Field             | Type    | Description
-| slotId            | integer | Slot ID
-| sessionDuration   | integer | Session duration in seconds
-| totalRecognitions | integer | Total recognitions sent to Java backend
-| sessionStoppedAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field             | Type   | Description
+|-------------------|--------|-----------
+| slotId            | integer| Slot ID
+| sessionDuration   | integer| Session duration in seconds
+| totalRecognitions | integer| Total recognitions sent to Java backend
+| sessionStoppedAt  | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
@@ -245,11 +248,11 @@ Response Schema:
 }
 
 =======================================================================================================================
-======================================= Generate face embedding from video ============================================
+======================================= Generate face embedding from video ===========================================
 
 3. POST /api/v1/embeddings/generate
 Authentication: API Key (X-API-Key header)
-Description: Generate 512-dimensional face embedding from video file. Called by Java backend when identity submission is approved.
+Description: Generates a 512-dim face embedding from a video, after validating it against a static photo. Called by Java backend when an identity submission is approved.
 
 Request Headers:
 | Header    | Type   | Required | Description
@@ -257,27 +260,26 @@ Request Headers:
 
 Request Body:
 {
+  "photoUrl": "/uploads/identity/201/1729339200_face_photo.jpg",
   "videoUrl": "/uploads/identity/201/1729339200_face_video.mp4",
   "submissionId": 1
 }
 
 Request Schema:
 | Field        | Type    | Required | Validation
-| videoUrl     | string  | Yes      | File path or URL to face video
+|--------------|---------|----------|-----------
+| photoUrl     | string  | Yes      | File path or URL to the static face photo
+| videoUrl     | string  | Yes      | File path or URL to the face video
 | submissionId | integer | Yes      | Identity submission ID (for logging)
 
 Processing Flow:
-1. Validate request (API key, required fields)
-2. Load video file from videoUrl
-3. Extract frames from video (sample every 0.5 seconds)
-4. For each frame:
-   - Detect faces using face_recognition library
-   - If face detected:
-     * Extract face encoding (128-dim from face_recognition)
-     * Convert to 512-dim embedding (using trained model)
-     * Calculate quality score
-5. Select best embedding (highest quality score)
-6. Return embedding vector and quality score
+1. Validate request (API key, required fields).
+2. Load photo file from `photoUrl` and generate `vector_photo`. If no face is detected, return 400 NO_FACE_IN_PHOTO.
+3. Load video file from `videoUrl` and generate an average `vector_video` from its frames. If no face is detected, return 400 NO_FACE_IN_VIDEO.
+4. Calculate cosine similarity between `vector_photo` and `vector_video`.
+5. If similarity < validation_threshold (e.g., 0.90), return 400 FACE_MISMATCH.
+6. If similarity is acceptable, select the best quality embedding from the video frames to be the final vector.
+7. Return the final embedding vector and quality score.
 
 200-Success Response:
 {
@@ -295,20 +297,21 @@ Processing Flow:
 }
 
 Response Schema:
-| Field           | Type    | Description
-| submissionId    | integer | Identity submission ID
-| embeddingVector | array   | 512-dimensional face embedding (float array)
-| quality         | float   | Quality score (0.0-1.0), higher is better
-| faceDetected    | boolean | Whether face was detected in video
-| totalFrames     | integer | Total frames processed
-| framesWithFace  | integer | Frames where face was detected
-| processingTime  | float   | Processing time in seconds
+| Field           | Type   | Description
+|-----------------|--------|-----------
+| submissionId    | integer| Identity submission ID
+| embeddingVector | array  | 512-dimensional face embedding (float array)
+| quality         | float  | Quality score (0.0-1.0), higher is better
+| faceDetected    | boolean| Whether face was detected in video
+| totalFrames     | integer| Total frames processed
+| framesWithFace  | integer| Frames where face was detected
+| processingTime  | float  | Processing time in seconds
 
 400-Fields required:
 {
   "status": 400,
-  "message": "Video URL is required / Submission ID is required",
-  "code": "VIDEO_URL_REQUIRED" | "SUBMISSION_ID_REQUIRED"
+  "message": "Photo URL is required / Video URL is required / Submission ID is required",
+  "code": "PHOTO_URL_REQUIRED" | "VIDEO_URL_REQUIRED" | "SUBMISSION_ID_REQUIRED"
 }
 
 401-Invalid API key:
@@ -318,18 +321,25 @@ Response Schema:
   "code": "INVALID_API_KEY"
 }
 
-404-Video file not found:
+404-File not found:
 {
   "status": 404,
-  "message": "Video file not found: /uploads/identity/201/1729339200_face_video.mp4",
-  "code": "VIDEO_FILE_NOT_FOUND"
+  "message": "Photo file not found: ... or Video file not found: ...",
+  "code": "PHOTO_FILE_NOT_FOUND" | "VIDEO_FILE_NOT_FOUND"
 }
 
 400-No face detected:
 {
   "status": 400,
-  "message": "No face detected in video. Please record video with clear face visibility.",
-  "code": "NO_FACE_DETECTED"
+  "message": "No face detected in the provided static photo. / No face detected in the provided video.",
+  "code": "NO_FACE_IN_PHOTO" | "NO_FACE_IN_VIDEO"
+}
+
+400-Face mismatch:
+{
+  "status": 400,
+  "message": "The face in the photo does not match the face in the video. Please submit again with matching images.",
+  "code": "FACE_MISMATCH"
 }
 
 400-Low quality:
@@ -360,6 +370,7 @@ Body:
 
 Request Schema:
 | Field | Type | Required | Validation
+|-------|------|----------|-----------
 | video | file | Yes      | Max 50MB, formats: MP4/MOV/AVI
 
 Processing Flow:
@@ -422,12 +433,13 @@ Processing Flow:
 }
 
 Response Schema:
-| Field        | Type    | Description
-| quality      | float   | Overall quality score (0.0-1.0)
-| faceDetected | boolean | Whether face was detected
-| isAcceptable | boolean | Whether quality is acceptable (>= 0.70)
-| metrics      | object  | Detailed quality metrics
-| feedback     | array   | List of feedback messages
+| Field        | Type   | Description
+|--------------|--------|-----------
+| quality      | float  | Overall quality score (0.0-1.0)
+| faceDetected | boolean| Whether face was detected
+| isAcceptable | boolean| Whether quality is acceptable (>= 0.70)
+| metrics      | object | Detailed quality metrics
+| feedback     | array  | List of feedback messages
 
 400-File required:
 {
@@ -465,7 +477,7 @@ Response Schema:
 }
 
 =======================================================================================================================
-========================================== Test RTSP camera connection ================================================
+========================================== Test RTSP camera connection ===============================================
 
 5. GET /api/v1/cameras/test-connection
 Authentication: API Key (X-API-Key header)
@@ -520,15 +532,16 @@ Processing Flow:
 }
 
 Response Schema:
-| Field       | Type    | Description
-| rtspUrl     | string  | RTSP stream URL
-| connected   | boolean | Connection status
-| frameRate   | float   | Frames per second (if connected)
-| resolution  | object  | Video resolution (if connected)
-| latency     | integer | Latency in milliseconds (if connected)
-| stability   | string  | stable, unstable, unknown (if connected)
-| error       | string  | Error message (if failed)
-| testedAt    | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field       | Type   | Description
+|-------------|--------|-----------
+| rtspUrl     | string | RTSP stream URL
+| connected   | boolean| Connection status
+| frameRate   | float  | Frames per second (if connected)
+| resolution  | object | Video resolution (if connected)
+| latency     | integer| Latency in milliseconds (if connected)
+| stability   | string | stable, unstable, unknown (if connected)
+| error       | string | Error message (if failed)
+| testedAt    | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-RTSP URL required:
 {
@@ -545,7 +558,7 @@ Response Schema:
 }
 
 =======================================================================================================================
-======================================== Capture preview frame from camera ============================================
+======================================== Capture preview frame from camera ===========================================
 
 6. GET /api/v1/cameras/capture-frame
 Authentication: API Key (X-API-Key header)
@@ -607,6 +620,7 @@ Processing Flow:
 
 Response Schema:
 | Field       | Type   | Description
+|-------------|--------|-----------
 | cameraId    | short  | Camera ID (if provided)
 | rtspUrl     | string | RTSP stream URL
 | format      | string | Response format (base64 or file)
@@ -645,7 +659,7 @@ Response Schema:
 }
 
 =======================================================================================================================
-================================================= Health check ========================================================
+================================================ Health check ======================================================
 
 7. GET /api/v1/health
 Authentication: None (public endpoint)
@@ -666,13 +680,14 @@ Description: Health check endpoint for monitoring service status.
 }
 
 Response Schema:
-| Field          | Type    | Description
-| service        | string  | Service name
-| version        | string  | Service version
-| status         | string  | healthy, degraded, unhealthy
-| uptime         | integer | Uptime in seconds
-| activeSessions | integer | Number of active recognition sessions
-| timestamp      | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field          | Type   | Description
+|----------------|--------|-----------
+| service        | string | Service name
+| version        | string | Service version
+| status         | string | healthy, degraded, unhealthy
+| uptime         | integer| Uptime in seconds
+| activeSessions | integer| Number of active recognition sessions
+| timestamp      | string | YYYY-MM-DDTHH:mm:SSZ
 
 503-Service unavailable:
 {
@@ -686,7 +701,7 @@ Response Schema:
 }
 
 =======================================================================================================================
-============================================== Performance metrics ====================================================
+============================================= Performance metrics =================================================
 
 8. GET /api/v1/metrics
 Authentication: API Key (X-API-Key header)
@@ -729,23 +744,24 @@ Request Headers:
 }
 
 Response Schema:
-| Field                                | Type    | Description
-| service.uptime                       | integer | Service uptime in seconds
-| service.activeSessions               | integer | Current active sessions
-| service.totalSessionsToday           | integer | Total sessions today
-| recognition.totalRecognitions        | integer | Total recognitions performed
-| recognition.averageConfidence        | float   | Average confidence score
-| recognition.averageProcessingTime    | float   | Average processing time per frame (seconds)
-| recognition.recognitionRate          | float   | Success rate (recognized / total attempts)
-| embedding.totalGenerated             | integer | Total embeddings generated
-| embedding.averageQuality             | float   | Average quality score
-| embedding.averageProcessingTime      | float   | Average processing time per video (seconds)
-| embedding.successRate                | float   | Success rate (generated / total attempts)
-| cameras.totalCameras                 | integer | Total cameras configured
-| cameras.activeCameras                | integer | Currently active cameras
-| cameras.failedCameras                | integer | Failed cameras
-| cameras.averageFrameRate             | float   | Average frame rate across all cameras
-| timestamp                            | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field                                | Type   | Description
+|--------------------------------------|--------|-----------
+| service.uptime                       | integer| Service uptime in seconds
+| service.activeSessions               | integer| Current active sessions
+| service.totalSessionsToday           | integer| Total sessions today
+| recognition.totalRecognitions        | integer| Total recognitions performed
+| recognition.averageConfidence        | float  | Average confidence score
+| recognition.averageProcessingTime    | float  | Average processing time per frame (seconds)
+| recognition.recognitionRate          | float  | Success rate (recognized / total attempts)
+| embedding.totalGenerated             | integer| Total embeddings generated
+| embedding.averageQuality             | float  | Average quality score
+| embedding.averageProcessingTime      | float  | Average processing time per video (seconds)
+| embedding.successRate                | float  | Success rate (generated / total attempts)
+| cameras.totalCameras                 | integer| Total cameras configured
+| cameras.activeCameras                | integer| Currently active cameras
+| cameras.failedCameras                | integer| Failed cameras
+| cameras.averageFrameRate             | float  | Average frame rate across all cameras
+| timestamp                            | string | YYYY-MM-DDTHH:mm:SSZ
 
 401-Invalid API key:
 {
@@ -780,13 +796,15 @@ Face Recognition Algorithm:
 - Processing: Real-time from RTSP streams
 
 Embedding Generation:
-- Input: Video file (MP4/MOV/AVI)
-- Frame sampling: Every 0.5 seconds
+- Input: Static photo (JPG/PNG) + Video file (MP4/MOV/AVI)
+- Photo validation: Extract embedding from photo for comparison
+- Video processing: Frame sampling every 0.5 seconds
 - Face detection: face_recognition.face_locations()
 - Encoding: face_recognition.face_encodings()
 - Conversion: 128-dim → 512-dim using trained model
+- Photo-video matching: Cosine similarity validation (>= 0.90 threshold)
 - Quality metrics: Face size, clarity, lighting, angle
-- Output: Best embedding (highest quality score)
+- Output: Best embedding from video (highest quality score)
 
 RTSP Stream Processing:
 - Library: OpenCV (cv2.VideoCapture)
@@ -799,22 +817,26 @@ Session Management:
 - Storage: In-memory dictionary (slotId → session object)
 - Concurrency: Async processing with asyncio
 - Background tasks: One task per camera
+- Evidence storage: /uploads/evidence/{slotId}/{userId}_{timestamp}.jpg
 - Cleanup: Automatic on stop or service restart
 
 Callback to Java Backend:
 - Endpoint: POST {callbackUrl} (from config)
-- Payload: Batch recognition results (up to 100 per request)
+- Payload: Batch recognition results with evidence image URLs (up to 100 per request)
+- Evidence images: Cropped faces saved to /uploads/evidence/{slotId}/
 - Retry: 3 attempts with exponential backoff
 - Timeout: 30 seconds
 - Error handling: Log failure, continue processing
 
 Performance Considerations:
 - Frame processing: ~0.1-0.2 seconds per frame
+- Face cropping and saving: ~0.05 seconds per match
 - Embedding generation: ~2-3 seconds per video
 - RTSP latency: ~100-200ms
-- Memory: ~100MB per active session
-- CPU: Multi-threaded face detection
+- Memory: ~100MB per active session (including evidence storage)
+- CPU: Multi-threaded face detection and processing
 - GPU: Optional (CUDA support for faster processing)
+- Storage: ~1-5MB per evidence image
 
 Quality Metrics:
 - Face size: Percentage of frame occupied by face (>= 20%)
@@ -826,6 +848,7 @@ Quality Metrics:
 Error Handling:
 - RTSP connection failures: Log warning, continue with other cameras
 - Face detection failures: Skip frame, continue processing
+- Evidence image saving failures: Log error, continue with recognition (evidence not saved)
 - Embedding generation failures: Return error to Java backend
 - Callback failures: Retry with exponential backoff
 
@@ -855,11 +878,13 @@ Configuration:
 - SCAN_INTERVAL: Default scan interval in seconds (5)
 - MAX_SESSIONS: Maximum concurrent sessions (10)
 - LOG_LEVEL: Logging level (INFO, DEBUG, ERROR)
+- EVIDENCE_DIR: Directory for storing evidence images (/uploads/evidence)
+- EMBEDDING_VALIDATION_THRESHOLD: Minimum similarity for photo-video validation (0.90)
 
 Common Status Codes:
 - 200: Success
-- 400: Bad Request (validation errors, invalid parameters)
+- 400: Bad Request (validation errors, invalid parameters, face detection/mismatch failures)
 - 401: Unauthorized (invalid API key)
-- 404: Not Found (session, camera, video file not found)
+- 404: Not Found (session, camera, file not found)
 - 409: Conflict (session already exists)
 - 500: Internal Server Error (processing failed, connection failed)

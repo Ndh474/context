@@ -1,47 +1,48 @@
-POST   	| /identity-submissions 	   		        | OWN_IDENTITY_SUBMIT 
-GET    	| /identity-submissions 	   		        | IDENTITY_SUBMISSION_READ_QUEUE 
-GET    	| /identity-submissions/{id} 	   	        | IDENTITY_SUBMISSION_READ_DETAIL 
-PUT    	| /identity-submissions/{id}/approve 	    | IDENTITY_SUBMISSION_APPROVE 
-PUT    	| /identity-submissions/{id}/reject 	    | IDENTITY_SUBMISSION_REJECT
-GET    	| /identity-submissions/my-submissions      | OWN_IDENTITY_SUBMIT
+POST    | /identity-submissions              | OWN_IDENTITY_SUBMIT
+GET     | /identity-submissions              | IDENTITY_SUBMISSION_READ_QUEUE
+GET     | /identity-submissions/{id}         | IDENTITY_SUBMISSION_READ_DETAIL
+PUT     | /identity-submissions/{id}/approve  | IDENTITY_SUBMISSION_APPROVE
+PUT     | /identity-submissions/{id}/reject  | IDENTITY_SUBMISSION_REJECT
+GET     | /identity-submissions/my-submissions | OWN_IDENTITY_SUBMIT
 
-============================================ Submit identity registration/update ======================================
+=========================================== Submit identity registration/update ====================================
 1. POST /api/v1/identity-submissions
 Permission: OWN_IDENTITY_SUBMIT
-Description: Submit identity registration (initial) or update request. Students upload face video and ID card (initial) or only face video (update).
+Description: Submit identity registration (initial) or update request. Students upload a static face photo and a short face video.
 
 Request: Multipart form-data
 Content-Type: multipart/form-data
 Body:
 - submissionType: string (required) - "initial" or "update"
-- faceVideo: file (required) - Face video file
-- idCard: file (required for initial, not allowed for update) - ID card image file
+- facePhoto: file (required) - Static face photo file
+- faceVideo: file (required) - Short face video file
 
 Request Schema:
 | Field          | Type   | Required | Validation
+|----------------|--------|----------|-----------
 | submissionType | string | Yes      | Must be "initial" or "update"
+| facePhoto      | file   | Yes      | Max 5MB, formats: JPG/PNG
 | faceVideo      | file   | Yes      | Max 50MB, formats: MP4/MOV/AVI, duration: 5-30 seconds
-| idCard         | file   | Conditional | Required if submissionType="initial", max 5MB, formats: JPG/PNG
 
 Business Rules:
-- BR-08: Initial submission MUST include face video + ID card
 - BR-09: All submissions require manual approval by Data Operator
 - BR-10: While update is pending, system uses old (approved) identity data
 - Only 1 pending submission allowed per student (Q1)
+- The static `facePhoto` will be used as the base/avatar image for visual comparison
+- The `faceVideo` will be used to generate the face recognition vector
 - Files stored in local filesystem: /uploads/identity/{student_id}/{timestamp}_{filename}
-- submission_type determines required files
 
 Validation Rules:
+Face Photo:
+- Max size: 5MB
+- Allowed formats: image/jpeg, image/png
+- Recommended resolution: min 1024x768
+
 Face Video:
 - Max size: 50MB
 - Allowed formats: video/mp4, video/quicktime, video/x-msvideo
 - Recommended duration: 5-30 seconds
 - Recommended resolution: min 720p
-
-ID Card Image:
-- Max size: 5MB
-- Allowed formats: image/jpeg, image/png
-- Recommended resolution: min 1024x768
 
 201-Success Response:
 {
@@ -61,14 +62,14 @@ ID Card Image:
     "assets": [
       {
         "id": 1,
-        "assetType": "face_video",
-        "storageUrl": "/uploads/identity/201/1729339200_face_video.mp4",
+        "assetType": "face_photo",
+        "storageUrl": "/uploads/identity/201/1729339200_face_photo.jpg",
         "createdAt": "2024-10-19T10:00:00Z"
       },
       {
         "id": 2,
-        "assetType": "id_card",
-        "storageUrl": "/uploads/identity/201/1729339200_id_card.jpg",
+        "assetType": "face_video",
+        "storageUrl": "/uploads/identity/201/1729339200_face_video.mp4",
         "createdAt": "2024-10-19T10:00:00Z"
       }
     ],
@@ -82,39 +83,26 @@ ID Card Image:
 }
 
 Response Schema:
-| Field           | Type    | Description 
-| id              | integer | Submission ID
-| studentUserId   | integer | Student user ID
-| student         | object  | Student details (userId, fullName, rollNumber, email)
-| submissionType  | string  | initial, update
-| status          | string  | pending, approved, rejected
-| assets          | array   | List of uploaded files (face_video, id_card)
-| rejectionReason | string  | Reason for rejection (null if not rejected)
-| reviewedAt      | string  | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
-| reviewedBy      | object  | Data Operator who reviewed (null if not reviewed)
-| createdAt       | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt       | string  | YYYY-MM-DDTHH:mm:SSZ
-| version         | integer | Version for optimistic locking
+| Field           | Type   | Description
+|-----------------|--------|-----------
+| id              | integer| Submission ID
+| studentUserId   | integer| Student user ID
+| student         | object | Student details (userId, fullName, rollNumber, email)
+| submissionType  | string | initial, update
+| status          | string | pending, approved, rejected
+| assets          | array  | List of uploaded files (face_photo, face_video)
+| rejectionReason | string | Reason for rejection (null if not rejected)
+| reviewedAt      | string | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
+| reviewedBy      | object | Data Operator who reviewed (null if not reviewed)
+| createdAt       | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt       | string | YYYY-MM-DDTHH:mm:SSZ
+| version         | integer| Version for optimistic locking
 
 400-Fields required:
 {
   "status": 400,
-  "message": "Submission type is required / Face video is required",
-  "code": "SUBMISSION_TYPE_REQUIRED" | "FACE_VIDEO_REQUIRED"
-}
-
-400-ID card required for initial:
-{
-  "status": 400,
-  "message": "ID card is required for initial identity registration",
-  "code": "ID_CARD_REQUIRED_FOR_INITIAL"
-}
-
-400-ID card not allowed for update:
-{
-  "status": 400,
-  "message": "ID card is not allowed for identity update. Only face video is required.",
-  "code": "ID_CARD_NOT_ALLOWED_FOR_UPDATE"
+  "message": "Submission type is required / Face photo is required / Face video is required",
+  "code": "SUBMISSION_TYPE_REQUIRED" | "FACE_PHOTO_REQUIRED" | "FACE_VIDEO_REQUIRED"
 }
 
 400-Invalid submission type:
@@ -127,14 +115,14 @@ Response Schema:
 400-File too large:
 {
   "status": 400,
-  "message": "Face video exceeds maximum size of 50MB / ID card exceeds maximum size of 5MB",
+  "message": "Face photo exceeds maximum size of 5MB / Face video exceeds maximum size of 50MB",
   "code": "FILE_TOO_LARGE"
 }
 
 400-Invalid file format:
 {
   "status": 400,
-  "message": "Invalid face video format. Allowed: MP4, MOV, AVI / Invalid ID card format. Allowed: JPG, PNG",
+  "message": "Invalid face photo format. Allowed: JPG, PNG / Invalid face video format. Allowed: MP4, MOV, AVI",
   "code": "INVALID_FILE_FORMAT"
 }
 
@@ -153,7 +141,7 @@ Response Schema:
 }
 
 =======================================================================================================================
-========================================= List identity submissions (queue) ===========================================
+========================================== List identity submissions (queue) ==========================================
 
 2. GET /api/v1/identity-submissions
 Permission: IDENTITY_SUBMISSION_READ_QUEUE
@@ -188,7 +176,7 @@ Query Parameters:
         "submissionType": "initial",
         "status": "pending",
         "hasVideo": true,
-        "hasIdCard": true,
+        "hasFacePhoto": true,
         "rejectionReason": null,
         "reviewedAt": null,
         "reviewedBy": null,
@@ -208,7 +196,7 @@ Query Parameters:
         "submissionType": "update",
         "status": "pending",
         "hasVideo": true,
-        "hasIdCard": false,
+        "hasFacePhoto": false,
         "rejectionReason": null,
         "reviewedAt": null,
         "reviewedBy": null,
@@ -224,19 +212,20 @@ Query Parameters:
 }
 
 Response Schema (items):
-| Field           | Type    | Description 
-| id              | integer | Submission ID
-| studentUserId   | integer | Student user ID
-| student         | object  | Student details with major
-| submissionType  | string  | initial, update
-| status          | string  | pending, approved, rejected
-| hasVideo        | boolean | Whether face video exists
-| hasIdCard       | boolean | Whether ID card exists
-| rejectionReason | string  | Reason for rejection (null if not rejected)
-| reviewedAt      | string  | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
-| reviewedBy      | object  | Data Operator who reviewed (null if not reviewed)
-| createdAt       | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt       | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field           | Type   | Description
+|-----------------|--------|-----------
+| id              | integer| Submission ID
+| studentUserId   | integer| Student user ID
+| student         | object | Student details with major
+| submissionType  | string | initial, update
+| status          | string | pending, approved, rejected
+| hasVideo        | boolean| Whether face video exists
+| hasFacePhoto    | boolean| Whether face photo exists
+| rejectionReason | string | Reason for rejection (null if not rejected)
+| reviewedAt      | string | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
+| reviewedBy      | object | Data Operator who reviewed (null if not reviewed)
+| createdAt       | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt       | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {
@@ -246,21 +235,21 @@ Response Schema (items):
 }
 
 =======================================================================================================================
-========================================= Get identity submission details =============================================
+========================================== Get identity submission details =============================================
 
 3. GET /api/v1/identity-submissions/{id}
 Permission: IDENTITY_SUBMISSION_READ_DETAIL
-Description: Get detailed information about an identity submission including asset URLs for viewing.
+Description: Get detailed information about an identity submission. If it's an 'update' request, also includes the previously approved asset for comparison.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
 | id        | integer | Yes      | Submission ID
 
-200-Success Response:
+200-Success Response (cho một đơn 'update'):
 {
   "status": 200,
   "data": {
-    "id": 1,
+    "id": 2,
     "studentUserId": 201,
     "student": {
       "userId": 201,
@@ -270,26 +259,31 @@ Path Parameters:
       "majorName": "Software Engineering",
       "majorCode": "SE"
     },
-    "submissionType": "initial",
+    "submissionType": "update",
     "status": "pending",
     "assets": [
       {
-        "id": 1,
+        "id": 3,
+        "assetType": "face_photo",
+        "storageUrl": "/uploads/identity/201/1729339200_face_photo.jpg",
+        "viewUrl": "/api/v1/files/identity/201/1729339200_face_photo.jpg",
+        "isActive": true,
+        "createdAt": "2024-10-19T10:00:00Z"
+      },
+      {
+        "id": 4,
         "assetType": "face_video",
         "storageUrl": "/uploads/identity/201/1729339200_face_video.mp4",
         "viewUrl": "/api/v1/files/identity/201/1729339200_face_video.mp4",
         "isActive": true,
         "createdAt": "2024-10-19T10:00:00Z"
-      },
-      {
-        "id": 2,
-        "assetType": "id_card",
-        "storageUrl": "/uploads/identity/201/1729339200_id_card.jpg",
-        "viewUrl": "/api/v1/files/identity/201/1729339200_id_card.jpg",
-        "isActive": true,
-        "createdAt": "2024-10-19T10:00:00Z"
       }
     ],
+    "previousApprovedAsset": {
+      "assetType": "face_photo",
+      "viewUrl": "/api/v1/files/identity/201/old_face_photo.jpg",
+      "createdAt": "2024-09-15T12:00:00Z"
+    },
     "currentEmbedding": null,
     "rejectionReason": null,
     "reviewedAt": null,
@@ -301,29 +295,35 @@ Path Parameters:
 }
 
 Response Schema:
-| Field            | Type    | Description 
-| id               | integer | Submission ID
-| studentUserId    | integer | Student user ID
-| student          | object  | Student details with major
-| submissionType   | string  | initial, update
-| status           | string  | pending, approved, rejected
-| assets           | array   | List of uploaded files with viewUrl for streaming/download
-| currentEmbedding | object  | Current active embedding info (null if no embedding yet)
-| rejectionReason  | string  | Reason for rejection (null if not rejected)
-| reviewedAt       | string  | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
-| reviewedBy       | object  | Data Operator who reviewed (null if not reviewed)
-| createdAt        | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt        | string  | YYYY-MM-DDTHH:mm:SSZ
-| version          | integer | Version for optimistic locking
+| Field                 | Type   | Description
+|-----------------------|--------|-----------
+| id                    | integer| Submission ID
+| studentUserId         | integer| Student user ID
+| student               | object | Student details with major
+| submissionType        | string | initial, update
+| status                | string | pending, approved, rejected
+| assets                | array  | List of newly uploaded files (face_photo, face_video)
+| previousApprovedAsset | object | Details of the previously approved asset (null if this is an initial submission).
+|                       |        |   - assetType (string)
+|                       |        |   - viewUrl (string)
+|                       |        |   - createdAt (string)
+| currentEmbedding      | object | Current active embedding info (null if no embedding yet)
+| rejectionReason       | string | Reason for rejection (null if not rejected)
+| reviewedAt            | string | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
+| reviewedBy            | object | Data Operator who reviewed (null if not reviewed)
+| createdAt             | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt             | string | YYYY-MM-DDTHH:mm:SSZ
+| version               | integer| Version for optimistic locking
 
 Asset Object Schema:
-| Field      | Type    | Description 
-| id         | integer | Asset ID
-| assetType  | string  | face_video, id_card
-| storageUrl | string  | File path on server (for internal use)
-| viewUrl    | string  | URL for viewing/downloading file (for frontend)
-| isActive   | boolean | Asset status
-| createdAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field      | Type   | Description
+|------------|--------|-----------
+| id         | integer| Asset ID
+| assetType  | string | face_photo, face_video
+| storageUrl | string | File path on server (for internal use)
+| viewUrl    | string | URL for viewing/downloading file (for frontend)
+| isActive   | boolean| Asset status
+| createdAt  | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid field type:
 {
@@ -340,7 +340,7 @@ Asset Object Schema:
 }
 
 =======================================================================================================================
-========================================== Approve identity submission ================================================
+=========================================== Approve identity submission ===============================================
 
 4. PUT /api/v1/identity-submissions/{id}/approve
 Permission: IDENTITY_SUBMISSION_APPROVE
@@ -357,6 +357,7 @@ Request Body:
 
 Request Schema:
 | Field   | Type    | Required | Validation
+|---------|---------|----------|-----------
 | version | integer | Yes      | Must match current submission version (optimistic locking)
 
 Business Rules:
@@ -467,7 +468,7 @@ Processing Flow:
 }
 
 =======================================================================================================================
-=========================================== Reject identity submission ================================================
+============================================ Reject identity submission =============================================
 
 5. PUT /api/v1/identity-submissions/{id}/reject
 Permission: IDENTITY_SUBMISSION_REJECT
@@ -485,6 +486,7 @@ Request Body:
 
 Request Schema:
 | Field           | Type    | Required | Validation
+|-----------------|---------|----------|-----------
 | rejectionReason | string  | Yes      | Not blank, max 500 chars
 | version         | integer | Yes      | Must match current submission version (optimistic locking)
 
@@ -572,7 +574,7 @@ Business Rules:
 }
 
 =======================================================================================================================
-========================================== Get my identity submissions ================================================
+=========================================== Get my identity submissions ===============================================
 
 6. GET /api/v1/identity-submissions/my-submissions
 Permission: OWN_IDENTITY_SUBMIT
@@ -596,7 +598,7 @@ Query Parameters:
         "submissionType": "update",
         "status": "pending",
         "hasVideo": true,
-        "hasIdCard": false,
+        "hasFacePhoto": false,
         "rejectionReason": null,
         "reviewedAt": null,
         "createdAt": "2024-10-19T11:00:00Z",
@@ -607,7 +609,7 @@ Query Parameters:
         "submissionType": "initial",
         "status": "approved",
         "hasVideo": true,
-        "hasIdCard": true,
+        "hasFacePhoto": true,
         "rejectionReason": null,
         "reviewedAt": "2024-10-18T14:30:00Z",
         "createdAt": "2024-10-18T10:00:00Z",
@@ -622,16 +624,17 @@ Query Parameters:
 }
 
 Response Schema (items):
-| Field           | Type    | Description 
-| id              | integer | Submission ID
-| submissionType  | string  | initial, update
-| status          | string  | pending, approved, rejected
-| hasVideo        | boolean | Whether face video exists
-| hasIdCard       | boolean | Whether ID card exists
-| rejectionReason | string  | Reason for rejection (null if not rejected)
-| reviewedAt      | string  | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
-| createdAt       | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt       | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field           | Type   | Description
+|-----------------|--------|-----------
+| id              | integer| Submission ID
+| submissionType  | string | initial, update
+| status          | string | pending, approved, rejected
+| hasVideo        | boolean| Whether face video exists
+| hasFacePhoto    | boolean| Whether face photo exists
+| rejectionReason | string | Reason for rejection (null if not rejected)
+| reviewedAt      | string | YYYY-MM-DDTHH:mm:SSZ (null if not reviewed)
+| createdAt       | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt       | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {
@@ -641,7 +644,7 @@ Response Schema (items):
 }
 
 =======================================================================================================================
-====================================================== Notes ==========================================================
+======================================================= Notes =========================================================
 
 Data Types:
 - Submission ID: Integer
@@ -656,12 +659,12 @@ Submission Status Values:
 - rejected: Rejected by Data Operator with reason
 
 Submission Type Values:
-- initial: First-time identity registration (requires face video + ID card)
-- update: Identity update request (requires only face video)
+- initial: First-time identity registration (requires face photo + face video)
+- update: Identity update request (requires face photo + face video)
 
 Asset Type Values:
+- face_photo: Static face photo for visual comparison
 - face_video: Face video file for recognition
-- id_card: ID card image for verification
 
 File Storage:
 - Location: Local filesystem (backend server)
@@ -670,12 +673,12 @@ File Storage:
 - Future: Can migrate to S3/GCS without changing API contract
 
 File Size Limits:
+- Face photo: max 5MB
 - Face video: max 50MB
-- ID card image: max 5MB
 
 File Format Validation:
+- Face photo: JPG, PNG (image/jpeg, image/png)
 - Face video: MP4, MOV, AVI (video/mp4, video/quicktime, video/x-msvideo)
-- ID card: JPG, PNG (image/jpeg, image/png)
 
 Optimistic Locking (Q6):
 - Version field in identity_submissions table
@@ -725,7 +728,6 @@ Permissions:
 - IDENTITY_SUBMISSION_REJECT: Reject submissions (Data Operator)
 
 Business Rules:
-- BR-08: Initial Identity Registration Requirements
 - BR-09: Manual Identity Approval
 - BR-10: Pending Identity Update Handling
 - BR-11: Identity Rejection Notification

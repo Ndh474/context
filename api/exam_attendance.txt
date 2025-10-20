@@ -1,20 +1,21 @@
-GET    	| /exam-attendance 	   		| ATTENDANCE_ROSTER_READ 
-GET    	| /exam-attendance/{id} 	| ATTENDANCE_ROSTER_READ 
-PUT    	| /exam-attendance/{id} 	| ATTENDANCE_STATUS_UPDATE_MANUAL
+GET     | /exam-attendance                  | ATTENDANCE_ROSTER_READ
+GET     | /exam-attendance/{id}              | ATTENDANCE_ROSTER_READ
+PUT     | /exam-attendance/{id}              | ATTENDANCE_STATUS_UPDATE_MANUAL
+POST    | /exam-attendance/{id}/remarks      | ATTENDANCE_REMARK_MANAGE
+PUT     | /exam-attendance/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
+DELETE  | /exam-attendance/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
 
-Note: Exam attendance reuses attendance_remarks table and endpoints for remarks management.
-      See attendance_records.txt for remarks endpoints documentation.
-
-============================================ Search exam attendance records ===========================================
+============================================= Search exam attendance records ==============================================
 1. GET /api/v1/exam-attendance
 Permission: ATTENDANCE_ROSTER_READ
 Description: List exam attendance records with filtering and pagination support. Used for LECTURE_WITH_PT and FINAL_EXAM slots.
 
 Query Parameters:
-| Parameter      | Type    | Required | Default | Validation 
+| Parameter      | Type    | Required | Default | Validation
+|----------------|---------|----------|---------|-----------
 | page           | integer | No       | 1       | >= 1
-| pageSize       | integer | No       | 10      | 1-50 
-| sort           | string  | No       | desc    | asc, desc 
+| pageSize       | integer | No       | 10      | 1-50
+| sort           | string  | No       | desc    | asc, desc
 | sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
 | slotId         | integer | No       | null    | Filter by slot
 | studentUserId  | integer | No       | null    | Filter by student
@@ -77,16 +78,17 @@ Query Parameters:
 }
 
 Response Schema (items):
-| Field      | Type    | Description 
-| id         | long    | Exam attendance record ID
-| student    | object  | Student details (userId, fullName, rollNumber, email)
-| slot       | object  | Slot details with nested class, subject, semester
-| status     | string  | not_yet, present, absent
-| method     | string  | auto, manual, system_finalize
-| recordedAt | string  | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
-| remarks    | array   | List of active remarks (sorted by createdAt DESC)
-| createdAt  | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field      | Type   | Description
+|------------|--------|-----------
+| id         | long   | Exam attendance record ID
+| student    | object | Student details (userId, fullName, rollNumber, email)
+| slot       | object | Slot details with nested class, subject, semester
+| status     | string | not_yet, present, absent
+| method     | string | auto, manual, system_finalize
+| recordedAt | string | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
+| remarks    | array  | List of active remarks (sorted by createdAt DESC)
+| createdAt  | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt  | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {
@@ -190,6 +192,7 @@ Request Body:
 
 Request Schema:
 | Field  | Type   | Required | Validation
+|--------|--------|----------|-----------
 | status | string | Yes      | Must be: not_yet, present, absent
 | remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
 
@@ -318,6 +321,164 @@ Time-Based Edit Window Validation:
 }
 
 =======================================================================================================================
+========================================= Add remark to exam attendance record ========================================
+
+4. POST /api/v1/exam-attendance/{id}/remarks
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Add a new remark to an exam attendance record.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Exam attendance record ID
+
+Request Body:
+{
+  "remark": "Student submitted exam paper 15 minutes early."
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| remark | string | Yes      | Not blank, max 1000 chars
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 2003,
+    "attendanceRecordId": 1001,
+    "remark": "Student submitted exam paper 15 minutes early.",
+    "createdBy": {
+      "userId": 15,
+      "fullName": "Jane Supervisor"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:00:00Z"
+  }
+}
+
+Response Schema:
+| Field               | Type   | Description
+|---------------------|--------|-----------
+| id                  | long   | Remark ID
+| attendanceRecordId  | long   | Exam attendance record ID
+| remark              | string | Remark content
+| createdBy           | object | User who created the remark (userId, fullName)
+| isActive            | boolean| Remark status (true=active, false=deleted)
+| createdAt           | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt           | string | YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Remark is required",
+  "code": "REMARK_REQUIRED"
+}
+
+404-Exam attendance record not found:
+{
+  "status": 404,
+  "message": "Exam attendance record not found: 1001",
+  "code": "EXAM_ATTENDANCE_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================== Update remark ======================================================
+
+5. PUT /api/v1/exam-attendance/{id}/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Update an existing remark on an exam attendance record.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| id        | long | Yes      | Exam attendance record ID
+| remarkId  | long | Yes      | Remark ID
+
+Request Body:
+{
+  "remark": "Student submitted exam paper 20 minutes early (corrected)."
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+|--------|--------|----------|-----------
+| remark | string | Yes      | Not blank, max 1000 chars
+
+Business Rules:
+- Only the creator can update their own remark.
+- Data Operators can update any remark.
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Remark updated successfully",
+  "data": {
+    "id": 2003,
+    "attendanceRecordId": 1001,
+    "remark": "Student submitted exam paper 20 minutes early (corrected).",
+    "createdBy": {
+      "userId": 15,
+      "fullName": "Jane Supervisor"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:30:00Z"
+  }
+}
+
+403-Not creator:
+{
+  "status": 403,
+  "message": "You can only update your own remarks",
+  "code": "NOT_REMARK_CREATOR"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Remark not found: 2003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+=======================================================================================================================
+================================================== Delete remark ======================================================
+
+6. DELETE /api/v1/exam-attendance/{id}/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Soft delete a remark on an exam attendance record.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+|-----------|------|----------|-----------
+| id        | long | Yes      | Exam attendance record ID
+| remarkId  | long | Yes      | Remark ID
+
+Business Rules:
+- Soft delete: sets is_active = false.
+- Only the creator can delete their own remark.
+- Data Operators can delete any remark.
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Remark deleted successfully"
+}
+
+403-Not creator:
+{
+  "status": 403,
+  "message": "You can only delete your own remarks",
+  "code": "NOT_REMARK_CREATOR"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Remark not found: 2003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+=======================================================================================================================
 ====================================================== Notes ==========================================================
 
 Data Types:
@@ -341,17 +502,14 @@ Relationship with Attendance Records:
 - LECTURE_WITH_PT slots: Both attendance_records AND exam_attendance
 - FINAL_EXAM slots: Only exam_attendance (no regular attendance)
 
-Remarks Management (Polymorphic Association):
-- Reuses attendance_remarks table
-- attendance_remarks.attendance_record_id can reference:
-  * attendance_records.id (for regular attendance)
-  * exam_attendance.id (for exam attendance)
-- Backend determines record type based on context
-- Use same endpoints as attendance_records:
-  * POST /attendance-records/{id}/remarks
-  * PUT /attendance-records/{id}/remarks/{remarkId}
-  * DELETE /attendance-records/{id}/remarks/{remarkId}
-- When {id} is exam_attendance ID, backend handles accordingly
+Remarks Management:
+- Uses the 'attendance_remarks' table with a polymorphic association.
+- The 'attendance_record_id' in the remarks table can reference an ID from either 'attendance_records' or 'exam_attendance'.
+- The backend handles the logic to associate the remark with the correct record type.
+- This resource uses its own dedicated endpoints for remark management:
+  * POST /api/v1/exam-attendance/{id}/remarks
+  * PUT /api/v1/exam-attendance/{id}/remarks/{remarkId}
+  * DELETE /api/v1/exam-attendance/{id}/remarks/{remarkId}
 
 Python Callback Integration:
 - Reuses /attendance/recognition-result endpoint
@@ -380,7 +538,7 @@ Permissions:
 - ATTENDANCE_ROSTER_READ: View exam attendance (Lecturer, Supervisor, Data Operator)
 - ATTENDANCE_STATUS_UPDATE_MANUAL: Manual update status (Lecturer, Supervisor, Data Operator)
 - ATTENDANCE_REMARK_MANAGE: Add/edit/delete remarks (Lecturer, Supervisor, Data Operator)
-  * Note: Remarks use attendance_records endpoints
+  * Note: Remarks use dedicated exam-attendance endpoints
 
 Business Rules:
 - BR-22: Same-Day Edit Window
@@ -392,7 +550,7 @@ Related Use Cases:
 - UC-28: Initiate Attendance Session (Supervisor) - handled by slots endpoints
 - UC-29: Monitor Real-Time Roster (Supervisor) - handled by slots endpoints
 - UC-30: Manually Update Attendance Status (Supervisor)
-- UC-31: Add/Edit Attendance Remark (Supervisor)
+- UC-31: Add/Edit Attendance Remark (Supervisor) - handled by exam-attendance endpoints
 - UC-32: Finalize Attendance Session (Supervisor) - handled by slots endpoints
 
 Audit Trail:
@@ -402,6 +560,7 @@ Audit Trail:
 
 Slot Categories and Attendance Types:
 | Slot Category    | Regular Attendance | Exam Attendance | Use Case
+|------------------|--------------------|-----------------|-------------------
 | LECTURE          | ✓                  | ✗               | Regular lecture only
 | LECTURE_WITH_PT  | ✓                  | ✓               | Lecture + progress test
 | FINAL_EXAM       | ✗                  | ✓               | Final exam only
@@ -409,7 +568,7 @@ Slot Categories and Attendance Types:
 Implementation Notes:
 - exam_attendance table schema is identical to attendance_records
 - Reuse validation logic, business rules, and time-based checks
-- Reuse remarks management (polymorphic association)
+- Reuse remarks management (polymorphic association) with dedicated endpoints
 - Backend service layer can extract shared logic for both types
 - Frontend can reuse UI components with different data sources
 

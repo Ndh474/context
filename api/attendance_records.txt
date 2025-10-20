@@ -1,21 +1,22 @@
-GET    	| /attendance-records 	   		        | ATTENDANCE_ROSTER_READ 
-GET    	| /attendance-records/{id} 	   	        | ATTENDANCE_ROSTER_READ 
-PUT    	| /attendance-records/{id} 	   	        | ATTENDANCE_STATUS_UPDATE_MANUAL 
-POST   	| /attendance-records/{id}/remarks 	    | ATTENDANCE_REMARK_MANAGE
-PUT    	| /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
-DELETE 	| /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
-POST   	| /attendance/recognition-result 	    | INTERNAL (API Key authentication)
+GET     | /attendance-records               | ATTENDANCE_ROSTER_READ
+GET     | /attendance-records/{id}           | ATTENDANCE_ROSTER_READ
+PUT     | /attendance-records/{id}           | ATTENDANCE_STATUS_UPDATE_MANUAL
+POST    | /attendance-records/{id}/remarks   | ATTENDANCE_REMARK_MANAGE
+PUT     | /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
+DELETE  | /attendance-records/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
+POST    | /attendance/recognition-result     | INTERNAL (API Key authentication)
 
-================================================ Search attendance records ============================================
+=============================================== Search attendance records ===============================================
 1. GET /api/v1/attendance-records
 Permission: ATTENDANCE_ROSTER_READ
 Description: List attendance records with filtering and pagination support.
 
 Query Parameters:
-| Parameter      | Type    | Required | Default | Validation 
+| Parameter      | Type    | Required | Default | Validation
+|----------------|---------|----------|---------|-----------
 | page           | integer | No       | 1       | >= 1
-| pageSize       | integer | No       | 10      | 1-50 
-| sort           | string  | No       | desc    | asc, desc 
+| pageSize       | integer | No       | 10      | 1-50
+| sort           | string  | No       | desc    | asc, desc
 | sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
 | slotId         | integer | No       | null    | Filter by slot
 | studentUserId  | integer | No       | null    | Filter by student
@@ -78,16 +79,17 @@ Query Parameters:
 }
 
 Response Schema (items):
-| Field      | Type    | Description 
-| id         | long    | Attendance record ID
-| student    | object  | Student details (userId, fullName, rollNumber, email)
-| slot       | object  | Slot details with nested class, subject, semester
-| status     | string  | not_yet, present, absent
-| method     | string  | auto, manual, system_finalize
-| recordedAt | string  | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
-| remarks    | array   | List of active remarks (sorted by createdAt DESC)
-| createdAt  | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt  | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field      | Type   | Description
+|------------|--------|-----------
+| id         | long   | Attendance record ID
+| student    | object | Student details (userId, fullName, rollNumber, email)
+| slot       | object | Slot details with nested class, subject, semester
+| status     | string | not_yet, present, absent
+| method     | string | auto, manual, system_finalize
+| recordedAt | string | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
+| remarks    | array  | List of active remarks (sorted by createdAt DESC)
+| createdAt  | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt  | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {
@@ -191,6 +193,7 @@ Request Body:
 
 Request Schema:
 | Field  | Type   | Required | Validation
+|--------|--------|----------|-----------
 | status | string | Yes      | Must be: not_yet, present, absent
 | remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
 
@@ -336,6 +339,7 @@ Request Body:
 
 Request Schema:
 | Field  | Type   | Required | Validation
+|--------|--------|----------|-----------
 | remark | string | Yes      | Not blank, max 1000 chars
 
 Business Rules:
@@ -362,14 +366,15 @@ Business Rules:
 }
 
 Response Schema:
-| Field               | Type    | Description 
-| id                  | long    | Remark ID
-| attendanceRecordId  | long    | Attendance record ID
-| remark              | string  | Remark content
-| createdBy           | object  | User who created the remark (userId, fullName)
-| isActive            | boolean | Remark status (true=active, false=deleted)
-| createdAt           | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt           | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field               | Type   | Description
+|---------------------|--------|-----------
+| id                  | long   | Remark ID
+| attendanceRecordId  | long   | Attendance record ID
+| remark              | string | Remark content
+| createdBy           | object | User who created the remark (userId, fullName)
+| isActive            | boolean| Remark status (true=active, false=deleted)
+| createdAt           | string | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt           | string | YYYY-MM-DDTHH:mm:SSZ
 
 400-Fields required:
 {
@@ -425,6 +430,7 @@ Request Body:
 
 Request Schema:
 | Field  | Type   | Required | Validation
+|--------|--------|----------|-----------
 | remark | string | Yes      | Not blank, max 1000 chars
 
 Business Rules:
@@ -556,7 +562,7 @@ Business Rules:
 
 7. POST /api/v1/attendance/recognition-result
 Authentication: API Key (X-API-Key header)
-Description: Callback endpoint for Python recognition service to send face recognition results. Updates attendance status to 'present' for recognized students.
+Description: Callback endpoint for Python recognition service to send face recognition results. Updates attendance status and stores evidence images.
 
 Request Headers:
 | Header    | Type   | Required | Description
@@ -570,31 +576,37 @@ Request Body:
       "studentUserId": 201,
       "confidence": 0.95,
       "timestamp": "2024-10-19T08:15:30Z",
-      "cameraId": 1
+      "cameraId": 1,
+      "evidence": {
+        "regularImageUrl": "/uploads/evidence/regular/evidence_501.jpg",
+        "examImageUrl": "/uploads/evidence/exam/evidence_1001.jpg"
+      }
     },
     {
       "studentUserId": 202,
       "confidence": 0.92,
       "timestamp": "2024-10-19T08:15:31Z",
-      "cameraId": 1
-    },
-    {
-      "studentUserId": 203,
-      "confidence": 0.89,
-      "timestamp": "2024-10-19T08:15:32Z",
-      "cameraId": 2
+      "cameraId": 1,
+      "evidence": {
+        "regularImageUrl": "/uploads/evidence/regular/evidence_502.jpg",
+        "examImageUrl": null
+      }
     }
   ]
 }
 
 Request Schema:
-| Field                      | Type    | Required | Validation
-| slotId                     | integer | Yes      | Must exist
-| recognitions               | array   | Yes      | Not empty, max 100 items per request
-| recognitions[].studentUserId | integer | Yes      | Must exist and be enrolled in slot's class
-| recognitions[].confidence  | float   | Yes      | 0.0 to 1.0
-| recognitions[].timestamp   | string  | Yes      | ISO 8601 format
-| recognitions[].cameraId    | short   | Yes      | Must exist
+| Field                                   | Type    | Required | Validation
+|-----------------------------------------|---------|----------|-----------
+| slotId                                  | integer | Yes      | Must exist
+| recognitions                            | array   | Yes      | Not empty, max 100 items per request
+| recognitions[].studentUserId            | integer | Yes      | Must exist and be enrolled in slot's class
+| recognitions[].confidence               | float   | Yes      | 0.0 to 1.0
+| recognitions[].timestamp                | string  | Yes      | ISO 8601 format
+| recognitions[].cameraId                 | short   | Yes      | Must exist
+| recognitions[].evidence                 | object  | No       | Contains URLs for evidence images
+| recognitions[].evidence.regularImageUrl | string  | No       | URL/path to the regular attendance evidence image
+| recognitions[].evidence.examImageUrl    | string  | No       | URL/path to the exam attendance evidence image
 
 Business Rules:
 - BR-19: When face is recognized, update status to 'present'
@@ -605,16 +617,18 @@ Business Rules:
 - Concurrent update handling: Last Write Wins
 
 Processing Logic:
-For each recognition:
-1. Find attendance_record by (slot_id, student_user_id)
-2. If not found: skip (student not enrolled or record not created yet)
-3. If current status = 'absent': skip (manual override, don't change)
-4. If current status = 'not_yet' or 'present':
-   - Update status = 'present'
-   - Update method = 'auto'
-   - Update recordedAt = recognition.timestamp
-   - Create audit log
-5. Optionally create remark with confidence and camera info
+1. Authenticate API Key.
+2. Find slot by slotId and check its slotCategory.
+3. For each recognition in the payload:
+   a. If `slotCategory` is 'LECTURE' or 'LECTURE_WITH_PT':
+      - Find `attendance_records` by (slot_id, student_user_id).
+      - If found and status is not 'absent', update status to 'present', method to 'auto', and recordedAt.
+      - If `evidence.regularImageUrl` is provided, create a new record in `regular_attendance_evidences`.
+   b. If `slotCategory` is 'LECTURE_WITH_PT' or 'FINAL_EXAM':
+      - Find `exam_attendance` by (slot_id, student_user_id).
+      - If found and status is not 'absent', update status to 'present', method to 'auto', and recordedAt.
+      - If `evidence.examImageUrl` is provided, create a new record in `exam_attendance_evidences`.
+4. Return a summary of processed results.
 
 200-Success Response:
 {
@@ -622,27 +636,19 @@ For each recognition:
   "message": "Recognition results processed successfully",
   "data": {
     "slotId": 1,
-    "totalRecognitions": 3,
-    "successCount": 3,
+    "totalRecognitions": 2,
+    "successCount": 2,
     "skippedCount": 0,
     "results": [
       {
         "studentUserId": 201,
         "status": "updated",
-        "previousStatus": "not_yet",
-        "newStatus": "present"
+        "details": "Updated both regular and exam attendance."
       },
       {
         "studentUserId": 202,
         "status": "updated",
-        "previousStatus": "not_yet",
-        "newStatus": "present"
-      },
-      {
-        "studentUserId": 203,
-        "status": "updated",
-        "previousStatus": "present",
-        "newStatus": "present"
+        "details": "Updated regular attendance only."
       }
     ]
   }
@@ -661,14 +667,12 @@ For each recognition:
       {
         "studentUserId": 201,
         "status": "updated",
-        "previousStatus": "not_yet",
-        "newStatus": "present"
+        "details": "Updated both regular and exam attendance."
       },
       {
         "studentUserId": 202,
         "status": "updated",
-        "previousStatus": "not_yet",
-        "newStatus": "present"
+        "details": "Updated regular attendance only."
       },
       {
         "studentUserId": 203,
@@ -680,17 +684,19 @@ For each recognition:
 }
 
 Response Schema:
-| Field             | Type    | Description 
-| slotId            | integer | Slot ID
-| totalRecognitions | integer | Total recognition items in request
-| successCount      | integer | Number of successfully updated records
-| skippedCount      | integer | Number of skipped records
-| results           | array   | Processing result for each recognition
+| Field                   | Type    | Description
+|-------------------------|---------|-----------
+| slotId                  | integer | Slot ID
+| totalRecognitions       | integer | Total recognition items in request
+| successCount            | integer | Number of successfully updated records
+| skippedCount            | integer | Number of skipped records
+| results                 | array   | Processing result for each recognition
 | results[].studentUserId | integer | Student user ID
-| results[].status  | string  | updated, skipped, error
-| results[].previousStatus | string | Status before update (if updated)
-| results[].newStatus | string | Status after update (if updated)
-| results[].reason  | string  | Reason for skip/error (if applicable)
+| results[].status        | string  | updated, skipped, error
+| results[].details       | string  | Description of what was updated (e.g., "Updated both regular and exam attendance.")
+| results[].previousStatus| string  | Status before update (if updated)
+| results[].newStatus     | string  | Status after update (if updated)
+| results[].reason        | string  | Reason for skip/error (if applicable)
 
 400-Fields required:
 {

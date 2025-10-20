@@ -3,7 +3,7 @@ GET    	| /slots 	   		| Get all slots 		| SLOT_READ
 GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ 
 PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE | SLOT_UPDATE_CATEGORY | SLOT_UPDATE_FINAL_EXAM
 DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD
-GET /api/v1/slots/{id}/roster 
+GET /api/v1/slots/{id}/roster
 POST /api/v1/slots/{id}/start-session 
 POST /api/v1/slots/{id}/rescan 
 POST /api/v1/slots/{id}/finalize
@@ -730,9 +730,9 @@ Endpoint: GET /api/v1/slots/{id}/roster
 Permission: ATTENDANCE_ROSTER_READ
 
 Business Rules:
-  • Returns the list of actively enrolled students (enrollments.is_enrolled = true)
-  • Includes the current attendance status for each student within this specific slot
-  • The user making the request must be the staff member assigned to this slot
+  • Returns the list of actively enrolled students (enrollments.is_enrolled = true).
+  • Includes attendance status for both regular and exam components, depending on slotCategory.
+  • The user making the request must be the staff member assigned to this slot.
   • Related Business Rules: BR-14, BR-33
 
 Path Parameters:
@@ -747,39 +747,75 @@ Path Parameters:
     "data": {
       "items": [
         {
-          "userId": 201,
-          "fullName": "Tran Thi B",
-          "rollNumber": "HE180314",
-          "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180314.jpg",
-          "attendanceRecordId": 501,
-          "attendanceStatus": "present",
-          "method": "auto",
-          "remarks": null
+          "student": {
+            "userId": 201,
+            "fullName": "Tran Thi B",
+            "rollNumber": "HE180314",
+            "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180314.jpg"
+          },
+          "regularAttendance": {
+            "recordId": 501,
+            "status": "present",
+            "method": "auto",
+            "evidenceImageUrl": "/api/v1/files/evidence/regular/evidence_501.jpg",
+            "remarks": null
+          },
+          "examAttendance": {
+            "recordId": 1001,
+            "status": "not_yet",
+            "method": null,
+            "evidenceImageUrl": null,
+            "remarks": null
+          }
         },
         {
-          "userId": 202,
-          "fullName": "Le Van C",
-          "rollNumber": "HE180315",
-          "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180315.jpg",
-          "attendanceRecordId": 502,
-          "attendanceStatus": "not_yet",
-          "method": null,
-          "remarks": null
+          "student": {
+            "userId": 202,
+            "fullName": "Le Van C",
+            "rollNumber": "HE180315",
+            "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180315.jpg"
+          },
+          "regularAttendance": {
+            "recordId": 502,
+            "status": "absent",
+            "method": "manual",
+            "evidenceImageUrl": null,
+            "remarks": "Student was sick"
+          },
+          "examAttendance": {
+            "recordId": 1002,
+            "status": "absent",
+            "method": "manual",
+            "evidenceImageUrl": null,
+            "remarks": "Student was sick"
+          }
         }
       ]
     }
   }
 Response Schema (items):
-  | Field              | Type    | Description                                                                  |
-  |--------------------|---------|------------------------------------------------------------------------------|
-  | userId             | integer | Student's User ID                                                            |
-  | fullName           | string  | Student's full name                                                          |
-  | rollNumber         | string  | Student's roll number                                                        |
-  | avatarUrl          | string  | URL to the student's approved identity photo                                 |
-  | attendanceRecordId | long    | ID of the attendance record for this slot                                    |
-  | attendanceStatus   | string  | Current status: "not_yet", "present", "absent"                               |
-  | method             | string  | How status was recorded: "auto", "manual", "system_finalize" (null if not_yet)|
-  | remarks            | string  | Any remarks added by the lecturer/supervisor (null if none)                  |
+  | Field             | Type   | Description                                                                  |
+  |-------------------|--------|------------------------------------------------------------------------------|
+  | student           | object | Contains student's profile information.                                      |
+  | regularAttendance | object | Details of the regular attendance. Null if slotCategory is 'FINAL_EXAM'.       |
+  | examAttendance    | object | Details of the exam attendance. Null if slotCategory is 'LECTURE'.             |
+
+Student Object Schema:
+  | Field      | Type   | Description                                  |
+  |------------|--------|----------------------------------------------|
+  | userId     | integer| Student's User ID                            |
+  | fullName   | string | Student's full name                          |
+  | rollNumber | string | Student's roll number                        |
+  | avatarUrl  | string | URL to the student's approved identity photo |
+
+Attendance Object Schema (for regularAttendance and examAttendance):
+  | Field            | Type   | Description                                                                  |
+  |------------------|--------|------------------------------------------------------------------------------|
+  | recordId         | long   | ID of the attendance record (from attendance_records or exam_attendance)     |
+  | status           | string | Current status: "not_yet", "present", "absent"                               |
+  | method           | string | How status was recorded: "auto", "manual", "system_finalize" (null if not_yet)|
+  | evidenceImageUrl | string | URL to the captured evidence image (null if not available)                   |
+  | remarks          | string | The latest remark added by the lecturer/supervisor (null if none)            |
 
 --------------------------------------------------------------------------------
 400 - Invalid field type:
