@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-19T22:05:40.151407",
+      "generated_at": "2025-10-20T08:35:27.946072",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
@@ -343,8 +343,9 @@
             "title": "Identity Registration Screens",
             "features": [
               "Identity registration instructions",
-              "Face video recording interface",
-              "ID card photo capture interface",
+              "Step 1: Interface to capture a static face photo.",
+              "Step 2: Interface to record a short face video.",
+              "Review and submit screen",
               "Waiting screen/approval result notification"
             ]
           },
@@ -402,6 +403,7 @@
               "Interface displays appropriate functions based on role (Lecturer, Supervisor) and slot type (LECTURE, EXAM)",
               "Display camera names and connection status of all cameras in the assigned room",
               "Interface updates attendance status in real-time from recognition service results",
+              "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for quick visual comparison by the lecturer.",
               "Review/edit status",
               "Add/Edit attendance remarks for each student",
               "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions",
@@ -575,9 +577,21 @@
         }
       },
       "technical_flows": {
-        "identity_registration_flow": "A one-time process for students to register their identity. Students record a face video and take an ID card photo. The data is then sent to Data Operator for manual approval. Approved data becomes the base image.",
-        "identity_re_registration_flow": "Students can submit a request to update their identity photo (only need to record face video, no ID card needed). This request also requires Data Operator approval. During the waiting period, the system still uses the old photo for attendance.",
+        "identity_registration_flow": "A one-time process for students to register their identity. Students first take a static face photo (which will become the base image for comparison), then record a short face video (used to generate the recognition vector). The data is then sent to Data Operator for manual approval.",
+        "identity_re_registration_flow": "Students can submit a request to update their identity. The process is the same as the initial registration: they must provide a new static face photo and a new face video. This request also requires Data Operator approval. During the waiting period, the system still uses the old photo and vector for attendance.",
         "identity_submission_rejection_flow": "When Data Operator rejects an identity registration/update request, the system automatically sends a system notification to the student. This notification includes the rejection reason and will appear in the student's Notification Inbox.",
+        "evidence_cleanup_flow": {
+          "title": "Temporary Attendance Evidence Cleanup Flow",
+          "description": "A scheduled job that runs periodically (e.g., daily) to delete old attendance evidence images and their corresponding database records from both regular and exam attendance tables to save storage space.",
+          "steps": [
+            "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
+            "2. Read Configuration: The job reads the value of 'attendance.evidence_retention_days' from system_configurations (e.g., 30 days).",
+            "3. Scan for Old Regular Evidence: The job queries the 'regular_attendance_evidences' table to find all records older than the retention period.",
+            "4. Delete Regular Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
+            "5. Scan for Old Exam Evidence: The job queries the 'exam_attendance_evidences' table to find all records older than the retention period.",
+            "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record."
+          ]
+        },
         "face_identification_flow": "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system adds a new event to the student's history record and updates the displayed status on the interface based on the latest result. This process does not overwrite old data.",
         "data_export_flow": "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS.",
         "authentication_flow": "Users on all platforms (Web, Mobile) can log in with Google. Upon successful authentication, Google provides an email address. The FUACS system uses this email address to directly look up the corresponding user account that already exists in the system. If an active account with a matching email is found, the system grants a session token with the permissions assigned to that user. This flow is entirely based on email matching.",
@@ -2090,6 +2104,98 @@
             "Remarks are required when manually changing attendance status"
           ]
         },
+        "regular_attendance_evidences": {
+          "primary_key": "id",
+          "description": "Stores temporary evidence images for REGULAR attendance records (from 'attendance_records' table).",
+          "columns": {
+            "id": {
+              "type": "BIGINT",
+              "constraints": [
+                "NOT NULL",
+                "PRIMARY KEY",
+                "AUTO_INCREMENT"
+              ],
+              "description": "Unique evidence identifier"
+            },
+            "attendance_record_id": {
+              "type": "bigint",
+              "constraints": [
+                "NOT NULL",
+                "UNIQUE"
+              ],
+              "foreign_key": {
+                "table": "attendance_records",
+                "column": "id"
+              },
+              "description": "Reference to the regular attendance record this image provides evidence for."
+            },
+            "image_url": {
+              "type": "varchar(255)",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "description": "URL/path to the stored evidence image file"
+            },
+            "created_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": "now()",
+              "description": "Timestamp when the evidence was captured"
+            }
+          },
+          "notes": [
+            "This table stores temporary data for LECTURE and LECTURE_WITH_PT slots.",
+            "A scheduled job should periodically clean up old records from this table."
+          ]
+        },
+        "exam_attendance_evidences": {
+          "primary_key": "id",
+          "description": "Stores temporary evidence images for EXAM attendance records (from 'exam_attendance' table).",
+          "columns": {
+            "id": {
+              "type": "BIGINT",
+              "constraints": [
+                "NOT NULL",
+                "PRIMARY KEY",
+                "AUTO_INCREMENT"
+              ],
+              "description": "Unique evidence identifier"
+            },
+            "exam_attendance_id": {
+              "type": "bigint",
+              "constraints": [
+                "NOT NULL",
+                "UNIQUE"
+              ],
+              "foreign_key": {
+                "table": "exam_attendance",
+                "column": "id"
+              },
+              "description": "Reference to the exam attendance record this image provides evidence for."
+            },
+            "image_url": {
+              "type": "varchar(255)",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "description": "URL/path to the stored evidence image file"
+            },
+            "created_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": "now()",
+              "description": "Timestamp when the evidence was captured"
+            }
+          },
+          "notes": [
+            "This table stores temporary data for LECTURE_WITH_PT and FINAL_EXAM slots.",
+            "A scheduled job should periodically clean up old records from this table."
+          ]
+        },
         "identity_submissions": {
           "primary_key": "id",
           "description": "Student identity registration and update requests",
@@ -2193,7 +2299,7 @@
             }
           ],
           "notes": [
-            "Initial submissions require both face video and ID card",
+            "Initial submissions require both face video and face photo",
             "Update submissions only require face video",
             "Approved submissions trigger face embedding generation"
           ]
@@ -2250,7 +2356,7 @@
               "constraints": [
                 "NOT NULL"
               ],
-              "description": "Type of asset: 'face_video' or 'id_card'"
+              "description": "Type of asset: 'face_video' or 'face_photo'"
             },
             "storage_url": {
               "type": "varchar(255)",
@@ -2263,7 +2369,7 @@
           "notes": [
             "Each submission can have multiple assets",
             "Face videos are processed to generate embeddings",
-            "ID cards are used for manual verification by data operators"
+            "Face photos are used for manual verification by data operators"
           ]
         },
         "face_embeddings": {
@@ -2891,7 +2997,7 @@
     },
     "requirements": {
       "metadata": {
-        "total_business_rules": 36,
+        "total_business_rules": 37,
         "domains_covered": [
           "Authentication",
           "Roles",
@@ -3013,11 +3119,12 @@
         "identity_management": {
           "BR-08": {
             "title": "Initial Identity Registration Requirements",
-            "description": "A student's initial identity registration request must include a facial video and a national ID card image.",
+            "description": "A student's identity registration request (both initial and update) must include a static face photo and a short face video.",
             "domain": "Identity",
             "priority": "High",
             "related_use_cases": [
-              "UC-12"
+              "UC-12",
+              "UC-13"
             ],
             "validation_points": [
               "Identity submission creation"
@@ -3113,7 +3220,7 @@
           },
           "BR-15": {
             "title": "Slot Room Assignment",
-            "description": "Each lecture/exam slot must be associated with a specific slot type and room.",
+            "description": "Each lecture/exam slot must be associated with a specific slot category and room.",
             "domain": "Academic",
             "priority": "High",
             "related_use_cases": [
@@ -3489,8 +3596,8 @@
             }
           },
           "BR-34": {
-            "title": "Slot Category Validation",
-            "description": "Defines validation rules for slot_category field. This field combines slot type and exam component into a single classification. Validation is enforced at the application layer (backend), not via database constraints.",
+            "title": "Slot Category Logic and Attendance Type Mapping",
+            "description": "The 'slot_category' field determines the purpose of a slot and which attendance tables are used. This logic is enforced at the application layer.",
             "domain": "Academic",
             "priority": "High",
             "related_use_cases": [
@@ -3502,48 +3609,21 @@
             ],
             "validation_points": [
               "Slot creation API",
-              "Slot update API"
+              "Slot update API",
+              "Attendance processing logic"
             ],
             "rules": {
-              "allowed_values": {
-                "slot_category": [
-                  "LECTURE",
-                  "LECTURE_WITH_PT",
-                  "FINAL_EXAM"
-                ]
-              },
-              "use_cases": {
-                "regular_lecture": {
-                  "slot_category": "LECTURE",
-                  "description": "Regular lecture session (teaching only)",
-                  "created_by": "Data Operator",
-                  "can_be_updated_by": "Lecturer (to LECTURE_WITH_PT)"
-                },
-                "lecture_with_progress_test": {
-                  "slot_category": "LECTURE_WITH_PT",
-                  "description": "Lecture session with progress test (teaching + testing)",
-                  "created_by": "Data Operator OR Lecturer (via update)",
-                  "can_be_updated_by": "Lecturer (to LECTURE, if no exam_attendance)"
-                },
-                "final_exam": {
-                  "slot_category": "FINAL_EXAM",
-                  "description": "Final exam session (testing only)",
-                  "created_by": "Data Operator",
-                  "can_be_updated_by": "Data Operator only"
-                }
+              "category_definitions": {
+                "LECTURE": "Regular lecture session. Uses 'attendance_records' only.",
+                "LECTURE_WITH_PT": "Lecture with a progress test. Uses both 'attendance_records' and 'exam_attendance'.",
+                "FINAL_EXAM": "Final exam session. Uses 'exam_attendance' only."
               },
               "permission_mapping": [
-                "SLOT_CREATE: Can create LECTURE slots (granted to Data Operator)",
-                "SLOT_UPDATE_CATEGORY: Can update slot_category between LECTURE and LECTURE_WITH_PT (granted to Lecturer)",
-                "SLOT_CREATE_FINAL_EXAM: Can create FINAL_EXAM slots (granted to Data Operator)",
-                "SLOT_UPDATE_FINAL_EXAM: Can update FINAL_EXAM slots (granted to Data Operator)",
-                "SLOT_DELETE_HARD_FINAL_EXAM: Can delete FINAL_EXAM slots (granted to Data Operator)"
+                "Data Operator can create/manage all categories.",
+                "Lecturer can only update a slot's category between 'LECTURE' and 'LECTURE_WITH_PT', governed by BR-35."
               ]
             }
           },
-          "BR-35": null
-        },
-        "academic_data_management_extended": {
           "BR-35": {
             "title": "Lecturer Can Update Slot Category",
             "description": "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT for their assigned slots, subject to certain constraints.",
@@ -3712,7 +3792,8 @@
             "BR-28",
             "BR-29",
             "BR-31",
-            "BR-35"
+            "BR-36",
+            "BR-37"
           ],
           "description": "Rules governing the complete attendance management lifecycle"
         },
@@ -3724,6 +3805,13 @@
             "BR-27"
           ],
           "description": "Rules ensuring data consistency and audit trail"
+        },
+        "academic_data_management": {
+          "primary_rules": [
+            "BR-34",
+            "BR-35"
+          ],
+          "description": "Rules for academic data management including slot categories and lecturer permissions"
         },
         "permission_control": {
           "primary_rules": [
@@ -3896,7 +3984,7 @@
             "secondary_actors": [
               "Data Operator"
             ],
-            "description": "Allows a new student to submit their identity credentials (facial video, ID card) for verification by a Data Operator.",
+            "description": "Allows a new student to submit their identity credentials (a static face photo and a short face video) for verification by a Data Operator.",
             "related_business_rules": [
               "BR-08",
               "BR-09"
@@ -3910,8 +3998,9 @@
             "secondary_actors": [
               "Data Operator"
             ],
-            "description": "Allows a student to submit a request to update their identity profile, which is routed to a Data Operator for approval.",
+            "description": "Allows a student to submit a request to update their identity profile by providing a new static face photo and a new face video. The request is routed to a Data Operator for approval.",
             "related_business_rules": [
+              "BR-08",
               "BR-09",
               "BR-10",
               "BR-11"
@@ -4036,7 +4125,7 @@
               "Lecturer"
             ],
             "secondary_actors": [],
-            "description": "Allows a lecturer to change slot category from 'LECTURE' to 'LECTURE_WITH_PT' for an existing slot they are responsible for. This represents converting a regular lecture session into a lecture with progress test (part teaching, part testing). All active cameras in the room will be used for both regular attendance and exam attendance. Example Scenario: Lecturer initially planned regular lecture but decides to add progress test component.",
+            "description": "Allows a lecturer to change the category of an existing slot from 'LECTURE' to 'LECTURE_WITH_PT'. This action signifies adding a progress test component to a regular lecture session.",
             "related_business_rules": [
               "BR-34",
               "BR-35"
@@ -4064,10 +4153,9 @@
               "Lecturer"
             ],
             "secondary_actors": [],
-            "description": "Allows a lecturer to change slot category from 'LECTURE_WITH_PT' to 'LECTURE' if no exam attendance records exist. This action requires the 'SLOT_UPDATE_CATEGORY' permission.",
+            "description": "Allows a lecturer to change the category of a slot from 'LECTURE_WITH_PT' back to 'LECTURE', provided that no exam attendance records exist for that slot.",
             "related_business_rules": [
               "BR-27",
-              "BR-30",
               "BR-34",
               "BR-35"
             ]
@@ -4656,7 +4744,7 @@
               "related_business_rules": [
                 "BR-13",
                 "BR-27",
-                "BR-36"
+                "BR-37"
               ]
             }
           }

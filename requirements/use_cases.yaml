@@ -91,15 +91,15 @@ use_cases:
       title: "Initiate Identity Registration"
       primary_actors: ["Student"]
       secondary_actors: ["Data Operator"]
-      description: "Allows a new student to submit their identity credentials (facial video, ID card) for verification by a Data Operator."
+      description: "Allows a new student to submit their identity credentials (a static face photo and a short face video) for verification by a Data Operator."
       related_business_rules: ["BR-08", "BR-09"]
 
     UC-13:
       title: "Request Identity Update"
       primary_actors: ["Student"]
       secondary_actors: ["Data Operator"]
-      description: "Allows a student to submit a request to update their identity profile, which is routed to a Data Operator for approval."
-      related_business_rules: ["BR-09", "BR-10", "BR-11"]
+      description: "Allows a student to submit a request to update their identity profile by providing a new static face photo and a new face video. The request is routed to a Data Operator for approval."
+      related_business_rules: ["BR-08", "BR-09", "BR-10", "BR-11"]
 
   lecturer:
     UC-14:
@@ -176,7 +176,7 @@ use_cases:
       title: "Change Slot Category to Include Progress Test"
       primary_actors: ["Lecturer"]
       secondary_actors: []
-      description: "Allows a lecturer to change slot category from 'LECTURE' to 'LECTURE_WITH_PT' for an existing slot they are responsible for. This represents converting a regular lecture session into a lecture with progress test (part teaching, part testing). All active cameras in the room will be used for both regular attendance and exam attendance. Example Scenario: Lecturer initially planned regular lecture but decides to add progress test component."
+      description: "Allows a lecturer to change the category of an existing slot from 'LECTURE' to 'LECTURE_WITH_PT'. This action signifies adding a progress test component to a regular lecture session."
       related_business_rules: ["BR-34", "BR-35"]
 
     UC-25:
@@ -190,8 +190,8 @@ use_cases:
       title: "Change Slot Category to Remove Progress Test"
       primary_actors: ["Lecturer"]
       secondary_actors: []
-      description: "Allows a lecturer to change slot category from 'LECTURE_WITH_PT' to 'LECTURE' if no exam attendance records exist. This action requires the 'SLOT_UPDATE_CATEGORY' permission."
-      related_business_rules: ["BR-27", "BR-30", "BR-34", "BR-35"]
+      description: "Allows a lecturer to change the category of a slot from 'LECTURE_WITH_PT' back to 'LECTURE', provided that no exam attendance records exist for that slot."
+      related_business_rules: ["BR-27", "BR-34", "BR-35"]
 
   supervisor:
     UC-27:
@@ -555,7 +555,7 @@ use_cases:
         primary_actors: ["Data Operator"]
         secondary_actors: []
         description: "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id) to perform mass enrollment for a selected semester. The system will validate the data before creating the enrollment records."
-        related_business_rules: ["BR-13", "BR-27", "BR-36"]
+        related_business_rules: ["BR-13", "BR-27", "BR-37"]
 
   system_admin:
     system_configuration:

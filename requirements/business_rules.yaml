@@ -2,7 +2,7 @@
 # FUACS Requirements - Version 1.0
 
 metadata:
-  total_business_rules: 36
+  total_business_rules: 37
   domains_covered:
     [
       Authentication,
@@ -80,10 +80,10 @@ business_rules:
   identity_management:
     BR-08:
       title: "Initial Identity Registration Requirements"
-      description: "A student's initial identity registration request must include a facial video and a national ID card image."
+      description: "A student's identity registration request (both initial and update) must include a static face photo and a short face video."
       domain: "Identity"
       priority: "High"
-      related_use_cases: ["UC-12"]
+      related_use_cases: ["UC-12", "UC-13"]
       validation_points: ["Identity submission creation"]
 
     BR-09:
@@ -144,7 +144,7 @@ business_rules:
 
     BR-15:
       title: "Slot Room Assignment"
-      description: "Each lecture/exam slot must be associated with a specific slot type and room."
+      description: "Each lecture/exam slot must be associated with a specific slot category and room."
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-24", "UC-58", "UC-60"]
@@ -390,42 +390,21 @@ business_rules:
           - "If student is unenrolled BEFORE slot starts, no attendance record is created"
 
     BR-34:
-      title: "Slot Category Validation"
-      description: "Defines validation rules for slot_category field. This field combines slot type and exam component into a single classification. Validation is enforced at the application layer (backend), not via database constraints."
+      title: "Slot Category Logic and Attendance Type Mapping"
+      description: "The 'slot_category' field determines the purpose of a slot and which attendance tables are used. This logic is enforced at the application layer."
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-24", "UC-25", "UC-26", "UC-58", "UC-60"]
-      validation_points: ["Slot creation API", "Slot update API"]
+      validation_points: ["Slot creation API", "Slot update API", "Attendance processing logic"]
       rules:
-        allowed_values:
-          slot_category: ["LECTURE", "LECTURE_WITH_PT", "FINAL_EXAM"]
-        use_cases:
-          regular_lecture:
-            slot_category: "LECTURE"
-            description: "Regular lecture session (teaching only)"
-            created_by: "Data Operator"
-            can_be_updated_by: "Lecturer (to LECTURE_WITH_PT)"
-          lecture_with_progress_test:
-            slot_category: "LECTURE_WITH_PT"
-            description: "Lecture session with progress test (teaching + testing)"
-            created_by: "Data Operator OR Lecturer (via update)"
-            can_be_updated_by: "Lecturer (to LECTURE, if no exam_attendance)"
-          final_exam:
-            slot_category: "FINAL_EXAM"
-            description: "Final exam session (testing only)"
-            created_by: "Data Operator"
-            can_be_updated_by: "Data Operator only"
+        category_definitions:
+          "LECTURE": "Regular lecture session. Uses 'attendance_records' only."
+          "LECTURE_WITH_PT": "Lecture with a progress test. Uses both 'attendance_records' and 'exam_attendance'."
+          "FINAL_EXAM": "Final exam session. Uses 'exam_attendance' only."
         permission_mapping:
-          - "SLOT_CREATE: Can create LECTURE slots (granted to Data Operator)"
-          - "SLOT_UPDATE_CATEGORY: Can update slot_category between LECTURE and LECTURE_WITH_PT (granted to Lecturer)"
-          - "SLOT_CREATE_FINAL_EXAM: Can create FINAL_EXAM slots (granted to Data Operator)"
-          - "SLOT_UPDATE_FINAL_EXAM: Can update FINAL_EXAM slots (granted to Data Operator)"
-          - "SLOT_DELETE_HARD_FINAL_EXAM: Can delete FINAL_EXAM slots (granted to Data Operator)"
+          - "Data Operator can create/manage all categories."
+          - "Lecturer can only update a slot's category between 'LECTURE' and 'LECTURE_WITH_PT', governed by BR-35."
 
-    BR-35:
-
-  # Academic Data Management (BR-35)
-  academic_data_management_extended:
     BR-35:
       title: "Lecturer Can Update Slot Category"
       description: "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT for their assigned slots, subject to certain constraints."
@@ -439,16 +418,16 @@ business_rules:
           - "Slot has not been finalized yet"
           - "Current user has SLOT_UPDATE_CATEGORY permission"
           - "Update is between LECTURE and LECTURE_WITH_PT only"
-        
+
         can_change_to_lecture_with_pt:
           - "Current slot_category is 'LECTURE'"
           - "All general conditions above are met"
-        
+
         can_change_to_lecture:
           - "Current slot_category is 'LECTURE_WITH_PT'"
           - "No exam_attendance records exist for this slot"
           - "All general conditions above are met"
-        
+
         cannot_update_if:
           - "Slot category is 'FINAL_EXAM' (only DOP can manage)"
           - "Trying to change to/from 'FINAL_EXAM'"
@@ -539,12 +518,16 @@ rule_relationships:
 
   attendance_lifecycle:
     primary_rules:
-      ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29", "BR-31", "BR-35"]
+      ["BR-18", "BR-19", "BR-21", "BR-28", "BR-29", "BR-31", "BR-36", "BR-37"]
     description: "Rules governing the complete attendance management lifecycle"
 
   data_integrity:
     primary_rules: ["BR-12", "BR-13", "BR-24", "BR-27"]
     description: "Rules ensuring data consistency and audit trail"
+
+  academic_data_management:
+    primary_rules: ["BR-34", "BR-35"]
+    description: "Rules for academic data management including slot categories and lecturer permissions"
 
   permission_control:
     primary_rules: ["BR-05", "BR-25", "BR-26"]
