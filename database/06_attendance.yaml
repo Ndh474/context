@@ -209,3 +209,59 @@ tables:
       - "Used for explaining attendance status changes or special circumstances"
       - "Multiple remarks can be added to the same attendance record"
       - "Remarks are required when manually changing attendance status"
+
+  regular_attendance_evidences:
+    primary_key: id
+    description: "Stores temporary evidence images for REGULAR attendance records (from 'attendance_records' table)."
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique evidence identifier"
+      attendance_record_id:
+        type: bigint
+        constraints: [NOT NULL, UNIQUE]
+        foreign_key:
+          table: attendance_records
+          column: id
+        description: "Reference to the regular attendance record this image provides evidence for."
+      image_url:
+        type: varchar(255)
+        constraints: [NOT NULL]
+        description: "URL/path to the stored evidence image file"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Timestamp when the evidence was captured"
+    notes:
+      - "This table stores temporary data for LECTURE and LECTURE_WITH_PT slots."
+      - "A scheduled job should periodically clean up old records from this table."
+
+  exam_attendance_evidences:
+    primary_key: id
+    description: "Stores temporary evidence images for EXAM attendance records (from 'exam_attendance' table)."
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique evidence identifier"
+      exam_attendance_id:
+        type: bigint
+        constraints: [NOT NULL, UNIQUE]
+        foreign_key:
+          table: exam_attendance
+          column: id
+        description: "Reference to the exam attendance record this image provides evidence for."
+      image_url:
+        type: varchar(255)
+        constraints: [NOT NULL]
+        description: "URL/path to the stored evidence image file"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Timestamp when the evidence was captured"
+    notes:
+      - "This table stores temporary data for LECTURE_WITH_PT and FINAL_EXAM slots."
+      - "A scheduled job should periodically clean up old records from this table."

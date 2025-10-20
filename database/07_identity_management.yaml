@@ -62,7 +62,7 @@ tables:
         columns: [reviewed_at]
         description: "For filtering reviewed vs pending submissions"
     notes:
-      - "Initial submissions require both face video and ID card"
+      - "Initial submissions require both face video and face photo"
       - "Update submissions only require face video"
       - "Approved submissions trigger face embedding generation"
 
@@ -98,7 +98,7 @@ tables:
       asset_type:
         type: varchar(20)
         constraints: [NOT NULL]
-        description: "Type of asset: 'face_video' or 'id_card'"
+        description: "Type of asset: 'face_video' or 'face_photo'"
       storage_url:
         type: varchar(255)
         constraints: [NOT NULL]
@@ -106,7 +106,7 @@ tables:
     notes:
       - "Each submission can have multiple assets"
       - "Face videos are processed to generate embeddings"
-      - "ID cards are used for manual verification by data operators"
+      - "Face photos are used for manual verification by data operators"
 
   face_embeddings:
     primary_key: id
