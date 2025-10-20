@@ -405,7 +405,7 @@ Business Rules:
 
 5. POST /api/v1/enrollments/bulk
 Permission: ENROLLMENT_MANAGE
-Description: Bulk import enrollments from CSV file. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk enroll existing students into classes from a CSV file (UC-77). This is the primary endpoint for mass enrollment. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Request: Multipart form-data
 Content-Type: multipart/form-data

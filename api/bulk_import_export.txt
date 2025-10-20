@@ -11,7 +11,7 @@ GET    	| /export/attendance 	   	    | REPORT_EXPORT_ACADEMIC_DATA
 ============================================ Bulk import students from CSV ============================================
 1. POST /api/v1/import/students
 Permission: USER_CREATE
-Description: Bulk import students from CSV file. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk import **and create new student accounts** from a CSV file. This endpoint is for creating users, not for enrolling them into classes. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Request: Multipart form-data
 Content-Type: multipart/form-data

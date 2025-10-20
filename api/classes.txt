@@ -2,7 +2,7 @@ POST   	| /classes 	   		    | CLASS_CREATE
 GET    	| /classes 	   		    | CLASS_READ 
 GET    	| /classes/{id} 	    | CLASS_READ 
 PUT    	| /classes/{id} 		  | CLASS_UPDATE 
-DELETE 	| /classes/{id} 		  | CLASS_DELETE_HARD(M)
+DELETE 	| /classes/{id} 		  | CLASS_DELETE_HARD
 GET    	| /classes/{id}/slots	| SLOT_READ 
 
 ================================================= Create a new class ==================================================
@@ -18,7 +18,7 @@ Request Body:
 
 Request Schema:
 | Field      | Type   | Required | Validation 
-| code       | string | Yes      | Not blank, max 20 chars(M), unique per subject+semester
+| code       | string | Yes      | Not blank, max 20 chars, unique per subject+semester
 |            |        |          | Pattern: ^[A-Z0-9]+$, Examples: "SE1801", "AI2024A", "DB101"
 | subjectId  | short  | Yes      | Not null, must exist and active
 | semesterId | short  | Yes      | Not null, must exist and active
@@ -247,7 +247,7 @@ Request Body:
 
 Request Schema:
 | Field      | Type    | Required | Validation
-| code       | string  | Yes      | Not blank, max 20 chars(M), unique per subject+semester
+| code       | string  | Yes      | Not blank, max 20 chars, unique per subject+semester
 |            |         |          | Pattern: ^[A-Z0-9]+$
 | subjectId  | short   | Yes      | Not null, must be valid subject ID, subject must be active
 | semesterId | short   | Yes      | Not null, must be valid semester ID, semester must be active
@@ -340,7 +340,7 @@ HttpMessageNotReadableException:
 ===================================================== Delete class ====================================================
 
 5. DELETE /api/v1/classes/{id}
-Permission: CLASS_DELETE_HARD(M)
+Permission: CLASS_DELETE_HARD
 Path Parameters:
 | Parameter | Type 	| Required| Description
 | id 		    | short | Yes 		| Class ID
@@ -508,7 +508,7 @@ Slot Object Schema:
 - totalSlot: Total slots (active + inactive)
 - totalActiveSlot: Active slots only (is_active = true)
 - Subject and semester can be changed at any time via PUT endpoint
-- (M) = Modified
+-  = Modified
 
 Validation Patterns:
 - Class code: ^[A-Z0-9]+$ (UPPERCASE letters and digits only, no spaces, max 20 chars)

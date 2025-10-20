@@ -2,7 +2,7 @@ POST   	| /cameras 	   		| CAMERA_CREATE
 GET    	| /cameras 	   		| CAMERA_READ 
 GET    	| /cameras/{id} 	| CAMERA_READ 
 PUT    	| /cameras/{id} 	| CAMERA_UPDATE 
-DELETE 	| /cameras/{id} 	| CAMERA_DELETE_HARD(M)
+DELETE 	| /cameras/{id} 	| CAMERA_DELETE_HARD
 
 ================================================ Create a new camera ==================================================
 1. POST /api/v1/cameras
@@ -16,8 +16,8 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation 
-| name 		| string 	| Yes 		| Not blank, max 150 chars(M)
-| rtspUrl | string  | Yes 		| Not blank, max 512 chars(M)
+| name 		| string 	| Yes 		| Not blank, max 150 chars
+| rtspUrl | string  | Yes 		| Not blank, max 512 chars
 | roomId 	| short 	| Yes 		  | Not null, must be valid room ID
 
 201-Success Response:
@@ -223,8 +223,8 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation
-| name 		| string 	| Yes 		| Not blank, max 150 chars(M)
-| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars(M)
+| name 		| string 	| Yes 		| Not blank, max 150 chars
+| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars
 | roomId 	| short 	| Yes 		| Not null, must be valid room ID
 | isActive 	| boolean 	| Yes 		| Not null
 
@@ -289,7 +289,7 @@ HttpMessageNotReadableException:
 ===================================================== Delete camera ===================================================
 
 5. DELETE /api/v1/cameras/{id}
-Permission: CAMERA_DELETE_HARD(M)
+Permission: CAMERA_DELETE_HARD
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
 | id 		| short | Yes 		| Camera ID
@@ -335,7 +335,7 @@ Path Parameters:
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if camera has dependencies
 - Camera can be reassigned to different room via PUT endpoint
-- (M) = Modified
+-  = Modified
 
 Common Status Codes:
 - 200: Success

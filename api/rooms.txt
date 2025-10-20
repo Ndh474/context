@@ -2,7 +2,7 @@ POST   	| /rooms 	   		      | ROOM_CREATE
 GET    	| /rooms 	   		      | ROOM_READ 
 GET    	| /rooms/{id} 	      | ROOM_READ 
 PUT    	| /rooms/{id} 	      | ROOM_UPDATE 
-DELETE 	| /rooms/{id} 	      | ROOM_DELETE_HARD(M)
+DELETE 	| /rooms/{id} 	      | ROOM_DELETE_HARD
 GET     | /rooms/{id}/cameras | CAMERA_READ
 
 
@@ -232,7 +232,7 @@ HttpMessageNotReadableException:
 ====================================================== Delete room ====================================================
 
 5. DELETE /api/v1/rooms/{id}
-Permission: ROOM_DELETE_HARD(M)
+Permission: ROOM_DELETE_HARD
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
 | id 		| short | Yes 		| Room ID
@@ -433,7 +433,7 @@ Response Schema (items):
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if room is referenced by slots or cameras
 - Location field is optional
-- (M) = Modified
+-  = Modified
 
 Common Status Codes:
 - 200: Success

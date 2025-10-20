@@ -2,7 +2,7 @@ POST   	| /subjects 	   		| Create new subject 	| SUBJECT_CREATE
 GET    	| /subjects 	   		| Get all subjects 		| SUBJECT_READ 
 GET    	| /subjects/{id} 		| Get subject by id 	| SUBJECT_READ 
 PUT    	| /subjects/{id} 		| Update subject 		  | SUBJECT_UPDATE 
-DELETE 	| /subjects/{id} 		| Delete subject 		  | SUBJECT_DELETE_HARD(M)
+DELETE 	| /subjects/{id} 		| Delete subject 		  | SUBJECT_DELETE_HARD
 
 ================================================ Create a new subject =================================================
 Business Rules:
@@ -363,7 +363,7 @@ HttpMessageNotReadableException:
 ==================================================== Delete subject ===================================================
 
 5. DELETE /api/v1/subjects/{id}
-Permission: SUBJECT_DELETE_HARD(M)
+Permission: SUBJECT_DELETE_HARD
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
 | id 		| short | Yes 		| Subject ID
@@ -503,7 +503,7 @@ Class Object Schema:
 - Subject-Class relationship is One-to-Many (one subject can have multiple classes)
 - totalClass: Total number of classes (active + inactive)
 - totalActiveClass: Number of active classes only (used for deactivation validation)
-- (M) = Modified
+-  = Modified
 
 Validation Patterns:
 - Subject name: ^[A-Za-z0-9 ]+$ (letters, digits, spaces, max 150 chars)

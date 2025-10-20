@@ -1,9 +1,6 @@
 GET     | /exam-attendance                  | ATTENDANCE_ROSTER_READ
 GET     | /exam-attendance/{id}              | ATTENDANCE_ROSTER_READ
 PUT     | /exam-attendance/{id}              | ATTENDANCE_STATUS_UPDATE_MANUAL
-POST    | /exam-attendance/{id}/remarks      | ATTENDANCE_REMARK_MANAGE
-PUT     | /exam-attendance/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
-DELETE  | /exam-attendance/{id}/remarks/{remarkId} | ATTENDANCE_REMARK_MANAGE
 
 ============================================= Search exam attendance records ==============================================
 1. GET /api/v1/exam-attendance
@@ -321,164 +318,6 @@ Time-Based Edit Window Validation:
 }
 
 =======================================================================================================================
-========================================= Add remark to exam attendance record ========================================
-
-4. POST /api/v1/exam-attendance/{id}/remarks
-Permission: ATTENDANCE_REMARK_MANAGE
-Description: Add a new remark to an exam attendance record.
-
-Path Parameters:
-| Parameter | Type | Required | Description
-| id        | long | Yes      | Exam attendance record ID
-
-Request Body:
-{
-  "remark": "Student submitted exam paper 15 minutes early."
-}
-
-Request Schema:
-| Field  | Type   | Required | Validation
-| remark | string | Yes      | Not blank, max 1000 chars
-
-201-Success Response:
-{
-  "status": 201,
-  "data": {
-    "id": 2003,
-    "attendanceRecordId": 1001,
-    "remark": "Student submitted exam paper 15 minutes early.",
-    "createdBy": {
-      "userId": 15,
-      "fullName": "Jane Supervisor"
-    },
-    "isActive": true,
-    "createdAt": "2024-10-19T15:00:00Z",
-    "updatedAt": "2024-10-19T15:00:00Z"
-  }
-}
-
-Response Schema:
-| Field               | Type   | Description
-|---------------------|--------|-----------
-| id                  | long   | Remark ID
-| attendanceRecordId  | long   | Exam attendance record ID
-| remark              | string | Remark content
-| createdBy           | object | User who created the remark (userId, fullName)
-| isActive            | boolean| Remark status (true=active, false=deleted)
-| createdAt           | string | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt           | string | YYYY-MM-DDTHH:mm:SSZ
-
-400-Fields required:
-{
-  "status": 400,
-  "message": "Remark is required",
-  "code": "REMARK_REQUIRED"
-}
-
-404-Exam attendance record not found:
-{
-  "status": 404,
-  "message": "Exam attendance record not found: 1001",
-  "code": "EXAM_ATTENDANCE_NOT_FOUND"
-}
-
-=======================================================================================================================
-================================================== Update remark ======================================================
-
-5. PUT /api/v1/exam-attendance/{id}/remarks/{remarkId}
-Permission: ATTENDANCE_REMARK_MANAGE
-Description: Update an existing remark on an exam attendance record.
-
-Path Parameters:
-| Parameter | Type | Required | Description
-| id        | long | Yes      | Exam attendance record ID
-| remarkId  | long | Yes      | Remark ID
-
-Request Body:
-{
-  "remark": "Student submitted exam paper 20 minutes early (corrected)."
-}
-
-Request Schema:
-| Field  | Type   | Required | Validation
-|--------|--------|----------|-----------
-| remark | string | Yes      | Not blank, max 1000 chars
-
-Business Rules:
-- Only the creator can update their own remark.
-- Data Operators can update any remark.
-
-200-Success Response:
-{
-  "status": 200,
-  "message": "Remark updated successfully",
-  "data": {
-    "id": 2003,
-    "attendanceRecordId": 1001,
-    "remark": "Student submitted exam paper 20 minutes early (corrected).",
-    "createdBy": {
-      "userId": 15,
-      "fullName": "Jane Supervisor"
-    },
-    "isActive": true,
-    "createdAt": "2024-10-19T15:00:00Z",
-    "updatedAt": "2024-10-19T15:30:00Z"
-  }
-}
-
-403-Not creator:
-{
-  "status": 403,
-  "message": "You can only update your own remarks",
-  "code": "NOT_REMARK_CREATOR"
-}
-
-404-Remark not found:
-{
-  "status": 404,
-  "message": "Remark not found: 2003",
-  "code": "REMARK_NOT_FOUND"
-}
-
-=======================================================================================================================
-================================================== Delete remark ======================================================
-
-6. DELETE /api/v1/exam-attendance/{id}/remarks/{remarkId}
-Permission: ATTENDANCE_REMARK_MANAGE
-Description: Soft delete a remark on an exam attendance record.
-
-Path Parameters:
-| Parameter | Type | Required | Description
-|-----------|------|----------|-----------
-| id        | long | Yes      | Exam attendance record ID
-| remarkId  | long | Yes      | Remark ID
-
-Business Rules:
-- Soft delete: sets is_active = false.
-- Only the creator can delete their own remark.
-- Data Operators can delete any remark.
-
-200-Success Response:
-{
-  "status": 200,
-  "message": "Remark deleted successfully"
-}
-
-403-Not creator:
-{
-  "status": 403,
-  "message": "You can only delete your own remarks",
-  "code": "NOT_REMARK_CREATOR"
-}
-
-404-Remark not found:
-{
-  "status": 404,
-  "message": "Remark not found: 2003",
-  "code": "REMARK_NOT_FOUND"
-}
-
-=======================================================================================================================
 ====================================================== Notes ==========================================================
 
 Data Types:
@@ -503,13 +342,8 @@ Relationship with Attendance Records:
 - FINAL_EXAM slots: Only exam_attendance (no regular attendance)
 
 Remarks Management:
-- Uses the 'attendance_remarks' table with a polymorphic association.
-- The 'attendance_record_id' in the remarks table can reference an ID from either 'attendance_records' or 'exam_attendance'.
-- The backend handles the logic to associate the remark with the correct record type.
-- This resource uses its own dedicated endpoints for remark management:
-  * POST /api/v1/exam-attendance/{id}/remarks
-  * PUT /api/v1/exam-attendance/{id}/remarks/{remarkId}
-  * DELETE /api/v1/exam-attendance/{id}/remarks/{remarkId}
+- Remarks for exam attendance records are managed via the global /api/v1/remarks endpoints.
+- When creating a remark for an exam attendance record, the request body must specify `attendableType: 'exam'` and `attendableId` as the ID of the exam attendance record.
 
 Python Callback Integration:
 - Reuses /attendance/recognition-result endpoint

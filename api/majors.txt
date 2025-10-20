@@ -2,7 +2,7 @@ POST   	| /majors 	   		 		  | MAJOR_CREATE
 GET    	| /majors 	   		      | MAJOR_READ 
 GET    	| /majors/{id} 				  | MAJOR_READ 
 PUT    	| /majors/{id} 			    | MAJOR_UPDATE 
-DELETE 	| /majors/{id} 					| MAJOR_DELETE_HARD(M)
+DELETE 	| /majors/{id} 					| MAJOR_DELETE_HARD
 GET    	| /majors/{id}/subjects	| SUBJECT_READ 
 
 ================================================= Create a new major ==================================================
@@ -16,9 +16,9 @@ Request Body:
 
 Request Schema:
 | Field | Type   | Required | Validation 
-| name  | string | Yes      | Not blank, max 150 chars(M), unique, allows letters/digits/spaces/special chars
+| name  | string | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces/special chars
 |       |        |          | Pattern: ^[A-Za-z0-9 &-]+$, Examples: "Software Engineering", "AI & ML"
-| code  | string | Yes      | Not blank, max 20 chars(M), unique, allows letters/digits only (NO spaces)
+| code  | string | Yes      | Not blank, max 20 chars, unique, allows letters/digits only (NO spaces)
 |       |        |          | Pattern: ^[A-Za-z0-9]+$, Examples: "SE", "AI", "DS101"
 
 201-Success Response:
@@ -181,9 +181,9 @@ Request Body:
 
 Request Schema:
 | Field    | Type    | Required | Validation
-| name     | string  | Yes      | Not blank, max 150 chars(M), unique, allows letters/digits/spaces/special chars
+| name     | string  | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces/special chars
 |          |         |          | Pattern: ^[A-Za-z0-9 &-]+$
-| code     | string  | Yes      | Not blank, max 20 chars(M), unique, allows letters/digits only (NO spaces)
+| code     | string  | Yes      | Not blank, max 20 chars, unique, allows letters/digits only (NO spaces)
 |          |         |          | Pattern: ^[A-Za-z0-9]+$
 | isActive | boolean | Yes      | Not null
 
@@ -247,7 +247,7 @@ HttpMessageNotReadableException:
 Note: - When deleting major: Must not have any subjects or student profiles
 
 5. DELETE /api/v1/majors/{id}
-Permission: MAJOR_DELETE_HARD(M)
+Permission: MAJOR_DELETE_HARD
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
 | id 		| short | Yes 		| Major ID
@@ -371,7 +371,7 @@ Subject Object Schema:
 - Hard delete via DELETE endpoint is permanent and may fail if major has subjects or student profiles
 - Major code and name must be unique
 - Nested /majors/{majorId}/subjects endpoint returns subjects with full major object
-- (M) = Modified
+-  = Modified
 
 Common Status Codes:
 - 200: Success
