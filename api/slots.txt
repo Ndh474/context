@@ -157,6 +157,13 @@ Other field required error codes:
   "code": "INVALID_SLOT_CATEGORY"
 }
 
+400-Invalid staff role:
+{
+  "status": 400,
+  "message": "Staff must have LECTURER or SUPERVISOR role to be assigned to a slot",
+  "code": "INVALID_STAFF_ROLE_FOR_SLOT"
+}
+
 400-Invalid time range:
 {
   "status": 400,
@@ -500,7 +507,7 @@ Request Schema (Full Update):
 | slotCategory 		| string 	| Yes 		| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
 | classId 		| short 	| Yes 		| Must exist and be active
 | roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
-| staffUserId 		| integer 	| Yes 		| Must exist and be active, (startTime + endTime + staffUserId) -> unique
+| staffUserId 		| integer 	| Yes 		| Must exist and be active, must have LECTURER or SUPERVISOR role, (startTime + endTime + staffUserId) -> unique
 | isActive 		| boolean 	| Yes 		| true or false
 
 Request Schema (Category Update Only):
