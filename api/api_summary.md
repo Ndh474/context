@@ -9,9 +9,9 @@
 
 | Service | Completed | Remaining | Total | Progress |
 |---------|-----------|-----------|-------|----------|
-| **Java Backend** | 18 groups (104 endpoints) | 5 groups (12 endpoints) | 116 | 90% |
+| **Java Backend** | 19 groups (111 endpoints) | 10 groups (52 endpoints) | 163 | 68% |
 | **Python Backend** | 1 group (8 endpoints) | 0 groups (0 endpoints) | 8 | 100% |
-| **TOTAL** | 112 endpoints | 12 endpoints | 124 | 90% |
+| **TOTAL** | 119 endpoints | 52 endpoints | 171 | 70% |
 
 ---
 
@@ -180,38 +180,87 @@
 - [x] `GET /export/classes` - Export classes to CSV
 - [x] `GET /export/attendance` - Export attendance records to CSV (UC-73)
 
+### ✅ 19. Exam Slot Participants
+
+- [x] `POST /exam-slots/{slotId}/participants` - Add participant to exam slot (UC-65)
+- [x] `GET /exam-slots/{slotId}/participants` - List exam slot participants (paginated, filterable)
+- [x] `GET /exam-slots/{slotId}/participants/{studentUserId}` - Get participant by composite key
+- [x] `PUT /exam-slots/{slotId}/participants/{studentUserId}` - Update participant status (withdraw/re-enroll)
+- [x] `DELETE /exam-slots/{slotId}/participants/{studentUserId}` - Hard delete participant
+- [x] `POST /exam-slots/{slotId}/participants/bulk` - Bulk add participants from CSV (UC-65)
+- [x] `GET /exam-slots/{slotId}/participants/bulk/template` - Download CSV template
+
 ---
 
 ## 🔴 JAVA BACKEND - REMAINING
 
-### ❌ 1. Notifications (Priority: LOW - Near End)
+### ❌ 1. User Management (Priority: HIGH - Core Functionality)
+
+- [ ] `POST /users` - Create user account (UC-42)
+- [ ] `GET /users` - List users (paginated, searchable) (UC-43)
+- [ ] `GET /users/{id}` - Get user by ID (UC-44)
+- [ ] `PUT /users/{id}` - Update user info (UC-45)
+- [ ] `PUT /users/{id}/status` - Activate/Deactivate user (UC-46)
+- [ ] `DELETE /users/{id}` - Hard delete user (UC-47)
+- [ ] `POST /users/{id}/roles` - Assign roles to user (UC-48)
+- [ ] `DELETE /users/{id}/roles/{roleId}` - Remove role from user (UC-49)
+
+### ❌ 2. Authentication (Priority: HIGH - Core Functionality)
+
+**Note**: Some auth endpoints listed in "Completed" section may need implementation verification
+
+- [ ] `POST /auth/refresh-token` - Refresh JWT token (if needed)
+- [ ] `POST /auth/verify-email` - Verify email address (if needed)
+
+### ❌ 3. Notifications (Priority: MEDIUM - User Experience)
 
 - [ ] `GET /notifications` - List user notifications (UC-11)
 - [ ] `GET /notifications/{id}` - Get notification details
 - [ ] `PUT /notifications/{id}/read` - Mark notification as read
 - [ ] `PUT /notifications/read-all` - Mark all notifications as read
+- [ ] `GET /notifications/unread-count` - Get unread notification count
 
-### ❌ 2. Reports & Analytics (Priority: LOW - Near End)
+### ❌ 4. Reports & Analytics (Priority: MEDIUM - Business Intelligence)
 
 - [ ] `GET /reports/slot/{slotId}` - Export slot attendance report (UC-22, UC-33)
 - [ ] `GET /reports/class/{classId}/summary` - Class attendance summary (UC-23)
 - [ ] `GET /reports/system-wide` - System-wide reports (UC-74)
 
-### ❌ 3. System Configuration (Priority: LOW - Near End)
+### ❌ 5. System Configuration (Priority: LOW - Admin Tools)
 
 - [ ] `GET /system-configurations` - List system configs (UC-78)
 - [ ] `GET /system-configurations/{key}` - Get config by key
 - [ ] `PUT /system-configurations/{key}` - Update config (UC-79)
 
-### ❌ 4. Audit Logs (Priority: LOW - Near End)
+### ❌ 6. Audit Logs (Priority: LOW - Admin Tools)
 
 - [ ] `GET /audit-logs` - List operational audit logs (UC-76)
 - [ ] `GET /audit-logs/{id}` - Get audit log details
 
-### ❌ 5. Schedule & Dashboard (Priority: LOW - Near End)
+### ❌ 7. Schedule & Dashboard (Priority: MEDIUM - User Experience)
 
 - [ ] `GET /schedules/my-schedule` - Get personal schedule (UC-07, UC-14, UC-27)
 - [ ] `GET /dashboard/stats` - Get dashboard statistics (UC-03)
+
+### ❌ 8. Roles Management (Priority: LOW - Admin Tools)
+
+**Note**: Basic role CRUD listed in "Completed" section, these are additional endpoints if needed
+
+- [ ] `GET /roles/{id}/users` - Get users with specific role
+- [ ] `GET /roles/{id}/permissions` - Get permissions for specific role
+
+### ❌ 9. Permissions Management (Priority: LOW - Admin Tools)
+
+**Note**: Basic permission CRUD listed in "Completed" section, these are additional endpoints if needed
+
+- [ ] `GET /permissions/{id}/roles` - Get roles with specific permission
+
+### ❌ 10. Advanced Filters & Search (Priority: LOW - Enhancement)
+
+**Note**: These are enhancement endpoints for better search capabilities
+
+- [ ] `POST /search/global` - Global search across all entities
+- [ ] `GET /search/suggestions` - Get search suggestions/autocomplete
 
 ---
 
@@ -300,3 +349,11 @@ These endpoints are marked as completed but should be reviewed/tested to ensure 
 
 - `GET /enrollments?classId={classId}` - List all enrollments for a class
 - `GET /classes/{classId}/enrollments` - Get roster with student details (optimized for roster view)
+
+#### Exam Slot Participants - Independent Exam Management
+
+- **For FINAL_EXAM slots only** (where `class_id` is NULL)
+- Endpoints: `/exam-slots/{slotId}/participants`
+- Table: `exam_slot_participants`
+- Similar pattern to enrollments but for independent exams
+- Supports bulk import via CSV (UC-65)
