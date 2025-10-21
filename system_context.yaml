@@ -326,6 +326,7 @@ system_context:
           - "Semester selector"
           - "Filter Lecture/Exam schedule"
           - "View schedule in week/month format"
+          - "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM)."
 
       SCR_STUDENT_SLOT_DETAILS:
         title: "Slot Details Screen"
@@ -385,7 +386,8 @@ system_context:
       SCR_LECTURER_ROSTER:
         title: "Roster & Attendance"
         features:
-          - "Interface displays appropriate functions based on role (Lecturer, Supervisor) and slot type (LECTURE, EXAM)"
+          - "Dynamically loads the student roster based on slot type: from Class Enrollments (for LECTURE/LECTURE_WITH_PT) or from the independent Exam Participant list (for FINAL_EXAM slots)."
+          - "Interface displays appropriate functions based on role (Lecturer, Supervisor)."
           - "Display camera names and connection status of all cameras in the assigned room"
           - "Interface updates attendance status in real-time from recognition service results"
           - "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for quick visual comparison by the lecturer."
@@ -442,9 +444,9 @@ system_context:
       SCR_ADMIN_CRUD_ACADEMIC:
         title: "CRUD Screens (Data Operator)"
         features:
-          - "Manage Classes, Subjects, Lecture/Exam Schedules (including slot_category and room_id attributes)"
-          - "Add/Remove students from a class (Roster Management)"
-          - "Manage Majors"
+          - "Manage Classes, Subjects, and Majors."
+          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL)."
+          - "Add/Remove students from a class (Roster Management for class-based slots only)."
 
       SCR_ADMIN_REPORTING:
         title: "Reporting & Lookup Screen (Data Operator)"
@@ -494,14 +496,25 @@ system_context:
           - "View and filter system logs"
 
       SCR_ADMIN_BULK_ENROLLMENT:
-        title: Bulk Student Enrollment Management Screen
+        title: "Bulk Student Enrollment (Class-based) Screen"
         features:
-          - Semester selector to choose the target semester.
-          - "Interface to upload a CSV file containing enrollment data (e.g., columns: student_id, class_id)."
-          - Button to download a CSV template file to ensure correct formatting.
-          - A preview table to display data parsed from the uploaded file.
-          - Validation feedback area to show errors found in the file (e.g., invalid student ID, non-existent class).
+          - "Semester selector to choose the target semester."
+          - "Interface to upload a CSV file containing class enrollment data (e.g., columns: student_id, class_id). NOTE: This screen is for class enrollments only, not for independent exams."
+          - "Button to download a CSV template file to ensure correct formatting."
+          - "A preview table to display data parsed from the uploaded file."
+          - "Validation feedback area to show errors found in the file (e.g., invalid student ID, non-existent class)."
           - "A 'Confirm Enrollment' button to execute the bulk creation of enrollment records."
+
+      SCR_ADMIN_EXAM_PARTICIPANTS:
+        title: "Independent Exam Participant Management"
+        features:
+          - "Semester selector to filter FINAL_EXAM slots (where class_id is NULL)."
+          - "Slot selector to choose a specific independent exam slot."
+          - "Display a data table of all students registered for the selected slot (from exam_slot_participants table)."
+          - "Function to manually add a student (by student_id) to the list."
+          - "Function to remove a student from the list."
+          - "Interface to upload a CSV file (with only 'student_id' column) to bulk-import participants (implements UC-65)."
+          - "Button to download CSV template."
 
   complex_component_catalog:
     COMPLEX_SEMESTER_DATATABLE:

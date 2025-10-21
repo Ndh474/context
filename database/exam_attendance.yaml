@@ -70,6 +70,50 @@ tables:
       - "Method 'manual' for lecturer/supervisor manual updates"
       - "Method 'system_finalize' for batch status updates during finalization"
 
+  exam_slot_participants:
+    primary_key: [slot_id, student_user_id]
+    description: "Manages student participation for independent final exam slots (slots where class_id is NULL). This table allows adding students from various classes/majors to a single exam."
+    columns:
+      slot_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: slots
+          column: id
+        description: "Reference to the independent final exam slot."
+      student_user_id:
+        type: int
+        constraints: [NOT NULL, PRIMARY KEY]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to the student user participating in the exam."
+      is_enrolled:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Participation status. If false, the student is withdrawn from the exam but historical data can be preserved."
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp."
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Record last update timestamp."
+    indexes:
+      - name: idx_exam_participants_slot_id
+        columns: [slot_id]
+        description: "For querying all participants of a specific exam slot."
+      
+      - name: idx_exam_participants_student_user_id
+        columns: [student_user_id]
+        description: "For querying all independent exams a student is participating in."
+    notes:
+      - "This table is ONLY used for slots where slot_category = 'FINAL_EXAM' and class_id is NULL."
+      - "The combination of (slot_id, student_user_id) must be unique."
+
 relationship_with_attendance_records:
   description: "exam_attendance is separate from attendance_records to track exam participation independently"
   use_cases:

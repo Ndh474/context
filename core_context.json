@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-20T08:57:06.196428",
+      "generated_at": "2025-10-21T18:16:01.078409",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
@@ -218,6 +218,7 @@
             "REPORT_READ_OWN_SLOT",
             "REPORT_EXPORT_OWN_SLOT",
             "REPORT_READ_CLASS_SUMMARY",
+            "REPORT_READ_SYSTEM_WIDE",
             "OWN_PROFILE_READ",
             "OWN_PASSWORD_UPDATE",
             "ROOM_READ",
@@ -244,6 +245,7 @@
             "ATTENDANCE_REMARK_MANAGE",
             "REPORT_READ_OWN_SLOT",
             "REPORT_EXPORT_OWN_SLOT",
+            "REPORT_READ_SYSTEM_WIDE",
             "OWN_PROFILE_READ",
             "OWN_PASSWORD_UPDATE",
             "ROOM_READ",
@@ -330,7 +332,8 @@
             "features": [
               "Semester selector",
               "Filter Lecture/Exam schedule",
-              "View schedule in week/month format"
+              "View schedule in week/month format",
+              "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM)."
             ]
           },
           "SCR_STUDENT_SLOT_DETAILS": {
@@ -400,7 +403,8 @@
           "SCR_LECTURER_ROSTER": {
             "title": "Roster & Attendance",
             "features": [
-              "Interface displays appropriate functions based on role (Lecturer, Supervisor) and slot type (LECTURE, EXAM)",
+              "Dynamically loads the student roster based on slot type: from Class Enrollments (for LECTURE/LECTURE_WITH_PT) or from the independent Exam Participant list (for FINAL_EXAM slots).",
+              "Interface displays appropriate functions based on role (Lecturer, Supervisor).",
               "Display camera names and connection status of all cameras in the assigned room",
               "Interface updates attendance status in real-time from recognition service results",
               "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for quick visual comparison by the lecturer.",
@@ -466,9 +470,9 @@
           "SCR_ADMIN_CRUD_ACADEMIC": {
             "title": "CRUD Screens (Data Operator)",
             "features": [
-              "Manage Classes, Subjects, Lecture/Exam Schedules (including slot_category and room_id attributes)",
-              "Add/Remove students from a class (Roster Management)",
-              "Manage Majors"
+              "Manage Classes, Subjects, and Majors.",
+              "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL).",
+              "Add/Remove students from a class (Roster Management for class-based slots only)."
             ]
           },
           "SCR_ADMIN_REPORTING": {
@@ -526,14 +530,26 @@
             ]
           },
           "SCR_ADMIN_BULK_ENROLLMENT": {
-            "title": "Bulk Student Enrollment Management Screen",
+            "title": "Bulk Student Enrollment (Class-based) Screen",
             "features": [
               "Semester selector to choose the target semester.",
-              "Interface to upload a CSV file containing enrollment data (e.g., columns: student_id, class_id).",
+              "Interface to upload a CSV file containing class enrollment data (e.g., columns: student_id, class_id). NOTE: This screen is for class enrollments only, not for independent exams.",
               "Button to download a CSV template file to ensure correct formatting.",
               "A preview table to display data parsed from the uploaded file.",
               "Validation feedback area to show errors found in the file (e.g., invalid student ID, non-existent class).",
               "A 'Confirm Enrollment' button to execute the bulk creation of enrollment records."
+            ]
+          },
+          "SCR_ADMIN_EXAM_PARTICIPANTS": {
+            "title": "Independent Exam Participant Management",
+            "features": [
+              "Semester selector to filter FINAL_EXAM slots (where class_id is NULL).",
+              "Slot selector to choose a specific independent exam slot.",
+              "Display a data table of all students registered for the selected slot (from exam_slot_participants table).",
+              "Function to manually add a student (by student_id) to the list.",
+              "Function to remove a student from the list.",
+              "Interface to upload a CSV file (with only 'student_id' column) to bulk-import participants (implements UC-65).",
+              "Button to download CSV template."
             ]
           }
         }
@@ -1817,13 +1833,24 @@
             "class_id": {
               "type": "smallint",
               "constraints": [
-                "NOT NULL"
+                null
               ],
               "foreign_key": {
                 "table": "classes",
                 "column": "id"
               },
-              "description": "Reference to class"
+              "description": "Reference to class. This is NULL for independent final exam slots (slot_category = 'FINAL_EXAM')."
+            },
+            "semester_id": {
+              "type": "smallint",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "foreign_key": {
+                "table": "semesters",
+                "column": "id"
+              },
+              "description": "Reference to semester. Required for all slots. For class-based slots, this is redundant but ensures consistency. For independent final exam slots (where class_id is NULL), this is the only link to a semester."
             },
             "room_id": {
               "type": "smallint",
@@ -1886,6 +1913,13 @@
               "description": "For queries: get all slots for a class"
             },
             {
+              "name": "idx_slots_semester_id",
+              "columns": [
+                "semester_id"
+              ],
+              "description": "For queries: get all slots in a semester, especially for independent exam slots."
+            },
+            {
               "name": "idx_slots_staff_user_id",
               "columns": [
                 "staff_user_id"
@@ -1915,14 +1949,12 @@
             }
           ],
           "notes": [
-            "slot_category determines slot behavior and available functions",
-            "LECTURE: Regular lecture session (teaching only)",
-            "LECTURE_WITH_PT: Lecture with progress test (teaching + testing)",
-            "FINAL_EXAM: Final exam session (testing only)",
-            "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT",
-            "Cannot change to/from FINAL_EXAM (only DOP can manage)",
-            "Cannot change from LECTURE_WITH_PT to LECTURE if exam_attendance records exist",
-            "finalized_at tracks when attendance was completed by staff"
+            "slot_category determines slot behavior and available functions.",
+            "LECTURE/LECTURE_WITH_PT slots must have a non-null class_id.",
+            "FINAL_EXAM slots must have a null class_id and a non-null semester_id.",
+            "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT.",
+            "Cannot change to/from FINAL_EXAM (only DOP can manage).",
+            "finalized_at tracks when attendance was completed by staff."
           ]
         },
         "attendance_records": {
@@ -2913,6 +2945,82 @@
             "Method 'manual' for lecturer/supervisor manual updates",
             "Method 'system_finalize' for batch status updates during finalization"
           ]
+        },
+        "exam_slot_participants": {
+          "primary_key": [
+            "slot_id",
+            "student_user_id"
+          ],
+          "description": "Manages student participation for independent final exam slots (slots where class_id is NULL). This table allows adding students from various classes/majors to a single exam.",
+          "columns": {
+            "slot_id": {
+              "type": "int",
+              "constraints": [
+                "NOT NULL",
+                "PRIMARY KEY"
+              ],
+              "foreign_key": {
+                "table": "slots",
+                "column": "id"
+              },
+              "description": "Reference to the independent final exam slot."
+            },
+            "student_user_id": {
+              "type": "int",
+              "constraints": [
+                "NOT NULL",
+                "PRIMARY KEY"
+              ],
+              "foreign_key": {
+                "table": "users",
+                "column": "id"
+              },
+              "description": "Reference to the student user participating in the exam."
+            },
+            "is_enrolled": {
+              "type": "boolean",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": true,
+              "description": "Participation status. If false, the student is withdrawn from the exam but historical data can be preserved."
+            },
+            "created_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": "now()",
+              "description": "Record creation timestamp."
+            },
+            "updated_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "description": "Record last update timestamp."
+            }
+          },
+          "indexes": [
+            {
+              "name": "idx_exam_participants_slot_id",
+              "columns": [
+                "slot_id"
+              ],
+              "description": "For querying all participants of a specific exam slot."
+            },
+            {
+              "name": "idx_exam_participants_student_user_id",
+              "columns": [
+                "student_user_id"
+              ],
+              "description": "For querying all independent exams a student is participating in."
+            }
+          ],
+          "notes": [
+            "This table is ONLY used for slots where slot_category = 'FINAL_EXAM' and class_id is NULL.",
+            "The combination of (slot_id, student_user_id) must be unique."
+          ]
         }
       },
       "notes": [
@@ -3001,7 +3109,8 @@
     },
     "requirements": {
       "metadata": {
-        "total_business_rules": 37,
+        "version": "1.1",
+        "total_business_rules": 40,
         "domains_covered": [
           "Authentication",
           "Roles",
@@ -3012,8 +3121,8 @@
           "Audit",
           "Infrastructure"
         ],
-        "last_updated": "2024-10-19",
-        "total_use_cases": 83,
+        "last_updated": "2025-10-21",
+        "total_use_cases": 85,
         "roles_covered": [
           "Student",
           "Lecturer",
@@ -3187,9 +3296,7 @@
               "UC-42",
               "UC-46",
               "UC-50",
-              "UC-54",
-              "UC-58",
-              "UC-62"
+              "UC-54"
             ],
             "validation_points": [
               "Academic entity creation",
@@ -3224,11 +3331,11 @@
           },
           "BR-15": {
             "title": "Slot Room Assignment",
-            "description": "Each lecture/exam slot must be associated with a specific slot category and room.",
+            "description": "Each lecture/exam slot must be associated with a specific room.",
             "domain": "Academic",
             "priority": "High",
             "related_use_cases": [
-              "UC-24",
+              "UC-25",
               "UC-58",
               "UC-60"
             ],
@@ -3243,7 +3350,7 @@
             "domain": "Infrastructure",
             "priority": "High",
             "related_use_cases": [
-              "UC-24",
+              "UC-25",
               "UC-58",
               "UC-60"
             ],
@@ -3259,7 +3366,7 @@
             "priority": "High",
             "related_use_cases": [
               "UC-15",
-              "UC-24",
+              "UC-25",
               "UC-28",
               "UC-58",
               "UC-60"
@@ -3376,12 +3483,10 @@
             "domain": "System",
             "priority": "Critical",
             "related_use_cases": [
-              "UC-78",
-              "UC-79",
               "UC-80",
               "UC-81",
-              "UC-82",
-              "UC-83"
+              "UC-84",
+              "UC-85"
             ],
             "validation_points": [
               "System configuration access",
@@ -3413,6 +3518,7 @@
             "related_use_cases": [
               "UC-21",
               "UC-25",
+              "UC-26",
               "UC-32",
               "UC-36",
               "UC-37",
@@ -3430,13 +3536,14 @@
               "UC-60",
               "UC-61",
               "UC-63",
-              "UC-66",
-              "UC-67",
-              "UC-70",
-              "UC-71",
-              "UC-76",
+              "UC-68",
+              "UC-69",
+              "UC-72",
+              "UC-73",
+              "UC-78",
               "UC-79",
-              "UC-83"
+              "UC-81",
+              "UC-85"
             ],
             "validation_points": [
               "All critical data modifications"
@@ -3485,8 +3592,8 @@
               "UC-53",
               "UC-57",
               "UC-61",
-              "UC-67",
-              "UC-71"
+              "UC-69",
+              "UC-73"
             ],
             "validation_points": [
               "All hard delete operations in the backend services"
@@ -3570,11 +3677,12 @@
         },
         "academic_data_management": {
           "BR-33": {
-            "title": "Enrollment Status and Roster Visibility",
-            "description": "When generating roster for a slot, only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment.",
+            "title": "Class Enrollment Status and Roster Visibility",
+            "description": "When generating a roster for a class-based slot (LECTURE, LECTURE_WITH_PT), only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment. This rule does not apply to independent final exams.",
             "domain": "Academic",
             "priority": "High",
             "related_use_cases": [
+              "UC-29",
               "UC-62",
               "UC-63"
             ],
@@ -3600,10 +3708,10 @@
             }
           },
           "BR-34": {
-            "title": "Slot Category Logic and Attendance Type Mapping",
-            "description": "The 'slot_category' field determines the purpose of a slot and which attendance tables are used. This logic is enforced at the application layer.",
+            "title": "Slot Category Validation and Roster Logic",
+            "description": "Defines the core validation logic for creating/updating slots and determines the source of the student roster. This logic must be enforced at the application layer.",
             "domain": "Academic",
-            "priority": "High",
+            "priority": "Critical",
             "related_use_cases": [
               "UC-24",
               "UC-25",
@@ -3617,15 +3725,21 @@
               "Attendance processing logic"
             ],
             "rules": {
-              "category_definitions": {
-                "LECTURE": "Regular lecture session. Uses 'attendance_records' only.",
-                "LECTURE_WITH_PT": "Lecture with a progress test. Uses both 'attendance_records' and 'exam_attendance'.",
-                "FINAL_EXAM": "Final exam session. Uses 'exam_attendance' only."
+              "class_based_slots": {
+                "categories": [
+                  "LECTURE",
+                  "LECTURE_WITH_PT"
+                ],
+                "validation": "The 'class_id' field MUST NOT be NULL.",
+                "roster_source": "The student roster is derived from the 'enrollments' table based on the slot's 'class_id'."
               },
-              "permission_mapping": [
-                "Data Operator can create/manage all categories.",
-                "Lecturer can only update a slot's category between 'LECTURE' and 'LECTURE_WITH_PT', governed by BR-35."
-              ]
+              "independent_exam_slots": {
+                "categories": [
+                  "FINAL_EXAM"
+                ],
+                "validation": "The 'class_id' field MUST be NULL, and the 'semester_id' field MUST NOT be NULL.",
+                "roster_source": "The student roster is derived from the 'exam_slot_participants' table based on the slot's 'id'."
+              }
             }
           },
           "BR-35": {
@@ -3707,12 +3821,12 @@
         },
         "bulk_operations": {
           "BR-37": {
-            "title": "Bulk Enrollment CSV Format and Validation",
-            "description": "Defines the CSV file format and validation rules for bulk student enrollment. File must be UTF-8 encoded with specific columns and validation rules.",
+            "title": "Bulk Class Enrollment CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk student enrollment into classes. This rule does not apply to independent final exams.",
             "domain": "Academic",
             "priority": "Medium",
             "related_use_cases": [
-              "UC-77"
+              "UC-79"
             ],
             "validation_points": [
               "CSV upload API",
@@ -3762,8 +3876,88 @@
                 "With database: If enrollment already exists, skip and report as warning (not error)"
               ],
               "error_reporting": [
-                "Validation errors are collected and shown in UI before import",
-                "Import is all-or-nothing: if any validation fails, no records are created"
+                "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows",
+                "Return 200 with summary even if some rows failed",
+                "Provide detailed error list for failed rows",
+                "Provide warning list for skipped rows (duplicates, already enrolled)"
+              ]
+            }
+          },
+          "BR-38": {
+            "title": "Exam Slot Participant Uniqueness",
+            "description": "A student can only be added to the participant list of a specific independent final exam slot once.",
+            "domain": "Academic",
+            "priority": "High",
+            "related_use_cases": [
+              "UC-64",
+              "UC-65"
+            ],
+            "validation_points": [
+              "Exam participant creation",
+              "Bulk exam participant import"
+            ]
+          },
+          "BR-39": {
+            "title": "Exam Participant Roster Visibility",
+            "description": "When generating the roster for an independent final exam slot (slot_category = 'FINAL_EXAM'), the system must only include students from the 'exam_slot_participants' table who are linked to that slot_id and have their 'is_enrolled' status set to true.",
+            "domain": "Academic",
+            "priority": "High",
+            "related_use_cases": [
+              "UC-29",
+              "UC-64"
+            ],
+            "validation_points": [
+              "Roster query API for exam slots",
+              "Exam attendance processing"
+            ]
+          },
+          "BR-40": {
+            "title": "Bulk Exam Participant CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot.",
+            "domain": "Academic",
+            "priority": "Medium",
+            "related_use_cases": [
+              "UC-65"
+            ],
+            "validation_points": [
+              "CSV upload API for exam participants",
+              "Bulk exam participant processing"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8 with BOM",
+              "delimiter": "comma (,)",
+              "header_row": "Required (first row)",
+              "columns": [
+                {
+                  "name": "student_id",
+                  "type": "string",
+                  "required": true,
+                  "description": "Student's username (Student ID)"
+                }
+              ]
+            },
+            "validation_rules": {
+              "pre_upload": "The Data Operator must select a target independent final exam slot before uploading the file.",
+              "file_level": [
+                "File size must not exceed 1MB",
+                "Maximum 5,000 rows (excluding header)",
+                "Must have exactly one column",
+                "Header row must match exactly: student_id"
+              ],
+              "row_level": [
+                "student_id must exist in users table and have STUDENT role",
+                "Student must not already be a participant in the selected slot",
+                "Student must be active (users.is_active = true)"
+              ],
+              "duplicate_handling": [
+                "Within file: If same student_id appears multiple times, keep first occurrence and warn",
+                "With database: If participant already exists, skip and report as warning (not error)"
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows",
+                "Return 200 with summary even if some rows failed",
+                "Provide detailed error list for failed rows",
+                "Provide warning list for skipped rows (duplicates, already enrolled)"
               ]
             }
           }
@@ -3813,9 +4007,12 @@
         "academic_data_management": {
           "primary_rules": [
             "BR-34",
-            "BR-35"
+            "BR-35",
+            "BR-38",
+            "BR-39",
+            "BR-40"
           ],
-          "description": "Rules for academic data management including slot categories and lecturer permissions"
+          "description": "Rules for academic data management including slot categories, lecturer permissions, and exam participant management"
         },
         "permission_control": {
           "primary_rules": [
@@ -3863,7 +4060,7 @@
         ]
       },
       "use_cases_specification": {
-        "version": "1.0",
+        "version": "1.1",
         "project": "FUACS"
       },
       "use_cases": {
@@ -3939,7 +4136,7 @@
               "Student"
             ],
             "secondary_actors": [],
-            "description": "Allows a student to view their personal class and exam schedule for a selected semester.",
+            "description": "Allows a student to view their personal class and exam schedule for a selected semester. The schedule is aggregated from two sources: slots belonging to classes the student is enrolled in, and independent final exam slots the student is directly registered for.",
             "related_business_rules": []
           },
           "UC-08": {
@@ -4172,7 +4369,7 @@
               "Supervisor"
             ],
             "secondary_actors": [],
-            "description": "Allows a supervisor to view their personal supervision schedule for assigned exam slots.",
+            "description": "Allows a supervisor to view their personal supervision schedule for assigned exam slots. For class-based slots, this includes slots from their assigned classes. For independent final exams, this includes slots they are directly assigned to.",
             "related_business_rules": []
           },
           "UC-28": {
@@ -4193,7 +4390,7 @@
               "Supervisor"
             ],
             "secondary_actors": [],
-            "description": "Allows a supervisor to view the exam roster for an active session, where statuses are updated in real-time based on results from all assigned cameras.",
+            "description": "Allows a supervisor to view the exam roster for an active session, where statuses are updated in real-time based on results from all assigned cameras. The system dynamically fetches the roster from either class enrollments (for LECTURE_WITH_PT) or independent exam participants (for FINAL_EXAM).",
             "related_business_rules": [
               "BR-19"
             ]
@@ -4539,12 +4736,13 @@
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to create a new schedule slot (LECTURE or EXAM) for a class. All active cameras in the selected room will be automatically used for the session. Note: Lecturers can create Progress Test slots via UC-24, but only Data Operators can create LECTURE slots and FINAL_EXAM slots.",
+              "description": "Allows the DOP to create a new schedule slot. If the slot category is 'LECTURE' or 'LECTURE_WITH_PT', a Class must be assigned. If the category is 'FINAL_EXAM', the slot is independent (no Class assigned) and a Semester must be directly assigned.",
               "related_business_rules": [
                 "BR-15",
                 "BR-16",
                 "BR-17",
-                "BR-34"
+                "BR-34",
+                "BR-NEW-01"
               ]
             },
             "UC-59": {
@@ -4562,12 +4760,13 @@
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to edit the details of a scheduled slot. Camera assignment is automatic based on the selected room.",
+              "description": "Allows the DOP to edit the details of a scheduled slot, subject to the logic defined by its category (class-based or independent).",
               "related_business_rules": [
                 "BR-15",
                 "BR-16",
                 "BR-17",
-                "BR-27"
+                "BR-27",
+                "BR-34"
               ]
             },
             "UC-61": {
@@ -4576,38 +4775,62 @@
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to permanently delete a Slot from the system. The action will be blocked with a clear error message if the Slot has any Attendance records. This action requires the 'SLOT_DELETE_HARD' permission.",
+              "description": "Allows the DOP to permanently delete a Slot from the system. The action will be blocked with a clear error message if the Slot has any Attendance records or exam participants. This action requires the 'SLOT_DELETE_HARD' permission.",
               "related_business_rules": [
                 "BR-27",
                 "BR-30"
               ]
             },
             "UC-62": {
-              "title": "Add Student to Roster",
+              "title": "Add Student to Class Roster",
               "primary_actors": [
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to enroll a student into a specific class.",
+              "description": "Allows the DOP to enroll a student into a specific class. This manages participation for class-based slots only.",
               "related_business_rules": [
                 "BR-13"
               ]
             },
             "UC-63": {
-              "title": "Remove Student from Roster",
+              "title": "Remove Student from Class Roster",
               "primary_actors": [
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to unenroll a student from a class.",
+              "description": "Allows the DOP to unenroll a student from a class. This affects class-based slots only.",
               "related_business_rules": [
                 "BR-14",
                 "BR-27"
               ]
+            },
+            "UC-64": {
+              "title": "Manage Exam Slot Participants",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows the DOP to manage the list of participants for an independent final exam slot (where class_id is NULL). The operator can search for and add or remove individual students from the exam roster.",
+              "related_business_rules": [
+                "BR-NEW-01",
+                "BR-NEW-02"
+              ]
+            },
+            "UC-65": {
+              "title": "Bulk Import Participants to Exam Slot",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows the DOP to select an independent final exam slot and upload a CSV file containing a list of student_ids to perform mass registration for that specific exam.",
+              "related_business_rules": [
+                "BR-NEW-01",
+                "BR-NEW-03"
+              ]
             }
           },
           "infrastructure": {
-            "UC-64": {
+            "UC-66": {
               "title": "Create Room",
               "primary_actors": [
                 "Data Operator"
@@ -4616,7 +4839,7 @@
               "description": "Allows the DOP to add a new physical room to the system.",
               "related_business_rules": []
             },
-            "UC-65": {
+            "UC-67": {
               "title": "View Rooms",
               "primary_actors": [
                 "Data Operator"
@@ -4625,7 +4848,7 @@
               "description": "Allows the DOP to view a list of all rooms in the system.",
               "related_business_rules": []
             },
-            "UC-66": {
+            "UC-68": {
               "title": "Update Room",
               "primary_actors": [
                 "Data Operator"
@@ -4636,7 +4859,7 @@
                 "BR-27"
               ]
             },
-            "UC-67": {
+            "UC-69": {
               "title": "Delete Room Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4648,7 +4871,7 @@
                 "BR-30"
               ]
             },
-            "UC-68": {
+            "UC-70": {
               "title": "Create Camera",
               "primary_actors": [
                 "Data Operator"
@@ -4657,7 +4880,7 @@
               "description": "Allows the DOP to register a new IP camera by providing its details and assigning it to a specific room.",
               "related_business_rules": []
             },
-            "UC-69": {
+            "UC-71": {
               "title": "View Cameras",
               "primary_actors": [
                 "Data Operator"
@@ -4666,7 +4889,7 @@
               "description": "Allows the DOP to view a list of all registered cameras.",
               "related_business_rules": []
             },
-            "UC-70": {
+            "UC-72": {
               "title": "Update Camera",
               "primary_actors": [
                 "Data Operator"
@@ -4677,7 +4900,7 @@
                 "BR-27"
               ]
             },
-            "UC-71": {
+            "UC-73": {
               "title": "Delete Camera Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4691,7 +4914,7 @@
             }
           },
           "data_management": {
-            "UC-72": {
+            "UC-74": {
               "title": "Import Academic Data",
               "primary_actors": [
                 "Data Operator"
@@ -4700,7 +4923,7 @@
               "description": "Allows the DOP to bulk-upload academic data (schedules, rosters) for a semester.",
               "related_business_rules": []
             },
-            "UC-73": {
+            "UC-75": {
               "title": "Export Finalized Attendance Results",
               "primary_actors": [
                 "Data Operator"
@@ -4709,7 +4932,7 @@
               "description": "Allows the DOP to export system-wide, finalized attendance results for a selected period.",
               "related_business_rules": []
             },
-            "UC-74": {
+            "UC-76": {
               "title": "View System-Wide Reports",
               "primary_actors": [
                 "Data Operator"
@@ -4718,7 +4941,7 @@
               "description": "Allows the DOP to generate and view aggregate reports on attendance data across various dimensions.",
               "related_business_rules": []
             },
-            "UC-75": {
+            "UC-77": {
               "title": "Search/Lookup Attendance Data",
               "primary_actors": [
                 "Data Operator"
@@ -4727,7 +4950,7 @@
               "description": "Allows the DOP to perform advanced searches for specific attendance records using a variety of filters.",
               "related_business_rules": []
             },
-            "UC-76": {
+            "UC-78": {
               "title": "View Operational Audit Logs",
               "primary_actors": [
                 "Data Operator"
@@ -4738,13 +4961,13 @@
                 "BR-27"
               ]
             },
-            "UC-77": {
+            "UC-79": {
               "title": "Bulk Enroll Students to Classes via CSV",
               "primary_actors": [
                 "Data Operator"
               ],
               "secondary_actors": [],
-              "description": "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_id) to perform mass enrollment for a selected semester. The system will validate the data before creating the enrollment records. Note: This use case is for enrolling *existing* students into classes, not for creating new student accounts.",
+              "description": "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_code) to perform mass enrollment for a selected semester into classes. This is not used for independent final exams.",
               "related_business_rules": [
                 "BR-13",
                 "BR-27",
@@ -4755,7 +4978,7 @@
         },
         "system_admin": {
           "system_configuration": {
-            "UC-78": {
+            "UC-80": {
               "title": "View System Configuration",
               "primary_actors": [
                 "System Admin"
@@ -4766,7 +4989,7 @@
                 "BR-25"
               ]
             },
-            "UC-79": {
+            "UC-81": {
               "title": "Update System Configuration",
               "primary_actors": [
                 "System Admin"
@@ -4778,7 +5001,7 @@
                 "BR-27"
               ]
             },
-            "UC-80": {
+            "UC-82": {
               "title": "View System Logs",
               "primary_actors": [
                 "System Admin"
@@ -4787,7 +5010,7 @@
               "description": "Allows the System Admin to view a comprehensive stream of system-wide activity logs for monitoring and troubleshooting.",
               "related_business_rules": []
             },
-            "UC-81": {
+            "UC-83": {
               "title": "Export System Logs",
               "primary_actors": [
                 "System Admin"
@@ -4798,7 +5021,7 @@
             }
           },
           "role_permission_management": {
-            "UC-82": {
+            "UC-84": {
               "title": "View Role-Permission Mappings",
               "primary_actors": [
                 "System Admin"
@@ -4809,7 +5032,7 @@
                 "BR-25"
               ]
             },
-            "UC-83": {
+            "UC-85": {
               "title": "Update Role-Permission Mappings",
               "primary_actors": [
                 "System Admin"

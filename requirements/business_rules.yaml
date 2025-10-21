@@ -2,7 +2,8 @@
 # FUACS Requirements - Version 1.0
 
 metadata:
-  total_business_rules: 37
+  version: "1.1"
+  total_business_rules: 40
   domains_covered:
     [
       Authentication,
@@ -14,7 +15,7 @@ metadata:
       Audit,
       Infrastructure,
     ]
-  last_updated: "2024-10-19"
+  last_updated: "2025-10-21"
 
 business_rules:
   # Authentication & User Management (BR-01 to BR-07)
@@ -118,7 +119,7 @@ business_rules:
       description: "Each Major, Subject, and Class must have a unique identifier (code or name)."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-42", "UC-46", "UC-50", "UC-54", "UC-58", "UC-62"]
+      related_use_cases: ["UC-42", "UC-46", "UC-50", "UC-54"]
       validation_points: ["Academic entity creation", "Academic entity update"]
 
     BR-13:
@@ -144,10 +145,10 @@ business_rules:
 
     BR-15:
       title: "Slot Room Assignment"
-      description: "Each lecture/exam slot must be associated with a specific slot category and room."
+      description: "Each lecture/exam slot must be associated with a specific room."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-24", "UC-58", "UC-60"]
+      related_use_cases: ["UC-25", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update"]
 
     BR-16:
@@ -155,7 +156,7 @@ business_rules:
       description: "All active cameras in the slot's assigned room are automatically used for attendance monitoring. No manual camera selection is required."
       domain: "Infrastructure"
       priority: "High"
-      related_use_cases: ["UC-24", "UC-58", "UC-60"]
+      related_use_cases: ["UC-25", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Camera availability check"]
 
     BR-17:
@@ -163,7 +164,7 @@ business_rules:
       description: "Each lecture/exam slot must be assigned to one and only one staff member (Lecturer or Supervisor) at a time."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-15", "UC-24", "UC-28", "UC-58", "UC-60"]
+      related_use_cases: ["UC-15", "UC-25", "UC-28", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update", "Staff assignment"]
 
   # Attendance Management (BR-18 to BR-24)
@@ -233,7 +234,7 @@ business_rules:
       description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
       domain: "System"
       priority: "Critical"
-      related_use_cases: ["UC-78", "UC-79", "UC-80", "UC-81", "UC-82", "UC-83"]
+      related_use_cases: ["UC-80", "UC-81", "UC-84", "UC-85"]
       validation_points:
         ["System configuration access", "Role-permission management"]
 
@@ -254,6 +255,7 @@ business_rules:
         [
           "UC-21",
           "UC-25",
+          "UC-26",
           "UC-32",
           "UC-36",
           "UC-37",
@@ -271,13 +273,14 @@ business_rules:
           "UC-60",
           "UC-61",
           "UC-63",
-          "UC-66",
-          "UC-67",
-          "UC-70",
-          "UC-71",
-          "UC-76",
+          "UC-68",
+          "UC-69",
+          "UC-72",
+          "UC-73",
+          "UC-78",
           "UC-79",
-          "UC-83",
+          "UC-81",
+          "UC-85",
         ]
       validation_points: ["All critical data modifications"]
 
@@ -305,7 +308,7 @@ business_rules:
       domain: "Data Integrity"
       priority: "Critical"
       related_use_cases:
-        ["UC-45", "UC-49", "UC-53", "UC-57", "UC-61", "UC-67", "UC-71"]
+        ["UC-45", "UC-49", "UC-53", "UC-57", "UC-61", "UC-69", "UC-73"]
       validation_points: ["All hard delete operations in the backend services"]
 
   # Attendance Status Management (BR-31 to BR-32)
@@ -366,11 +369,11 @@ business_rules:
   # Academic Data Management (BR-33 to BR-34)
   academic_data_management:
     BR-33:
-      title: "Enrollment Status and Roster Visibility"
-      description: "When generating roster for a slot, only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment."
+      title: "Class Enrollment Status and Roster Visibility"
+      description: "When generating a roster for a class-based slot (LECTURE, LECTURE_WITH_PT), only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment. This rule does not apply to independent final exams."
       domain: "Academic"
       priority: "High"
-      related_use_cases: ["UC-62", "UC-63"]
+      related_use_cases: ["UC-29", "UC-62", "UC-63"]
       validation_points:
         [
           "Roster query API",
@@ -390,20 +393,21 @@ business_rules:
           - "If student is unenrolled BEFORE slot starts, no attendance record is created"
 
     BR-34:
-      title: "Slot Category Logic and Attendance Type Mapping"
-      description: "The 'slot_category' field determines the purpose of a slot and which attendance tables are used. This logic is enforced at the application layer."
+      title: "Slot Category Validation and Roster Logic"
+      description: "Defines the core validation logic for creating/updating slots and determines the source of the student roster. This logic must be enforced at the application layer."
       domain: "Academic"
-      priority: "High"
+      priority: "Critical"
       related_use_cases: ["UC-24", "UC-25", "UC-26", "UC-58", "UC-60"]
       validation_points: ["Slot creation API", "Slot update API", "Attendance processing logic"]
       rules:
-        category_definitions:
-          "LECTURE": "Regular lecture session. Uses 'attendance_records' only."
-          "LECTURE_WITH_PT": "Lecture with a progress test. Uses both 'attendance_records' and 'exam_attendance'."
-          "FINAL_EXAM": "Final exam session. Uses 'exam_attendance' only."
-        permission_mapping:
-          - "Data Operator can create/manage all categories."
-          - "Lecturer can only update a slot's category between 'LECTURE' and 'LECTURE_WITH_PT', governed by BR-35."
+        class_based_slots:
+          categories: ["LECTURE", "LECTURE_WITH_PT"]
+          validation: "The 'class_id' field MUST NOT be NULL."
+          roster_source: "The student roster is derived from the 'enrollments' table based on the slot's 'class_id'."
+        independent_exam_slots:
+          categories: ["FINAL_EXAM"]
+          validation: "The 'class_id' field MUST be NULL, and the 'semester_id' field MUST NOT be NULL."
+          roster_source: "The student roster is derived from the 'exam_slot_participants' table based on the slot's 'id'."
 
     BR-35:
       title: "Lecturer Can Update Slot Category"
@@ -464,11 +468,11 @@ business_rules:
   # Bulk Operations (BR-37)
   bulk_operations:
     BR-37:
-      title: "Bulk Enrollment CSV Format and Validation"
-      description: "Defines the CSV file format and validation rules for bulk student enrollment. File must be UTF-8 encoded with specific columns and validation rules."
+      title: "Bulk Class Enrollment CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk student enrollment into classes. This rule does not apply to independent final exams."
       domain: "Academic"
       priority: "Medium"
-      related_use_cases: ["UC-77"]
+      related_use_cases: ["UC-79"]
       validation_points: ["CSV upload API", "Bulk enrollment processing"]
       csv_format:
         encoding: "UTF-8 with BOM (for Excel compatibility)"
@@ -508,6 +512,58 @@ business_rules:
           - "Provide detailed error list for failed rows"
           - "Provide warning list for skipped rows (duplicates, already enrolled)"
 
+    BR-38:
+      title: "Exam Slot Participant Uniqueness"
+      description: "A student can only be added to the participant list of a specific independent final exam slot once."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-64", "UC-65"]
+      validation_points: ["Exam participant creation", "Bulk exam participant import"]
+
+    BR-39:
+      title: "Exam Participant Roster Visibility"
+      description: "When generating the roster for an independent final exam slot (slot_category = 'FINAL_EXAM'), the system must only include students from the 'exam_slot_participants' table who are linked to that slot_id and have their 'is_enrolled' status set to true."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-29", "UC-64"]
+      validation_points: ["Roster query API for exam slots", "Exam attendance processing"]
+
+    BR-40:
+      title: "Bulk Exam Participant CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-65"]
+      validation_points: ["CSV upload API for exam participants", "Bulk exam participant processing"]
+      csv_format:
+        encoding: "UTF-8 with BOM"
+        delimiter: "comma (,)"
+        header_row: "Required (first row)"
+        columns:
+          - name: "student_id"
+            type: "string"
+            required: true
+            description: "Student's username (Student ID)"
+      validation_rules:
+        pre_upload: "The Data Operator must select a target independent final exam slot before uploading the file."
+        file_level:
+          - "File size must not exceed 1MB"
+          - "Maximum 5,000 rows (excluding header)"
+          - "Must have exactly one column"
+          - "Header row must match exactly: student_id"
+        row_level:
+          - "student_id must exist in users table and have STUDENT role"
+          - "Student must not already be a participant in the selected slot"
+          - "Student must be active (users.is_active = true)"
+        duplicate_handling:
+          - "Within file: If same student_id appears multiple times, keep first occurrence and warn"
+          - "With database: If participant already exists, skip and report as warning (not error)"
+        error_reporting:
+          - "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows"
+          - "Return 200 with summary even if some rows failed"
+          - "Provide detailed error list for failed rows"
+          - "Provide warning list for skipped rows (duplicates, already enrolled)"
+
 # Rule Dependencies and Relationships
 rule_relationships:
   authentication_flow:
@@ -528,8 +584,8 @@ rule_relationships:
     description: "Rules ensuring data consistency and audit trail"
 
   academic_data_management:
-    primary_rules: ["BR-34", "BR-35"]
-    description: "Rules for academic data management including slot categories and lecturer permissions"
+    primary_rules: ["BR-34", "BR-35", "BR-38", "BR-39", "BR-40"]
+    description: "Rules for academic data management including slot categories, lecturer permissions, and exam participant management"
 
   permission_control:
     primary_rules: ["BR-05", "BR-25", "BR-26"]
