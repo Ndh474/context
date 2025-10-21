@@ -31,6 +31,8 @@ Business Rules:
   * Maximum slot duration: 4 hours
   * Class, room, and staff must be active
   * Staff must have LECTURER or SUPERVISOR role
+- Notes for FINAL_EXAM slots:
+  * After creating a FINAL_EXAM slot, Data Operator must use endpoints in /api/v1/exam-slots/{slotId}/subjects to assign the subjects that will be tested
 - Related Business Rules: BR-15, BR-16, BR-17, BR-34
 
 Request Body:
@@ -741,7 +743,8 @@ Business Rules:
   • Returns the list of actively enrolled students (enrollments.is_enrolled = true).
   • Includes attendance status for both regular and exam components, depending on slotCategory.
   • The user making the request must be the staff member assigned to this slot.
-  • Related Business Rules: BR-14, BR-33
+  • For slots with slotCategory = 'FINAL_EXAM', roster is built using the new business logic through exam_slot_subjects and exam_slot_participants tables.
+  • Related Business Rules: BR-14, BR-33, BR-34
 
 Path Parameters:
   | Parameter | Type    | Required | Description |

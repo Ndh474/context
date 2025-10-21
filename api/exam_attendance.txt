@@ -11,7 +11,7 @@ DELETE  | /exam-attendance/remarks/{remarkId}           | ATTENDANCE_REMARK_MANA
 ============================================= Search exam attendance records ==============================================
 1. GET /api/v1/exam-attendance
 Permission: ATTENDANCE_ROSTER_READ
-Description: List exam attendance records with filtering and pagination support. Used for LECTURE_WITH_PT and FINAL_EXAM slots.
+Description: List exam attendance records with filtering and pagination support. Used for LECTURE_WITH_PT and FINAL_EXAM slots. Responses include slot information and subject information as separate objects.
 
 Query Parameters:
 | Parameter      | Type    | Required | Default | Validation
@@ -85,7 +85,8 @@ Response Schema (items):
 |------------|--------|-----------
 | id         | long   | Exam attendance record ID
 | student    | object | Student details (userId, fullName, rollNumber, email)
-| slot       | object | Slot details with nested class, subject, semester
+| slot       | object | Slot details with nested class and semester
+| subject    | object | Subject details (id, name, code) - included as separate object for FINAL_EXAM slots
 | status     | string | not_yet, present, absent
 | method     | string | auto, manual, system_finalize
 | recordedAt | string | YYYY-MM-DDTHH:mm:SSZ (when status was recorded)
@@ -105,7 +106,7 @@ Response Schema (items):
 
 2. GET /api/v1/exam-attendance/{id}
 Permission: ATTENDANCE_ROSTER_READ
-Description: Get exam attendance record details including all remarks.
+Description: Get exam attendance record details including all remarks. For FINAL_EXAM slots, the response includes subject information as a separate object.
 
 Path Parameters:
 | Parameter | Type | Required | Description
@@ -349,9 +350,11 @@ Relationship with Attendance Records:
 
 Participant Management:
 - LECTURE_WITH_PT: Participants from class enrollments (enrollments table where is_enrolled = true)
-- FINAL_EXAM: Participants determined by slot.class_id:
-  * If class_id is NOT NULL: Use class enrollments (enrollments table)
-  * If class_id is NULL: Use exam_slot_participants table (independent exam registration)
+- FINAL_EXAM: Participants always determined by exam_slot_participants table (independent exam registration)
+  * BR-34 requires class_id to be NULL for FINAL_EXAM slots
+  * Students are assigned to specific subjects within the exam slot through the 2-step process:
+    1. Assign subjects to slot via exam_slot_subjects table
+    2. Assign students to specific subjects via exam_slot_participants table
 - Backend automatically determines participant source based on slot configuration
 - See exam_slot_participants.txt for independent exam participant management
 

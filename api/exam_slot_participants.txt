@@ -1,45 +1,290 @@
+POST   	| /exam-slots/{slotId}/subjects 	   		    | ENROLLMENT_MANAGE
+GET    	| /exam-slots/{slotId}/subjects 	   		    | SLOT_READ
+DELETE 	| /exam-slots/{slotId}/subjects/{subjectId} 	    | ENROLLMENT_MANAGE
 POST   	| /exam-slots/{slotId}/participants 	   		    | ENROLLMENT_MANAGE
 GET    	| /exam-slots/{slotId}/participants 	   		    | SLOT_READ
-GET    	| /exam-slots/{slotId}/participants/{studentUserId} | SLOT_READ
-PUT    	| /exam-slots/{slotId}/participants/{studentUserId} | ENROLLMENT_MANAGE
-DELETE 	| /exam-slots/{slotId}/participants/{studentUserId} | ENROLLMENT_MANAGE (hard delete)
+GET    	| /exam-slots/{slotId}/participants/{participantId} | SLOT_READ
+PUT    	| /exam-slots/{slotId}/participants/{participantId} | ENROLLMENT_MANAGE
+DELETE 	| /exam-slots/{slotId}/participants/{participantId} | ENROLLMENT_MANAGE (hard delete)
 POST   	| /exam-slots/{slotId}/participants/bulk 	   	    | ENROLLMENT_MANAGE
 GET    	| /exam-slots/{slotId}/participants/bulk/template   | SLOT_READ
 
-============================================ Add participant to exam slot =============================================
-1. POST /api/v1/exam-slots/{slotId}/participants
+============================================ Assign subjects to exam slot =============================================
+
+1. POST /api/v1/exam-slots/{slotId}/subjects
 Permission: ENROLLMENT_MANAGE
-Description: Add a student to an independent final exam slot (UC-65). If participant exists with is_enrolled=false, it will be updated to true (re-enrollment).
+Description: Assign one or more subjects to a FINAL_EXAM slot. This is step 1 in the 2-step process for independent exam management.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
 | slotId    | integer | Yes      | Exam slot ID (must be FINAL_EXAM with class_id = NULL)
 
 Request Body:
 {
-  "studentUserId": 201
+  "subjectIds": [1, 2, 3]
 }
 
 Request Schema:
-| Field          | Type    | Required | Validation 
-| studentUserId  | integer | Yes      | Must exist, be active, and have STUDENT role
+| Field      | Type    | Required | Validation
+|------------|---------|----------|-----------
+| subjectIds | array   | Yes      | Array of integer subject IDs (1-50 items)
 
 Business Rules:
 - Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
 - Slot must be independent (class_id = NULL)
-- A student can only be added once to a specific exam slot
+- All subjects must exist and be active
+- Cannot assign duplicate subjects to the same slot
+- Slot must be active (slots.is_active = true)
+- Related Business Rules: BR-34
+
+201-Success Response:
+{
+  "status": 201,
+  "message": "Subjects assigned to exam slot successfully",
+  "data": {
+    "slotId": 1,
+    "subjects": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      {
+        "id": 2,
+        "name": "Database Systems",
+        "code": "DBS201"
+      }
+    ],
+    "assignedCount": 2,
+    "totalSubjects": 2
+  }
+}
+
+Response Schema:
+| Field        | Type    | Description
+|--------------|---------|-----------
+| slotId       | integer | Exam slot ID
+| subjects     | array   | List of assigned subjects with id, name, code
+| assignedCount| integer | Number of subjects assigned in this request
+| totalSubjects| integer | Total subjects now assigned to slot
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Subject IDs array is required",
+  "code": "SUBJECT_IDS_REQUIRED"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value to integer array",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid slot type:
+{
+  "status": 400,
+  "message": "Slot must be FINAL_EXAM type with no class assigned",
+  "code": "INVALID_SLOT_TYPE"
+}
+
+400-Inactive slot:
+{
+  "status": 400,
+  "message": "Cannot assign subjects to inactive exam slot",
+  "code": "INACTIVE_SLOT_NOT_ALLOWED"
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Exam slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+404-Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found: 5",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+409-Duplicate subjects:
+{
+  "status": 409,
+  "message": "Cannot assign duplicate subjects to the same slot",
+  "code": "DUPLICATE_SUBJECTS_NOT_ALLOWED"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+============================================ List subjects in exam slot ===============================================
+
+2. GET /api/v1/exam-slots/{slotId}/subjects
+Permission: SLOT_READ
+Description: List all subjects assigned to a FINAL_EXAM slot.
+
+Path Parameters:
+| Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
+| slotId    | integer | Yes      | Exam slot ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "slotId": 1,
+    "subjects": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      },
+      {
+        "id": 2,
+        "name": "Database Systems",
+        "code": "DBS201"
+      }
+    ],
+    "totalSubjects": 2
+  }
+}
+
+Response Schema:
+| Field        | Type    | Description
+|--------------|---------|-----------
+| slotId       | integer | Exam slot ID
+| subjects     | array   | List of assigned subjects with id, name, code
+| totalSubjects| integer | Total number of subjects assigned to slot
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Exam slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+=======================================================================================================================
+========================================= Remove subject from exam slot ==============================================
+
+3. DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId}
+Permission: ENROLLMENT_MANAGE
+Description: Remove a subject from a FINAL_EXAM slot. Cannot remove if students are already assigned to that subject in this slot.
+
+Path Parameters:
+| Parameter  | Type    | Required | Description
+|------------|---------|----------|-----------
+| slotId     | integer | Yes      | Exam slot ID
+| subjectId  | integer | Yes      | Subject ID to remove
+
+Business Rules:
+- Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
+- Slot must be independent (class_id = NULL)
+- Subject must be assigned to the slot
+- Cannot remove if participants exist for this subject in this slot
+- Slot must be active (slots.is_active = true)
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Subject removed from exam slot successfully"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Exam slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+404-Subject not found:
+{
+  "status": 404,
+  "message": "Subject not found in slot: 5",
+  "code": "SUBJECT_NOT_FOUND_IN_SLOT"
+}
+
+409-Cannot remove subject:
+{
+  "status": 409,
+  "message": "Cannot remove subject. 3 students are already assigned to this subject in this slot",
+  "code": "SUBJECT_HAS_PARTICIPANTS"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+============================================ Add participant to exam slot =============================================
+
+4. POST /api/v1/exam-slots/{slotId}/participants
+Permission: ENROLLMENT_MANAGE
+Description: Add a student to a specific subject within an independent final exam slot. This is step 2 in the 2-step process for independent exam management (BR-40).
+
+Path Parameters:
+| Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
+| slotId    | integer | Yes      | Exam slot ID (must be FINAL_EXAM with class_id = NULL)
+
+Request Body:
+{
+  "studentUserId": 201,
+  "subjectId": 1
+}
+
+Request Schema:
+| Field          | Type    | Required | Validation
+|----------------|---------|----------|-----------
+| studentUserId  | integer | Yes      | Must exist, be active, and have STUDENT role
+| subjectId      | integer | Yes      | Must be assigned to the slot (via exam_slot_subjects)
+
+Business Rules:
+- Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
+- Slot must be independent (class_id = NULL)
+- Subject must be assigned to the slot (exam_slot_subjects table)
+- Student must be enrolled in the subject during the semester (BR-40 validation)
+- A student can only be added once to a specific subject in a specific exam slot
 - If participant exists with is_enrolled=true → 409 Conflict
 - If participant exists with is_enrolled=false → Update to true (re-enrollment)
 - Slot must be active (slots.is_active = true)
 - Student must be active (users.is_active = true)
 - Student must have STUDENT role
+- Related Business Rules: BR-34, BR-38, BR-39, BR-40
 
 201-Success Response (New participant):
 {
   "status": 201,
   "data": {
+    "id": 1001,
     "slotId": 1,
     "studentUserId": 201,
+    "subjectId": 1,
     "student": {
       "userId": 201,
       "fullName": "Tran Thi B",
@@ -64,6 +309,11 @@ Business Rules:
         "code": "FA24"
       }
     },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391"
+    },
     "isEnrolled": true,
     "createdAt": "2024-10-21T10:00:00Z",
     "updatedAt": "2024-10-21T10:00:00Z"
@@ -73,12 +323,15 @@ Business Rules:
 200-Success Response (Re-enrollment):
 {
   "status": 200,
-  "message": "Student re-enrolled to exam slot successfully",
+  "message": "Student re-enrolled to exam slot subject successfully",
   "data": {
+    "id": 1001,
     "slotId": 1,
     "studentUserId": 201,
+    "subjectId": 1,
     "student": { ... },
     "slot": { ... },
+    "subject": { ... },
     "isEnrolled": true,
     "createdAt": "2024-10-15T08:00:00Z",
     "updatedAt": "2024-10-21T10:00:00Z"
@@ -86,11 +339,15 @@ Business Rules:
 }
 
 Response Schema:
-| Field         | Type    | Description 
+| Field         | Type    | Description
+|---------------|---------|-----------
+| id            | long    | Participant record ID (primary key)
 | slotId        | integer | Exam slot ID
 | studentUserId | integer | Student user ID
+| subjectId     | integer | Subject ID
 | student       | object  | Student details (userId, fullName, rollNumber, email, majorName)
 | slot          | object  | Exam slot details with nested room and semester
+| subject       | object  | Subject details (id, name, code)
 | isEnrolled    | boolean | Participation status (always true in success response)
 | createdAt     | string  | YYYY-MM-DDTHH:mm:SSZ (original enrollment date)
 | updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
@@ -98,8 +355,8 @@ Response Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Student User ID is required",
-  "code": "STUDENT_USER_ID_REQUIRED"
+  "message": "Student User ID and Subject ID are required",
+  "code": "STUDENT_USER_ID_REQUIRED" | "SUBJECT_ID_REQUIRED"
 }
 
 400-Invalid field type:
@@ -121,6 +378,20 @@ Response Schema:
   "status": 400,
   "message": "Slot must be FINAL_EXAM type with no class assigned",
   "code": "INVALID_SLOT_TYPE"
+}
+
+400-Subject not assigned:
+{
+  "status": 400,
+  "message": "Subject 1 is not assigned to this exam slot",
+  "code": "SUBJECT_NOT_ASSIGNED_TO_SLOT"
+}
+
+400-Student not enrolled in subject:
+{
+  "status": 400,
+  "message": "Student is not enrolled in subject SWP391 during Fall 2024 semester",
+  "code": "STUDENT_NOT_ENROLLED_IN_SUBJECT"
 }
 
 400-Inactive reference:
@@ -150,7 +421,7 @@ Other inactive reference error codes:
 409-Already enrolled:
 {
   "status": 409,
-  "message": "Student is already enrolled in this exam slot",
+  "message": "Student is already enrolled in this subject for this exam slot",
   "code": "ALREADY_ENROLLED"
 }
 
@@ -164,19 +435,22 @@ Other inactive reference error codes:
 =======================================================================================================================
 ============================================ List exam slot participants ==============================================
 
-2. GET /api/v1/exam-slots/{slotId}/participants
+5. GET /api/v1/exam-slots/{slotId}/participants
 Permission: SLOT_READ
-Description: List all participants for an independent final exam slot with filtering and pagination support.
+Description: List all participants for a specific subject within an independent final exam slot with filtering and pagination support.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
 | slotId    | integer | Yes      | Exam slot ID
 
 Query Parameters:
-| Parameter      | Type    | Required | Default | Validation 
+| Parameter      | Type    | Required | Default | Validation
+|----------------|---------|----------|---------|-----------
+| subjectId      | integer | Yes      | -       | Subject ID (required - must be assigned to slot)
 | page           | integer | No       | 1       | >= 1
-| pageSize       | integer | No       | 50      | 1-100 
-| sort           | string  | No       | asc     | asc, desc 
+| pageSize       | integer | No       | 50      | 1-100
+| sort           | string  | No       | asc     | asc, desc
 | sortBy         | string  | No       | fullName| fullName, rollNumber, createdAt, updatedAt
 | isEnrolled     | boolean | No       | true    | Filter by enrollment status (true/false/null)
 | search         | string  | No       | ""      | Search in student name, rollNumber, email (max 100 chars, trim spaces)
@@ -202,8 +476,14 @@ Query Parameters:
         "code": "FA24"
       }
     },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391"
+    },
     "items": [
       {
+        "id": 1001,
         "studentUserId": 201,
         "fullName": "Tran Thi B",
         "rollNumber": "HE180314",
@@ -215,6 +495,7 @@ Query Parameters:
         "updatedAt": "2024-10-15T08:00:00Z"
       },
       {
+        "id": 1002,
         "studentUserId": 202,
         "fullName": "Le Van C",
         "rollNumber": "HE180315",
@@ -236,9 +517,11 @@ Query Parameters:
 }
 
 Response Schema:
-| Field          | Type    | Description 
+| Field          | Type    | Description
+|----------------|---------|-----------
 | slot           | object  | Exam slot details with nested room and semester
-| items          | array   | List of enrolled students
+| subject        | object  | Subject details (id, name, code)
+| items          | array   | List of enrolled students for this subject
 | totalEnrolled  | integer | Count of students with is_enrolled=true
 | totalWithdrawn | integer | Count of students with is_enrolled=false
 | totalPages     | integer | Total pages
@@ -246,8 +529,10 @@ Response Schema:
 | pageSize       | integer | Items per page
 | totalItems     | integer | Total items (based on isEnrolled filter)
 
-Student Object Schema:
-| Field         | Type    | Description 
+Participant Object Schema:
+| Field         | Type    | Description
+|---------------|---------|-----------
+| id            | long    | Participant record ID (primary key)
 | studentUserId | integer | Student user ID
 | fullName      | string  | Student full name
 | rollNumber    | string  | Student roll number
@@ -257,6 +542,13 @@ Student Object Schema:
 | isEnrolled    | boolean | Participation status
 | enrolledAt    | string  | YYYY-MM-DDTHH:mm:SSZ (enrollment date)
 | updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Subject ID is required",
+  "code": "SUBJECT_ID_REQUIRED"
+}
 
 400-Invalid query parameters:
 {
@@ -272,6 +564,13 @@ Student Object Schema:
   "code": "INVALID_FIELD_TYPE"
 }
 
+400-Subject not assigned:
+{
+  "status": 400,
+  "message": "Subject 1 is not assigned to this exam slot",
+  "code": "SUBJECT_NOT_ASSIGNED_TO_SLOT"
+}
+
 404-Slot not found:
 {
   "status": 404,
@@ -280,23 +579,26 @@ Student Object Schema:
 }
 
 =======================================================================================================================
-======================================= Get exam slot participant by composite key ====================================
+======================================= Get exam slot participant by ID ===========================================
 
-3. GET /api/v1/exam-slots/{slotId}/participants/{studentUserId}
+6. GET /api/v1/exam-slots/{slotId}/participants/{participantId}
 Permission: SLOT_READ
-Description: Get participant details for a specific student in a specific exam slot.
+Description: Get participant details for a specific participant record in an exam slot.
 
 Path Parameters:
 | Parameter      | Type    | Required | Description
+|----------------|---------|----------|-----------
 | slotId         | integer | Yes      | Exam slot ID
-| studentUserId  | integer | Yes      | Student user ID
+| participantId  | long    | Yes      | Participant record ID
 
 200-Success Response:
 {
   "status": 200,
   "data": {
+    "id": 1001,
     "slotId": 1,
     "studentUserId": 201,
+    "subjectId": 1,
     "student": {
       "userId": 201,
       "fullName": "Tran Thi B",
@@ -320,6 +622,11 @@ Path Parameters:
         "name": "Fall 2024",
         "code": "FA24"
       }
+    },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391"
     },
     "isEnrolled": true,
     "createdAt": "2024-10-15T08:00:00Z",
@@ -330,28 +637,29 @@ Path Parameters:
 400-Invalid field type:
 {
   "status": 400,
-  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer/Long'",
   "code": "INVALID_FIELD_TYPE"
 }
 
 404-Participant not found:
 {
   "status": 404,
-  "message": "Participant not found for exam slot 1 and student 201",
+  "message": "Participant not found: 1001",
   "code": "PARTICIPANT_NOT_FOUND"
 }
 
 =======================================================================================================================
 ============================================ Update exam slot participant =============================================
 
-4. PUT /api/v1/exam-slots/{slotId}/participants/{studentUserId}
+7. PUT /api/v1/exam-slots/{slotId}/participants/{participantId}
 Permission: ENROLLMENT_MANAGE
-Description: Update participant status (withdraw or re-enroll student from exam). This does NOT delete exam attendance records.
+Description: Update participant status (withdraw or re-enroll student from exam subject). This does NOT delete exam attendance records.
 
 Path Parameters:
 | Parameter      | Type    | Required | Description
+|----------------|---------|----------|-----------
 | slotId         | integer | Yes      | Exam slot ID
-| studentUserId  | integer | Yes      | Student user ID
+| participantId  | long    | Yes      | Participant record ID
 
 Request Body:
 {
@@ -360,10 +668,11 @@ Request Body:
 
 Request Schema:
 | Field      | Type    | Required | Validation
+|------------|---------|----------|-----------
 | isEnrolled | boolean | Yes      | true (re-enroll) or false (withdraw)
 
 Business Rules:
-- When is_enrolled=false (withdraw), student will not appear in future exam rosters
+- When is_enrolled=false (withdraw), student will not appear in future exam rosters for this subject
 - Past exam attendance history is preserved
 - Only students with is_enrolled=true appear in roster queries
 - Audit log is created for this action
@@ -373,8 +682,10 @@ Business Rules:
   "status": 200,
   "message": "Participant status updated successfully",
   "data": {
+    "id": 1001,
     "slotId": 1,
     "studentUserId": 201,
+    "subjectId": 1,
     "student": {
       "userId": 201,
       "fullName": "Tran Thi B",
@@ -398,6 +709,11 @@ Business Rules:
         "name": "Fall 2024",
         "code": "FA24"
       }
+    },
+    "subject": {
+      "id": 1,
+      "name": "Software Development Project",
+      "code": "SWP391"
     },
     "isEnrolled": false,
     "createdAt": "2024-10-15T08:00:00Z",
@@ -415,14 +731,14 @@ Business Rules:
 400-Invalid field type:
 {
   "status": 400,
-  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer/Boolean'",
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Boolean'",
   "code": "INVALID_FIELD_TYPE"
 }
 
 404-Participant not found:
 {
   "status": 404,
-  "message": "Participant not found for exam slot 1 and student 201",
+  "message": "Participant not found: 1001",
   "code": "PARTICIPANT_NOT_FOUND"
 }
 
@@ -436,14 +752,15 @@ Business Rules:
 =======================================================================================================================
 ======================================= Hard delete participant from exam slot ========================================
 
-5. DELETE /api/v1/exam-slots/{slotId}/participants/{studentUserId}
+8. DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
 Permission: ENROLLMENT_MANAGE
-Description: Permanently delete a student from an independent final exam slot. This is a hard delete operation that removes the record completely.
+Description: Permanently delete a student from a specific subject within an independent final exam slot. This is a hard delete operation that removes the record completely.
 
 Path Parameters:
 | Parameter      | Type    | Required | Description
+|----------------|---------|----------|-----------
 | slotId         | integer | Yes      | Exam slot ID
-| studentUserId  | integer | Yes      | Student user ID
+| participantId  | long    | Yes      | Participant record ID
 
 Business Rules:
 - This is a HARD DELETE operation (permanently removes the record)
@@ -461,14 +778,14 @@ Business Rules:
 400-Invalid field type:
 {
   "status": 400,
-  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer/Long'",
   "code": "INVALID_FIELD_TYPE"
 }
 
 404-Participant not found:
 {
   "status": 404,
-  "message": "Participant not found for exam slot 1 and student 201",
+  "message": "Participant not found: 1001",
   "code": "PARTICIPANT_NOT_FOUND"
 }
 
@@ -482,12 +799,13 @@ Business Rules:
 =======================================================================================================================
 ========================================= Bulk add participants to exam slot ==========================================
 
-6. POST /api/v1/exam-slots/{slotId}/participants/bulk
+9. POST /api/v1/exam-slots/{slotId}/participants/bulk
 Permission: ENROLLMENT_MANAGE
-Description: Bulk add students to an independent final exam slot from a CSV file (UC-65). Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk add students to specific subjects within an independent final exam slot from a CSV file (UC-65). Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
 | slotId    | integer | Yes      | Exam slot ID (must be FINAL_EXAM with class_id = NULL)
 
 Request: Multipart form-data
@@ -499,34 +817,39 @@ CSV Format:
 - Encoding: UTF-8 with BOM (for Excel compatibility)
 - Delimiter: comma (,)
 - Header row: Required (first row)
-- Columns: student_id
+- Columns: student_id, subject_code
 
 Example CSV:
 ```csv
-student_id
-HE180314
-HE180315
-HE180316
+student_id,subject_code
+HE180314,SWP391
+HE180315,DBS201
+HE180316,SWP391
 ```
 
 Business Rules:
 - PARTIAL SUCCESS: Import valid rows, skip invalid rows
 - Duplicate handling:
-  - Within file: If same student_id appears multiple times, only first occurrence is processed
+  - Within file: If same (student_id, subject_code) pair appears multiple times, only first occurrence is processed
   - With database: If participant already exists with is_enrolled=true, skip with warning
   - With database: If participant exists with is_enrolled=false, update to true (re-enrollment)
 - Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
 - Slot must be independent (class_id = NULL)
+- Subject must be assigned to the slot (exam_slot_subjects table)
+- Student must be enrolled in the subject during the semester (BR-40 validation)
 
 Validation Rules:
 File Level:
 - File size must not exceed 5MB
 - Maximum 10,000 rows (excluding header)
-- Must have exactly 1 column
-- Header row must match exactly: student_id
+- Must have exactly 2 columns
+- Header row must match exactly: student_id,subject_code
 
 Row Level:
 - student_id must exist in users table and have STUDENT role
+- subject_code must exist in subjects table
+- The pair (slot_id, subject_id) must exist in exam_slot_subjects table
+- Student must be enrolled in the subject during the semester (BR-40 validation)
 - Student must be active (users.is_active = true)
 - Slot must be active (slots.is_active = true)
 
@@ -549,11 +872,13 @@ Row Level:
       {
         "row": 3,
         "studentId": "HE999999",
+        "subjectCode": "SWP391",
         "reason": "Student not found"
       },
       {
         "row": 7,
         "studentId": "HE180320",
+        "subjectCode": "DBS201",
         "reason": "Student is not active"
       }
     ],
@@ -561,11 +886,13 @@ Row Level:
       {
         "row": 5,
         "studentId": "HE180318",
+        "subjectCode": "SWP391",
         "reason": "Student already enrolled, skipped"
       },
       {
         "row": 12,
         "studentId": "HE180314",
+        "subjectCode": "SWP391",
         "reason": "Duplicate entry in file, only first occurrence processed"
       }
     ]
@@ -591,7 +918,8 @@ Row Level:
 }
 
 Response Schema:
-| Field                    | Type    | Description 
+| Field                    | Type    | Description
+|--------------------------|---------|-----------
 | totalRows                | integer | Total rows in CSV (excluding header)
 | successCount             | integer | Number of successfully enrolled students
 | skippedCount             | integer | Number of skipped rows (warnings)
@@ -600,13 +928,13 @@ Response Schema:
 | summary.reEnrollments    | integer | Students re-enrolled (was withdrawn)
 | summary.alreadyEnrolled  | integer | Students already enrolled (skipped)
 | summary.errors           | integer | Validation errors
-| errors                   | array   | List of error details (row, studentId, reason)
-| warnings                 | array   | List of warning details (row, studentId, reason)
+| errors                   | array   | List of error details (row, studentId, subjectCode, reason)
+| warnings                 | array   | List of warning details (row, studentId, subjectCode, reason)
 
 400-Invalid file format:
 {
   "status": 400,
-  "message": "Invalid CSV format. Expected header: student_id",
+  "message": "Invalid CSV format. Expected header: student_id,subject_code",
   "code": "INVALID_CSV_FORMAT"
 }
 
@@ -655,12 +983,13 @@ Response Schema:
 =======================================================================================================================
 ============================================ Download CSV template ====================================================
 
-7. GET /api/v1/exam-slots/{slotId}/participants/bulk/template
+10. GET /api/v1/exam-slots/{slotId}/participants/bulk/template
 Permission: SLOT_READ
-Description: Download CSV template file for bulk participant import.
+Description: Download CSV template file for bulk participant import to specific subjects.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
 | slotId    | integer | Yes      | Exam slot ID (for context, not used in template generation)
 
 200-Success Response:
@@ -669,16 +998,16 @@ Content-Disposition: attachment; filename="exam_participants_template.csv"
 
 File Content:
 ```csv
-student_id
-HE180314
-HE180315
-HE180316
+student_id,subject_code
+HE180314,SWP391
+HE180315,DBS201
+HE180316,SWP391
 ```
 
 Notes:
 - File includes header row and 3 sample rows
 - UTF-8 with BOM encoding for Excel compatibility
-- Sample data shows correct format
+- Sample data shows correct format with both student_id and subject_code
 
 =======================================================================================================================
 ====================================================== Notes ==========================================================
@@ -686,18 +1015,26 @@ Notes:
 Data Types:
 - Slot ID: Integer
 - Student User ID: Integer
+- Participant ID: Long (BIGINT) - Primary key of exam_slot_participants table
+- Subject ID: Integer
 - All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
 
-Composite Primary Key:
-- exam_slot_participants table uses composite key (slot_id, student_user_id)
-- No separate 'id' field
-- URL pattern: /exam-slots/{slotId}/participants/{studentUserId}
+Two-Step Process for Independent Exam Management:
+1. Step 1 - Assign Subjects: Use POST /api/v1/exam-slots/{slotId}/subjects to assign multiple subjects to a FINAL_EXAM slot
+2. Step 2 - Assign Students: Use POST /api/v1/exam-slots/{slotId}/participants to assign students to specific subjects within the slot
+
+Primary Key Design:
+- exam_slot_participants table uses a single 'id' field (participantId) as the primary key
+- Has a unique constraint on (exam_slot_subject_id, student_user_id) to ensure a student cannot be added twice to the same subject within a slot
+- URL patterns:
+  - /exam-slots/{slotId}/participants/{participantId}
+  - /exam-slots/{slotId}/subjects/{subjectId}
 
 Participation Status (is_enrolled):
-- true: Student is actively enrolled, appears in roster
-- false: Student is withdrawn, does NOT appear in roster
-- NOT a soft delete flag - it's participation status
-- Can be toggled: false → true (re-enrollment)
+- true: Student is actively enrolled for this subject, appears in roster
+- false: Student is withdrawn from this subject, does NOT appear in roster
+- NOT a soft delete flag - it's participation status for specific subject
+- Can be toggled: false → true (re-enrollment for same subject)
 
 Pagination:
 - Default: page=1, pageSize=50
@@ -705,9 +1042,10 @@ Pagination:
 - 1-based pagination
 
 Response Structure:
-- Nested objects for student and slot details
+- Nested objects for student, slot, and subject details
 - Student: userId, fullName, rollNumber, email, majorName
 - Slot: id, title, startTime, endTime, slotCategory, room (id, name, location), semester (id, name, code)
+- Subject: id, name, code
 
 Bulk Import Strategy:
 - PARTIAL SUCCESS: Import valid rows, skip invalid rows
@@ -717,42 +1055,47 @@ Bulk Import Strategy:
 
 CSV Template:
 - UTF-8 with BOM encoding
-- 1 column: student_id
+- 2 columns: student_id, subject_code
 - Includes sample data
 - Max 5MB file size
 - Max 10,000 rows
 
 Permissions:
-- ENROLLMENT_MANAGE: Create, update, delete, bulk import (Data Operator)
-- SLOT_READ: View participants, download template (Data Operator, Lecturer, Supervisor)
+- ENROLLMENT_MANAGE: Assign/remove subjects to/from slots, create, update, delete, bulk import participants (Data Operator)
+- SLOT_READ: View subjects and participants, download template (Data Operator, Lecturer, Supervisor)
 
 Business Rules:
-- Only for FINAL_EXAM slots with class_id = NULL
-- Preserves exam attendance history when withdrawing
-- Only is_enrolled=true participants appear in roster
+- Only for FINAL_EXAM slots with class_id = NULL (BR-34)
+- Subjects must be assigned before students can be assigned (2-step process)
+- Student must be enrolled in the subject during the semester (BR-40 validation)
+- Preserves exam attendance history when withdrawing from specific subject
+- Only is_enrolled=true participants appear in roster for that subject
 
 Related Use Cases:
-- UC-65: Bulk Add Students to Independent Exam Slot
+- UC-64: Manage Exam Slot Participants
+- UC-65: Bulk Import Participants to Exam Slot
 
 Audit Trail:
-- All participant changes are logged to operational_audit_logs
+- All participant and subject changes are logged to operational_audit_logs
 - Includes: actor_user_id, action_type, target_entity, target_id, changes (before/after)
 
 Soft Delete vs Hard Delete:
 - Soft Delete: Use PUT with is_enrolled=false (RECOMMENDED)
-  - Preserves exam attendance history
-  - Can be reversed by re-enrolling
-  - Student hidden from roster but data retained
+  - Preserves exam attendance history for that subject
+  - Can be reversed by re-enrolling for same subject
+  - Student hidden from roster for that subject but data retained
 - Hard Delete: Use DELETE endpoint (DANGEROUS)
-  - Permanently removes participant record
-  - Cascades to delete exam attendance records
+  - Permanently removes participant record for that subject
+  - Fails with 409 Conflict if exam attendance records exist for that subject
+  - Use soft delete (PUT with isEnrolled=false) instead if attendance records exist
   - Cannot be undone
-  - Only for data cleanup or error correction
+  - Only for data cleanup or error correction when no attendance records exist
 
-Difference from Class Enrollments:
-- Class enrollments: For LECTURE and LECTURE_WITH_PT slots (linked to classes)
-- Exam participants: For FINAL_EXAM slots only (independent, no class link)
-- Both use similar is_enrolled pattern for status management
+Subject Assignment:
+- Use POST /api/v1/exam-slots/{slotId}/subjects to assign subjects
+- Use DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId} to remove subjects
+- Cannot remove subject if students are assigned to it in that slot
+- Related Business Rules: BR-34, BR-38, BR-39
 
 Common Status Codes:
 - 200: Success
@@ -760,6 +1103,6 @@ Common Status Codes:
 - 400: Bad Request (validation errors, invalid parameters)
 - 401: Unauthorized (missing or invalid token)
 - 403: Forbidden (insufficient permissions)
-- 404: Not Found (participant, slot, or student not found)
-- 409: Conflict (already enrolled)
+- 404: Not Found (participant, slot, subject, or student not found)
+- 409: Conflict (already enrolled, has participants, duplicate subjects)
 - 500: Internal Server Error
