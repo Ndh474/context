@@ -39,11 +39,11 @@ tables:
           column: id
         description: "Reference to slot"
       status:
-        type: varchar(30)
+        type: ENUM('not_yet', 'present', 'absent')
         constraints: [NOT NULL]
         description: "Exam attendance status: 'not_yet', 'present', 'absent'"
       method:
-        type: varchar(20)
+        type: ENUM('auto', 'manual', 'system_finalize')
         constraints: [NOT NULL]
         description: "How status was determined: 'auto', 'manual', 'system_finalize'"
     indexes:
@@ -110,24 +110,91 @@ tables:
       - name: idx_exam_participants_student_user_id
         columns: [student_user_id]
         description: "For querying all independent exams a student is participating in."
+      
+      - name: idx_exam_participants_slot_enrolled
+        columns: [slot_id, is_enrolled]
+        description: "For querying active participants only (WHERE is_enrolled = true). Optimizes roster queries."
+      
+      - name: idx_exam_participants_student_enrolled
+        columns: [student_user_id, is_enrolled]
+        description: "For querying a student's active exam registrations."
     notes:
       - "This table is ONLY used for slots where slot_category = 'FINAL_EXAM' and class_id is NULL."
       - "The combination of (slot_id, student_user_id) must be unique."
+
+  exam_attendance_remarks:
+    primary_key: id
+    description: "Additional comments/notes on exam attendance records (LECTURE_WITH_PT and FINAL_EXAM slots)"
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique remark identifier"
+      exam_attendance_id:
+        type: bigint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: exam_attendance
+          column: id
+          on_delete: CASCADE
+        description: "Reference to exam attendance record"
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Remark creation timestamp"
+      updated_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        description: "Remark last update timestamp"
+      created_by_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Staff member who created the remark"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Remark status (soft delete)"
+      remark:
+        type: text
+        constraints: [NOT NULL]
+        description: "Remark content/explanation"
+    indexes:
+      - name: idx_exam_attendance_remarks_exam_id
+        columns: [exam_attendance_id]
+        description: "For querying all remarks for a specific exam attendance record"
+      
+      - name: idx_exam_attendance_remarks_created_by
+        columns: [created_by_user_id]
+        description: "For querying remarks created by a specific staff member"
+      
+      - name: idx_exam_attendance_remarks_created_at
+        columns: [created_at]
+        description: "For chronological queries"
+    notes:
+      - "Used for explaining exam attendance status changes or special circumstances."
+      - "Multiple remarks can be added to the same exam attendance record."
+      - "Remarks are required when manually changing exam attendance status."
+      - "CASCADE delete ensures remarks are removed when exam attendance record is deleted."
 
 relationship_with_attendance_records:
   description: "exam_attendance is separate from attendance_records to track exam participation independently"
   use_cases:
     regular_lecture:
       slot_category: "LECTURE"
-      tables_used: ["attendance_records"]
+      tables_used: ["attendance_records", "regular_attendance_remarks"]
       description: "Only regular attendance is tracked"
     
     lecture_with_progress_test:
       slot_category: "LECTURE_WITH_PT"
-      tables_used: ["attendance_records", "exam_attendance"]
-      description: "Both regular attendance and exam attendance are tracked separately"
+      tables_used: ["attendance_records", "regular_attendance_remarks", "exam_attendance", "exam_attendance_remarks"]
+      description: "Both regular attendance and exam attendance are tracked separately with their own remarks"
     
     final_exam:
       slot_category: "FINAL_EXAM"
-      tables_used: ["exam_attendance"]
+      tables_used: ["exam_attendance", "exam_attendance_remarks"]
       description: "Only exam attendance is tracked (no regular attendance)"

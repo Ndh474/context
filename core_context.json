@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-21T18:16:01.078409",
+      "generated_at": "2025-10-21T18:28:59.435498",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
@@ -1875,7 +1875,7 @@
               "description": "Lecturer or supervisor responsible for the slot"
             },
             "slot_category": {
-              "type": "varchar(20)",
+              "type": "ENUM('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -2016,14 +2016,14 @@
               "description": "Reference to slot"
             },
             "status": {
-              "type": "varchar(30)",
+              "type": "ENUM('not_yet', 'present', 'absent')",
               "constraints": [
                 "NOT NULL"
               ],
               "description": "Attendance status: 'not_yet', 'present', 'absent'"
             },
             "method": {
-              "type": "varchar(20)",
+              "type": "ENUM('auto', 'manual', 'system_finalize')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -2064,9 +2064,9 @@
             "Method 'system_finalize' for batch status updates during finalization"
           ]
         },
-        "attendance_remarks": {
+        "regular_attendance_remarks": {
           "primary_key": "id",
-          "description": "Additional comments/notes on attendance records (regular or exam). Uses polymorphic association.",
+          "description": "Additional comments/notes on regular attendance records (LECTURE slots)",
           "columns": {
             "id": {
               "type": "BIGINT",
@@ -2077,19 +2077,17 @@
               ],
               "description": "Unique remark identifier"
             },
-            "attendable_id": {
+            "attendance_record_id": {
               "type": "bigint",
               "constraints": [
                 "NOT NULL"
               ],
-              "description": "Polymorphic reference to the ID of the attendance record (either from 'attendance_records' or 'exam_attendance')."
-            },
-            "attendable_type": {
-              "type": "varchar(50)",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "The type of the attendance record being referenced. Allowed values: 'regular', 'exam'."
+              "foreign_key": {
+                "table": "attendance_records",
+                "column": "id",
+                "on_delete": "CASCADE"
+              },
+              "description": "Reference to regular attendance record"
             },
             "created_at": {
               "type": "timestamp",
@@ -2133,11 +2131,34 @@
               "description": "Remark content/explanation"
             }
           },
+          "indexes": [
+            {
+              "name": "idx_regular_attendance_remarks_record_id",
+              "columns": [
+                "attendance_record_id"
+              ],
+              "description": "For querying all remarks for a specific attendance record"
+            },
+            {
+              "name": "idx_regular_attendance_remarks_created_by",
+              "columns": [
+                "created_by_user_id"
+              ],
+              "description": "For querying remarks created by a specific staff member"
+            },
+            {
+              "name": "idx_regular_attendance_remarks_created_at",
+              "columns": [
+                "created_at"
+              ],
+              "description": "For chronological queries"
+            }
+          ],
           "notes": [
-            "Used for explaining attendance status changes or special circumstances for both regular and exam attendance.",
+            "Used for explaining attendance status changes or special circumstances for regular lecture attendance.",
             "Multiple remarks can be added to the same attendance record.",
             "Remarks are required when manually changing attendance status.",
-            "Polymorphic relationship is defined by 'attendable_id' and 'attendable_type' columns."
+            "CASCADE delete ensures remarks are removed when attendance record is deleted."
           ]
         },
         "regular_attendance_evidences": {
@@ -2290,14 +2311,14 @@
               "description": "Data operator who reviewed the submission"
             },
             "status": {
-              "type": "varchar(20)",
+              "type": "ENUM('pending', 'approved', 'rejected')",
               "constraints": [
                 "NOT NULL"
               ],
               "description": "Submission status: 'pending', 'approved', 'rejected'"
             },
             "submission_type": {
-              "type": "varchar(20)",
+              "type": "ENUM('initial', 'update')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -2388,7 +2409,7 @@
               "description": "Asset status"
             },
             "asset_type": {
-              "type": "varchar(20)",
+              "type": "ENUM('face_video', 'face_photo')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -2402,6 +2423,30 @@
               "description": "URL/path to stored file"
             }
           },
+          "indexes": [
+            {
+              "name": "idx_identity_assets_submission_id",
+              "columns": [
+                "submission_id"
+              ],
+              "description": "For querying all assets belonging to a specific submission"
+            },
+            {
+              "name": "idx_identity_assets_asset_type",
+              "columns": [
+                "asset_type"
+              ],
+              "description": "For filtering assets by type (face_video, face_photo)"
+            },
+            {
+              "name": "idx_identity_assets_submission_type",
+              "columns": [
+                "submission_id",
+                "asset_type"
+              ],
+              "description": "For querying specific asset types within a submission"
+            }
+          ],
           "notes": [
             "Each submission can have multiple assets",
             "Face videos are processed to generate embeddings",
@@ -2770,18 +2815,18 @@
               "description": "User who performed the action"
             },
             "action_type": {
-              "type": "varchar(50)",
+              "type": "ENUM('CREATE', 'UPDATE', 'DELETE', 'FINALIZE', 'REOPEN', 'APPROVE', 'REJECT', 'ACTIVATE', 'DEACTIVATE')",
               "constraints": [
                 "NOT NULL"
               ],
-              "description": "Type of action (e.g., 'CREATE', 'UPDATE', 'DELETE', 'FINALIZE')"
+              "description": "Type of action performed on the entity"
             },
             "target_entity": {
-              "type": "varchar(50)",
+              "type": "ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'identity_submission', 'room', 'camera', 'system_config')",
               "constraints": [
                 "NOT NULL"
               ],
-              "description": "Entity type that was affected (e.g., 'slot', 'attendance_record')"
+              "description": "Entity type that was affected"
             },
             "target_id": {
               "type": "BIGINT",
@@ -2895,14 +2940,14 @@
               "description": "Reference to slot"
             },
             "status": {
-              "type": "varchar(30)",
+              "type": "ENUM('not_yet', 'present', 'absent')",
               "constraints": [
                 "NOT NULL"
               ],
               "description": "Exam attendance status: 'not_yet', 'present', 'absent'"
             },
             "method": {
-              "type": "varchar(20)",
+              "type": "ENUM('auto', 'manual', 'system_finalize')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -3015,11 +3060,124 @@
                 "student_user_id"
               ],
               "description": "For querying all independent exams a student is participating in."
+            },
+            {
+              "name": "idx_exam_participants_slot_enrolled",
+              "columns": [
+                "slot_id",
+                "is_enrolled"
+              ],
+              "description": "For querying active participants only (WHERE is_enrolled = true). Optimizes roster queries."
+            },
+            {
+              "name": "idx_exam_participants_student_enrolled",
+              "columns": [
+                "student_user_id",
+                "is_enrolled"
+              ],
+              "description": "For querying a student's active exam registrations."
             }
           ],
           "notes": [
             "This table is ONLY used for slots where slot_category = 'FINAL_EXAM' and class_id is NULL.",
             "The combination of (slot_id, student_user_id) must be unique."
+          ]
+        },
+        "exam_attendance_remarks": {
+          "primary_key": "id",
+          "description": "Additional comments/notes on exam attendance records (LECTURE_WITH_PT and FINAL_EXAM slots)",
+          "columns": {
+            "id": {
+              "type": "BIGINT",
+              "constraints": [
+                "NOT NULL",
+                "PRIMARY KEY",
+                "AUTO_INCREMENT"
+              ],
+              "description": "Unique remark identifier"
+            },
+            "exam_attendance_id": {
+              "type": "bigint",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "foreign_key": {
+                "table": "exam_attendance",
+                "column": "id",
+                "on_delete": "CASCADE"
+              },
+              "description": "Reference to exam attendance record"
+            },
+            "created_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": "now()",
+              "description": "Remark creation timestamp"
+            },
+            "updated_at": {
+              "type": "timestamp",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "description": "Remark last update timestamp"
+            },
+            "created_by_user_id": {
+              "type": "int",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "foreign_key": {
+                "table": "users",
+                "column": "id"
+              },
+              "description": "Staff member who created the remark"
+            },
+            "is_active": {
+              "type": "boolean",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "default": true,
+              "description": "Remark status (soft delete)"
+            },
+            "remark": {
+              "type": "text",
+              "constraints": [
+                "NOT NULL"
+              ],
+              "description": "Remark content/explanation"
+            }
+          },
+          "indexes": [
+            {
+              "name": "idx_exam_attendance_remarks_exam_id",
+              "columns": [
+                "exam_attendance_id"
+              ],
+              "description": "For querying all remarks for a specific exam attendance record"
+            },
+            {
+              "name": "idx_exam_attendance_remarks_created_by",
+              "columns": [
+                "created_by_user_id"
+              ],
+              "description": "For querying remarks created by a specific staff member"
+            },
+            {
+              "name": "idx_exam_attendance_remarks_created_at",
+              "columns": [
+                "created_at"
+              ],
+              "description": "For chronological queries"
+            }
+          ],
+          "notes": [
+            "Used for explaining exam attendance status changes or special circumstances.",
+            "Multiple remarks can be added to the same exam attendance record.",
+            "Remarks are required when manually changing exam attendance status.",
+            "CASCADE delete ensures remarks are removed when exam attendance record is deleted."
           ]
         }
       },
@@ -3085,7 +3243,8 @@
           "regular_lecture": {
             "slot_category": "LECTURE",
             "tables_used": [
-              "attendance_records"
+              "attendance_records",
+              "regular_attendance_remarks"
             ],
             "description": "Only regular attendance is tracked"
           },
@@ -3093,14 +3252,17 @@
             "slot_category": "LECTURE_WITH_PT",
             "tables_used": [
               "attendance_records",
-              "exam_attendance"
+              "regular_attendance_remarks",
+              "exam_attendance",
+              "exam_attendance_remarks"
             ],
-            "description": "Both regular attendance and exam attendance are tracked separately"
+            "description": "Both regular attendance and exam attendance are tracked separately with their own remarks"
           },
           "final_exam": {
             "slot_category": "FINAL_EXAM",
             "tables_used": [
-              "exam_attendance"
+              "exam_attendance",
+              "exam_attendance_remarks"
             ],
             "description": "Only exam attendance is tracked (no regular attendance)"
           }

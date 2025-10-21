@@ -62,13 +62,13 @@ tables:
           column: id
         description: "User who performed the action"
       action_type:
-        type: varchar(50)
+        type: ENUM('CREATE', 'UPDATE', 'DELETE', 'FINALIZE', 'REOPEN', 'APPROVE', 'REJECT', 'ACTIVATE', 'DEACTIVATE')
         constraints: [NOT NULL]
-        description: "Type of action (e.g., 'CREATE', 'UPDATE', 'DELETE', 'FINALIZE')"
+        description: "Type of action performed on the entity"
       target_entity:
-        type: varchar(50)
+        type: ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'identity_submission', 'room', 'camera', 'system_config')
         constraints: [NOT NULL]
-        description: "Entity type that was affected (e.g., 'slot', 'attendance_record')"
+        description: "Entity type that was affected"
       target_id:
         type: BIGINT
         constraints: [NOT NULL]

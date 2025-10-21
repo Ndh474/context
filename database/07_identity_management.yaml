@@ -38,11 +38,11 @@ tables:
           column: id
         description: "Data operator who reviewed the submission"
       status:
-        type: varchar(20)
+        type: ENUM('pending', 'approved', 'rejected')
         constraints: [NOT NULL]
         description: "Submission status: 'pending', 'approved', 'rejected'"
       submission_type:
-        type: varchar(20)
+        type: ENUM('initial', 'update')
         constraints: [NOT NULL]
         description: "Type of submission: 'initial', 'update'"
       rejection_reason:
@@ -96,13 +96,25 @@ tables:
         default: true
         description: "Asset status"
       asset_type:
-        type: varchar(20)
+        type: ENUM('face_video', 'face_photo')
         constraints: [NOT NULL]
         description: "Type of asset: 'face_video' or 'face_photo'"
       storage_url:
         type: varchar(255)
         constraints: [NOT NULL]
         description: "URL/path to stored file"
+    indexes:
+      - name: idx_identity_assets_submission_id
+        columns: [submission_id]
+        description: "For querying all assets belonging to a specific submission"
+      
+      - name: idx_identity_assets_asset_type
+        columns: [asset_type]
+        description: "For filtering assets by type (face_video, face_photo)"
+      
+      - name: idx_identity_assets_submission_type
+        columns: [submission_id, asset_type]
+        description: "For querying specific asset types within a submission"
     notes:
       - "Each submission can have multiple assets"
       - "Face videos are processed to generate embeddings"
