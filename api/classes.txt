@@ -109,11 +109,6 @@ Response Schema:
 }
 =======================================================================================================================
 =================================================== Search classes ====================================================
-Note: 
-có muốn search class theo semester/subject không?
-
-Đề xuất:
-- Search theo semester/subject: CẦN THIẾT - thêm filters này
 
 2. GET /api/v1/classes
 Permission: CLASS_READ
@@ -386,15 +381,16 @@ Path Parameters:
 | id        | short | Yes      | Class ID
 
 Query Parameters:
-| Parameter       | Type    | Required | Default | Validation
-| page            | integer | No       | 1       | 1-50
-| pageSize        | integer | No       | 10      | 1-50
-| sort            | string  | No       | asc     | asc/desc
-| sortBy          | string  | No       | startTime | startTime, endTime, slotCategory, isActive
-| slotCategory    | string  | No       | null    | LECTURE, LECTURE_WITH_PT, FINAL_EXAM (exact match filter)
-| isFinalized     | boolean | No       | null    | true, false (filter finalized slots)
-| startTimeFrom   | string  | No       | null    | YYYY-MM-DD (slots starting from this date)
-| startTimeTo     | string  | No       | null    | YYYY-MM-DD (slots starting before this date)
+| Parameter       | Type    | Required | Default   | Validation
+| page            | integer | No       | 1         | 1-50
+| pageSize        | integer | No       | 10        | 1-50
+| sort            | string  | No       | asc       | asc/desc
+| sortBy          | string  | No       | startTime | startTime, endTime, slotCategory
+| slotCategory    | string  | No       | null      | LECTURE, LECTURE_WITH_PT, FINAL_EXAM (exact match filter)
+| isFinalized     | boolean | No       | null      | true, false (filter finalized slots)
+| isActive        | boolean | No       | null      | Filter by active status
+| startTimeFrom   | string  | No       | null      | YYYY-MM-DD (slots with startTime >= this date, inclusive)
+| startTimeTo     | string  | No       | null      | YYYY-MM-DD (slots with startTime <= this date, inclusive)
 
 200-Success Response: 
 {

@@ -1,6 +1,6 @@
 # FUACS API Endpoints Summary
 
-**Last Updated**: 2024-10-19  
+**Last Updated**: 2024-10-21  
 **Project**: FU Attendance Checking Smart (FUACS)
 
 ---
@@ -9,9 +9,9 @@
 
 | Service | Completed | Remaining | Total | Progress |
 |---------|-----------|-----------|-------|----------|
-| **Java Backend** | 15 groups (92 endpoints) | 5 groups (12 endpoints) | 104 | 88% |
+| **Java Backend** | 18 groups (104 endpoints) | 5 groups (12 endpoints) | 116 | 90% |
 | **Python Backend** | 1 group (8 endpoints) | 0 groups (0 endpoints) | 8 | 100% |
-| **TOTAL** | 100 endpoints | 12 endpoints | 112 | 89% |
+| **TOTAL** | 112 endpoints | 12 endpoints | 124 | 90% |
 
 ---
 
@@ -90,6 +90,7 @@
 - [x] `PUT /student-profiles/{id}` - Update student profile
 - [x] `DELETE /student-profiles/{id}` - Hard delete student profile
 - [x] `GET /student-profiles/{id}/classes` - Get classes by student
+- [x] `GET /student-profiles/{id}/attendance-history` - Get attendance history by student (UC-10)
 
 ### ✅ 9. Staff Profiles (`/staff-profiles`)
 
@@ -135,13 +136,17 @@
 
 - [x] `GET /attendance-records` - List attendance records (paginated, filterable)
 - [x] `GET /attendance-records/{id}` - Get attendance record by ID
-- [x] `PUT /attendance-records/{id}` - Manual update attendance status with remark (UC-19, UC-30)
-- [x] `POST /attendance-records/{id}/remarks` - Add remark (UC-20, UC-31)
-- [x] `PUT /attendance-records/{id}/remarks/{remarkId}` - Update remark
-- [x] `DELETE /attendance-records/{id}/remarks/{remarkId}` - Soft delete remark
+- [x] `PUT /attendance-records/{id}` - Manual update attendance status (UC-19, UC-30)
 - [x] `POST /attendance/recognition-result` - Receive recognition result from Python (callback)
 
-### ✅ 14. Identity Management
+### ✅ 14. Regular Attendance Remarks
+
+- [x] `POST /attendance-records/{attendanceRecordId}/remarks` - Add remark to regular attendance (UC-20)
+- [x] `GET /attendance-records/{attendanceRecordId}/remarks` - Get remarks for regular attendance
+- [x] `PUT /attendance-records/remarks/{remarkId}` - Update regular attendance remark
+- [x] `DELETE /attendance-records/remarks/{remarkId}` - Soft delete regular attendance remark
+
+### ✅ 15. Identity Management
 
 - [x] `POST /identity-submissions` - Submit identity registration/update (UC-12, UC-13)
 - [x] `GET /identity-submissions` - List submissions (approval queue) (UC-39)
@@ -150,22 +155,29 @@
 - [x] `PUT /identity-submissions/{id}/reject` - Reject submission (UC-41)
 - [x] `GET /identity-submissions/my-submissions` - Get own submissions (student)
 
-### ✅ 15. Exam Attendance
+### ✅ 16. Exam Attendance
 
 - [x] `GET /exam-attendance` - List exam attendance records (paginated, filterable)
 - [x] `GET /exam-attendance/{id}` - Get exam attendance by ID
-- [x] `PUT /exam-attendance/{id}` - Manual update exam attendance status with remark
+- [x] `PUT /exam-attendance/{id}` - Manual update exam attendance status (UC-31)
 
-### ✅ 16. Bulk Import/Export
+### ✅ 17. Exam Attendance Remarks
+
+- [x] `POST /exam-attendance/{examAttendanceId}/remarks` - Add remark to exam attendance (UC-31)
+- [x] `GET /exam-attendance/{examAttendanceId}/remarks` - Get remarks for exam attendance
+- [x] `PUT /exam-attendance/remarks/{remarkId}` - Update exam attendance remark
+- [x] `DELETE /exam-attendance/remarks/{remarkId}` - Soft delete exam attendance remark
+
+### ✅ 18. Bulk Import/Export
 
 - [x] `POST /import/students` - Bulk import students from CSV (UC-70)
 - [x] `POST /import/staff` - Bulk import staff from CSV (UC-71)
 - [x] `POST /import/classes` - Bulk import classes from CSV
 - [x] `POST /import/slots` - Bulk import slots from CSV
-- [x] `POST /import/enrollments` - Bulk import enrollments from CSV (UC-77)
 - [x] `GET /import/templates/{type}` - Download CSV template (types: students, staff, classes, slots, enrollments)
 - [x] `GET /export/students` - Export students to CSV (UC-72)
 - [x] `GET /export/staff` - Export staff to CSV
+- [x] `GET /export/classes` - Export classes to CSV
 - [x] `GET /export/attendance` - Export attendance records to CSV (UC-73)
 
 ---
@@ -205,23 +217,24 @@
 
 ## 🟢 PYTHON BACKEND - COMPLETED
 
-### ✅ 1. Face Recognition Processing
+### ✅ 1. Face Recognition Service (FastAPI)
+
+***Face Recognition Processing***
 
 - [x] `POST /api/v1/recognition/process-session` - Start face recognition session (UC-16, UC-28)
 - [x] `POST /api/v1/recognition/stop-session` - Stop recognition session
 
-### ✅ 2. Face Embedding Generation
+***Face Embedding Generation***
 
-- [x] `POST /api/v1/embeddings/generate` - Generate face embedding from video/image (UC-12, UC-13)
-- [x] `POST /api/v1/embeddings/validate` - Validate face video/image quality (UC-12, UC-13)
+- [x] `POST /api/v1/embeddings/generate` - Generate face embedding from video (UC-12, UC-13)
+- [x] `POST /api/v1/embeddings/validate` - Validate face video quality (UC-12, UC-13)
 
-### ✅ 3. Camera Management
+***Camera Management***
 
 - [x] `GET /api/v1/cameras/test-connection` - Test RTSP camera connection (UC-50)
 - [x] `GET /api/v1/cameras/capture-frame` - Capture preview frame from camera (UC-50)
-- [x] `POST /api/v1/cameras/list-available` - List available cameras on network
 
-### ✅ 4. Health Check & Monitoring
+***Health Check & Monitoring***
 
 - [x] `GET /api/v1/health` - Health check endpoint
 - [x] `GET /api/v1/metrics` - Performance metrics (processing time, accuracy)
@@ -229,7 +242,7 @@
 ---
 
 **Generated by**: Kiro AI Assistant  
-**Date**: 2024-10-19
+**Last Updated**: 2024-10-21
 
 ---
 
@@ -266,17 +279,24 @@ These endpoints are marked as completed but should be reviewed/tested to ensure 
 - [ ] **Review**: `/classes/{id}/slots` - verify filtering and sorting work correctly
 - [ ] **Review**: Class deactivation - test constraint checks for active slots/enrollments
 
-### 🔧 Missing Endpoints in Completed Groups
+### 🔧 Implementation Notes
 
-#### Student Profiles - Clarification
+#### Attendance Remarks - Separated by Type
 
-- Note: `GET /student-profiles/{id}/attendance-history` can be achieved via `GET /attendance-records?studentUserId={id}`
+- **Regular Attendance Remarks**: For LECTURE and LECTURE_WITH_PT slots
+  - Endpoints: `/attendance-records/{attendanceRecordId}/remarks`
+  - Table: `regular_attendance_remarks`
+  
+- **Exam Attendance Remarks**: For FINAL_EXAM slots  
+  - Endpoints: `/exam-attendance/{examAttendanceId}/remarks`
+  - Table: `exam_attendance_remarks`
 
-#### Classes - Clarification
+#### Slot Management - Implicit Endpoints
 
-- Note: `GET /classes/{id}/enrollments` is already covered in Enrollments group as `GET /enrollments?classId={classId}`
+- **Slot Reopen**: No dedicated endpoint - handled via `PUT /slots/{id}` by clearing `finalized_at`
+  - Note: Same-day only restriction enforced in business logic
 
-#### Slots - Potential Additions
+#### Enrollment Management - Multiple Access Patterns
 
-- [ ] `POST /slots/{id}/reopen` - Reopen finalized slot (same-day only)
-  - Note: Mentioned in BR-22 but no dedicated endpoint
+- `GET /enrollments?classId={classId}` - List all enrollments for a class
+- `GET /classes/{classId}/enrollments` - Get roster with student details (optimized for roster view)

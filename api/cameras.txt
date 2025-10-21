@@ -16,8 +16,10 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation 
-| name 		| string 	| Yes 		| Not blank, max 150 chars
-| rtspUrl | string  | Yes 		| Not blank, max 512 chars
+| name 		| string 	| Yes 		| Not blank, max 150 chars, unique
+|         |        |          | Pattern: ^[A-Za-z0-9\-]+( [A-Za-z0-9\-]+)*$ (letters, numbers, spaces, hyphens)
+|         |        |          | No leading/trailing/multiple spaces
+| rtspUrl | string  | Yes 		| Not blank, max 512 chars, unique
 | roomId 	| short 	| Yes 		  | Not null, must be valid room ID
 
 201-Success Response:
@@ -54,8 +56,8 @@ Response Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank, RTSP URL must not be blank ...",
-  "code": "NAME/RTSP_URL/ROOM_ID/_REQUIRED"
+  "message": "Name must not be blank / RTSP URL must not be blank / Room ID required",
+  "code": "CAMERA_NAME_REQUIRED" | "CAMERA_RTSP_URL_REQUIRED" | "CAMERA_ROOM_ID_REQUIRED"
 }
 
 400 - Invalid Field type:
@@ -103,9 +105,9 @@ Query Parameters:
 | page 		| integer 	| No 		| 1 		| 1-50 
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| name, rtspUrl 
+| sortBy 	| string 	| No		| name 		| name
 | search 	| string 	| No 		| "" 		| Search in name and rtspUrl
-| roomId    | integer | No      | null    | Filter by room
+| roomId    | short   | No      | null    | Filter by room
 | isActive  | boolean | No      | null    | Filter by active status
 
 200-Success Response
@@ -223,8 +225,10 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation
-| name 		| string 	| Yes 		| Not blank, max 150 chars
-| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars
+| name 		| string 	| Yes 		| Not blank, max 150 chars, unique
+|         |        |          | Pattern: ^[A-Za-z0-9\-]+( [A-Za-z0-9\-]+)*$ (letters, numbers, spaces, hyphens)
+|         |        |          | No leading/trailing/multiple spaces
+| rtspUrl 	| string 	| Yes 		| Not blank, max 512 chars, unique
 | roomId 	| short 	| Yes 		| Not null, must be valid room ID
 | isActive 	| boolean 	| Yes 		| Not null
 

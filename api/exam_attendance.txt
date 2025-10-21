@@ -1,6 +1,12 @@
-GET     | /exam-attendance                  | ATTENDANCE_ROSTER_READ
-GET     | /exam-attendance/{id}              | ATTENDANCE_ROSTER_READ
-PUT     | /exam-attendance/{id}              | ATTENDANCE_STATUS_UPDATE_MANUAL
+GET     | /exam-attendance                              | ATTENDANCE_ROSTER_READ
+GET     | /exam-attendance/{id}                         | ATTENDANCE_ROSTER_READ
+PUT     | /exam-attendance/{id}                         | ATTENDANCE_STATUS_UPDATE_MANUAL
+
+# Remarks (see exam_attendance_remarks.txt for details)
+POST    | /exam-attendance/{examAttendanceId}/remarks   | ATTENDANCE_REMARK_MANAGE
+GET     | /exam-attendance/{examAttendanceId}/remarks   | ATTENDANCE_ROSTER_READ
+PUT     | /exam-attendance/remarks/{remarkId}           | ATTENDANCE_REMARK_MANAGE
+DELETE  | /exam-attendance/remarks/{remarkId}           | ATTENDANCE_REMARK_MANAGE
 
 ============================================= Search exam attendance records ==============================================
 1. GET /api/v1/exam-attendance
@@ -341,9 +347,24 @@ Relationship with Attendance Records:
 - LECTURE_WITH_PT slots: Both attendance_records AND exam_attendance
 - FINAL_EXAM slots: Only exam_attendance (no regular attendance)
 
-Remarks Management:
-- Remarks for exam attendance records are managed via the global /api/v1/remarks endpoints.
-- When creating a remark for an exam attendance record, the request body must specify `attendableType: 'exam'` and `attendableId` as the ID of the exam attendance record.
+Participant Management:
+- LECTURE_WITH_PT: Participants from class enrollments (enrollments table where is_enrolled = true)
+- FINAL_EXAM: Participants determined by slot.class_id:
+  * If class_id is NOT NULL: Use class enrollments (enrollments table)
+  * If class_id is NULL: Use exam_slot_participants table (independent exam registration)
+- Backend automatically determines participant source based on slot configuration
+- See exam_slot_participants.txt for independent exam participant management
+
+Remark Management:
+- Remarks are managed via dedicated endpoints: /api/v1/exam-attendance/{examAttendanceId}/remarks
+- See exam_attendance_remarks.txt for full API documentation
+- Multiple remarks per exam attendance record
+- Soft delete (is_active = false)
+- Only active remarks shown in responses
+- Sorted by createdAt DESC (newest first)
+- Creator can update/delete their own remarks
+- Data Operators can update/delete any remark
+- Database table: exam_attendance_remarks
 
 Python Callback Integration:
 - Reuses /attendance/recognition-result endpoint
@@ -405,6 +426,12 @@ Implementation Notes:
 - Reuse remarks management (polymorphic association) with dedicated endpoints
 - Backend service layer can extract shared logic for both types
 - Frontend can reuse UI components with different data sources
+
+Related API Documentation:
+- exam_attendance_remarks.txt: Remark management for exam attendance
+- attendance_records.txt: Regular attendance management (LECTURE)
+- slots.txt: Slot management and finalization
+- exam_slot_participants.txt: Participant management for independent FINAL_EXAM slots
 
 Common Status Codes:
 - 200: Success

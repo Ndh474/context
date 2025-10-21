@@ -14,9 +14,10 @@ Query Parameters:
 | page 		    | integer 	    | No 		    | 1 		  | 1-50 
 | pageSize 	  | integer 	    | No 		    | 10 		  | 1-50 
 | sort 		    | string 	      | No 		    | asc 		| asc/desc 
-| sortBy 	    | string 	      | No		    | id 		  | fullName, staffCode, email, isActive 
+| sortBy 	    | string 	      | No		    | fullName | fullName, staffCode, email
 | search 	    | string 	      | No 		    | "" 		  | Search in fullName, staffCode, email
-| roleId 	    | smallint 	    | No 		    | null 		| roleId
+| roleId 	    | smallint 	    | No 		    | null 		| Filter by role
+| isActive    | boolean      | No        | null    | Filter by active status
 
 200-Success Response
 {
@@ -104,8 +105,11 @@ Request Body:
 Request Body Schema:
 | Field 	  | Type 		      | Required| Validation 
 | fullName 	| string 	      | Yes 		| Not blank, max 150 chars
+|           |              |         | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
+|           |              |         | No leading/trailing/multiple spaces
 | email 		| string 	      | Yes 		| Valid email format, max 128 chars, unique
-| staffCode | string        | Yes 		| Not blank, max 20 chars, unique, alphanumeric
+| staffCode | string        | Yes 		| Not blank, max 20 chars, unique
+|           |              |         | Pattern: ^[A-Z0-9]+$ (UPPERCASE letters and digits only)
 | password 	| string        | No 		  | Min 8 chars, if not provided system generates default
 | roles 	  | array[string] | Yes 		| Valid roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN
 
@@ -190,8 +194,11 @@ Request Body:
 Request body schema:
 | Field     | Type          | Required  | Validation
 | fullName  | string        | Yes       | Not blank, max 150 chars
+|           |               |           | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
+|           |               |           | No leading/trailing/multiple spaces
 | email     | string        | Yes       | Valid email format, max 128 chars, unique
-| staffCode | string        | Yes       | Not blank, max 20 chars, unique, alphanumeric
+| staffCode | string        | Yes       | Not blank, max 20 chars, unique
+|           |               |           | Pattern: ^[A-Z0-9]+$ (UPPERCASE letters and digits only)
 | roles     | array[string] | Yes       | Valid roles, cannot assign STUDENT role to staff
 | isActive  | boolean       | Yes       | Not null
 
@@ -277,9 +284,10 @@ Query Parameters:
 | page 		    | integer | No 		  | 1 		  | 1-50
 | pageSize 	  | integer | No 		  | 10 		  | 1-50
 | sort 		    | string 	| No 		  | asc 		| asc/desc
-| sortBy 	    | string 	| No 		  | id 		  | name, code, isActive
-| search 	    | string 	| No 		  | "" 		  | Search in class name, code
-| semesterId  | integer | No      | null    | Filter by semester
+| sortBy 	    | string 	| No 		  | code 		| code
+| search 	    | string 	| No 		  | "" 		  | Search in class code and subject name
+| semesterId  | short   | No      | null    | Filter by semester
+| isActive    | boolean | No      | null    | Filter by active status
 
 200-Success Response: 
 {
@@ -288,12 +296,23 @@ Query Parameters:
     "items": [
       {
         "id": 1,
-        "name": "Java Programming - SE1801",
         "code": "SE1801",
-        "semesterName": "Fall 2024",
-        "subjectName": "Java Programming",
+        "subject": {
+          "id": 1,
+          "name": "Java Programming",
+          "code": "PRJ301",
+          "isActive": true
+        },
+        "semester": {
+          "id": 1,
+          "name": "Fall 2024",
+          "code": "FA24",
+          "isActive": true
+        },
         "role": "LECTURER",
-        "isActive": true
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
       },
 	    ...
     ],
@@ -303,6 +322,17 @@ Query Parameters:
     "totalItems": 25
   }
 }
+
+Class Object Schema:
+| Field    | Type    | Description
+| id       | integer | Class ID (Short type in DB)
+| code     | string  | Class code
+| subject  | object  | Subject object (id, name, code, isActive)
+| semester | object  | Semester object (id, name, code, isActive)
+| role     | string  | Staff role in this class (LECTURER or SUPERVISOR)
+| isActive | boolean | Class active status
+| createdAt| string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt| string  | YYYY-MM-DDTHH:mm:SSZ
 
 400-Invalid query parameters:
 {

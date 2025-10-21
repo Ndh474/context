@@ -17,7 +17,8 @@ Request Body:
 Request Schema:
 | Field | Type   | Required | Validation 
 | name  | string | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces/special chars
-|       |        |          | Pattern: ^[A-Za-z0-9 &-]+$, Examples: "Software Engineering", "AI & ML"
+|       |        |          | Pattern: ^[A-Za-z0-9&-]+( [A-Za-z0-9&-]+)*$
+|       |        |          | No leading/trailing/multiple spaces. Examples: "Software Engineering", "AI & ML"
 | code  | string | Yes      | Not blank, max 20 chars, unique, allows letters/digits only (NO spaces)
 |       |        |          | Pattern: ^[A-Za-z0-9]+$, Examples: "SE", "AI", "DS101"
 
@@ -46,8 +47,8 @@ Response Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank, Code must not be blank ...",
-  "code": "NAME/CODE/_REQUIRED"
+  "message": "Name must not be blank / Code must not be blank",
+  "code": "MAJOR_NAME_REQUIRED" | "MAJOR_CODE_REQUIRED"
 }
 
 400 - Invalid Field type:
@@ -61,7 +62,7 @@ Response Schema:
 {
   "status": 400,
   "message": "Major code/name already exists: SE",
-  "code": "NAME/CODE_EXISTS"	
+  "code": "MAJOR_NAME_EXISTS" | "MAJOR_CODE_EXISTS"
 }
 
 400-Malformed request body:
@@ -81,8 +82,9 @@ Query Parameters:
 | page 		  | integer | No 		  | 1 		  | 1-50 
 | pageSize 	| integer | No 		  | 10 		  | 1-50 
 | sort 		  | string 	| No 		  | asc 	  | asc/desc 
-| sortBy 	  | string 	| No		  | id 		  | name, code, isActive
-| search 	  | string 	| No 		  | "" 		  | Search in name and code 
+| sortBy 	  | string 	| No		  | id 		  | name, code
+| search 	  | string 	| No 		  | "" 		  | Search in name and code
+| isActive  | boolean | No      | null    | Filter by active status 
 
 200-Success Response
 {
@@ -182,7 +184,8 @@ Request Body:
 Request Schema:
 | Field    | Type    | Required | Validation
 | name     | string  | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces/special chars
-|          |         |          | Pattern: ^[A-Za-z0-9 &-]+$
+|          |         |          | Pattern: ^[A-Za-z0-9&-]+( [A-Za-z0-9&-]+)*$
+|          |         |          | No leading/trailing/multiple spaces
 | code     | string  | Yes      | Not blank, max 20 chars, unique, allows letters/digits only (NO spaces)
 |          |         |          | Pattern: ^[A-Za-z0-9]+$
 | isActive | boolean | Yes      | Not null
@@ -210,8 +213,8 @@ Request Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank, Code must not be blank ...",
-  "code": "NAME/CODE/_REQUIRED"
+  "message": "Name must not be blank / Code must not be blank",
+  "code": "MAJOR_NAME_REQUIRED" | "MAJOR_CODE_REQUIRED"
 }
 
 400-Invalid Field type:
@@ -225,7 +228,7 @@ Request Schema:
 {
   "status": 400,
   "message": "Major code/name already exists: SE",
-  "code": "NAME/CODE_EXISTS"	
+  "code": "MAJOR_NAME_EXISTS" | "MAJOR_CODE_EXISTS"
 }
 
 400-Invalid Json format
@@ -296,8 +299,9 @@ Query Parameters:
 | page 		  | integer | No 		   | 1 		  | 1-50
 | pageSize 	| integer | No 		   | 10 		| 1-50
 | sort 		  | string 	| No 		   | asc 		| asc/desc
-| sortBy 	  | string 	| No 		   | id 		| name, code, isActive
+| sortBy 	  | string 	| No 		   | id 		| id, name, code
 | search 	  | string 	| No 		   | "" 		| Search in subject name and code
+| isActive  | boolean | No      | null    | Filter by active status
 
 200-Success Response: 
 {
@@ -370,7 +374,8 @@ Subject Object Schema:
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if major has subjects or student profiles
 - Major code and name must be unique
-- Nested /majors/{majorId}/subjects endpoint returns subjects with full major object
+- GET /majors/{id}/subjects returns subjects linked to the major (Many-to-Many via subject_majors table)
+- A subject can belong to multiple majors
 -  = Modified
 
 Common Status Codes:

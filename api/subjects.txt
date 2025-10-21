@@ -27,7 +27,8 @@ Request Body:
 Request Schema:
 | Field    | Type          | Required | Validation 
 | name     | string        | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces
-|          |               |          | Pattern: ^[A-Za-z0-9 ]+$, Examples: "Software Development Project"
+|          |               |          | Pattern: ^[A-Za-z0-9]+( [A-Za-z0-9]+)*$
+|          |               |          | No leading/trailing/multiple spaces. Examples: "Software Development Project"
 | code     | string        | Yes      | Not blank, max 20 chars, unique, UPPERCASE letters/digits only (NO spaces)
 |          |               |          | Pattern: ^[A-Z0-9]+$, Examples: "SWP391", "DBI202"
 | majorIds | array[short]  | Yes      | At least 1 major, all majors must exist and be active
@@ -132,7 +133,7 @@ Query Parameters:
 | page 		  | integer 	| No 		| 1 		| 1-50 
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc/desc 
-| sortBy 	| string 	| No		| id 		| name, code, isActive
+| sortBy 	| string 	| No		| id 		| name, code
 | search 	| string 	| No 		| "" 		| Search in name and code
 | isActive 	| boolean 	| No 		| - 		| Filter by active status (true/false)
 | majorId 	| short 	| No 		| - 		| Filter subjects by major ID 
@@ -262,7 +263,8 @@ Request Body:
 Request Schema:
 | Field     | Type          | Required | Validation
 | name      | string        | Yes      | Not blank, max 150 chars, unique, allows letters/digits/spaces
-|           |               |          | Pattern: ^[A-Za-z0-9 ]+$
+|           |               |          | Pattern: ^[A-Za-z0-9]+( [A-Za-z0-9]+)*$
+|           |               |          | No leading/trailing/multiple spaces
 | code      | string        | Yes      | Not blank, max 20 chars, unique, UPPERCASE letters/digits only
 |           |               |          | Pattern: ^[A-Z0-9]+$
 | majorIds  | array[short]  | Yes      | At least 1 major, all majors must exist and be active
@@ -410,12 +412,14 @@ Path Parameters:
 | id         | short | Yes      | Subject ID
 
 Query Parameters:
-| Parameter | Type    | Required | Default | Validation
-| page      | integer | No       | 1       | 1-50
-| pageSize  | integer | No       | 10      | 1-50
-| sort      | string  | No       | asc     | asc/desc
-| sortBy    | string  | No       | id      | code, isActive
-| search    | string  | No       | ""      | Search in class code
+| Parameter  | Type    | Required | Default | Validation
+| page       | integer | No       | 1       | 1-50
+| pageSize   | integer | No       | 10      | 1-50
+| sort       | string  | No       | asc     | asc/desc
+| sortBy     | string  | No       | id      | id, code
+| search     | string  | No       | ""      | Search in class code
+| isActive   | boolean | No       | null    | Filter by active status
+| semesterId | short   | No       | null    | Filter by semester
 
 200-Success Response:
 {
@@ -428,7 +432,8 @@ Query Parameters:
         "subject": {
           "id": 1,
           "name": "Software Development Project",
-          "code": "SWP391"
+          "code": "SWP391",
+          "isActive": true
         },
         "semester": {
           "id": 1,
@@ -445,7 +450,8 @@ Query Parameters:
         "subject": {
           "id": 1,
           "name": "Software Development Project",
-          "code": "SWP391"
+          "code": "SWP391",
+          "isActive": true
         },
         "semester": {
           "id": 1,
@@ -468,9 +474,9 @@ Class Object Schema:
 | Field     | Type    | Description 
 | id        | integer | Class ID (Short type in DB)
 | code      | string  | Class code
-| subject   | object  | Subject object (id, name, code)
+| subject   | object  | Subject object (id, name, code, isActive)
 | semester  | object  | Semester object (id, name, code)
-| isActive  | boolean | Active status
+| isActive  | boolean | Class active status
 | createdAt | string  | YYYY-MM-DDTHH:mm:SSZ
 | updatedAt | string  | YYYY-MM-DDTHH:mm:SSZ
 
@@ -508,7 +514,7 @@ Class Object Schema:
 -  = Modified
 
 Validation Patterns:
-- Subject name: ^[A-Za-z0-9 ]+$ (letters, digits, spaces, max 150 chars)
+- Subject name: ^[A-Za-z0-9]+( [A-Za-z0-9]+)*$ (letters, digits, spaces, no leading/trailing/multiple spaces, max 150 chars)
 - Subject code: ^[A-Z0-9]+$ (UPPERCASE letters and digits only, no spaces, max 20 chars)
 
 Common Status Codes:

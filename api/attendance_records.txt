@@ -1,7 +1,13 @@
-GET     | /attendance-records               | ATTENDANCE_ROSTER_READ
-GET     | /attendance-records/{id}           | ATTENDANCE_ROSTER_READ
-PUT     | /attendance-records/{id}           | ATTENDANCE_STATUS_UPDATE_MANUAL
-POST    | /attendance/recognition-result     | INTERNAL (API Key authentication)
+GET     | /attendance-records                              | ATTENDANCE_ROSTER_READ
+GET     | /attendance-records/{id}                         | ATTENDANCE_ROSTER_READ
+PUT     | /attendance-records/{id}                         | ATTENDANCE_STATUS_UPDATE_MANUAL
+POST    | /attendance/recognition-result                   | INTERNAL (API Key authentication)
+
+# Remarks (see regular_attendance_remarks.txt for details)
+POST    | /attendance-records/{attendanceRecordId}/remarks | ATTENDANCE_REMARK_MANAGE
+GET     | /attendance-records/{attendanceRecordId}/remarks | ATTENDANCE_ROSTER_READ
+PUT     | /attendance-records/remarks/{remarkId}           | ATTENDANCE_REMARK_MANAGE
+DELETE  | /attendance-records/remarks/{remarkId}           | ATTENDANCE_REMARK_MANAGE
 
 =============================================== Search attendance records ===============================================
 1. GET /api/v1/attendance-records
@@ -321,7 +327,7 @@ Time-Based Edit Window Validation:
 =======================================================================================================================
 ===================================== Python callback: Recognition result ============================================
 
-7. POST /api/v1/attendance/recognition-result
+4. POST /api/v1/attendance/recognition-result
 Authentication: API Key (X-API-Key header)
 Description: Callback endpoint for Python recognition service to send face recognition results. Updates attendance status and stores evidence images.
 
@@ -530,14 +536,15 @@ Method Values:
 - system_finalize: Status set during slot finalization
 
 Remark Management:
-- Remarks for attendance records are managed via the global /api/v1/remarks endpoints.
-- When creating a remark for a regular attendance record, the request body must specify `attendableType: 'regular'` and `attendableId` as the ID of the attendance record.
+- Remarks are managed via dedicated endpoints: /api/v1/attendance-records/{attendanceRecordId}/remarks
+- See regular_attendance_remarks.txt for full API documentation
 - Multiple remarks per attendance record
 - Soft delete (is_active = false)
 - Only active remarks shown in responses
 - Sorted by createdAt DESC (newest first)
 - Creator can update/delete their own remarks
 - Data Operators can update/delete any remark
+- Database table: regular_attendance_remarks
 
 Time-Based Edit Window (BR-22, BR-23):
 - Cutoff: 23:59:59 UTC of slot date (based on slot.start_time)
@@ -587,11 +594,16 @@ Audit Trail:
 - Includes: actor_user_id, action_type, target_entity, target_id, changes (before/after)
 - Python auto updates also logged (actor = system service account)
 
+Related API Documentation:
+- regular_attendance_remarks.txt: Remark management for regular attendance
+- exam_attendance.txt: Exam attendance management (LECTURE_WITH_PT, FINAL_EXAM)
+- slots.txt: Slot management and finalization
+
 Common Status Codes:
 - 200: Success
 - 201: Created
 - 400: Bad Request (validation errors, invalid parameters)
 - 401: Unauthorized (invalid API key for Python callback)
-- 403: Forbidden (edit window expired, not assigned to slot, not remark creator)
-- 404: Not Found (attendance record, remark, slot not found)
+- 403: Forbidden (edit window expired, not assigned to slot)
+- 404: Not Found (attendance record, slot not found)
 - 500: Internal Server Error

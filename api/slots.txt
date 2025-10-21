@@ -249,15 +249,16 @@ Query Parameters:
 | page 		| integer 	| No 		| 1 		| >= 1
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc, desc 
-| sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory, isActive
+| sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory
 | slotCategory 	| string 	| No 		| null 		| LECTURE, LECTURE_WITH_PT, FINAL_EXAM
 | classId 	| short 	| No 		| null 		| Filter by class
 | staffUserId 	| integer 	| No 		| null 		| Filter by staff (for lecturer's schedule)
 | roomId 	| short 	| No 		| null 		| Filter by room
 | semesterId 	| short 	| No 		| null 		| Filter by semester
-| isFinalized 	| boolean 	| No 		| null 		| true, false
-| startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (filter slots starting from this date)
-| startTimeTo 	| string 	| No 		| null 		| YYYY-MM-DD (filter slots starting before this date)
+| isActive 	| boolean 	| No 		| null 		| Filter by active status
+| isFinalized 	| boolean 	| No 		| null 		| Filter by finalization status
+| startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime >= this date, inclusive)
+| startTimeTo 	| string 	| No 		| null 		| YYYY-MM-DD (slots with startTime <= this date, inclusive)
 
 200-Success Response:
 {
@@ -822,7 +823,7 @@ Attendance Object Schema (for regularAttendance and examAttendance):
   | status           | string | Current status: "not_yet", "present", "absent"                               |
   | method           | string | How status was recorded: "auto", "manual", "system_finalize" (null if not_yet)|
   | evidenceImageUrl | string | URL to the captured evidence image (null if not available)                   |
-  | remarks          | string | The latest remark added by the lecturer/supervisor (null if none)            |
+  | remarks          | string | The latest remark text only (null if none). For full remark history with metadata, use dedicated remark endpoints |
 
 --------------------------------------------------------------------------------
 400 - Invalid field type:
@@ -1126,6 +1127,21 @@ Business Rules:
 - BR-17: Single Staff Assignment
 - BR-34: Slot Category Validation
 - BR-35: Lecturer Can Update Slot Category
+
+Roster Endpoint Notes:
+- avatarUrl: URL to student's approved identity photo (from identity_submissions)
+- evidenceImageUrl: URL to captured attendance evidence image (temporary, cleaned up after retention period)
+- remarks: Latest remark text only. For full remark history, use:
+  * /api/v1/attendance-records/{attendanceRecordId}/remarks (for regular attendance)
+  * /api/v1/exam-attendance/{examAttendanceId}/remarks (for exam attendance)
+
+Related API Documentation:
+- attendance_records.txt: Regular attendance management
+- exam_attendance.txt: Exam attendance management
+- regular_attendance_remarks.txt: Remarks for regular attendance
+- exam_attendance_remarks.txt: Remarks for exam attendance
+- classes.txt: Class management
+- rooms.txt: Room management
 
 Common Status Codes:
 - 200: Success

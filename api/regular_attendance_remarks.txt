@@ -1,0 +1,322 @@
+POST   | /attendance-records/{attendanceRecordId}/remarks     | ATTENDANCE_REMARK_MANAGE
+GET    | /attendance-records/{attendanceRecordId}/remarks     | ATTENDANCE_ROSTER_READ
+PUT    | /attendance-records/remarks/{remarkId}               | ATTENDANCE_REMARK_MANAGE
+DELETE | /attendance-records/remarks/{remarkId}               | ATTENDANCE_REMARK_MANAGE
+
+=======================================================================================================================
+========================================= Create a new regular attendance remark ======================================
+
+1. POST /api/v1/attendance-records/{attendanceRecordId}/remarks
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Add a new remark to a regular attendance record (LECTURE slots).
+
+Path Parameters:
+| Parameter          | Type | Required | Description
+| attendanceRecordId | long | Yes      | Regular attendance record ID
+
+Request Body:
+{
+  "remark": "Student arrived 10 minutes late but was allowed to attend"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| remark | string | Yes      | Not blank, max 1000 chars
+
+Business Rules:
+- Multiple remarks can be added to the same attendance record
+- Remarks are sorted by createdAt DESC (newest first)
+- created_by_user_id is automatically set to current user
+- is_active is set to true by default
+- Remarks are required when manually changing attendance status
+
+201-Success Response:
+{
+  "status": 201,
+  "data": {
+    "id": 1003,
+    "attendanceRecordId": 501,
+    "remark": "Student arrived 10 minutes late but was allowed to attend",
+    "createdBy": {
+      "userId": 10,
+      "fullName": "John Lecturer"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:00:00Z"
+  }
+}
+
+Response Schema:
+| Field               | Type    | Description
+| id                  | long    | Remark ID
+| attendanceRecordId  | long    | Regular attendance record ID
+| remark              | string  | Remark content
+| createdBy           | object  | User who created the remark (userId, fullName)
+| isActive            | boolean | Remark status (true=active, false=soft deleted)
+| createdAt           | string  | YYYY-MM-DDTHH:mm:SSZ
+| updatedAt           | string  | YYYY-MM-DDTHH:mm:SSZ
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Remark is required",
+  "code": "REMARK_REQUIRED"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Regular attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+======================================== Get remarks for regular attendance record ====================================
+
+2. GET /api/v1/attendance-records/{attendanceRecordId}/remarks
+Permission: ATTENDANCE_ROSTER_READ
+Description: Get all active remarks for a regular attendance record.
+
+Path Parameters:
+| Parameter          | Type | Required | Description
+| attendanceRecordId | long | Yes      | Regular attendance record ID
+
+Query Parameters:
+| Parameter | Type    | Required | Default | Validation
+| page      | integer | No       | 1       | 1-50
+| pageSize  | integer | No       | 10      | 1-50
+| sort      | string  | No       | desc    | asc/desc
+| sortBy    | string  | No       | createdAt | createdAt
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1003,
+        "attendanceRecordId": 501,
+        "remark": "Student arrived 10 minutes late but was allowed to attend",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-19T15:00:00Z",
+        "updatedAt": "2024-10-19T15:00:00Z"
+      },
+      {
+        "id": 1002,
+        "attendanceRecordId": 501,
+        "remark": "Initial status was not_yet, changed to present",
+        "createdBy": {
+          "userId": 10,
+          "fullName": "John Lecturer"
+        },
+        "isActive": true,
+        "createdAt": "2024-10-19T14:30:00Z",
+        "updatedAt": "2024-10-19T14:30:00Z"
+      }
+    ],
+    "totalPages": 1,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 2
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Attendance record not found:
+{
+  "status": 404,
+  "message": "Regular attendance record not found: 501",
+  "code": "ATTENDANCE_RECORD_NOT_FOUND"
+}
+
+=======================================================================================================================
+========================================== Update regular attendance remark ===========================================
+
+3. PUT /api/v1/attendance-records/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Update an existing regular attendance remark.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| remarkId  | long | Yes      | Remark ID
+
+Request Body:
+{
+  "remark": "Student arrived 15 minutes late (updated)"
+}
+
+Request Schema:
+| Field  | Type   | Required | Validation
+| remark | string | Yes      | Not blank, max 1000 chars
+
+Business Rules:
+- updatedAt is updated to current timestamp
+- Only the remark creator or Data Operator can update
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1003,
+    "attendanceRecordId": 501,
+    "remark": "Student arrived 15 minutes late (updated)",
+    "createdBy": {
+      "userId": 10,
+      "fullName": "John Lecturer"
+    },
+    "isActive": true,
+    "createdAt": "2024-10-19T15:00:00Z",
+    "updatedAt": "2024-10-19T15:30:00Z"
+  }
+}
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Remark is required",
+  "code": "REMARK_REQUIRED"
+}
+
+400-Empty remark:
+{
+  "status": 400,
+  "message": "Remark must not be blank",
+  "code": "REMARK_CANNOT_BE_EMPTY"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Regular attendance remark not found: 1003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+========================================== Delete regular attendance remark ===========================================
+
+4. DELETE /api/v1/attendance-records/remarks/{remarkId}
+Permission: ATTENDANCE_REMARK_MANAGE
+Description: Soft delete a regular attendance remark.
+
+Path Parameters:
+| Parameter | Type | Required | Description
+| remarkId  | long | Yes      | Remark ID
+
+Business Rules:
+- Soft delete: set is_active = false (not hard delete)
+- Deleted remarks are not shown in attendance record responses
+- Only the remark creator or Data Operator can delete
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Regular attendance remark deleted successfully"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404-Remark not found:
+{
+  "status": 404,
+  "message": "Regular attendance remark not found: 1003",
+  "code": "REMARK_NOT_FOUND"
+}
+
+=======================================================================================================================
+====================================================== Notes ==========================================================
+
+Data Types:
+- Remark ID: Long (BIGINT)
+- Attendance Record ID: Long (BIGINT) - from attendance_records table
+- All timestamps: ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+
+Database Table:
+- regular_attendance_remarks
+- Foreign key: attendance_record_id → attendance_records.id (CASCADE delete)
+
+Remark Management:
+- Multiple remarks per attendance record
+- Soft delete (is_active = false) - not hard delete
+- Only active remarks shown in responses
+- Sorted by createdAt DESC (newest first)
+
+Permissions:
+- ATTENDANCE_REMARK_MANAGE: Create/update/delete remarks (Lecturer, Data Operator)
+- ATTENDANCE_ROSTER_READ: View remarks (Lecturer, Supervisor, Data Operator)
+
+Business Rules:
+- BR-28: Remarks are used to explain manual status changes
+- When manually updating attendance status, a remark is mandatory
+- Remarks are specific to LECTURE slots only (not LECTURE_WITH_PT or FINAL_EXAM)
+
+Related Use Cases:
+- UC-20: Add/Edit Attendance Remark (Lecturer)
+
+Audit Trail:
+- Remark operations are logged in operational_audit_logs
+- Remark creators are tracked via created_by_user_id
+
+Common Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation errors, invalid parameters)
+- 404: Not Found (remark or attendance record not found)
+- 500: Internal Server Error

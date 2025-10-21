@@ -17,7 +17,9 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation 
-| name     | string | Yes | Not blank, max 150 chars, unique, pattern: ^[A-Za-z0-9\s\-]+$ (letters, numbers, spaces, hyphens only)
+| name     | string | Yes | Not blank, max 150 chars, unique
+|          |        |     | Pattern: ^[A-Za-z0-9\-]+( [A-Za-z0-9\-]+)*$ (letters, numbers, spaces, hyphens)
+|          |        |     | No leading/trailing/multiple spaces
 | location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
 
 201-Success Response:
@@ -61,6 +63,13 @@ HttpMessageNotReadableException:
   "status": 400,
   "message": "Malformed JSON request",
   "code": "MALFORMED_JSON"
+}
+
+409 - Room name already exists:
+{
+  "status": 409,
+  "message": "Room name already exists: Room A101",
+  "code": "ROOM_NAME_EXISTS"
 }
 
 =======================================================================================================================
@@ -162,7 +171,9 @@ Request Body:
 
 Request Schema:
 | Field 	| Type 		| Required 	| Validation
-| name     | string | Yes | Not blank, max 150 chars, unique, pattern: ^[A-Za-z0-9\s\-]+$ (letters, numbers, spaces, hyphens only)
+| name     | string | Yes | Not blank, max 150 chars, unique
+|          |        |     | Pattern: ^[A-Za-z0-9\-]+( [A-Za-z0-9\-]+)*$ (letters, numbers, spaces, hyphens)
+|          |        |     | No leading/trailing/multiple spaces
 | location | string | No  | Max 255 chars, descriptive format (Building X, Floor Y)
 | isActive 	| boolean 	| Yes 		| Not null
 
@@ -189,8 +200,8 @@ Request Schema:
 400-Fields required:
 {
   "status": 400,
-  "message": "Name must not be blank ...",
-  "code": "NAME/_REQUIRED"
+  "message": "Name must not be blank",
+  "code": "ROOM_NAME_REQUIRED"
 }
 
 400-Invalid Field type:
@@ -272,11 +283,20 @@ Path Parameters:
 }
 
 
+=======================================================================================================================
+=========================================== Get cameras by room id =====================================================
+
 6. GET /api/v1/rooms/{id}/cameras
 Permission: CAMERA_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
 | id 		      | short | Yes 		  | Room ID
+
+Query Parameters:
+| Parameter | Type    | Required | Default | Validation
+| page      | integer | No       | 1       | 1-50
+| pageSize  | integer | No       | 10      | 1-50
+| isActive  | boolean | No       | null    | Filter by active status
 
 200-Success Response:
 {
@@ -298,8 +318,18 @@ Path Parameters:
       },
       ...
     ],
+    "totalPages": 1,
+    "currentPage": 1,
+    "pageSize": 10,
     "totalItems": 2
   }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, ...",
+  "code": "INVALID_PAGE_SIZE/PAGE"
 }
 
 404 - Room not found:
@@ -309,118 +339,125 @@ Path Parameters:
   "code": "ROOM_NOT_FOUND"
 }
 
+=======================================================================================================================
+============================================= Get slots by room id ====================================================
 
-
-
-
-
-GET /api/v1/rooms/{id}/slots
+7. GET /api/v1/rooms/{id}/slots
 Permission: SLOT_READ
+
 Business Rules:
-Returns a paginated list of all slots (past, present, and future) scheduled in a specific room.
-Useful for viewing a room's schedule and identifying available time slots.
+- Returns a paginated list of all slots (past, present, and future) scheduled in a specific room
+- Useful for viewing a room's schedule and identifying available time slots
+
 Path Parameters:
-| Parameter | Type | Required | Description
-| id | short | Yes | Room ID
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Room ID
+
 Query Parameters:
-| Parameter | Type | Required | Default | Validation
-| page | integer | No | 1 | 1-50
-| pageSize | integer | No | 10 | 1-50
-| sort | string | No | asc | asc/desc
-| sortBy | string | No | startTime | startTime, endTime, slotCategory
-| startTimeFrom | string | No | null | YYYY-MM-DD (filter slots starting from this date)
-| startTimeTo | string | No | null | YYYY-MM-DD (filter slots starting up to this date)
-| isFinalized | boolean | No | null | true, false (filter by finalization status)
+| Parameter     | Type    | Required | Default   | Validation
+| page          | integer | No       | 1         | 1-50
+| pageSize      | integer | No       | 10        | 1-50
+| sort          | string  | No       | asc       | asc/desc
+| sortBy        | string  | No       | startTime | startTime, endTime, slotCategory
+| startTimeFrom | string  | No       | null      | YYYY-MM-DD (slots with startTime >= this date, inclusive)
+| startTimeTo   | string  | No       | null      | YYYY-MM-DD (slots with startTime <= this date, inclusive)
+| isFinalized   | boolean | No       | null      | Filter by finalization status
+| isActive      | boolean | No       | null      | Filter by active status
+
 200-Success Response:
 {
-"status": 200,
-"data": {
-"room": {
-"id": 1,
-"name": "Room A101",
-"location": "Building A, Floor 1"
-},
-"items": [
-{
-"id": 1,
-"title": "Regular Lecture",
-"startTime": "2024-10-21T08:00:00Z",
-"endTime": "2024-10-21T10:00:00Z",
-"slotCategory": "LECTURE",
-"finalizedAt": null,
-"class": {
-"id": 1,
-"code": "SE1801"
-},
-"subject": {
-"id": 1,
-"code": "SWP391",
-"name": "Software Development Project"
-},
-"staffUser": {
-"id": 10,
-"fullName": "John Lecturer"
-},
-"isActive": true
-},
-{
-"id": 2,
-"title": "Progress Test 1",
-"startTime": "2024-10-22T10:00:00Z",
-"endTime": "2024-10-22T11:30:00Z",
-"slotCategory": "LECTURE_WITH_PT",
-"finalizedAt": "2024-10-22T11:45:00Z",
-"class": {
-"id": 2,
-"code": "DBI202-A"
-},
-"subject": {
-"id": 5,
-"code": "DBI202",
-"name": "Database Systems"
-},
-"staffUser": {
-"id": 12,
-"fullName": "Jane Supervisor"
-},
-"isActive": true
+  "status": 200,
+  "data": {
+    "room": {
+      "id": 1,
+      "name": "Room A101",
+      "location": "Building A, Floor 1"
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Regular Lecture",
+        "startTime": "2024-10-21T08:00:00Z",
+        "endTime": "2024-10-21T10:00:00Z",
+        "slotCategory": "LECTURE",
+        "finalizedAt": null,
+        "class": {
+          "id": 1,
+          "code": "SE1801"
+        },
+        "subject": {
+          "id": 1,
+          "code": "SWP391",
+          "name": "Software Development Project"
+        },
+        "staffUser": {
+          "id": 10,
+          "fullName": "John Lecturer"
+        },
+        "isActive": true
+      },
+      {
+        "id": 2,
+        "title": "Progress Test 1",
+        "startTime": "2024-10-22T10:00:00Z",
+        "endTime": "2024-10-22T11:30:00Z",
+        "slotCategory": "LECTURE_WITH_PT",
+        "finalizedAt": "2024-10-22T11:45:00Z",
+        "class": {
+          "id": 2,
+          "code": "DBI202-A"
+        },
+        "subject": {
+          "id": 5,
+          "code": "DBI202",
+          "name": "Database Systems"
+        },
+        "staffUser": {
+          "id": 12,
+          "fullName": "Jane Supervisor"
+        },
+        "isActive": true
+      }
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
 }
-],
-"totalPages": 3,
-"currentPage": 1,
-"pageSize": 10,
-"totalItems": 25
-}
-}
+
 Response Schema (items):
-| Field | Type | Description
-| id | int | Slot ID
-| title | string | Slot title
-| startTime | string | YYYY-MM-DDTHH:mm:SSZ
-| endTime | string | YYYY-MM-DDTHH:mm:SSZ
+| Field        | Type   | Description
+| id           | int    | Slot ID
+| title        | string | Slot title
+| startTime    | string | YYYY-MM-DDTHH:mm:SSZ
+| endTime      | string | YYYY-MM-DDTHH:mm:SSZ
 | slotCategory | string | LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| finalizedAt | string | YYYY-MM-DDTHH:mm:SSZ or null
-| class | object | Simplified class object (id, code)
-| subject | object | Simplified subject object (id, code, name)
-| staffUser | object | Simplified staff user object (id, fullName)
-| isActive | bool | Slot active status
+| finalizedAt  | string | YYYY-MM-DDTHH:mm:SSZ or null
+| class        | object | Simplified class object (id, code)
+| subject      | object | Simplified subject object (id, code, name)
+| staffUser    | object | Simplified staff user object (id, fullName)
+| isActive     | bool   | Slot active status
+
 400-Invalid query parameters:
 {
-"status": 400,
-"message": "Page must be >= 1 / Invalid date format for startTimeFrom",
-"code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_DATE_FORMAT"
+  "status": 400,
+  "message": "Page must be >= 1 / Invalid date format for startTimeFrom",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_DATE_FORMAT"
 }
+
 400 - Invalid Field type:
 {
-"status": 400,
-"message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
-"code": "INVALID_FIELD_TYPE"
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
 }
+
 404 - Room not found:
 {
-"status": 404,
-"message": "Room not found: 1",
-"code": "ROOM_NOT_FOUND"
+  "status": 404,
+  "message": "Room not found: 1",
+  "code": "ROOM_NOT_FOUND"
 }
 =======================================================================================================================
 ====================================================== Notes ==========================================================
