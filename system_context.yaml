@@ -327,6 +327,7 @@ system_context:
           - "Filter Lecture/Exam schedule"
           - "View schedule in week/month format"
           - "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM)."
+          - "For FINAL_EXAM slots, the API queries through 'exam_slot_participants' and 'exam_slot_subjects' to display the exact Subject name(s) that the student must take the exam for in that slot."
 
       SCR_STUDENT_SLOT_DETAILS:
         title: "Slot Details Screen"
@@ -446,6 +447,7 @@ system_context:
         features:
           - "Manage Classes, Subjects, and Majors."
           - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL)."
+          - "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table)."
           - "Add/Remove students from a class (Roster Management for class-based slots only)."
 
       SCR_ADMIN_REPORTING:
@@ -510,11 +512,12 @@ system_context:
         features:
           - "Semester selector to filter FINAL_EXAM slots (where class_id is NULL)."
           - "Slot selector to choose a specific independent exam slot."
-          - "Display a data table of all students registered for the selected slot (from exam_slot_participants table)."
-          - "Function to manually add a student (by student_id) to the list."
+          - "NEW: Subject filter (Dropdown) that displays only subjects assigned to the selected slot (from 'exam_slot_subjects' table)."
+          - "Display a data table of students registered for the selected (Slot + Subject) pair (from 'exam_slot_participants' table)."
+          - "Function to manually add a student (by student_id) to the selected (Slot + Subject) pair. System must validate business logic (e.g., is the student enrolled in this subject during the semester)."
           - "Function to remove a student from the list."
-          - "Interface to upload a CSV file (with only 'student_id' column) to bulk-import participants (implements UC-65)."
-          - "Button to download CSV template."
+          - "Interface to upload a CSV file to bulk-import participants (implements UC-65). The CSV file must contain (student_id, subject_code)."
+          - "Button to download CSV template (new template with 2 columns)."
 
   complex_component_catalog:
     COMPLEX_SEMESTER_DATATABLE:

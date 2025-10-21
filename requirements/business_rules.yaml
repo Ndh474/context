@@ -530,7 +530,7 @@ business_rules:
 
     BR-40:
       title: "Bulk Exam Participant CSV Format and Validation"
-      description: "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot."
+      description: "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot. This file assigns students to specific subjects within that slot."
       domain: "Academic"
       priority: "Medium"
       related_use_cases: ["UC-65"]
@@ -544,20 +544,27 @@ business_rules:
             type: "string"
             required: true
             description: "Student's username (Student ID)"
+          - name: "subject_code"
+            type: "string"
+            required: true
+            description: "Subject code that the student will take the exam for"
       validation_rules:
         pre_upload: "The Data Operator must select a target independent final exam slot before uploading the file."
         file_level:
           - "File size must not exceed 1MB"
           - "Maximum 5,000 rows (excluding header)"
-          - "Must have exactly one column"
-          - "Header row must match exactly: student_id"
+          - "Must have exactly 2 columns"
+          - "Header row must match exactly: student_id,subject_code"
         row_level:
           - "student_id must exist in users table and have STUDENT role"
-          - "Student must not already be a participant in the selected slot"
+          - "subject_code must exist in subjects table"
+          - "The pair (slot_id, subject_id) must exist in exam_slot_subjects table (i.e., the subject has been assigned to this slot)"
+          - "Business constraint: Student must be enrolled (is_enrolled=true) in a class of that subject (subject_id) within the same semester (semester_id) as the exam slot"
+          - "Student must not already be a participant for this subject in this slot"
           - "Student must be active (users.is_active = true)"
         duplicate_handling:
-          - "Within file: If same student_id appears multiple times, keep first occurrence and warn"
-          - "With database: If participant already exists, skip and report as warning (not error)"
+          - "Within file: If same (student_id, subject_code) pair appears multiple times, keep first occurrence and warn"
+          - "With database: If participant already exists for that subject in the slot, skip and report as warning (not error)"
         error_reporting:
           - "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows"
           - "Return 200 with summary even if some rows failed"

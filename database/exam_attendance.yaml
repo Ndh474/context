@@ -70,57 +70,94 @@ tables:
       - "Method 'manual' for lecturer/supervisor manual updates"
       - "Method 'system_finalize' for batch status updates during finalization"
 
-  exam_slot_participants:
-    primary_key: [slot_id, student_user_id]
-    description: "Manages student participation for independent final exam slots (slots where class_id is NULL). This table allows adding students from various classes/majors to a single exam."
+  exam_slot_subjects:
+    primary_key: id
+    description: "Stores the list of subjects allowed to be tested in a specific FINAL_EXAM slot. This is step 1 in the student assignment workflow."
     columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique identifier for the slot-subject pair"
       slot_id:
         type: int
-        constraints: [NOT NULL, PRIMARY KEY]
+        constraints: [NOT NULL]
         foreign_key:
           table: slots
           column: id
-        description: "Reference to the independent final exam slot."
-      student_user_id:
-        type: int
-        constraints: [NOT NULL, PRIMARY KEY]
-        foreign_key:
-          table: users
-          column: id
-        description: "Reference to the student user participating in the exam."
-      is_enrolled:
-        type: boolean
+        description: "Reference to the FINAL_EXAM slot"
+      subject_id:
+        type: smallint
         constraints: [NOT NULL]
-        default: true
-        description: "Participation status. If false, the student is withdrawn from the exam but historical data can be preserved."
+        foreign_key:
+          table: subjects
+          column: id
+        description: "Reference to the subject being tested in this slot"
       created_at:
         type: timestamp
         constraints: [NOT NULL]
         default: now()
-        description: "Record creation timestamp."
+        description: "Timestamp when the subject was added to the slot"
+    indexes:
+      - name: idx_exam_slot_subjects_slot_subject
+        columns: [slot_id, subject_id]
+        unique: true
+        description: "Ensures a subject can only be added once to a slot"
+
+      - name: idx_exam_slot_subjects_slot_id
+        columns: [slot_id]
+        description: "For fast queries of subjects within a slot"
+    notes:
+      - "This table is only used when slots.slot_category = 'FINAL_EXAM'."
+      - "Data Operator must define these records BEFORE adding students."
+
+  exam_slot_participants:
+    primary_key: id
+    description: "Manages the assignment of students to a specific SUBJECT within a FINAL_EXAM slot. This is step 2, after subjects have been assigned to the slot via the 'exam_slot_subjects' table."
+    columns:
+      id:
+        type: BIGINT
+        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
+        description: "Unique identifier for the student's exam participation"
+      exam_slot_subject_id:
+        type: bigint
+        constraints: [NOT NULL]
+        foreign_key:
+          table: exam_slot_subjects
+          column: id
+        description: "Reference to the (slot + subject) pair that this student is assigned to"
+      student_user_id:
+        type: int
+        constraints: [NOT NULL]
+        foreign_key:
+          table: users
+          column: id
+        description: "Reference to the student taking the exam"
+      is_enrolled:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Participation status. If false, the student is withdrawn from this exam."
+      created_at:
+        type: timestamp
+        constraints: [NOT NULL]
+        default: now()
+        description: "Record creation timestamp"
       updated_at:
         type: timestamp
         constraints: [NOT NULL]
-        description: "Record last update timestamp."
+        description: "Record last update timestamp"
     indexes:
-      - name: idx_exam_participants_slot_id
-        columns: [slot_id]
-        description: "For querying all participants of a specific exam slot."
-      
+      - name: idx_exam_participants_slot_subject_student
+        columns: [exam_slot_subject_id, student_user_id]
+        unique: true
+        description: "Ensures a student can only take a subject once per slot"
+
       - name: idx_exam_participants_student_user_id
         columns: [student_user_id]
-        description: "For querying all independent exams a student is participating in."
-      
-      - name: idx_exam_participants_slot_enrolled
-        columns: [slot_id, is_enrolled]
-        description: "For querying active participants only (WHERE is_enrolled = true). Optimizes roster queries."
-      
-      - name: idx_exam_participants_student_enrolled
-        columns: [student_user_id, is_enrolled]
-        description: "For querying a student's active exam registrations."
+        description: "For querying all final exams a student is participating in"
     notes:
-      - "This table is ONLY used for slots where slot_category = 'FINAL_EXAM' and class_id is NULL."
-      - "The combination of (slot_id, student_user_id) must be unique."
+      - "This table is only used for FINAL_EXAM slots."
+      - "Student assignment must follow business logic (e.g., student must be enrolled in that subject during the semester)."
 
   exam_attendance_remarks:
     primary_key: id
@@ -167,11 +204,11 @@ tables:
       - name: idx_exam_attendance_remarks_exam_id
         columns: [exam_attendance_id]
         description: "For querying all remarks for a specific exam attendance record"
-      
+
       - name: idx_exam_attendance_remarks_created_by
         columns: [created_by_user_id]
         description: "For querying remarks created by a specific staff member"
-      
+
       - name: idx_exam_attendance_remarks_created_at
         columns: [created_at]
         description: "For chronological queries"
@@ -188,12 +225,18 @@ relationship_with_attendance_records:
       slot_category: "LECTURE"
       tables_used: ["attendance_records", "regular_attendance_remarks"]
       description: "Only regular attendance is tracked"
-    
+
     lecture_with_progress_test:
       slot_category: "LECTURE_WITH_PT"
-      tables_used: ["attendance_records", "regular_attendance_remarks", "exam_attendance", "exam_attendance_remarks"]
+      tables_used:
+        [
+          "attendance_records",
+          "regular_attendance_remarks",
+          "exam_attendance",
+          "exam_attendance_remarks",
+        ]
       description: "Both regular attendance and exam attendance are tracked separately with their own remarks"
-    
+
     final_exam:
       slot_category: "FINAL_EXAM"
       tables_used: ["exam_attendance", "exam_attendance_remarks"]

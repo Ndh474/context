@@ -461,15 +461,15 @@ use_cases:
         title: "Manage Exam Slot Participants"
         primary_actors: ["Data Operator"]
         secondary_actors: []
-        description: "Allows the DOP to manage the list of participants for an independent final exam slot (where class_id is NULL). The operator can search for and add or remove individual students from the exam roster."
-        related_business_rules: ["BR-NEW-01", "BR-NEW-02"]
+        description: "Allows the DOP to manage the list of participants for an independent final exam slot (where class_id is NULL). The workflow includes: selecting a slot, then selecting a subject that has been assigned to that slot, and then adding or removing individual students from that specific subject within the exam."
+        related_business_rules: ["BR-38", "BR-39"]
 
       UC-65:
         title: "Bulk Import Participants to Exam Slot"
         primary_actors: ["Data Operator"]
         secondary_actors: []
-        description: "Allows the DOP to select an independent final exam slot and upload a CSV file containing a list of student_ids to perform mass registration for that specific exam."
-        related_business_rules: ["BR-NEW-01", "BR-NEW-03"]
+        description: "Allows the DOP to select an independent final exam slot and upload a CSV file containing (student_id, subject_code) pairs to perform mass registration of students to specific subjects within that exam slot."
+        related_business_rules: ["BR-40"]
 
     infrastructure:
       UC-66:
