@@ -98,6 +98,7 @@ SlotCategory Enum Values:
         "code": "FA24"
       }
     },
+    "subjects": [],
     "isActive": true,
     "createdAt": "2024-10-16T13:00:00Z",
     "updatedAt": "2024-10-16T13:00:00Z"
@@ -127,6 +128,7 @@ Response Schema:
 |               |           |   - code (string): Class code
 |               |           |   - subject (object): Subject object (id, name, code)
 |               |           |   - semester (object): Semester object (id, name, code)
+| subjects 		| array 	| Array of subject objects (id, name, code). Empty array for newly created slots. Populated after subjects are assigned via /api/v1/exam-slots/{slotId}/subjects endpoint
 | isActive 		| boolean 	| Active status
 | createdAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | updatedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
@@ -254,6 +256,7 @@ Query Parameters:
 | sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory
 | slotCategory 	| string 	| No 		| null 		| LECTURE, LECTURE_WITH_PT, FINAL_EXAM
 | classId 	| short 	| No 		| null 		| Filter by class
+| subjectId 	| short 	| No 		| null 		| Filter by subject (via class.subject_id for LECTURE/LECTURE_WITH_PT, via exam_slot_subjects for FINAL_EXAM)
 | staffUserId 	| integer 	| No 		| null 		| Filter by staff (for lecturer's schedule)
 | roomId 	| short 	| No 		| null 		| Filter by room
 | semesterId 	| short 	| No 		| null 		| Filter by semester
@@ -299,6 +302,18 @@ Query Parameters:
             "code": "FA24"
           }
         },
+        "subjects": [
+          {
+            "id": 1,
+            "name": "Software Development Project",
+            "code": "SWP391"
+          },
+          {
+            "id": 2,
+            "name": "Database Systems",
+            "code": "DBI202"
+          }
+        ],
         "totalStudent": 25,
         "totalPresentStudent": 20,
         "totalAbsentStudent": 3,
@@ -327,6 +342,7 @@ Response Schema (items):
 | room 				| object 	| Room object (id, name, location)
 | staffUser 			| object 	| Staff/lecturer user object (id, username, fullName)
 | class 			| object 	| Class object with nested subject and semester
+| subjects 			| array 	| Array of subject objects (id, name, code). For LECTURE/LECTURE_WITH_PT: contains single subject from class. For FINAL_EXAM: contains all subjects assigned via exam_slot_subjects. Empty array if no subjects assigned yet
 | totalStudent 			| integer 	| Total enrolled students in the class
 | totalPresentStudent 		| integer 	| Total students marked present
 | totalAbsentStudent 		| integer 	| Total students marked absent
@@ -394,6 +410,13 @@ Path Parameters:
         "code": "FA24"
       }
     },
+    "subjects": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      }
+    ],
     "totalStudent": 25,
     "totalPresentStudent": 20,
     "totalAbsentStudent": 3,
@@ -426,6 +449,7 @@ Response Schema:
 |                   |           |   - code (string): Class code
 |                   |           |   - subject (object): Subject object (id, name, code)
 |                   |           |   - semester (object): Semester object (id, name, code)
+| subjects 			| array 	| Array of subject objects (id, name, code). For LECTURE/LECTURE_WITH_PT: contains single subject from class. For FINAL_EXAM: contains all subjects assigned via exam_slot_subjects. Empty array if no subjects assigned yet
 | totalStudent 			| integer 	| Total enrolled students in the class
 | totalPresentStudent 		| integer 	| Total students marked present for this slot
 | totalAbsentStudent 		| integer 	| Total students marked absent for this slot
@@ -552,6 +576,13 @@ Request Schema (Category Update Only):
         "code": "FA24"
       }
     },
+    "subjects": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391"
+      }
+    ],
     "isActive": true,
     "createdAt": "2024-10-16T13:00:00Z",
     "updatedAt": "2024-10-16T14:30:00Z"
@@ -764,6 +795,11 @@ Path Parameters:
             "rollNumber": "HE180314",
             "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180314.jpg"
           },
+          "subject": {
+            "id": 1,
+            "name": "Software Development Project",
+            "code": "SWP391"
+          },
           "regularAttendance": {
             "recordId": 501,
             "status": "present",
@@ -785,6 +821,11 @@ Path Parameters:
             "fullName": "Le Van C",
             "rollNumber": "HE180315",
             "avatarUrl": "https://storage.googleapis.com/fuacs-avatars/HE180315.jpg"
+          },
+          "subject": {
+            "id": 2,
+            "name": "Database Systems",
+            "code": "DBS201"
           },
           "regularAttendance": {
             "recordId": 502,
@@ -808,6 +849,7 @@ Response Schema (items):
   | Field             | Type   | Description                                                                  |
   |-------------------|--------|------------------------------------------------------------------------------|
   | student           | object | Contains student's profile information.                                      |
+  | subject           | object | Subject information. Only present for slotCategory = 'FINAL_EXAM', null otherwise. |
   | regularAttendance | object | Details of the regular attendance. Null if slotCategory is 'FINAL_EXAM'.       |
   | examAttendance    | object | Details of the exam attendance. Null if slotCategory is 'LECTURE'.             |
 
@@ -818,6 +860,13 @@ Student Object Schema:
   | fullName   | string | Student's full name                          |
   | rollNumber | string | Student's roll number                        |
   | avatarUrl  | string | URL to the student's approved identity photo |
+
+Subject Object Schema (only for FINAL_EXAM slots):
+  | Field | Type    | Description              |
+  |-------|---------|--------------------------|
+  | id    | integer | Subject ID               |
+  | name  | string  | Subject name             |
+  | code  | string  | Subject code (e.g. SWP391)|
 
 Attendance Object Schema (for regularAttendance and examAttendance):
   | Field            | Type   | Description                                                                  |
@@ -1086,6 +1135,11 @@ Response Structure:
 - Room: id, name, location
 - StaffUser: id, username, fullName
 - Class: id, code, subject (id, name, code), semester (id, name, code)
+- Subjects: array of subject objects (id, name, code)
+  * For LECTURE/LECTURE_WITH_PT slots: Contains single subject from class.subject
+  * For FINAL_EXAM slots: Contains all subjects assigned via exam_slot_subjects table
+  * For newly created slots (POST): Empty array until subjects are assigned
+  * For GET/PUT responses: Reflects current state of assigned subjects
 
 SlotCategory Enum:
 - LECTURE: Regular lecture session (teaching only)

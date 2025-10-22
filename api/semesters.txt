@@ -4,6 +4,8 @@ GET    	| /semesters/{id}
 PUT    	| /semesters/{id} 			   
 DELETE 	| /semesters/{id} 			  
 GET    	| /semesters/{id}/classes
+GET    	| /semesters/{id}/subjects
+GET    	| /semesters/{id}/students
 
 =================================================== Search semesters ==================================================
 Note: tất cả các field không hợp lệ cho về default
@@ -366,6 +368,275 @@ Response Schema:
 }
 
 =======================================================================================================================
+========================================= Get subjects by semester id =================================================
+Note: 
+- Returns subjects that have at least one active class in this semester
+- Useful for filtering subjects when assigning to exam slots
+- Only returns subjects with classes.is_active = true
+7. GET /api/v1/semesters/{semesterId}/subjects
+Permission: SUBJECT_READ
+Path Parameters:
+| Parameter  	| Type 	| Required 	| Description
+| semesterId 	| short | Yes 		  | Semester ID
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | asc 		| asc/desc
+| sortBy 	    | string 	| No 		  | code 		| code, name
+| search 	    | string 	| No 		  | "" 		  | Search in subject name and code
+| isActive    | boolean | No      | null    | Filter by subject active status (true/false/null)
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Software Development Project",
+        "code": "SWP391",
+        "majors": [
+          {
+            "id": 1,
+            "name": "Software Engineering",
+            "code": "SE",
+            "isActive": true
+          }
+        ],
+        "totalClassInSemester": 3,
+        "totalActiveClassInSemester": 2,
+        "isActive": true,
+        "createdAt": "2024-10-16T11:30:00Z",
+        "updatedAt": "2024-10-16T11:30:00Z"
+      },
+      {
+        "id": 2,
+        "name": "Database Systems",
+        "code": "DBI202",
+        "majors": [
+          {
+            "id": 1,
+            "name": "Software Engineering",
+            "code": "SE",
+            "isActive": true
+          },
+          {
+            "id": 2,
+            "name": "Information Assurance",
+            "code": "IA",
+            "isActive": true
+          }
+        ],
+        "totalClassInSemester": 5,
+        "totalActiveClassInSemester": 5,
+        "isActive": true,
+        "createdAt": "2024-10-16T11:35:00Z",
+        "updatedAt": "2024-10-16T11:35:00Z"
+      }
+    ],
+    "totalPages": 2,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 12
+  }
+}
+
+Response Schema:
+| Field                       | Type    | Description
+| id                          | short   | Subject ID
+| name                        | string  | Subject name
+| code                        | string  | Subject code
+| majors                      | array   | Array of major objects (id, name, code, isActive)
+| totalClassInSemester        | integer | Total number of classes (active + inactive) in this semester
+| totalActiveClassInSemester  | integer | Number of active classes only in this semester
+| isActive                    | boolean | Subject active status
+| createdAt                   | string  | ISO 8601 timestamp
+| updatedAt                   | string  | ISO 8601 timestamp
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+=======================================================================================================================
+========================================= Get students by semester id =================================================
+Note: 
+- Returns students who have at least one active enrollment (is_enrolled=true) in this semester
+- Useful for adding participants to exam slots - shows only students eligible for exams in this semester
+- Can filter by subject to show only students enrolled in specific subject
+- Includes student's enrollment information (classes, subjects they're taking)
+8. GET /api/v1/semesters/{semesterId}/students
+Permission: USER_READ_LIST
+Path Parameters:
+| Parameter  	| Type 	| Required 	| Description
+| semesterId 	| short | Yes 		  | Semester ID
+
+Query Parameters:
+| Parameter 	| Type 		| Required| Default | Validation
+| page 		    | integer | No 		  | 1 		  | 1-50
+| pageSize 	  | integer | No 		  | 10 		  | 1-50
+| sort 		    | string 	| No 		  | asc 		| asc/desc
+| sortBy 	    | string 	| No 		  | fullName| fullName, rollNumber
+| search 	    | string 	| No 		  | "" 		  | Search in student name, rollNumber, email
+| subjectId   | short   | No      | null    | Filter by subject ID (shows students enrolled in this subject)
+| majorId     | short   | No      | null    | Filter by major ID
+| isActive    | boolean | No      | true    | Filter by student active status (true/false/null)
+
+200-Success Response: 
+{
+  "status": 200,
+  "data": {
+    "semester": {
+      "id": 1,
+      "name": "Fall 2024",
+      "code": "FA24"
+    },
+    "items": [
+      {
+        "userId": 201,
+        "fullName": "Tran Thi B",
+        "email": "tranthib@fpt.edu.vn",
+        "rollNumber": "HE180314",
+        "majorId": 1,
+        "majorName": "Software Engineering",
+        "majorCode": "SE",
+        "isActive": true,
+        "totalEnrollmentsInSemester": 5,
+        "activeEnrollmentsInSemester": 5,
+        "enrolledSubjects": [
+          {
+            "subjectId": 1,
+            "subjectCode": "SWP391",
+            "subjectName": "Software Development Project"
+          },
+          {
+            "subjectId": 2,
+            "subjectCode": "DBI202",
+            "subjectName": "Database Systems"
+          }
+        ],
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      {
+        "userId": 202,
+        "fullName": "Le Van C",
+        "email": "levanc@fpt.edu.vn",
+        "rollNumber": "HE180315",
+        "majorId": 1,
+        "majorName": "Software Engineering",
+        "majorCode": "SE",
+        "isActive": true,
+        "totalEnrollmentsInSemester": 4,
+        "activeEnrollmentsInSemester": 3,
+        "enrolledSubjects": [
+          {
+            "subjectId": 1,
+            "subjectCode": "SWP391",
+            "subjectName": "Software Development Project"
+          },
+          {
+            "subjectId": 3,
+            "subjectCode": "WEB201",
+            "subjectName": "Web Development"
+          }
+        ],
+        "createdAt": "2024-10-16T11:05:00Z",
+        "updatedAt": "2024-10-16T11:05:00Z"
+      }
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+Response Schema:
+| Field                        | Type    | Description
+| semester                     | object  | Semester information (id, name, code)
+| items                        | array   | List of students
+| totalPages                   | integer | Total pages
+| currentPage                  | integer | Current page number
+| pageSize                     | integer | Items per page
+| totalItems                   | integer | Total students
+
+Student Object Schema:
+| Field                        | Type    | Description
+| userId                       | integer | Student user ID
+| fullName                     | string  | Student full name
+| email                        | string  | Student email
+| rollNumber                   | string  | Student roll number (e.g., HE180314)
+| majorId                      | short   | Major ID
+| majorName                    | string  | Major name
+| majorCode                    | string  | Major code
+| isActive                     | boolean | Student active status
+| totalEnrollmentsInSemester   | integer | Total enrollments (active + withdrawn) in this semester
+| activeEnrollmentsInSemester  | integer | Active enrollments (is_enrolled=true) in this semester
+| enrolledSubjects             | array   | List of subjects student is enrolled in (with active classes)
+| createdAt                    | string  | ISO 8601 timestamp
+| updatedAt                    | string  | ISO 8601 timestamp
+
+Enrolled Subject Object Schema:
+| Field        | Type    | Description
+| subjectId    | short   | Subject ID
+| subjectCode  | string  | Subject code
+| subjectName  | string  | Subject name
+
+Business Rules:
+- Only students with at least one is_enrolled=true enrollment in the semester are returned
+- If subjectId filter is provided, only students enrolled in that specific subject are returned
+- enrolledSubjects array only includes subjects where student has active enrollment (is_enrolled=true)
+- Students with all enrollments withdrawn (is_enrolled=false) are excluded by default
+- Can override with isActive filter to include inactive students
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Short'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 1",
+  "code": "SEMESTER_NOT_FOUND"
+}
+
+404 - Subject not found (when subjectId filter is provided):
+{
+  "status": 404,
+  "message": "Subject not found: 5",
+  "code": "SUBJECT_NOT_FOUND"
+}
+
+=======================================================================================================================
 ====================================================== Notes ==========================================================
 
 - Semester ID is of type Short (max value: 32,767)
@@ -381,12 +652,41 @@ Response Schema:
 - Start date must be < end date
 -  = Modified
 
+Relationship Notes:
+- GET /semesters/{id}/classes: Returns all classes in this semester (existing endpoint)
+- GET /semesters/{id}/subjects: Returns subjects that have active classes in this semester (NEW endpoint)
+  - Useful for filtering subjects when creating exam slots
+  - Shows class count per subject within the semester
+- GET /semesters/{id}/students: Returns students with active enrollments in this semester (NEW endpoint)
+  - Useful for adding participants to exam slots
+  - Can filter by subject to show students enrolled in specific subject
+  - Includes list of subjects each student is enrolled in
+
+Use Cases for New Endpoints:
+- GET /semesters/{id}/subjects:
+  - Use Case: When assigning subjects to FINAL_EXAM slots, show only subjects that have classes in this semester
+  - Better UX: Instead of showing all active subjects, show only relevant ones
+  
+- GET /semesters/{id}/students:
+  - Use Case: When adding participants to exam slots, show students enrolled in the exam's semester
+  - Can filter by subjectId to show only students enrolled in a specific subject
+  - Provides context: Shows which subjects each student is taking in this semester
+
 Common Status Codes:
 - 200: Success
 - 201: Created
 - 400: Bad Request (validation errors, invalid parameters, duplicate code/name)
 - 401: Unauthorized (missing or invalid token)
 - 403: Forbidden (insufficient permissions)
-- 404: Not Found (semester not found)
+- 404: Not Found (semester, subject, or student not found)
 - 409: Conflict (foreign key constraint violation)
 - 500: Internal Server Error
+
+Permissions:
+- SEMESTER_CREATE: Create semesters (System Admin)
+- SEMESTER_READ: View semesters, classes, subjects, students (All admin roles)
+- SEMESTER_UPDATE: Update semesters (System Admin)
+- SEMESTER_DELETE_HARD: Delete semesters (System Admin)
+- CLASS_READ: View classes (required for /semesters/{id}/classes)
+- SUBJECT_READ: View subjects (required for /semesters/{id}/subjects)
+- USER_READ_LIST: View student list (required for /semesters/{id}/students)

@@ -6,7 +6,8 @@ GET    	| /exam-slots/{slotId}/participants 	   		    | SLOT_READ
 GET    	| /exam-slots/{slotId}/participants/{participantId} | SLOT_READ
 PUT    	| /exam-slots/{slotId}/participants/{participantId} | ENROLLMENT_MANAGE
 DELETE 	| /exam-slots/{slotId}/participants/{participantId} | ENROLLMENT_MANAGE (hard delete)
-POST   	| /exam-slots/{slotId}/participants/bulk 	   	    | ENROLLMENT_MANAGE
+POST   	| /exam-slots/{slotId}/participants/bulk 	   	    | ENROLLMENT_MANAGE (CSV file)
+POST   	| /exam-slots/{slotId}/participants/bulk-add 	    | ENROLLMENT_MANAGE (JSON array)
 GET    	| /exam-slots/{slotId}/participants/bulk/template   | SLOT_READ
 
 ============================================ Assign subjects to exam slot =============================================
@@ -797,9 +798,194 @@ Business Rules:
 }
 
 =======================================================================================================================
-========================================= Bulk add participants to exam slot ==========================================
+====================================== Bulk add participants by array (JSON) ===========================================
 
-9. POST /api/v1/exam-slots/{slotId}/participants/bulk
+9. POST /api/v1/exam-slots/{slotId}/participants/bulk-add
+Permission: ENROLLMENT_MANAGE
+Description: Bulk add multiple students to a single subject within an independent final exam slot using JSON array. This is a convenience endpoint for UI-driven bulk enrollment from a selection list.
+
+Path Parameters:
+| Parameter | Type    | Required | Description
+|-----------|---------|----------|-------------
+| slotId    | integer | Yes      | Exam slot ID (must be FINAL_EXAM with class_id = NULL)
+
+Request Body:
+{
+  "subjectId": 1,
+  "studentUserIds": [201, 202, 203, 204, 205]
+}
+
+Request Schema:
+| Field          | Type    | Required | Validation
+|----------------|---------|----------|------------
+| subjectId      | integer | Yes      | Must be assigned to the slot (via exam_slot_subjects)
+| studentUserIds | array   | Yes      | Array of student user IDs (1-100 items, no duplicates)
+
+Business Rules:
+- Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
+- Slot must be independent (class_id = NULL)
+- Subject must be assigned to the slot (exam_slot_subjects table)
+- All students must be enrolled in the subject during the semester (BR-40 validation)
+- Duplicate handling:
+  - Within array: If same studentUserId appears multiple times, only first occurrence is processed
+  - With database: If participant already exists with is_enrolled=true, skip with warning
+  - With database: If participant exists with is_enrolled=false, update to true (re-enrollment)
+- Slot must be active (slots.is_active = true)
+- All students must be active (users.is_active = true)
+- All students must have STUDENT role
+- Uses PARTIAL SUCCESS strategy: processes valid entries and skips invalid ones
+- Related Business Rules: BR-34, BR-38, BR-39, BR-40
+
+200-Success Response (Partial success):
+{
+  "status": 200,
+  "message": "Bulk enrollment completed with some errors",
+  "data": {
+    "subjectId": 1,
+    "subjectCode": "SWP391",
+    "subjectName": "Software Development Project",
+    "totalRequested": 5,
+    "successCount": 4,
+    "skippedCount": 1,
+    "failedCount": 0,
+    "summary": {
+      "newParticipants": 3,
+      "reEnrollments": 1,
+      "alreadyEnrolled": 1,
+      "errors": 0
+    },
+    "errors": [],
+    "warnings": [
+      {
+        "studentUserId": 203,
+        "rollNumber": "HE180318",
+        "fullName": "Nguyen Van C",
+        "reason": "Student already enrolled, skipped"
+      }
+    ],
+    "participants": [
+      {
+        "id": 1001,
+        "studentUserId": 201,
+        "fullName": "Tran Thi B",
+        "rollNumber": "HE180314",
+        "email": "tranthib@fpt.edu.vn",
+        "majorName": "Software Engineering",
+        "isEnrolled": true,
+        "enrolledAt": "2024-10-22T10:30:00Z",
+        "updatedAt": "2024-10-22T10:30:00Z"
+      }
+    ]
+  }
+}
+
+200-Success Response (All success):
+{
+  "status": 200,
+  "message": "All students enrolled successfully",
+  "data": {
+    "subjectId": 1,
+    "subjectCode": "SWP391",
+    "subjectName": "Software Development Project",
+    "totalRequested": 5,
+    "successCount": 5,
+    "skippedCount": 0,
+    "failedCount": 0,
+    "summary": {
+      "newParticipants": 5,
+      "reEnrollments": 0,
+      "alreadyEnrolled": 0,
+      "errors": 0
+    },
+    "participants": [...]
+  }
+}
+
+Response Schema:
+| Field                    | Type    | Description
+|--------------------------|---------|-----------
+| subjectId                | integer | Subject ID
+| subjectCode              | string  | Subject code
+| subjectName              | string  | Subject name
+| totalRequested           | integer | Total student IDs in request array
+| successCount             | integer | Number of successfully enrolled students
+| skippedCount             | integer | Number of skipped students (warnings)
+| failedCount              | integer | Number of failed students (errors)
+| summary.newParticipants  | integer | New participants added
+| summary.reEnrollments    | integer | Students re-enrolled (was withdrawn)
+| summary.alreadyEnrolled  | integer | Students already enrolled (skipped)
+| summary.errors           | integer | Validation errors
+| errors                   | array   | List of error details (studentUserId, rollNumber, fullName, reason)
+| warnings                 | array   | List of warning details (studentUserId, rollNumber, fullName, reason)
+| participants             | array   | List of successfully enrolled participants (same schema as single add)
+
+400-Fields required:
+{
+  "status": 400,
+  "message": "Subject ID and Student User IDs array are required",
+  "code": "SUBJECT_ID_REQUIRED" | "STUDENT_USER_IDS_REQUIRED"
+}
+
+400-Invalid array size:
+{
+  "status": 400,
+  "message": "Student User IDs array must contain between 1 and 100 items",
+  "code": "INVALID_ARRAY_SIZE"
+}
+
+400-Duplicate student IDs:
+{
+  "status": 400,
+  "message": "Student User IDs array contains duplicates",
+  "code": "DUPLICATE_STUDENT_IDS"
+}
+
+400-Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value to integer array",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+400-Invalid slot type:
+{
+  "status": 400,
+  "message": "Slot must be FINAL_EXAM type with no class assigned",
+  "code": "INVALID_SLOT_TYPE"
+}
+
+400-Subject not assigned:
+{
+  "status": 400,
+  "message": "Subject 1 is not assigned to this exam slot",
+  "code": "SUBJECT_NOT_ASSIGNED_TO_SLOT"
+}
+
+400-Inactive slot:
+{
+  "status": 400,
+  "message": "Cannot add students to inactive exam slot",
+  "code": "INACTIVE_SLOT_NOT_ALLOWED"
+}
+
+404-Slot not found:
+{
+  "status": 404,
+  "message": "Exam slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+400-Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+====================================== Bulk add participants from CSV file ============================================
+
+10. POST /api/v1/exam-slots/{slotId}/participants/bulk
 Permission: ENROLLMENT_MANAGE
 Description: Bulk add students to specific subjects within an independent final exam slot from a CSV file (UC-65). Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
@@ -983,7 +1169,7 @@ Response Schema:
 =======================================================================================================================
 ============================================ Download CSV template ====================================================
 
-10. GET /api/v1/exam-slots/{slotId}/participants/bulk/template
+11. GET /api/v1/exam-slots/{slotId}/participants/bulk/template
 Permission: SLOT_READ
 Description: Download CSV template file for bulk participant import to specific subjects.
 
@@ -1021,7 +1207,10 @@ Data Types:
 
 Two-Step Process for Independent Exam Management:
 1. Step 1 - Assign Subjects: Use POST /api/v1/exam-slots/{slotId}/subjects to assign multiple subjects to a FINAL_EXAM slot
-2. Step 2 - Assign Students: Use POST /api/v1/exam-slots/{slotId}/participants to assign students to specific subjects within the slot
+2. Step 2 - Assign Students: Choose one of the following methods:
+   - Single add: POST /api/v1/exam-slots/{slotId}/participants (one student at a time)
+   - Bulk add (JSON): POST /api/v1/exam-slots/{slotId}/participants/bulk-add (array of student IDs for single subject)
+   - Bulk add (CSV): POST /api/v1/exam-slots/{slotId}/participants/bulk (CSV file with student_id, subject_code pairs)
 
 Primary Key Design:
 - exam_slot_participants table uses a single 'id' field (participantId) as the primary key
@@ -1052,6 +1241,9 @@ Bulk Import Strategy:
 - Return 200 with summary even if some rows failed
 - Provide detailed error list for failed rows
 - Provide warning list for skipped rows (duplicates, already enrolled)
+- Two bulk methods available:
+  - JSON array (bulk-add): Best for UI-driven selection (max 100 students, single subject)
+  - CSV file (bulk): Best for large imports (max 10,000 rows, multiple subjects)
 
 CSV Template:
 - UTF-8 with BOM encoding
