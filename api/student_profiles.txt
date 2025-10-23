@@ -389,10 +389,16 @@ Permission:
 - OWN_ATTENDANCE_HISTORY_READ (for students viewing their own history)
 - REPORT_READ_SYSTEM_WIDE (for Data Operators viewing any student's history)
 
+Description:
+Returns complete attendance history including LECTURE, LECTURE_WITH_PT, and FINAL_EXAM records
+with smart filtering and comprehensive statistics. This unified API combines data from both
+attendance_records and exam_attendance tables.
+
 Business Rules:
-- Returns a paginated list of attendance records for a specific student
+- Returns a paginated list of ALL attendance records (class-based + exam-based) for a specific student
 - Students can only access their own history. Data Operators can access any student's history
-- Provides a summary of attendance statistics based on the filtered results
+- Provides comprehensive summary statistics with breakdown by type and category
+- Smart filtering logic handles different attendance types automatically
 
 Path Parameters:
 | Parameter | Type | Required | Description
@@ -403,10 +409,23 @@ Query Parameters:
 | page             | integer | No       | 1        | 1-50
 | pageSize         | integer | No       | 10       | 1-50
 | sort             | string  | No       | desc     | asc/desc
-| sortBy           | string  | No       | slotDate | slotDate, className, subjectName
+| sortBy           | string  | No       | slotDate | slotDate, className, subjectName, slotCategory
 | semesterId       | short   | No       | null     | Filter by a specific semester
-| classId          | short   | No       | null     | Filter by a specific class
-| attendanceStatus | string  | No       | null     | Filter by status: "present", "absent", "not_yet"
+| classId          | short   | No       | null     | Filter by class (excludes FINAL_EXAM if set)
+| subjectId        | integer | No       | null     | Filter by subject (includes FINAL_EXAM)
+| slotCategory     | string  | No       | null     | Filter by: LECTURE, LECTURE_WITH_PT, FINAL_EXAM
+| attendanceType   | string  | No       | all      | Filter by: class, exam, all
+| attendanceStatus | string  | No       | null     | Filter by status: present, absent, not_yet
+| startDate        | string  | No       | null     | Filter slots from date (YYYY-MM-DD)
+| endDate          | string  | No       | null     | Filter slots to date (YYYY-MM-DD)
+
+Smart Filter Logic:
+- attendanceType = "class"  → Returns LECTURE + LECTURE_WITH_PT (class-based attendance only)
+- attendanceType = "exam"   → Returns LECTURE_WITH_PT + FINAL_EXAM (exam attendance only)
+- attendanceType = "all"    → Returns everything (default, most flexible)
+- If classId is set         → Automatically excludes FINAL_EXAM (since they have no class)
+- If subjectId is set       → Includes FINAL_EXAM records matching that subject
+- slotCategory filter       → Precise control over which categories to include
 
 200-Success Response:
 {
@@ -414,12 +433,15 @@ Query Parameters:
   "data": {
     "items": [
       {
+        "recordId": "ATT_501",
+        "recordType": "regular",
         "slotId": 101,
         "slotDate": "2024-10-15",
         "slotTime": "08:00-09:30",
         "slotCategory": "LECTURE",
-        "className": "SE1801",
+        "subjectCode": "PRJ301",
         "subjectName": "Java Programming",
+        "className": "SE1801",
         "lecturerName": "Nguyen Van A",
         "roomName": "Room 101",
         "attendanceStatus": "present",
@@ -428,62 +450,172 @@ Query Parameters:
         "finalizedAt": "2024-10-15T10:00:00Z"
       },
       {
+        "recordId": "EXAM_1001",
+        "recordType": "exam",
+        "slotId": 201,
+        "slotDate": "2024-12-15",
+        "slotTime": "08:00-10:00",
+        "slotCategory": "FINAL_EXAM",
+        "subjectCode": "SWP391",
+        "subjectName": "Software Development Project",
+        "className": null,
+        "lecturerName": "Tran Van B",
+        "roomName": "Room 301",
+        "attendanceStatus": "present",
+        "method": "auto",
+        "remarks": "Recognized by camera 2",
+        "finalizedAt": "2024-12-15T10:30:00Z"
+      },
+      {
+        "recordId": "EXAM_1002",
+        "recordType": "exam",
         "slotId": 102,
         "slotDate": "2024-10-12",
         "slotTime": "10:00-11:30",
         "slotCategory": "LECTURE_WITH_PT",
-        "className": "SE1801",
+        "subjectCode": "PRJ301",
         "subjectName": "Java Programming",
+        "className": "SE1801",
         "lecturerName": "Nguyen Van A",
         "roomName": "Room 101",
         "attendanceStatus": "absent",
         "method": "system_finalize",
-        "remarks": "Student did not attend the session.",
+        "remarks": "Student did not attend the exam.",
         "finalizedAt": "2024-10-12T12:00:00Z"
       }
     ],
-    "totalPages": 8,
+    "totalPages": 5,
     "currentPage": 1,
-    "pageSize": 10,
-    "totalItems": 75,
+    "pageSize": 20,
+    "totalItems": 93,
     "summary": {
-      "totalSlots": 75,
-      "presentCount": 68,
-      "absentCount": 7,
-      "notYetCount": 0,
-      "attendanceRate": 90.67
+      "overall": {
+        "totalSlots": 93,
+        "presentCount": 85,
+        "absentCount": 8,
+        "notYetCount": 0,
+        "attendanceRate": 91.40
+      },
+      "byType": {
+        "class": {
+          "totalSlots": 68,
+          "presentCount": 63,
+          "absentCount": 5,
+          "notYetCount": 0,
+          "attendanceRate": 92.65
+        },
+        "exam": {
+          "totalSlots": 25,
+          "presentCount": 22,
+          "absentCount": 3,
+          "notYetCount": 0,
+          "attendanceRate": 88.0
+        }
+      },
+      "byCategory": {
+        "LECTURE": {
+          "totalSlots": 53,
+          "presentCount": 49,
+          "absentCount": 4,
+          "notYetCount": 0,
+          "attendanceRate": 92.45
+        },
+        "LECTURE_WITH_PT": {
+          "totalSlots": 15,
+          "presentCount": 14,
+          "absentCount": 1,
+          "notYetCount": 0,
+          "attendanceRate": 93.33
+        },
+        "FINAL_EXAM": {
+          "totalSlots": 10,
+          "presentCount": 8,
+          "absentCount": 2,
+          "notYetCount": 0,
+          "attendanceRate": 80.0
+        }
+      }
     }
   }
 }
 
 Response Schema (items):
 | Field            | Type   | Description
+| recordId         | string | Unique identifier across both tables (e.g., "ATT_501", "EXAM_1001")
+| recordType       | string | "regular" (from attendance_records) or "exam" (from exam_attendance)
 | slotId           | int    | ID of the slot
 | slotDate         | string | Date of the slot (YYYY-MM-DD)
 | slotTime         | string | Time range of the slot (HH:mm-HH:mm)
 | slotCategory     | string | LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| className        | string | Code of the class
+| subjectCode      | string | Subject code (e.g., "PRJ301", "SWP391")
 | subjectName      | string | Name of the subject
+| className        | string | Code of the class (null for FINAL_EXAM slots)
 | lecturerName     | string | Full name of the assigned lecturer/supervisor
 | roomName         | string | Name of the room
 | attendanceStatus | string | "present", "absent", or "not_yet"
 | method           | string | How status was recorded: "auto", "manual", "system_finalize"
-| remarks          | string | Any remarks added for this attendance record
+| remarks          | string | Any remarks added for this attendance record (null if none)
 | finalizedAt      | string | Timestamp when the slot was finalized (YYYY-MM-DDTHH:mm:SSZ)
 
 Response Schema (summary):
-| Field          | Type  | Description
-| totalSlots     | int   | Total number of slots in the filtered result
-| presentCount   | int   | Count of 'present' statuses
-| absentCount    | int   | Count of 'absent' statuses
-| notYetCount    | int   | Count of 'not_yet' statuses
-| attendanceRate | float | Percentage of present slots (presentCount / totalSlots * 100)
+| Field                          | Type   | Description
+| overall                        | object | Overall attendance statistics
+| overall.totalSlots             | int    | Total number of all slots
+| overall.presentCount           | int    | Count of 'present' statuses
+| overall.absentCount            | int    | Count of 'absent' statuses
+| overall.notYetCount            | int    | Count of 'not_yet' statuses
+| overall.attendanceRate         | float  | Overall percentage (presentCount / totalSlots * 100)
+| byType                         | object | Breakdown by attendance type
+| byType.class                   | object | Statistics for class-based attendance (LECTURE + LECTURE_WITH_PT)
+| byType.class.totalSlots        | int    | Total class attendance slots
+| byType.class.presentCount      | int    | Present count for class attendance
+| byType.class.absentCount       | int    | Absent count for class attendance
+| byType.class.notYetCount       | int    | Not yet count for class attendance
+| byType.class.attendanceRate    | float  | Class attendance rate percentage
+| byType.exam                    | object | Statistics for exam attendance (LECTURE_WITH_PT + FINAL_EXAM exams)
+| byType.exam.totalSlots         | int    | Total exam slots
+| byType.exam.presentCount       | int    | Present count for exams
+| byType.exam.absentCount        | int    | Absent count for exams
+| byType.exam.notYetCount        | int    | Not yet count for exams
+| byType.exam.attendanceRate     | float  | Exam attendance rate percentage
+| byCategory                     | object | Breakdown by slot category
+| byCategory.LECTURE             | object | Statistics for LECTURE slots only
+| byCategory.LECTURE_WITH_PT     | object | Statistics for LECTURE_WITH_PT slots only
+| byCategory.FINAL_EXAM          | object | Statistics for FINAL_EXAM slots only
+
+Note: Each category object (LECTURE, LECTURE_WITH_PT, FINAL_EXAM) contains:
+- totalSlots, presentCount, absentCount, notYetCount, attendanceRate
+
+Usage Examples:
+
+Example 1 - Get all class-based attendance for a semester:
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceType=class
+
+Example 2 - Get all exam attendance (progress tests + final exams):
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceType=exam
+
+Example 3 - Get only final exam attendance:
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&slotCategory=FINAL_EXAM
+
+Example 4 - Get attendance for specific class (excludes FINAL_EXAM automatically):
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&classId=10
+
+Example 5 - Get FINAL_EXAM attendance for specific subject:
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&subjectId=5&slotCategory=FINAL_EXAM
+
+Example 6 - Get all attendance with date range:
+GET /api/v1/student-profiles/201/attendance-history?startDate=2024-10-01&endDate=2024-12-31
+
+Example 7 - Get only absent records:
+GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceStatus=absent
 
 400-Invalid query parameters:
 {
   "status": 400,
-  "message": "Page must be >= 1 / Invalid attendance status",
-  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | "INVALID_ATTENDANCE_STATUS"
+  "message": "Page must be >= 1 / Invalid attendance status / Invalid slot category / Invalid attendance type",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY" | 
+          "INVALID_ATTENDANCE_STATUS" | "INVALID_SLOT_CATEGORY" | "INVALID_ATTENDANCE_TYPE" | 
+          "INVALID_DATE_FORMAT" | "INVALID_DATE_RANGE"
 }
 
 400 - Invalid Field type:
