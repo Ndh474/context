@@ -2,7 +2,8 @@ POST   	| /staff-profiles
 GET    	| /staff-profiles 	   			     
 GET    	| /staff-profiles/{id} 		     
 PUT    	| /staff-profiles/{id} 			   
-DELETE 	| /staff-profiles/{id} 			  
+DELETE 	| /staff-profiles/{id}
+POST   	| /staff-profiles/import 			  
 GET    	| /staff-profiles/{id}/classes
 GET    	| /staff-profiles/{id}/subjects
 GET    	| /staff-profiles/{id}/rooms
@@ -220,7 +221,7 @@ Request body schema:
   }
 }
 
-Các lỗi khác tương tự Create Staff Profile + thêm các lỗi sau:
+Other errors are similar to Create Staff Profile plus the following:
 404-Staff profile not found:
 {
   "status": 404,
@@ -271,11 +272,105 @@ Path Parameters:
 }
 
 =======================================================================================================================
+============================================= Bulk Import Staff Profiles ==============================================
+Note:
+- This API implements "Upsert" logic based on 'staffCode' as the key and supports 'Interactive Import Flow'.
+- API processes with 'Partial Success' pattern. Creates new users, corresponding profiles, and assigns roles.
+
+6. POST /api/v1/staff-profiles/import
+Permission: USER_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type        | Required | Validation / Description
+| file      | file (.csv) | Yes      | CSV file containing staff data, following BR-52 format.
+| mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
+
+Business Rules:
+- Reference BR-52 (Bulk Import Staff CSV Format and Validation) from business_rules.yaml.
+- Business key is 'staffCode'. 'staffCode' will also be used as 'username'.
+- If mode = 'AddOnly': Skip rows where 'staffCode' or 'email' already exists.
+- If mode = 'AddAndUpdate': Update rows where 'staffCode' already exists (fullName, email, roles). Does not update password.
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing error rows. Empty array '[]' means all rows in this batch succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 2,
+      "errorCode": "STAFF_CODE_EXISTS",
+      "message": "Duplicate 'staffCode' (EMP999) in 'AddOnly' mode."
+    },
+    {
+      "rowNumber": 4,
+      "errorCode": "EMAIL_EXISTS",
+      "message": "Email 'another.staff@fpt.edu.vn' already exists."
+    },
+    {
+      "rowNumber": 6,
+      "errorCode": "INVALID_ROLE",
+      "message": "Invalid role specified: 'MANAGER'. Allowed roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN."
+    },
+    {
+      "rowNumber": 9,
+      "errorCode": "ROLES_REQUIRED",
+      "message": "Roles column cannot be empty."
+    }
+  ]
+}
+
+Response Schema:
+| Field      | Type          | Description
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error objects (empty if all rows succeeded)
+
+Error Object Schema:
+| Field      | Type    | Description
+| rowNumber  | integer | Row number in CSV file (1-based, excluding header)
+| errorCode  | string  | Error code identifier
+| message    | string  | Human-readable error message
+
+Possible Error Codes in data array:
+- STAFF_CODE_EXISTS: Duplicate staffCode in AddOnly mode
+- EMAIL_EXISTS: Email already exists
+- INVALID_ROLE: Invalid role specified
+- ROLES_REQUIRED: Roles field is blank
+- FULL_NAME_REQUIRED: Full name field is blank
+- EMAIL_REQUIRED: Email field is blank
+- STAFF_CODE_REQUIRED: Staff code field is blank
+- INVALID_EMAIL_FORMAT: Email format validation failed
+- INVALID_FIELD_FORMAT: Field format validation failed
+- ROLE_ASSIGNMENT_CONFLICT: Cannot assign conflicting roles
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format / Missing required columns",
+  "code": "INVALID_CSV_FORMAT" | "MISSING_CSV_COLUMNS"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission USER_IMPORT is required.",
+  "code": "FORBIDDEN"
+}
+
+=======================================================================================================================
 ============================================ Get classes by staff profile id ===============================================
 Note: 
 - Get classes where this staff member is assigned as lecturer or supervisor
 
-6. GET /api/v1/staff-profiles/{staffId}/classes
+7. GET /api/v1/staff-profiles/{staffId}/classes
 Permission: CLASS_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
@@ -363,7 +458,7 @@ Note:
 - Get subjects where this staff member is assigned as lecturer or supervisor
 - Returns unique subjects from all classes assigned to this staff member
 
-7. GET /api/v1/staff-profiles/{staffId}/subjects
+8. GET /api/v1/staff-profiles/{staffId}/subjects
 Permission: SUBJECT_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
@@ -468,7 +563,7 @@ Note:
 - Returns unique rooms from all slots assigned to this staff member
 - Useful for filtering rooms in slot creation/editing forms
 
-8. GET /api/v1/staff-profiles/{staffId}/rooms
+9. GET /api/v1/staff-profiles/{staffId}/rooms
 Permission: ROOM_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
@@ -572,6 +667,9 @@ Room Object Schema:
 - Staff code and email must be unique
 - Username is automatically set to staffCode
 - Role assignment follows business rules (no STUDENT role for staff)
+- Import endpoint supports 'Interactive Import Flow' with partial success pattern
+- Import mode 'AddOnly' skips existing staff (by staffCode), 'AddAndUpdate' updates them
+- Import always returns 200 OK with error array (empty array means all rows succeeded)
 
 Available Staff Roles:
 - LECTURER: Can manage lecture sessions and attendance

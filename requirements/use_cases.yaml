@@ -493,6 +493,20 @@ use_cases:
         description: "Allows the DOP to permanently delete a Camera from the system. The action will be blocked with a clear error message if the Camera is still assigned to any Slots. This action requires the 'CAMERA_DELETE_HARD' permission."
         related_business_rules: ["BR-27", "BR-30"]
 
+      UC-87:
+        title: "HYPOTHESIS: Bulk Import Rooms via CSV"
+        primary_actors: ["Data Operator"]
+        secondary_actors: []
+        description: "HYPOTHESIS: Allows DOP to upload a CSV file containing Room data. Supports 'Add Only' or 'Add and Update' modes based on room 'name'."
+        related_business_rules: ["BR-49"]
+
+      UC-88:
+        title: "HYPOTHESIS: Bulk Import Cameras via CSV"
+        primary_actors: ["Data Operator"]
+        secondary_actors: []
+        description: "HYPOTHESIS: Allows DOP to upload a CSV file containing Camera data. Supports 'Add Only' or 'Add and Update' modes based on camera 'name'. Requires referenced rooms to exist."
+        related_business_rules: ["BR-50"]
+
     data_management:
       UC-69:
         title: "Import Academic Data"

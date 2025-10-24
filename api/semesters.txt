@@ -6,6 +6,7 @@ DELETE 	| /semesters/{id}
 GET    	| /semesters/{id}/classes
 GET    	| /semesters/{id}/subjects
 GET    	| /semesters/{id}/students
+POST   	| /semesters/import
 
 =================================================== Search semesters ==================================================
 Note: tất cả các field không hợp lệ cho về default
@@ -195,6 +196,65 @@ Response Schema:
   "message": "A semester with this start and end date already exists",
   "code": "SEMESTER_DATE_RANGE_EXISTS"
 }
+=======================================================================================================================
+=============================================== Bulk Import Semesters =================================================
+Note:
+- This API implements "Upsert" logic (Add or Update) based on Business Rule BR-44 and supports the 'Interactive Import Flow'.
+- API processes using 'Partial Success' strategy (saves valid rows, returns error rows).
+
+9. POST /api/v1/semesters/import
+Permission: SEMESTER_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type          | Required | Validation / Description                                           |
+| file      | file (.csv)   | Yes      | CSV file containing semester data, following BR-44 format.        |
+| mode      | string        | Yes      | Import mode. Must be one of: 'AddOnly' or 'AddAndUpdate'. |
+
+Business Rules:
+- Reference BR-44 (Bulk Import Semesters CSV Format and Validation) from system_context.yaml.
+- If mode = 'AddOnly': Skip (SKIP) rows with existing 'code'.
+- If mode = 'AddAndUpdate': Update (UPDATE) rows with existing 'code'.
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing only error rows. Empty array '[]' means all rows in this batch succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 5,
+      "errorCode": "SEMESTER_CODE_EXISTS",
+      "message": "Duplicate 'code' (FA23) in 'AddOnly' mode."
+    },
+    {
+      "rowNumber": 7,
+      "errorCode": "SEMESTER_INVALID_DATE_RANGE",
+      "message": "Start date must be before end date."
+    }
+  ]
+}
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present.",
+  "code": "INVALID_MULTIPART_REQUEST"
+}
+
+400-Bad Request (Invalid Mode):
+{
+  "status": 400,
+  "message": "Invalid import mode. Must be 'AddOnly' or 'AddAndUpdate'.",
+  "code": "INVALID_IMPORT_MODE"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission SEMESTER_IMPORT is required.",
+  "code": "FORBIDDEN"
+}
+
 =======================================================================================================================
 =================================================== Update semester ===================================================
 Note:
@@ -683,10 +743,11 @@ Common Status Codes:
 - 500: Internal Server Error
 
 Permissions:
-- SEMESTER_CREATE: Create semesters (System Admin)
+- SEMESTER_CREATE: Create semesters (DATA_OPERATOR)
 - SEMESTER_READ: View semesters, classes, subjects, students (All admin roles)
-- SEMESTER_UPDATE: Update semesters (System Admin)
-- SEMESTER_DELETE_HARD: Delete semesters (System Admin)
+- SEMESTER_UPDATE: Update semesters (DATA_OPERATOR)
+- SEMESTER_DELETE_HARD: Delete semesters (DATA_OPERATOR)
+- SEMESTER_IMPORT: Bulk import semesters via CSV (DATA_OPERATOR)
 - CLASS_READ: View classes (required for /semesters/{id}/classes)
 - SUBJECT_READ: View subjects (required for /semesters/{id}/subjects)
 - USER_READ_LIST: View student list (required for /semesters/{id}/students)

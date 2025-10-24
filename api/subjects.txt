@@ -3,6 +3,7 @@ GET    	| /subjects 	   		| Get all subjects 		| SUBJECT_READ
 GET    	| /subjects/{id} 		| Get subject by id 	| SUBJECT_READ 
 PUT    	| /subjects/{id} 		| Update subject 		  | SUBJECT_UPDATE 
 DELETE 	| /subjects/{id} 		| Delete subject 		  | SUBJECT_DELETE_HARD
+POST   	| /subjects/import 		| Bulk import subjects 	| SUBJECT_IMPORT
 
 ================================================ Create a new subject =================================================
 Business Rules:
@@ -400,12 +401,93 @@ Path Parameters:
 }
 
 =======================================================================================================================
+================================================ Bulk Import Subjects =================================================
+Note:
+- API này triển khai logic "Upsert" (Thêm hoặc Cập nhật) dựa trên Business Rule BR-43 và hỗ trợ luồng 'Interactive Import Flow'.
+- API xử lý theo kiểu 'Partial Success' (lưu hàng tốt, trả lỗi hàng xấu).
+
+7. POST /api/v1/subjects/import
+Permission: SUBJECT_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type        | Required | Validation / Description
+| file      | file (.csv) | Yes      | File CSV chứa dữ liệu môn học, tuân thủ định dạng của BR-43.
+| mode      | string      | Yes      | Chế độ import. Phải là một trong hai giá trị: 'AddOnly' hoặc 'AddAndUpdate'.
+
+Business Rules:
+- Tham chiếu BR-43 (Bulk Import Subjects CSV Format and Validation) từ core_context.json.
+- Nếu mode = 'AddOnly': Bỏ qua (SKIP) các hàng có 'code' đã tồn tại.
+- Nếu mode = 'AddAndUpdate': Cập nhật (UPDATE) các hàng có 'code' đã tồn tại (bao gồm cả việc cập nhật quan hệ subject_majors).
+
+200-Success Response (Chỉ trả về danh sách lỗi):
+(Luôn trả về 200 OK. 'data' là một MẢNG chứa các hàng lỗi. Mảng rỗng '[]' nghĩa là tất cả các hàng trong batch này đã thành công.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 4,
+      "errorCode": "MAJOR_NOT_FOUND",
+      "message": "Major code 'XYZ' not found."
+    },
+    {
+      "rowNumber": 6,
+      "errorCode": "SUBJECT_CODE_EXISTS",
+      "message": "Duplicate 'code' (DBI202) in 'AddOnly' mode."
+    }
+  ]
+}
+
+Response Schema:
+| Field      | Type          | Description
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error objects (empty if all rows succeeded)
+
+Error Object Schema:
+| Field      | Type    | Description
+| rowNumber  | integer | Row number in CSV file (1-based, excluding header)
+| errorCode  | string  | Error code identifier
+| message    | string  | Human-readable error message
+
+Possible Error Codes in data array:
+- MAJOR_NOT_FOUND: Major code not found in database
+- SUBJECT_CODE_EXISTS: Duplicate code in AddOnly mode
+- INACTIVE_MAJOR_NOT_ALLOWED: Cannot assign subject to inactive major
+- SUBJECT_NAME_REQUIRED: Name field is blank
+- SUBJECT_CODE_REQUIRED: Code field is blank
+- SUBJECT_MAJOR_IDS_REQUIRED: Major codes field is blank
+- SUBJECT_MAJOR_IDS_EMPTY: Major codes field contains no valid majors
+- INVALID_FIELD_FORMAT: Field format validation failed (pattern mismatch)
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format / Missing required columns",
+  "code": "INVALID_CSV_FORMAT" | "MISSING_CSV_COLUMNS"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission SUBJECT_IMPORT is required.",
+  "code": "FORBIDDEN"
+}
+
+=======================================================================================================================
 =========================================== Get classes by subject id =================================================
 Note:
 - Returns classes for this subject across all semesters
 - Class code is unique within subject+semester combination
 
-6. GET /api/v1/subjects/{id}/classes
+8. GET /api/v1/subjects/{id}/classes
 Permission: CLASS_READ
 Path Parameters:
 | Parameter  | Type  | Required | Description
@@ -511,6 +593,9 @@ Class Object Schema:
 - Subject-Class relationship is One-to-Many (one subject can have multiple classes)
 - totalClass: Total number of classes (active + inactive)
 - totalActiveClass: Number of active classes only (used for deactivation validation)
+- Import endpoint supports 'Interactive Import Flow' with partial success pattern
+- Import mode 'AddOnly' skips existing subjects, 'AddAndUpdate' updates them
+- Import always returns 200 OK with error array (empty array means all rows succeeded)
 -  = Modified
 
 Validation Patterns:

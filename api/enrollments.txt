@@ -3,7 +3,6 @@ GET    	| /enrollments 	   		        | CLASS_READ
 GET    	| /enrollments/{classId}/{studentUserId} | CLASS_READ 
 PUT    	| /enrollments/{classId}/{studentUserId} | ENROLLMENT_MANAGE 
 POST   	| /enrollments/bulk 	   	    | ENROLLMENT_MANAGE
-GET    	| /enrollments/bulk/template    | CLASS_READ
 GET    	| /classes/{classId}/enrollments| CLASS_READ
 
 ================================================ Create enrollment ====================================================
@@ -405,7 +404,7 @@ Business Rules:
 
 5. POST /api/v1/enrollments/bulk
 Permission: ENROLLMENT_MANAGE
-Description: Bulk enroll existing students into classes from a CSV file (UC-77). This is the primary endpoint for mass enrollment. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk enroll existing students into classes from a CSV file (UC-74). This is the primary endpoint for mass enrollment. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Request: Multipart form-data
 Content-Type: multipart/form-data
@@ -428,7 +427,7 @@ HE180316,SE1802,FA24
 
 Business Rules:
 - BR-37: CSV format validation (encoding, columns, max rows, max file size)
-- PARTIAL SUCCESS: Import valid rows, skip invalid rows
+- PARTIAL SUCCESS: Import valid rows, skip invalid rows. Return ONLY errors/warnings.
 - Duplicate handling:
   - Within file: If same student_id + class_code appears multiple times, only first occurrence is processed
   - With database: If enrollment already exists with is_enrolled=true, skip with warning
@@ -447,86 +446,81 @@ Row Level:
 - Student must be active (users.is_active = true)
 - Class must be active (classes.is_active = true)
 
-200-Success Response (Partial success):
+200-Success Response (Returns only error/warning list):
+(Always returns 200 OK. 'data' is an ARRAY containing error/warning rows. Empty array '[]' means all rows in this batch succeeded.)
 {
   "status": 200,
-  "message": "Bulk enrollment completed with some errors",
-  "data": {
-    "totalRows": 100,
-    "successCount": 95,
-    "skippedCount": 3,
-    "failedCount": 2,
-    "summary": {
-      "newEnrollments": 92,
-      "reEnrollments": 3,
-      "alreadyEnrolled": 3,
-      "errors": 2
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 3,
+      "studentId": "HE999999",
+      "classCode": "SE1801",
+      "semesterCode": "FA24",
+      "errorCode": "STUDENT_NOT_FOUND",
+      "message": "Student not found",
+      "type": "ERROR"
     },
-    "errors": [
-      {
-        "row": 3,
-        "studentId": "HE999999",
-        "classCode": "SE1801",
-        "semesterCode": "FA24",
-        "reason": "Student not found"
-      },
-      {
-        "row": 7,
-        "studentId": "HE180320",
-        "classCode": "SE9999",
-        "semesterCode": "FA24",
-        "reason": "Class not found for code SE9999 and semester FA24"
-      }
-    ],
-    "warnings": [
-      {
-        "row": 5,
-        "studentId": "HE180318",
-        "classCode": "SE1801",
-        "semesterCode": "FA24",
-        "reason": "Student already enrolled, skipped"
-      },
-      {
-        "row": 12,
-        "studentId": "HE180314",
-        "classCode": "SE1801",
-        "semesterCode": "FA24",
-        "reason": "Duplicate entry in file, only first occurrence processed"
-      }
-    ]
-  }
-}
-
-200-Success Response (All success):
-{
-  "status": 200,
-  "message": "Bulk enrollment completed successfully",
-  "data": {
-    "totalRows": 100,
-    "successCount": 100,
-    "skippedCount": 0,
-    "failedCount": 0,
-    "summary": {
-      "newEnrollments": 100,
-      "reEnrollments": 0,
-      "alreadyEnrolled": 0,
-      "errors": 0
+    {
+      "rowNumber": 5,
+      "studentId": "HE180318",
+      "classCode": "SE1801",
+      "semesterCode": "FA24",
+      "errorCode": "ALREADY_ENROLLED",
+      "message": "Student already enrolled, skipped",
+      "type": "WARNING"
+    },
+    {
+      "rowNumber": 7,
+      "studentId": "HE180320",
+      "classCode": "SE9999",
+      "semesterCode": "FA24",
+      "errorCode": "CLASS_NOT_FOUND",
+      "message": "Class not found for code SE9999 and semester FA24",
+      "type": "ERROR"
+    },
+    {
+      "rowNumber": 12,
+      "studentId": "HE180314",
+      "classCode": "SE1801",
+      "semesterCode": "FA24",
+      "errorCode": "DUPLICATE_IN_FILE",
+      "message": "Duplicate entry in file, only first occurrence processed",
+      "type": "WARNING"
     }
-  }
+  ]
 }
 
 Response Schema:
-| Field                    | Type    | Description 
-| totalRows                | integer | Total rows in CSV (excluding header)
-| successCount             | integer | Number of successfully enrolled students
-| skippedCount             | integer | Number of skipped rows (warnings)
-| failedCount              | integer | Number of failed rows (errors)
-| summary.newEnrollments   | integer | New enrollments created
-| summary.reEnrollments    | integer | Students re-enrolled (was withdrawn)
-| summary.alreadyEnrolled  | integer | Students already enrolled (skipped)
-| summary.errors           | integer | Validation errors
-| errors                   | array   | List of error details (row, studentId, classCode, semesterCode, reason)
-| warnings                 | array   | List of warning details (row, studentId, classCode, semesterCode, reason)
+| Field      | Type          | Description
+|------------|---------------|-----------
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error/warning objects (empty if all rows succeeded)
+
+Error/Warning Object Schema:
+| Field         | Type    | Description
+|---------------|---------|-----------
+| rowNumber     | integer | Row number in CSV file (1-based, excluding header)
+| studentId     | string  | Student ID from the failed/skipped row
+| classCode     | string  | Class code from the failed/skipped row
+| semesterCode  | string  | Semester code from the failed/skipped row
+| errorCode     | string  | Error/Warning code identifier
+| message       | string  | Human-readable error/warning message
+| type          | string  | "ERROR" or "WARNING"
+
+Possible Error Codes in data array:
+- STUDENT_NOT_FOUND
+- CLASS_NOT_FOUND
+- INVALID_USER_ROLE
+- INACTIVE_STUDENT_NOT_ALLOWED
+- INACTIVE_CLASS_NOT_ALLOWED
+- MISSING_CSV_COLUMNS
+- INVALID_CSV_FORMAT
+
+Possible Warning Codes in data array:
+- ALREADY_ENROLLED
+- DUPLICATE_IN_FILE
 
 400-Invalid file format:
 {
@@ -564,33 +558,9 @@ Response Schema:
 }
 
 =======================================================================================================================
-============================================ Download CSV template ====================================================
-
-6. GET /api/v1/enrollments/bulk/template
-Permission: CLASS_READ
-Description: Download CSV template file for bulk enrollment import.
-
-200-Success Response:
-Content-Type: text/csv
-Content-Disposition: attachment; filename="enrollment_template.csv"
-
-File Content:
-```csv
-student_id,class_code,semester_code
-HE180314,SE1801,FA24
-HE180315,SE1802,FA24
-HE180316,AI2401,SP25
-```
-
-Notes:
-- File includes header row and 3 sample rows
-- UTF-8 with BOM encoding for Excel compatibility
-- Sample data shows correct format
-
-=======================================================================================================================
 ========================================= Get enrollments by class (roster) ===========================================
 
-7. GET /api/v1/classes/{classId}/enrollments
+6. GET /api/v1/classes/{classId}/enrollments
 Permission: CLASS_READ
 Description: Get roster (list of enrolled students) for a specific class. Used for roster management.
 

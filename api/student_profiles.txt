@@ -2,7 +2,8 @@ POST   	| /student-profiles
 GET    	| /student-profiles 	   			     
 GET    	| /student-profiles/{id} 		     
 PUT    	| /student-profiles/{id} 			   
-DELETE 	| /student-profiles/{id} 			  
+DELETE 	| /student-profiles/{id}
+POST   	| /student-profiles/import 			  
 GET    	| /student-profiles/{id}/classes
 GET    	| /student-profiles/{id}/attendance-history
 
@@ -75,9 +76,6 @@ Permission: USER_READ_DETAIL
     "majorCode": "SE",
     "roles": ["STUDENT"],
     "isActive": true,
-    "identityStatus": "APPROVED",
-    "latestIdentitySubmissionType": "initial",
-    "latestIdentitySubmissionDate": "2024-10-10T14:00:00Z",
     "hasActiveEmbedding": true,
     "canUseFaceRecognition": true,
     "createdAt": "2024-10-16T11:00:00Z",
@@ -137,7 +135,8 @@ Request Body Schema:
     "majorCode": "SE",
     "roles": ["STUDENT"],
     "isActive": true,
-    "identityStatus": "PENDING",
+    "hasActiveEmbedding": false,
+    "canUseFaceRecognition": false,
     "createdAt": "2024-10-16T11:00:00Z",
     "updatedAt": "2024-10-16T11:00:00Z"
   }
@@ -155,7 +154,8 @@ Response Schema:
 | majorCode 	  | string        | Major code
 | roles 	      | array[string] | Always ["STUDENT"]
 | isActive 	    | boolean 	    | Account active status
-| identityStatus| string        | Identity verification status: PENDING, APPROVED, REJECTED
+| hasActiveEmbedding | boolean | Indicates if the student has an active face vector in the 'face_embeddings' table
+| canUseFaceRecognition | boolean | Derived logic. True if 'hasActiveEmbedding' is true
 | createdAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
 | updatedAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
 
@@ -241,13 +241,14 @@ Request body schema:
     "majorCode": "SE",
     "roles": ["STUDENT"],
     "isActive": true,
-    "identityStatus": "APPROVED",
+    "hasActiveEmbedding": true,
+    "canUseFaceRecognition": true,
     "createdAt": "2024-10-16T11:00:00Z",
     "updatedAt": "2024-10-16T12:30:00Z"
   }
 }
 
-Các lỗi khác tương tự Create Student Profile + thêm các lỗi sau:
+Other errors are similar to Create Student Profile plus the following:
 404-Student profile not found:
 {
   "status": 404,
@@ -291,11 +292,105 @@ Path Parameters:
 }
 
 =======================================================================================================================
+============================================ Bulk Import Student Profiles =============================================
+Note:
+- This API implements "Upsert" logic based on 'rollNumber' as the key and supports 'Interactive Import Flow'.
+- API processes with 'Partial Success' pattern. Creates new users and corresponding profiles.
+
+6. POST /api/v1/student-profiles/import
+Permission: USER_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type        | Required | Validation / Description
+| file      | file (.csv) | Yes      | CSV file containing student data, following BR-51 format.
+| mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
+
+Business Rules:
+- Reference BR-51 (Bulk Import Students CSV Format and Validation) from business_rules.yaml.
+- Business key is 'rollNumber'. 'rollNumber' will also be used as 'username'.
+- If mode = 'AddOnly': Skip rows where 'rollNumber' or 'email' already exists.
+- If mode = 'AddAndUpdate': Update rows where 'rollNumber' already exists (fullName, email, majorId). Does not update password.
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing error rows. Empty array '[]' means all rows in this batch succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 3,
+      "errorCode": "ROLL_NUMBER_EXISTS",
+      "message": "Duplicate 'rollNumber' (HE123456) in 'AddOnly' mode."
+    },
+    {
+      "rowNumber": 5,
+      "errorCode": "EMAIL_EXISTS",
+      "message": "Email 'existing.email@fpt.edu.vn' already exists."
+    },
+    {
+      "rowNumber": 7,
+      "errorCode": "MAJOR_NOT_FOUND",
+      "message": "Major ID '99' not found or inactive."
+    },
+    {
+      "rowNumber": 8,
+      "errorCode": "INVALID_ROLL_NUMBER_FORMAT",
+      "message": "Roll number 'SE123456' does not match pattern '^HE\\d{6}$'."
+    }
+  ]
+}
+
+Response Schema:
+| Field      | Type          | Description
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error objects (empty if all rows succeeded)
+
+Error Object Schema:
+| Field      | Type    | Description
+| rowNumber  | integer | Row number in CSV file (1-based, excluding header)
+| errorCode  | string  | Error code identifier
+| message    | string  | Human-readable error message
+
+Possible Error Codes in data array:
+- ROLL_NUMBER_EXISTS: Duplicate rollNumber in AddOnly mode
+- EMAIL_EXISTS: Email already exists
+- MAJOR_NOT_FOUND: Major ID not found or inactive
+- INVALID_ROLL_NUMBER_FORMAT: Roll number format validation failed
+- FULL_NAME_REQUIRED: Full name field is blank
+- EMAIL_REQUIRED: Email field is blank
+- ROLL_NUMBER_REQUIRED: Roll number field is blank
+- MAJOR_ID_REQUIRED: Major ID field is blank
+- INVALID_EMAIL_FORMAT: Email format validation failed
+- INVALID_FIELD_FORMAT: Field format validation failed
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format / Missing required columns",
+  "code": "INVALID_CSV_FORMAT" | "MISSING_CSV_COLUMNS"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission USER_IMPORT is required.",
+  "code": "FORBIDDEN"
+}
+
+=======================================================================================================================
 ============================================ Get classes by student profile id ===============================================
 Note: 
 - Get classes where this student is enrolled
 
-6. GET /api/v1/student-profiles/{studentId}/classes
+7. GET /api/v1/student-profiles/{studentId}/classes
 Permission: CLASS_READ
 Path Parameters:
 | Parameter 	| Type 	| Required 	| Description
@@ -384,7 +479,7 @@ Class Object Schema:
 =======================================================================================================================
 ======================================= Get attendance history by student id ==========================================
 
-7. GET /api/v1/student-profiles/{id}/attendance-history
+8. GET /api/v1/student-profiles/{id}/attendance-history
 Permission:
 - OWN_ATTENDANCE_HISTORY_READ (for students viewing their own history)
 - REPORT_READ_SYSTEM_WIDE (for Data Operators viewing any student's history)
@@ -651,12 +746,11 @@ GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceStatu
 - Roll number and email must be unique
 - Username is automatically set to rollNumber
 - Students always have STUDENT role only
-- Identity status tracks face recognition registration: PENDING, APPROVED, REJECTED
-
-Identity Status Values:
-- PENDING: Student has not completed identity registration or waiting for approval
-- APPROVED: Identity registration approved, can use face recognition attendance
-- REJECTED: Identity registration rejected, needs to re-submit
+- hasActiveEmbedding indicates if student has face vector in face_embeddings table
+- canUseFaceRecognition is derived: true if hasActiveEmbedding is true
+- Import endpoint supports 'Interactive Import Flow' with partial success pattern
+- Import mode 'AddOnly' skips existing students (by rollNumber), 'AddAndUpdate' updates them
+- Import always returns 200 OK with error array (empty array means all rows succeeded)
 
 Attendance Status Values:
 - not_yet: Student has not been marked (initial state)

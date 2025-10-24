@@ -78,10 +78,12 @@ system_context:
       ROOM_READ: "View the list and details of rooms."
       ROOM_UPDATE: "Update room information, including deactivating or activating it."
       ROOM_DELETE_HARD: "Permanently delete a room. This action cannot be undone and will fail if related data (cameras, slots, etc.) still exists."
+      ROOM_IMPORT: "HYPOTHESIS: Bulk import Rooms via CSV."
       CAMERA_CREATE: "Create a new camera and assign it to a room."
       CAMERA_READ: "View the list and details of cameras."
       CAMERA_UPDATE: "Update camera information, including deactivating or activating it."
       CAMERA_DELETE_HARD: "Permanently delete a camera. This action cannot be undone."
+      CAMERA_IMPORT: "HYPOTHESIS: Bulk import Cameras via CSV."
 
     ATTENDANCE_MANAGEMENT:
       OWN_SCHEDULE_READ: "View personal schedule (teaching/exam/learning)."
@@ -185,9 +187,11 @@ system_context:
           "ROOM_CREATE",
           "ROOM_READ",
           "ROOM_UPDATE",
+          "ROOM_IMPORT",
           "CAMERA_CREATE",
           "CAMERA_READ",
           "CAMERA_UPDATE",
+          "CAMERA_IMPORT",
           "REPORT_READ_SYSTEM_WIDE",
           "REPORT_EXPORT_ACADEMIC_DATA",
           "AUDIT_LOG_READ",
@@ -298,6 +302,7 @@ system_context:
       - "Manage bulk student enrollments via CSV import"
       - "Bulk import student identity data (Photos + Vectors)"
       - "Bulk import academic catalog data (Semester, Major, Subject, Class, Slot)"
+      - "HYPOTHESIS: Bulk import infrastructure data (Room, Camera)"
 
     system_admin_functions:
       - "Configure system (AI model, similarity threshold, etc.)"
@@ -468,6 +473,8 @@ system_context:
           - "Add/Edit/Delete camera information (Name, RTSP connection string, Status)"
           - "Assign a camera to a room"
           - "View list of all cameras and rooms in the system"
+          - "HYPOTHESIS: Add 'Import Rooms from CSV' button (implements UC-87, uses Import Mode option)."
+          - "HYPOTHESIS: Add 'Import Cameras from CSV' button (implements UC-88, uses Import Mode option)."
 
       SCR_SYSADMIN_CONFIG:
         title: "System Configuration (System Admin)"
@@ -602,22 +609,23 @@ system_context:
         - "5. Reporting: The job status is updated on the admin screen, allowing DOP to see the results."
 
     bulk_catalog_import_flow:
-      title: "Bulk Academic Catalog Import Flow (Admin)"
-      description: "A background job flow to import academic catalog data (Majors, Subjects, Semesters, Classes, Slots) from CSV files with Upsert capability."
+      title: "Interactive Bulk Import Flow (Admin)"
+      description: "HYPOTHESIS: An interactive session allowing Data Operator to upload, preview, fix errors, and import catalog data (Academic AND Infrastructure: Majors, Subjects, Semesters, Classes, Slots, Rooms, Cameras) from CSV files. This flow is synchronous and iterative."
       steps:
-        - "1. Trigger: Data Operator navigates to 'SCR_ADMIN_CRUD_ACADEMIC', selects 'Import Mode' (Add Only or Add and Update) and uploads a CSV file."
-        - "2. Orchestration (Spring Boot): Receives the file, saves it temporarily, and starts an asynchronous job (passes the selected 'Import Mode')."
-        - "3. Job Processing (Spring Boot):"
-        - "  a. Read CSV file (e.g., 'semesters.csv')."
-        - "  b. Iterate through each row and validate syntax (e.g., date format in BR-44)."
-        - "  c. (Business Logic): Find existing record in database based on 'code' (e.g., 'semesters.code')."
-        - "  d. (Branch based on Import Mode):"
-        - "    - If FOUND and mode is 'Add and Update': UPDATE the record with new data from file."
-        - "    - If FOUND and mode is 'Add Only': SKIP and log 'duplicate'."
-        - "    - If NOT FOUND: CREATE NEW (INSERT) record."
-        - "  e. (Log Error): Record errors (e.g., validation failed, or 'major_code' does not exist as in BR-43)."
-        - "4. Cleanup (Spring Boot): Delete temporary CSV file."
-        - "5. Reporting: Update job status on UI, allow DOP to download detailed error log."
+        - "1. (FE) Upload & Preview: DOP uploads CSV file (V1). FE reads file (e.g., PapaParse) and displays data in an editable table (editable table)."
+        - "2. (FE -> BE) Submit Iteration 1: DOP selects 'Import Mode' (AddOnly/AddAndUpdate) and clicks 'Submit'. FE sends file V1 (as multipart/form-data) to the corresponding import API (e.g., POST /semesters/import)."
+        - "3. (BE) Process & Partial Success: BE processes file V1. BE executes 'Partial Success' strategy:"
+        - "  a. Valid rows: SAVED to database (INSERT or UPDATE based on mode)."
+        - "  b. Invalid rows: SKIPPED (not saved) and collected into an error list."
+        - "4. (BE -> FE) Return Only Errors: BE always returns 200 OK. The 'data' field of response contains ONLY the list of error rows (e.g., [ { rowNumber: 5, error: '...' }, { rowNumber: 8, error: '...' } ]). If all rows succeed, BE returns an empty array []."
+        - "5. (FE) Update UI: FE receives error list:"
+        - "  a. Removes all successful rows (not in error list) from the preview table."
+        - "  b. Keeps error rows in the table and displays error messages on corresponding rows/cells."
+        - "6. (FE) Direct Error Fixing: DOP fixes errors directly in table cells."
+        - "7. (FE) 'Un-parse' & Submit Iteration 2: DOP clicks 'Submit' again."
+        - "  a. FE 'Un-parses' (recreates CSV) ONLY from the corrected error rows in the table, creating a new CSV file (V2) in memory."
+        - "  b. FE sends file V2 (multipart/form-data) to the SAME API (Step 2)."
+        - "8. (Loop) Iterate: Process repeats from Step 3. Loop ends when BE returns an empty error array []."
 
   information_flows:
     - "Student ↔ System: view schedule/slots; view attendance status"

@@ -3,7 +3,8 @@ GET    	| /majors 	   		      | MAJOR_READ
 GET    	| /majors/{id} 				  | MAJOR_READ 
 PUT    	| /majors/{id} 			    | MAJOR_UPDATE 
 DELETE 	| /majors/{id} 					| MAJOR_DELETE_HARD
-GET    	| /majors/{id}/subjects	| SUBJECT_READ 
+GET    	| /majors/{id}/subjects	| SUBJECT_READ
+POST   	| /majors/import 				| MAJOR_IMPORT 
 
 ================================================= Create a new major ==================================================
 1. POST /api/v1/majors
@@ -70,6 +71,58 @@ Response Schema:
   "status": 400,
   "message": "Malformed JSON request",
   "code": "MALFORMED_JSON"
+}
+
+=======================================================================================================================
+================================================= Bulk Import Majors ==================================================
+Note:
+- This API implements "Upsert" logic (Add or Update) based on Business Rule BR-42 and supports the 'Interactive Import Flow'.
+- API processes using 'Partial Success' strategy (saves valid rows, returns error rows).
+
+7. POST /api/v1/majors/import
+Permission: MAJOR_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type          | Required | Validation / Description                                           |
+| file      | file (.csv)   | Yes      | CSV file containing major data, following BR-42 format.       |
+| mode      | string        | Yes      | Import mode. Must be one of: 'AddOnly' or 'AddAndUpdate'. |
+
+Business Rules:
+- Reference BR-42 (Bulk Import Majors CSV Format and Validation) from system_context.yaml.
+- If mode = 'AddOnly': Skip (SKIP) rows with existing 'code'.
+- If mode = 'AddAndUpdate': Update (UPDATE) rows with existing 'code'.
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing only error rows. Empty array '[]' means all rows in this batch succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 3,
+      "errorCode": "MAJOR_CODE_EXISTS",
+      "message": "Duplicate 'code' (SE) in 'AddOnly' mode."
+    },
+    {
+      "rowNumber": 5,
+      "errorCode": "MAJOR_NAME_REQUIRED",
+      "message": "Name must not be blank."
+    }
+  ]
+}
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission MAJOR_IMPORT is required.",
+  "code": "FORBIDDEN"
 }
 
 =======================================================================================================================
@@ -387,3 +440,11 @@ Common Status Codes:
 - 404: Not Found (major not found)
 - 409: Conflict (foreign key constraint violation)
 - 500: Internal Server Error
+
+Permissions:
+- MAJOR_CREATE: Create majors (DATA_OPERATOR)
+- MAJOR_READ: View majors and subjects (All admin roles)
+- MAJOR_UPDATE: Update majors (DATA_OPERATOR)
+- MAJOR_DELETE_HARD: Delete majors (DATA_OPERATOR)
+- MAJOR_IMPORT: Bulk import majors via CSV (DATA_OPERATOR)
+- SUBJECT_READ: View subjects (required for /majors/{id}/subjects)

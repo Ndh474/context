@@ -774,6 +774,75 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'staff_username' not found, BR-34 logic failed, or duplicate in 'Add Only' mode)."
 
+    BR-49:
+      title: "HYPOTHESIS: Bulk Import Rooms CSV Format and Validation"
+      description: "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Rooms."
+      domain: "Infrastructure"
+      priority: "Medium"
+      related_use_cases: ["UC-87"]
+      validation_points:
+        ["CSV upload API for Rooms", "Bulk infrastructure processing"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "name"
+            type: "string"
+            required: true
+            description: "Room name (Business Key, Unique)"
+          - name: "location"
+            type: "string"
+            required: false
+            description: "Optional location description"
+      validation_rules:
+        row_level:
+          - "'name' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'name' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'name' already exists, the system will UPDATE the 'location' field of the existing record. If 'name' does not exist, the system will CREATE NEW (INSERT)."
+          - "'name' must be valid and not empty (applies to both create and update)."
+          - "Validation for 'name' format and length (max 150 chars, pattern validation)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'name' is empty, format validation failed, or duplicate in 'Add Only' mode)."
+
+    BR-50:
+      title: "HYPOTHESIS: Bulk Import Cameras CSV Format and Validation"
+      description: "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Cameras."
+      domain: "Infrastructure"
+      priority: "Medium"
+      related_use_cases: ["UC-88"]
+      validation_points:
+        ["CSV upload API for Cameras", "Bulk infrastructure processing"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "name"
+            type: "string"
+            required: true
+            description: "Camera name (Business Key, Unique)"
+          - name: "rtspUrl"
+            type: "string"
+            required: true
+            description: "RTSP stream URL (must be unique across all cameras)"
+          - name: "room_name"
+            type: "string"
+            required: true
+            description: "Name of the existing Room (references rooms.name)"
+      validation_rules:
+        row_level:
+          - "'name' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'name' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'name' already exists, the system will UPDATE the fields (rtspUrl, room_name) of the existing record. If 'name' does not exist, the system will CREATE NEW (INSERT)."
+          - "'rtspUrl' must be unique across all cameras (applies to both create and update)."
+          - "'room_name' must exist in the 'rooms' table (applies to both create and update). If not found, report error."
+          - "'name' and 'rtspUrl' must be valid and not empty (applies to both create and update)."
+          - "Validation for 'name' format and length (max 150 chars, pattern validation)."
+          - "Validation for 'rtspUrl' format and length (max 512 chars)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'room_name' does not exist, 'rtspUrl' already exists for another camera, format validation failed, or duplicate in 'Add Only' mode)."
+
 # Rule Dependencies and Relationships
 rule_relationships:
   authentication_flow:

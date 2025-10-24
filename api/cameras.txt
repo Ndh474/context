@@ -3,6 +3,7 @@ GET    	| /cameras 	   		| CAMERA_READ
 GET    	| /cameras/{id} 	| CAMERA_READ 
 PUT    	| /cameras/{id} 	| CAMERA_UPDATE 
 DELETE 	| /cameras/{id} 	| CAMERA_DELETE_HARD
+POST   	| /cameras/import 	| CAMERA_IMPORT
 
 ================================================ Create a new camera ==================================================
 1. POST /api/v1/cameras
@@ -326,6 +327,91 @@ Path Parameters:
 }
 
 =======================================================================================================================
+================================================ Bulk Import Cameras ==================================================
+Note:
+- HYPOTHESIS: This API implements "Upsert" logic based on 'name' as the key and supports 'Interactive Import Flow'.
+- API processes with 'Partial Success' pattern.
+
+6. POST /api/v1/cameras/import
+Permission: CAMERA_IMPORT (HYPOTHESIS: Need to add this permission)
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type        | Required | Validation / Description
+| file      | file (.csv) | Yes      | CSV file containing camera data, following BR-50 format (HYPOTHESIS).
+| mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
+
+Business Rules:
+- HYPOTHESIS: Reference BR-50 (Bulk Import Cameras CSV Format and Validation).
+- If mode = 'AddOnly': Skip rows where 'name' already exists.
+- If mode = 'AddAndUpdate': Update rows where 'name' already exists (rtspUrl, room_name).
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing error rows. Empty array '[]' means all rows succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 2,
+      "errorCode": "ROOM_NOT_FOUND",
+      "message": "Room name 'Room Z999' not found."
+    },
+    {
+      "rowNumber": 4,
+      "errorCode": "RTSP_URL_EXISTS",
+      "message": "RTSP URL 'rtsp://...' already exists for another camera."
+    },
+    {
+      "rowNumber": 5,
+      "errorCode": "CAMERA_NAME_EXISTS",
+      "message": "Duplicate 'name' (Camera B201-01) in 'AddOnly' mode."
+    }
+  ]
+}
+
+Response Schema:
+| Field      | Type          | Description
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error objects (empty if all rows succeeded)
+
+Error Object Schema:
+| Field      | Type    | Description
+| rowNumber  | integer | Row number in CSV file (1-based, excluding header)
+| errorCode  | string  | Error code identifier
+| message    | string  | Human-readable error message
+
+Possible Error Codes in data array:
+- ROOM_NOT_FOUND: Room name not found in database
+- RTSP_URL_EXISTS: RTSP URL already exists for another camera
+- CAMERA_NAME_EXISTS: Duplicate name in AddOnly mode
+- CAMERA_NAME_REQUIRED: Name field is blank
+- CAMERA_RTSP_URL_REQUIRED: RTSP URL field is blank
+- CAMERA_ROOM_ID_REQUIRED: Room name field is blank
+- INVALID_FIELD_FORMAT: Field format validation failed
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format / Missing required columns",
+  "code": "INVALID_CSV_FORMAT" | "MISSING_CSV_COLUMNS"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission CAMERA_IMPORT is required.",
+  "code": "FORBIDDEN"
+}
+
+=======================================================================================================================
 ====================================================== Notes ==========================================================
 
 - Camera ID is of type Short (max value: 32,767)
@@ -339,6 +425,9 @@ Path Parameters:
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if camera has dependencies
 - Camera can be reassigned to different room via PUT endpoint
+- HYPOTHESIS: Import endpoint supports 'Interactive Import Flow' with partial success pattern
+- HYPOTHESIS: Import mode 'AddOnly' skips existing cameras (by name), 'AddAndUpdate' updates them
+- HYPOTHESIS: Import always returns 200 OK with error array (empty array means all rows succeeded)
 -  = Modified
 
 Common Status Codes:

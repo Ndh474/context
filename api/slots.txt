@@ -3,6 +3,7 @@ GET    	| /slots 	   		| Get all slots 		| SLOT_READ
 GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ 
 PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE | SLOT_UPDATE_CATEGORY | SLOT_UPDATE_FINAL_EXAM
 DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD
+POST   	| /slots/import 		| Bulk import slots 	| SLOT_IMPORT
 GET /api/v1/slots/{id}/roster
 POST /api/v1/slots/{id}/start-session 
 POST /api/v1/slots/{id}/rescan 
@@ -762,6 +763,115 @@ Path Parameters:
   "status": 409,
   "message": "Cannot delete slot. Found 25 attendance records and 15 exam attendance records. Please delete them first or contact administrator",
   "code": "SLOT_HAS_DEPENDENCIES"
+}
+
+=======================================================================================================================
+================================================== Bulk Import Slots ==================================================
+Note:
+- This API implements "Upsert" logic based on Business Rule BR-46 and supports 'Interactive Import Flow'.
+- API processes with 'Partial Success' pattern (saves valid rows, returns error rows).
+- Business key to identify duplicates/updates is the combination (class_code, semester_code, start_time, room_name, staff_username).
+
+6. POST /api/v1/slots/import
+Permission: SLOT_IMPORT
+
+Request Body: (Content-Type: multipart/form-data)
+| Part Name | Type        | Required | Validation / Description
+| file      | file (.csv) | Yes      | CSV file containing slot data, following BR-46 format.
+| mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
+
+Business Rules:
+- Reference BR-46 (Bulk Import Slots CSV Format and Validation) from core_context.json.
+- If mode = 'AddOnly': Skip rows where the business key combination already exists.
+- If mode = 'AddAndUpdate': Update rows where the business key combination already exists (only updates endTime, slotCategory, title).
+
+200-Success Response (Returns only error list):
+(Always returns 200 OK. 'data' is an ARRAY containing error rows. Empty array '[]' means all rows in this batch succeeded.)
+{
+  "status": 200,
+  "message": "Import processed.",
+  "data": [
+    {
+      "rowNumber": 3,
+      "errorCode": "ROOM_NOT_FOUND",
+      "message": "Room name 'Room K999' not found."
+    },
+    {
+      "rowNumber": 6,
+      "errorCode": "STAFF_NOT_FOUND",
+      "message": "Staff username 'unknown.lecturer' not found or inactive."
+    },
+    {
+      "rowNumber": 8,
+      "errorCode": "INVALID_SLOT_CATEGORY",
+      "message": "Invalid slot category 'MEETING'. Must be LECTURE, LECTURE_WITH_PT, or FINAL_EXAM."
+    },
+    {
+      "rowNumber": 10,
+      "errorCode": "SLOT_TIME_CONFLICT",
+      "message": "Time conflict detected for this slot (Room or Staff already booked)."
+    },
+    {
+      "rowNumber": 12,
+      "errorCode": "SLOT_EXISTS",
+      "message": "Duplicate slot (matching key combination) found in 'AddOnly' mode."
+    },
+    {
+      "rowNumber": 15,
+      "errorCode": "CLASS_ID_REQUIRED_FOR_LECTURE",
+      "message": "Class code cannot be empty when slot category is LECTURE or LECTURE_WITH_PT."
+    }
+  ]
+}
+
+Response Schema:
+| Field      | Type          | Description
+| status     | integer       | Always 200 for processed requests
+| message    | string        | "Import processed."
+| data       | array[object] | Array of error objects (empty if all rows succeeded)
+
+Error Object Schema:
+| Field      | Type    | Description
+| rowNumber  | integer | Row number in CSV file (1-based, excluding header)
+| errorCode  | string  | Error code identifier
+| message    | string  | Human-readable error message
+
+Possible Error Codes in data array:
+- ROOM_NOT_FOUND: Room name not found
+- STAFF_NOT_FOUND: Staff username not found or inactive
+- CLASS_NOT_FOUND: Class code not found
+- SEMESTER_NOT_FOUND: Semester code not found
+- INVALID_SLOT_CATEGORY: Invalid slot category specified
+- SLOT_TIME_CONFLICT: Time conflict (room or staff already booked). Can be ROOM_TIME_CONFLICT or STAFF_TIME_CONFLICT
+- SLOT_EXISTS: Duplicate slot in AddOnly mode
+- CLASS_ID_REQUIRED_FOR_LECTURE: Class code required for LECTURE or LECTURE_WITH_PT category (BR-34 validation)
+- START_TIME_REQUIRED: Start time field is blank
+- END_TIME_REQUIRED: End time field is blank
+- ROOM_NAME_REQUIRED: Room name field is blank
+- STAFF_USERNAME_REQUIRED: Staff username field is blank
+- INVALID_TIME_FORMAT: Time format validation failed
+- INVALID_FIELD_FORMAT: Field format validation failed
+- START_TIME_AFTER_END_TIME: Start time must be before end time
+
+400-Bad Request (File or Mode missing/invalid):
+{
+  "status": 400,
+  "message": "Required part 'file' is not present / Invalid import mode.",
+  "code": "INVALID_MULTIPART_REQUEST" | "INVALID_IMPORT_MODE"
+}
+
+400-Invalid file format:
+{
+  "status": 400,
+  "message": "Invalid CSV format / Missing required columns",
+  "code": "INVALID_CSV_FORMAT" | "MISSING_CSV_COLUMNS"
+}
+
+403-Forbidden:
+{
+  "status": 403,
+  "message": "Permission SLOT_IMPORT is required.",
+  "code": "FORBIDDEN"
 }
 
 ================================================================================
