@@ -41,12 +41,6 @@ system_context:
       USER_ASSIGN_ROLES: "Assign or revoke roles from a user."
       CREATE_SYSTEM_ADMIN: "Create an account with System Admin role (extremely sensitive permission, only for system setup purposes)."
 
-    IDENTITY_MANAGEMENT:
-      IDENTITY_SUBMISSION_READ_QUEUE: "View the list of pending identity verification requests."
-      IDENTITY_SUBMISSION_READ_DETAIL: "View details of an identity verification request (video, ID card)."
-      IDENTITY_SUBMISSION_APPROVE: "Approve an identity verification request."
-      IDENTITY_SUBMISSION_REJECT: "Reject an identity verification request."
-
     ACADEMIC_CATALOG_MANAGEMENT:
       SEMESTER_CREATE: "Create a new semester."
       SEMESTER_READ: "View the list and details of semesters."
@@ -73,6 +67,11 @@ system_context:
       SLOT_CREATE_FINAL_EXAM: "Create a new slot classified as a Final Exam."
       SLOT_UPDATE_FINAL_EXAM: "Update the details of an existing Final Exam slot."
       SLOT_DELETE_HARD_FINAL_EXAM: "Permanently delete a Final Exam slot."
+      MAJOR_IMPORT: "Bulk import Majors via CSV."
+      SUBJECT_IMPORT: "Bulk import Subjects via CSV."
+      SEMESTER_IMPORT: "Bulk import Semesters via CSV."
+      CLASS_IMPORT: "Bulk import Classes via CSV."
+      SLOT_IMPORT: "Bulk import Slots via CSV."
 
     INFRASTRUCTURE_MANAGEMENT:
       ROOM_CREATE: "Create a new room."
@@ -116,7 +115,6 @@ system_context:
 
     STUDENT_PERMISSIONS:
       OWN_ATTENDANCE_HISTORY_READ: "View own attendance history."
-      OWN_IDENTITY_SUBMIT: "Submit identity registration or update request."
 
     GENERAL_PERMISSIONS:
       OWN_PROFILE_READ: "View own personal profile information."
@@ -159,25 +157,26 @@ system_context:
           "USER_UPDATE_INFO",
           "USER_UPDATE_STATUS",
           "USER_ASSIGN_ROLES",
-          "IDENTITY_SUBMISSION_READ_QUEUE",
-          "IDENTITY_SUBMISSION_READ_DETAIL",
-          "IDENTITY_SUBMISSION_APPROVE",
-          "IDENTITY_SUBMISSION_REJECT",
           "SEMESTER_CREATE",
           "SEMESTER_READ",
           "SEMESTER_UPDATE",
+          "SEMESTER_IMPORT",
           "MAJOR_CREATE",
           "MAJOR_READ",
           "MAJOR_UPDATE",
+          "MAJOR_IMPORT",
           "SUBJECT_CREATE",
           "SUBJECT_READ",
           "SUBJECT_UPDATE",
+          "SUBJECT_IMPORT",
           "CLASS_CREATE",
           "CLASS_READ",
           "CLASS_UPDATE",
+          "CLASS_IMPORT",
           "SLOT_CREATE",
           "SLOT_READ",
           "SLOT_UPDATE",
+          "SLOT_IMPORT",
           "ENROLLMENT_MANAGE",
           "SLOT_CREATE_FINAL_EXAM",
           "SLOT_UPDATE_FINAL_EXAM",
@@ -260,7 +259,6 @@ system_context:
         [
           "OWN_SCHEDULE_READ",
           "OWN_ATTENDANCE_HISTORY_READ",
-          "OWN_IDENTITY_SUBMIT",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
           "ROOM_READ",
@@ -291,7 +289,6 @@ system_context:
       - "Manage academic catalogs"
       - "Receive and export attendance reports"
       - "Query & reconcile data"
-      - "Manage & Review identity registration submissions"
       - "Manage user accounts"
       - "Manage slot enrollment"
       - "Export academic data"
@@ -299,6 +296,8 @@ system_context:
       - "View operational activity logs"
       - "Manage Majors"
       - "Manage bulk student enrollments via CSV import"
+      - "Bulk import student identity data (Photos + Vectors)"
+      - "Bulk import academic catalog data (Semester, Major, Subject, Class, Slot)"
 
     system_admin_functions:
       - "Configure system (AI model, similarity threshold, etc.)"
@@ -334,26 +333,16 @@ system_context:
         features:
           - "View detailed slot information (including slot type: LECTURE or EXAM)"
 
-      SCR_STUDENT_IDENTITY_REG:
-        title: "Identity Registration Screens"
-        features:
-          - "Identity registration instructions"
-          - "Step 1: Interface to capture a static face photo."
-          - "Step 2: Interface to record a short face video."
-          - "Review and submit screen"
-          - "Waiting screen/approval result notification"
-
       SCR_STUDENT_PROFILE:
         title: "Profile Screen"
         features:
-          - "'Request Identity Update' button"
           - "'Change Password' function"
 
       SCR_STUDENT_NOTIFICATIONS:
         title: "Notifications Inbox"
         features:
-          - "System notifications feed (identity status, absence warnings, etc.)"
-          - "Filters: All | Identity requests | Absence warnings | System alerts"
+          - "System notifications feed (absence warnings, system alerts, etc.)"
+          - "Filters: All | Absence warnings | System alerts"
           - "Unread indicator at notification level and filter level"
           - "View notification details"
 
@@ -445,8 +434,10 @@ system_context:
       SCR_ADMIN_CRUD_ACADEMIC:
         title: "CRUD Screens (Data Operator)"
         features:
-          - "Manage Classes, Subjects, and Majors."
-          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL)."
+          - "Manage Semesters, Majors, Subjects, and Classes (View list, Create, Edit, Update status)."
+          - "On each respective management screen (e.g., Semester list, Class list), provide 'Import from CSV' and 'Export to CSV' buttons."
+          - "The 'Import' button opens a modal allowing file upload, template download, and displays validation results (implements UC-82, UC-83, UC-84, UC-85). The modal must include an option (e.g., radio button) for 'Import Mode': [1] 'Add Only (Skip duplicates)', [2] 'Add and Update (Overwrite if duplicate exists)'."
+          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button implementing UC-86 (also includes the 'Import Mode' option)."
           - "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table)."
           - "Add/Remove students from a class (Roster Management for class-based slots only)."
 
@@ -461,13 +452,6 @@ system_context:
         features:
           - "View history of business data changes (who, what, when)"
           - "Filter by actor, action type, and time range"
-
-      SCR_ADMIN_IDENTITY_QUEUE:
-        title: "Identity Registration Approval Queue (Data Operator)"
-        features:
-          - "List of pending identity registration/update requests"
-          - "Interface to compare information (new photo, old photo, ID card)"
-          - "Approve/Reject buttons (with reason)"
 
       SCR_ADMIN_USER_MGMT:
         title: "User & Role Management (Data Operator)"
@@ -516,8 +500,17 @@ system_context:
           - "Display a data table of students registered for the selected (Slot + Subject) pair (from 'exam_slot_participants' table)."
           - "Function to manually add a student (by student_id) to the selected (Slot + Subject) pair. System must validate business logic (e.g., is the student enrolled in this subject during the semester)."
           - "Function to remove a student from the list."
-          - "Interface to upload a CSV file to bulk-import participants (implements UC-65). The CSV file must contain (student_id, subject_code)."
+          - "Interface to upload a CSV file to bulk-import participants (implements UC-60). The CSV file must contain (student_id, subject_code)."
           - "Button to download CSV template (new template with 2 columns)."
+
+      SCR_ADMIN_BULK_IDENTITY_IMPORT:
+        title: "Bulk Identity Import (Data Operator)"
+        features:
+          - "Interface to upload a .CSV file (containing student_id list)"
+          - "Interface to upload a .ZIP file (containing photos named by student_id, e.g., 'HE180001.jpg')"
+          - "Button 'Start Import Job' to trigger background processing"
+          - "A status table/log showing the result of the latest import jobs (e.g., 'Completed: 990/1000 successful', 'Failed: 10')"
+          - "Ability to download error report for failed imports"
 
   complex_component_catalog:
     COMPLEX_SEMESTER_DATATABLE:
@@ -555,23 +548,18 @@ system_context:
       finalization_confirmation: "The system must display a warning dialog and request confirmation if the user finalizes a lecture/exam slot while there are still students in 'not_yet' status."
 
   technical_flows:
-    identity_registration_flow: "A one-time process for students to register their identity. Students first take a static face photo (which will become the base image for comparison), then record a short face video (used to generate the recognition vector). The data is then sent to Data Operator for manual approval."
-
-    identity_re_registration_flow: "Students can submit a request to update their identity. The process is the same as the initial registration: they must provide a new static face photo and a new face video. This request also requires Data Operator approval. During the waiting period, the system still uses the old photo and vector for attendance."
-
-    identity_submission_rejection_flow: "When Data Operator rejects an identity registration/update request, the system automatically sends a system notification to the student. This notification includes the rejection reason and will appear in the student's Notification Inbox."
-
     evidence_cleanup_flow:
       title: "Temporary Attendance Evidence Cleanup Flow"
       description: "A scheduled job that runs periodically (e.g., daily) to delete old attendance evidence images and their corresponding database records from both regular and exam attendance tables to save storage space."
-      steps: [
-        "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
-        "2. Read Configuration: The job reads the value of 'attendance.evidence_retention_days' from system_configurations (e.g., 30 days).",
-        "3. Scan for Old Regular Evidence: The job queries the 'regular_attendance_evidences' table to find all records older than the retention period.",
-        "4. Delete Regular Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
-        "5. Scan for Old Exam Evidence: The job queries the 'exam_attendance_evidences' table to find all records older than the retention period.",
-        "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record."
-      ]
+      steps:
+        [
+          "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
+          "2. Read Configuration: The job reads the value of 'attendance.evidence_retention_days' from system_configurations (e.g., 30 days).",
+          "3. Scan for Old Regular Evidence: The job queries the 'regular_attendance_evidences' table to find all records older than the retention period.",
+          "4. Delete Regular Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
+          "5. Scan for Old Exam Evidence: The job queries the 'exam_attendance_evidences' table to find all records older than the retention period.",
+          "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
+        ]
 
     face_identification_flow: "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system adds a new event to the student's history record and updates the displayed status on the interface based on the latest result. This process does not overwrite old data."
 
@@ -594,6 +582,42 @@ system_context:
         - "3. Scan for Finalized Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that were finalized within the previous calendar day (from 00:00:00 to 23:59:59)."
         - "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student."
         - "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
+
+    bulk_identity_import_flow:
+      title: "Bulk Identity Import Flow (Admin)"
+      description: "A background job flow triggered by Data Operator to import student identity data (base photo and vector) in bulk."
+      steps:
+        - "1. Trigger: Data Operator uploads a CSV (student_id list) and a ZIP (photos named by student_id) via 'SCR_ADMIN_BULK_IDENTITY_IMPORT' and starts the job."
+        - "2. Orchestration (Spring Boot): The main service receives the files, saves them temporarily, and starts an asynchronous job."
+        - "3. Job Processing (Spring Boot):"
+        - "  a. Unzip the ZIP file to a temporary directory."
+        - "  b. Read the CSV file row by row (e.g., 'HE180001')."
+        - "  c. For each student_id: Find the matching photo ('HE180001.jpg') in the temp directory."
+        - "  d. Send the photo (binary) to the Python 'recognition_service' API."
+        - "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot."
+        - "  f. (Spring Boot): Uploads the original photo to cloud storage (e.g., S3) to get a URL."
+        - "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, is_active) VALUES (...)."
+        - "  h. Log success or failure for this student."
+        - "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk."
+        - "5. Reporting: The job status is updated on the admin screen, allowing DOP to see the results."
+
+    bulk_catalog_import_flow:
+      title: "Bulk Academic Catalog Import Flow (Admin)"
+      description: "A background job flow to import academic catalog data (Majors, Subjects, Semesters, Classes, Slots) from CSV files with Upsert capability."
+      steps:
+        - "1. Trigger: Data Operator navigates to 'SCR_ADMIN_CRUD_ACADEMIC', selects 'Import Mode' (Add Only or Add and Update) and uploads a CSV file."
+        - "2. Orchestration (Spring Boot): Receives the file, saves it temporarily, and starts an asynchronous job (passes the selected 'Import Mode')."
+        - "3. Job Processing (Spring Boot):"
+        - "  a. Read CSV file (e.g., 'semesters.csv')."
+        - "  b. Iterate through each row and validate syntax (e.g., date format in BR-44)."
+        - "  c. (Business Logic): Find existing record in database based on 'code' (e.g., 'semesters.code')."
+        - "  d. (Branch based on Import Mode):"
+        - "    - If FOUND and mode is 'Add and Update': UPDATE the record with new data from file."
+        - "    - If FOUND and mode is 'Add Only': SKIP and log 'duplicate'."
+        - "    - If NOT FOUND: CREATE NEW (INSERT) record."
+        - "  e. (Log Error): Record errors (e.g., validation failed, or 'major_code' does not exist as in BR-43)."
+        - "4. Cleanup (Spring Boot): Delete temporary CSV file."
+        - "5. Reporting: Update job status on UI, allow DOP to download detailed error log."
 
   information_flows:
     - "Student ↔ System: view schedule/slots; view attendance status"
@@ -703,31 +727,31 @@ system_context:
 
     dictionary:
       slot:
-        ui_label: "Buổi học/thi (Slot)"
+        ui_label: "Slot"
         concept_key: "slot"
         description: "A unit of lecture or exam session in the schedule."
 
       roster:
-        ui_label: "Danh sách lớp (Roster)"
+        ui_label: "Roster"
         concept_key: "roster"
         description: "Student list of a slot used to monitor and review attendance status."
 
       supervisor:
-        ui_label: "Giám thị (Supervisor)"
+        ui_label: "Supervisor"
         concept_key: "supervisor"
         description: "Person responsible for supervising and taking attendance for an exam slot."
 
       system_notification:
-        ui_label: "Thông báo hệ thống (System Notification)"
+        ui_label: "System Notification"
         concept_key: "system_notification"
         description: "Notification issued by the system to target users."
 
       automated_attendance:
-        ui_label: "Điểm danh tự động (Automated Attendance)"
+        ui_label: "Automated Attendance"
         description: "System automatically takes attendance via IP cameras."
 
       attendance_status_values:
-        ui_label: "Trạng thái điểm danh (Attendance Statuses)"
+        ui_label: "Attendance Statuses"
         values: ["not_yet", "present", "absent"]
 
     mappings:

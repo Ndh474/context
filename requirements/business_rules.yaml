@@ -3,7 +3,7 @@
 
 metadata:
   version: "1.1"
-  total_business_rules: 40
+  total_business_rules: 37
   domains_covered:
     [
       Authentication,
@@ -15,7 +15,7 @@ metadata:
       Audit,
       Infrastructure,
     ]
-  last_updated: "2025-10-21"
+  last_updated: "2025-10-24"
 
 business_rules:
   # Authentication & User Management (BR-01 to BR-07)
@@ -76,41 +76,6 @@ business_rules:
       priority: "High"
       related_use_cases: ["UC-34"]
       validation_points: ["User creation workflow"]
-
-  # Identity Management (BR-08 to BR-11)
-  identity_management:
-    BR-08:
-      title: "Initial Identity Registration Requirements"
-      description: "A student's identity registration request (both initial and update) must include a static face photo and a short face video."
-      domain: "Identity"
-      priority: "High"
-      related_use_cases: ["UC-12", "UC-13"]
-      validation_points: ["Identity submission creation"]
-
-    BR-09:
-      title: "Manual Identity Approval"
-      description: "All identity registration or update requests must be manually approved by a user with the appropriate permissions (e.g., IDENTITY_SUBMISSION_APPROVE)."
-      domain: "Identity"
-      priority: "High"
-      related_use_cases: ["UC-12", "UC-13", "UC-39", "UC-40", "UC-41"]
-      validation_points: ["Identity submission workflow"]
-
-    BR-10:
-      title: "Pending Identity Update Handling"
-      description: "While an identity update request is pending approval, the system must continue to use the previously approved identity data for attendance checking."
-      domain: "Identity"
-      priority: "Medium"
-      related_use_cases: ["UC-13"]
-      validation_points:
-        ["Face recognition process", "Identity update workflow"]
-
-    BR-11:
-      title: "Identity Rejection Notification"
-      description: "When an identity submission is rejected, the system must automatically send a system notification to the student, stating the reason for rejection."
-      domain: "Identity"
-      priority: "Medium"
-      related_use_cases: ["UC-11", "UC-41"]
-      validation_points: ["Identity rejection workflow"]
 
   # Academic Catalog (BR-12 to BR-17)
   academic_catalog:
@@ -234,7 +199,7 @@ business_rules:
       description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
       domain: "System"
       priority: "Critical"
-      related_use_cases: ["UC-80", "UC-81", "UC-84", "UC-85"]
+      related_use_cases: ["UC-76", "UC-77", "UC-80", "UC-81"]
       validation_points:
         ["System configuration access", "Role-permission management"]
 
@@ -347,20 +312,20 @@ business_rules:
 
     BR-32:
       title: "Face Embedding Version Management"
-      description: "Rules for managing face embedding versions when identity is updated. Each approved identity submission generates a new embedding with incremented version. Only one embedding per student can be active at a time."
+      description: "Rules for managing face embedding versions when identity data is updated via the Bulk Import flow. Each successful import generates a new embedding with incremented version. Only one embedding per student can be active at a time."
       domain: "Identity"
       priority: "High"
-      related_use_cases: ["UC-12", "UC-13", "UC-40"]
+      related_use_cases: ["UC-75"]
       validation_points:
-        ["Identity approval workflow", "Face recognition query"]
+        ["Bulk Identity Import processing job", "Face recognition query"]
       rules:
         version_increment:
-          - "Each approved identity submission generates a new embedding with version = max(version) + 1"
-          - "Initial registration: version = 1"
-          - "First update: version = 2, etc."
+          - "Each successful bulk import for a student generates a new embedding with version = max(existing_version) + 1"
+          - "Initial import: version = 1"
+          - "First re-import: version = 2, etc."
         active_embedding:
           - "Only ONE embedding per student can have is_active = true"
-          - "When new embedding is approved, old embedding is set to is_active = false"
+          - "When new embedding is imported, old embedding is set to is_active = false"
           - "System uses only the active embedding for face recognition"
         retention_policy:
           - "Keep last 3 versions for audit and rollback purposes"
@@ -398,7 +363,8 @@ business_rules:
       domain: "Academic"
       priority: "Critical"
       related_use_cases: ["UC-24", "UC-25", "UC-26", "UC-58", "UC-60"]
-      validation_points: ["Slot creation API", "Slot update API", "Attendance processing logic"]
+      validation_points:
+        ["Slot creation API", "Slot update API", "Attendance processing logic"]
       rules:
         class_based_slots:
           categories: ["LECTURE", "LECTURE_WITH_PT"]
@@ -518,7 +484,8 @@ business_rules:
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-64", "UC-65"]
-      validation_points: ["Exam participant creation", "Bulk exam participant import"]
+      validation_points:
+        ["Exam participant creation", "Bulk exam participant import"]
 
     BR-39:
       title: "Exam Participant Roster Visibility"
@@ -526,7 +493,8 @@ business_rules:
       domain: "Academic"
       priority: "High"
       related_use_cases: ["UC-29", "UC-64"]
-      validation_points: ["Roster query API for exam slots", "Exam attendance processing"]
+      validation_points:
+        ["Roster query API for exam slots", "Exam attendance processing"]
 
     BR-40:
       title: "Bulk Exam Participant CSV Format and Validation"
@@ -534,7 +502,11 @@ business_rules:
       domain: "Academic"
       priority: "Medium"
       related_use_cases: ["UC-65"]
-      validation_points: ["CSV upload API for exam participants", "Bulk exam participant processing"]
+      validation_points:
+        [
+          "CSV upload API for exam participants",
+          "Bulk exam participant processing",
+        ]
       csv_format:
         encoding: "UTF-8 with BOM"
         delimiter: "comma (,)"
@@ -571,15 +543,242 @@ business_rules:
           - "Provide detailed error list for failed rows"
           - "Provide warning list for skipped rows (duplicates, already enrolled)"
 
+    BR-41:
+      title: "Bulk Identity Data CSV/ZIP Format and Validation"
+      description: "Defines the file formats and validation rules for bulk importing student identity data (base photos and generating vectors)."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-75"]
+      validation_points:
+        ["CSV/ZIP upload API for identity data", "Bulk identity processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        delimiter: "comma (,)"
+        header_row: "Required (first row)"
+        columns:
+          - name: "student_id"
+            type: "string"
+            required: true
+            description: "Student's username (Student ID)"
+      zip_format:
+        description: "A .ZIP file containing all base photos. File names must match the 'student_id' in the CSV (e.g., 'HE180001.jpg', 'HE180002.png')."
+      validation_rules:
+        file_level:
+          - "Must upload 1 CSV and 1 ZIP simultaneously."
+          - "Maximum 2000 rows in CSV (excluding header)."
+          - "ZIP file size must not exceed 100MB."
+        row_level:
+          - "'student_id' from CSV must exist in the 'users' table and have the 'STUDENT' role."
+          - "A matching image file (e.g., 'student_id.jpg' or 'student_id.png') must be found inside the ZIP file."
+          - "The image file must be successfully processed by the 'recognition_service' (Python)."
+        error_reporting:
+          - "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows."
+          - "The background job must log all errors (e.g., 'HE180001: file not found in ZIP', 'HE180002: invalid user', 'HE180003: face not detected in image')."
+          - "DOP can download this error log from the UI."
+
+    BR-42:
+      title: "Bulk Import Majors CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk importing Majors."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-82"]
+      validation_points:
+        ["CSV upload API for Majors", "Bulk catalog processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "code"
+            type: "string"
+            required: true
+            description: "Major code (e.g., 'SE')"
+          - name: "name"
+            type: "string"
+            required: true
+            description: "Major name (e.g., 'Software Engineering')"
+      validation_rules:
+        row_level:
+          - "'code' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the 'name' field of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT)."
+          - "'name' must be valid and not empty (applies to both create and update)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'name' is empty, or duplicate in 'Add Only' mode)."
+
+    BR-43:
+      title: "Bulk Import Subjects CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk importing Subjects."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-83"]
+      validation_points:
+        ["CSV upload API for Subjects", "Bulk catalog processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "code"
+            type: "string"
+            required: true
+            description: "Subject code (e.g., 'SWP391')"
+          - name: "name"
+            type: "string"
+            required: true
+            description: "Subject name (e.g., 'Application Development Project')"
+          - name: "major_code"
+            type: "string"
+            required: true
+            description: "Major code that this subject belongs to (references majors.code)"
+      validation_rules:
+        row_level:
+          - "'code' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (name, major_code) of the existing record and automatically update the relationships in the 'subject_majors' table. If 'code' does not exist, the system will CREATE NEW (INSERT)."
+          - "'major_code' must exist in the 'majors' table (applies to both create and update). If not found, report error."
+          - "'name' must be valid and not empty (applies to both create and update)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'major_code' does not exist, or duplicate in 'Add Only' mode)."
+
+    BR-44:
+      title: "Bulk Import Semesters CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk importing Semesters."
+      domain: "Academic"
+      priority: "Medium"
+      related_use_cases: ["UC-84"]
+      validation_points:
+        ["CSV upload API for Semesters", "Bulk catalog processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "code"
+            type: "string"
+            required: true
+            description: "Semester code (e.g., 'FA24')"
+          - name: "name"
+            type: "string"
+            required: true
+            description: "Semester name (e.g., 'Fall 2024')"
+          - name: "start_date"
+            type: "string (YYYY-MM-DD)"
+            required: true
+            description: "Start date"
+          - name: "end_date"
+            type: "string (YYYY-MM-DD)"
+            required: true
+            description: "End date"
+      validation_rules:
+        row_level:
+          - "'code' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (name, start_date, end_date) of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT)."
+          - "'start_date' must be a valid date and must be before 'end_date' (applies to both create and update)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'start_date' is invalid, or duplicate in 'Add Only' mode)."
+
+    BR-45:
+      title: "Bulk Import Classes CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk importing Classes."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-85"]
+      validation_points:
+        ["CSV upload API for Classes", "Bulk catalog processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "code"
+            type: "string"
+            required: true
+            description: "Class code (e.g., 'SE1801')"
+          - name: "subject_code"
+            type: "string"
+            required: true
+            description: "Subject code (references subjects.code)"
+          - name: "semester_code"
+            type: "string"
+            required: true
+            description: "Semester code (references semesters.code)"
+      validation_rules:
+        row_level:
+          - "'code' will be used as the business key."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (subject_code, semester_code) of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT)."
+          - "'subject_code' must exist in the 'subjects' table (applies to both create and update)."
+          - "'semester_code' must exist in the 'semesters' table (applies to both create and update)."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'subject_code' does not exist, or duplicate in 'Add Only' mode)."
+
+    BR-46:
+      title: "Bulk Import Slots CSV Format and Validation"
+      description: "Defines the CSV file format and validation rules for bulk importing Slots. This is the most complex flow, requiring Class, Staff, and Room data to exist beforehand."
+      domain: "Academic"
+      priority: "High"
+      related_use_cases: ["UC-86"]
+      validation_points:
+        ["CSV upload API for Slots", "Bulk catalog processing job"]
+      csv_format:
+        encoding: "UTF-8"
+        header_row: "Required"
+        columns:
+          - name: "class_code"
+            type: "string"
+            required: false
+            description: "Class code. Required if slot_category is LECTURE/LECTURE_WITH_PT."
+          - name: "semester_code"
+            type: "string"
+            required: true
+            description: "Semester code. Used to find 'class_id' (together with class_code) or 'semester_id' (for FINAL_EXAM)."
+          - name: "staff_username"
+            type: "string"
+            required: true
+            description: "Username (Staff ID) of the lecturer/supervisor (references users.username)."
+          - name: "room_name"
+            type: "string"
+            required: true
+            description: "Room name (references rooms.name)."
+          - name: "start_time"
+            type: "string (YYYY-MM-DD HH:MM:SS)"
+            required: true
+            description: "Start time (ISO format or similar, UTC timezone)."
+          - name: "end_time"
+            type: "string (YYYY-MM-DD HH:MM:SS)"
+            required: true
+            description: "End time (ISO format or similar, UTC timezone)."
+          - name: "slot_category"
+            type: "string"
+            required: true
+            description: "Must be one of: 'LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM'."
+          - name: "title"
+            type: "string"
+            required: false
+            description: "Title (e.g., 'Progress Test 1')."
+      validation_rules:
+        row_level:
+          - "Slot does not have a simple business key like 'code'. Instead, the combination (class_code, semester_code, start_time, room_name, staff_username) will be used to identify a unique slot."
+          - "Depending on the 'Import Mode' selected by DOP:"
+          - "  - 'Add Only' mode: If a matching slot is found (same combination), this row will be SKIPPED and reported as 'Duplicate'."
+          - "  - 'Add and Update' mode: If a matching slot is found, the system will UPDATE the fields (end_time, slot_category, title). If not found, the system will CREATE NEW (INSERT)."
+          - "'staff_username' must exist in the 'users' table and have role LECTURER or SUPERVISOR (applies to both create and update)."
+          - "'room_name' must exist in the 'rooms' table (applies to both create and update)."
+          - "'start_time' must be before 'end_time' (applies to both create and update)."
+          - "'slot_category' must be a valid value ('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM') (applies to both create and update)."
+          - "Validation logic (BR-34) (applies to both create and update):"
+          - "  - If 'slot_category' is 'LECTURE' or 'LECTURE_WITH_PT': 'class_code' and 'semester_code' must be provided and must find a valid 'class_id'."
+          - "  - If 'slot_category' is 'FINAL_EXAM': 'class_code' must be empty and 'semester_code' must find a valid 'semester_id'."
+        error_reporting:
+          - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'staff_username' not found, BR-34 logic failed, or duplicate in 'Add Only' mode)."
+
 # Rule Dependencies and Relationships
 rule_relationships:
   authentication_flow:
     primary_rules: ["BR-01", "BR-02", "BR-03", "BR-04"]
     description: "Rules governing user authentication and account validation"
-
-  identity_workflow:
-    primary_rules: ["BR-08", "BR-09", "BR-10", "BR-11"]
-    description: "Rules for identity registration and approval process"
 
   attendance_lifecycle:
     primary_rules:

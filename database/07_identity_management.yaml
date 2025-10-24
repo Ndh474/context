@@ -2,124 +2,6 @@
 # FUACS Database Schema - Version 1.0
 
 tables:
-  identity_submissions:
-    primary_key: id
-    description: "Student identity registration and update requests"
-    columns:
-      id:
-        type: INT
-        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
-        description: "Unique submission identifier"
-      created_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        default: now()
-        description: "Submission creation timestamp"
-      updated_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        description: "Submission last update timestamp"
-      reviewed_at:
-        type: timestamp
-        constraints: [NULL]
-        description: "When submission was reviewed (null if pending)"
-      student_user_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: users
-          column: id
-        description: "Student submitting identity request"
-      reviewed_by_user_id:
-        type: int
-        constraints: [NULL]
-        foreign_key:
-          table: users
-          column: id
-        description: "Data operator who reviewed the submission"
-      status:
-        type: ENUM('pending', 'approved', 'rejected')
-        constraints: [NOT NULL]
-        description: "Submission status: 'pending', 'approved', 'rejected'"
-      submission_type:
-        type: ENUM('initial', 'update')
-        constraints: [NOT NULL]
-        description: "Type of submission: 'initial', 'update'"
-      rejection_reason:
-        type: text
-        constraints: [NULL]
-        description: "Reason for rejection (required if status is 'rejected')"
-    indexes:
-      - name: idx_identity_submissions_status
-        columns: [status]
-        description: "For pending queue queries"
-      
-      - name: idx_identity_submissions_student_user_id
-        columns: [student_user_id]
-        description: "For student identity history queries"
-      
-      - name: idx_identity_submissions_reviewed_at
-        columns: [reviewed_at]
-        description: "For filtering reviewed vs pending submissions"
-    notes:
-      - "Initial submissions require both face video and face photo"
-      - "Update submissions only require face video"
-      - "Approved submissions trigger face embedding generation"
-
-  identity_assets:
-    primary_key: id
-    description: "Files uploaded as part of identity submissions"
-    columns:
-      id:
-        type: INT
-        constraints: [NOT NULL, PRIMARY KEY, AUTO_INCREMENT]
-        description: "Unique asset identifier"
-      created_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        default: now()
-        description: "Asset creation timestamp"
-      updated_at:
-        type: timestamp
-        constraints: [NOT NULL]
-        description: "Asset last update timestamp"
-      submission_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: identity_submissions
-          column: id
-        description: "Reference to identity submission"
-      is_active:
-        type: boolean
-        constraints: [NOT NULL]
-        default: true
-        description: "Asset status"
-      asset_type:
-        type: ENUM('face_video', 'face_photo')
-        constraints: [NOT NULL]
-        description: "Type of asset: 'face_video' or 'face_photo'"
-      storage_url:
-        type: varchar(255)
-        constraints: [NOT NULL]
-        description: "URL/path to stored file"
-    indexes:
-      - name: idx_identity_assets_submission_id
-        columns: [submission_id]
-        description: "For querying all assets belonging to a specific submission"
-      
-      - name: idx_identity_assets_asset_type
-        columns: [asset_type]
-        description: "For filtering assets by type (face_video, face_photo)"
-      
-      - name: idx_identity_assets_submission_type
-        columns: [submission_id, asset_type]
-        description: "For querying specific asset types within a submission"
-    notes:
-      - "Each submission can have multiple assets"
-      - "Face videos are processed to generate embeddings"
-      - "Face photos are used for manual verification by data operators"
-
   face_embeddings:
     primary_key: id
     description: "Vector embeddings generated from approved face videos for recognition"
@@ -144,13 +26,6 @@ tables:
           table: users
           column: id
         description: "Student this embedding belongs to"
-      generated_from_asset_id:
-        type: int
-        constraints: [NOT NULL]
-        foreign_key:
-          table: identity_assets
-          column: id
-        description: "Source asset used to generate this embedding"
       version:
         type: int
         constraints: [NOT NULL]
@@ -170,7 +45,7 @@ tables:
         where: "is_active = true"
         unique: true
         description: "Ensure only one active embedding per student"
-      
+
       - name: idx_face_embeddings_vector
         type: "ivfflat"
         columns: [embedding_vector]

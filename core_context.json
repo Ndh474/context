@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-21T23:51:23.875378",
+      "generated_at": "2025-10-24T18:33:16.225953",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
@@ -52,12 +52,6 @@
           "USER_ASSIGN_ROLES": "Assign or revoke roles from a user.",
           "CREATE_SYSTEM_ADMIN": "Create an account with System Admin role (extremely sensitive permission, only for system setup purposes)."
         },
-        "IDENTITY_MANAGEMENT": {
-          "IDENTITY_SUBMISSION_READ_QUEUE": "View the list of pending identity verification requests.",
-          "IDENTITY_SUBMISSION_READ_DETAIL": "View details of an identity verification request (video, ID card).",
-          "IDENTITY_SUBMISSION_APPROVE": "Approve an identity verification request.",
-          "IDENTITY_SUBMISSION_REJECT": "Reject an identity verification request."
-        },
         "ACADEMIC_CATALOG_MANAGEMENT": {
           "SEMESTER_CREATE": "Create a new semester.",
           "SEMESTER_READ": "View the list and details of semesters.",
@@ -83,7 +77,12 @@
           "SLOT_UPDATE_CATEGORY": "Update slot category (Lecturer can change LECTURE ↔ LECTURE_WITH_PT).",
           "SLOT_CREATE_FINAL_EXAM": "Create a new slot classified as a Final Exam.",
           "SLOT_UPDATE_FINAL_EXAM": "Update the details of an existing Final Exam slot.",
-          "SLOT_DELETE_HARD_FINAL_EXAM": "Permanently delete a Final Exam slot."
+          "SLOT_DELETE_HARD_FINAL_EXAM": "Permanently delete a Final Exam slot.",
+          "MAJOR_IMPORT": "Bulk import Majors via CSV.",
+          "SUBJECT_IMPORT": "Bulk import Subjects via CSV.",
+          "SEMESTER_IMPORT": "Bulk import Semesters via CSV.",
+          "CLASS_IMPORT": "Bulk import Classes via CSV.",
+          "SLOT_IMPORT": "Bulk import Slots via CSV."
         },
         "INFRASTRUCTURE_MANAGEMENT": {
           "ROOM_CREATE": "Create a new room.",
@@ -126,8 +125,7 @@
           "PERMISSION_DELETE_HARD": "Permanently delete a permission from the master catalog. Extremely dangerous action that can break role assignments."
         },
         "STUDENT_PERMISSIONS": {
-          "OWN_ATTENDANCE_HISTORY_READ": "View own attendance history.",
-          "OWN_IDENTITY_SUBMIT": "Submit identity registration or update request."
+          "OWN_ATTENDANCE_HISTORY_READ": "View own attendance history."
         },
         "GENERAL_PERMISSIONS": {
           "OWN_PROFILE_READ": "View own personal profile information.",
@@ -166,25 +164,26 @@
             "USER_UPDATE_INFO",
             "USER_UPDATE_STATUS",
             "USER_ASSIGN_ROLES",
-            "IDENTITY_SUBMISSION_READ_QUEUE",
-            "IDENTITY_SUBMISSION_READ_DETAIL",
-            "IDENTITY_SUBMISSION_APPROVE",
-            "IDENTITY_SUBMISSION_REJECT",
             "SEMESTER_CREATE",
             "SEMESTER_READ",
             "SEMESTER_UPDATE",
+            "SEMESTER_IMPORT",
             "MAJOR_CREATE",
             "MAJOR_READ",
             "MAJOR_UPDATE",
+            "MAJOR_IMPORT",
             "SUBJECT_CREATE",
             "SUBJECT_READ",
             "SUBJECT_UPDATE",
+            "SUBJECT_IMPORT",
             "CLASS_CREATE",
             "CLASS_READ",
             "CLASS_UPDATE",
+            "CLASS_IMPORT",
             "SLOT_CREATE",
             "SLOT_READ",
             "SLOT_UPDATE",
+            "SLOT_IMPORT",
             "ENROLLMENT_MANAGE",
             "SLOT_CREATE_FINAL_EXAM",
             "SLOT_UPDATE_FINAL_EXAM",
@@ -264,7 +263,6 @@
           "permissions": [
             "OWN_SCHEDULE_READ",
             "OWN_ATTENDANCE_HISTORY_READ",
-            "OWN_IDENTITY_SUBMIT",
             "OWN_PROFILE_READ",
             "OWN_PASSWORD_UPDATE",
             "ROOM_READ",
@@ -295,14 +293,15 @@
           "Manage academic catalogs",
           "Receive and export attendance reports",
           "Query & reconcile data",
-          "Manage & Review identity registration submissions",
           "Manage user accounts",
           "Manage slot enrollment",
           "Export academic data",
           "Manage Camera and Room catalogs",
           "View operational activity logs",
           "Manage Majors",
-          "Manage bulk student enrollments via CSV import"
+          "Manage bulk student enrollments via CSV import",
+          "Bulk import student identity data (Photos + Vectors)",
+          "Bulk import academic catalog data (Semester, Major, Subject, Class, Slot)"
         ],
         "system_admin_functions": [
           "Configure system (AI model, similarity threshold, etc.)",
@@ -343,28 +342,17 @@
               "View detailed slot information (including slot type: LECTURE or EXAM)"
             ]
           },
-          "SCR_STUDENT_IDENTITY_REG": {
-            "title": "Identity Registration Screens",
-            "features": [
-              "Identity registration instructions",
-              "Step 1: Interface to capture a static face photo.",
-              "Step 2: Interface to record a short face video.",
-              "Review and submit screen",
-              "Waiting screen/approval result notification"
-            ]
-          },
           "SCR_STUDENT_PROFILE": {
             "title": "Profile Screen",
             "features": [
-              "'Request Identity Update' button",
               "'Change Password' function"
             ]
           },
           "SCR_STUDENT_NOTIFICATIONS": {
             "title": "Notifications Inbox",
             "features": [
-              "System notifications feed (identity status, absence warnings, etc.)",
-              "Filters: All | Identity requests | Absence warnings | System alerts",
+              "System notifications feed (absence warnings, system alerts, etc.)",
+              "Filters: All | Absence warnings | System alerts",
               "Unread indicator at notification level and filter level",
               "View notification details"
             ]
@@ -471,8 +459,10 @@
           "SCR_ADMIN_CRUD_ACADEMIC": {
             "title": "CRUD Screens (Data Operator)",
             "features": [
-              "Manage Classes, Subjects, and Majors.",
-              "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL).",
+              "Manage Semesters, Majors, Subjects, and Classes (View list, Create, Edit, Update status).",
+              "On each respective management screen (e.g., Semester list, Class list), provide 'Import from CSV' and 'Export to CSV' buttons.",
+              "The 'Import' button opens a modal allowing file upload, template download, and displays validation results (implements UC-82, UC-83, UC-84, UC-85). The modal must include an option (e.g., radio button) for 'Import Mode': [1] 'Add Only (Skip duplicates)', [2] 'Add and Update (Overwrite if duplicate exists)'.",
+              "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button implementing UC-86 (also includes the 'Import Mode' option).",
               "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table).",
               "Add/Remove students from a class (Roster Management for class-based slots only)."
             ]
@@ -489,14 +479,6 @@
             "features": [
               "View history of business data changes (who, what, when)",
               "Filter by actor, action type, and time range"
-            ]
-          },
-          "SCR_ADMIN_IDENTITY_QUEUE": {
-            "title": "Identity Registration Approval Queue (Data Operator)",
-            "features": [
-              "List of pending identity registration/update requests",
-              "Interface to compare information (new photo, old photo, ID card)",
-              "Approve/Reject buttons (with reason)"
             ]
           },
           "SCR_ADMIN_USER_MGMT": {
@@ -551,8 +533,18 @@
               "Display a data table of students registered for the selected (Slot + Subject) pair (from 'exam_slot_participants' table).",
               "Function to manually add a student (by student_id) to the selected (Slot + Subject) pair. System must validate business logic (e.g., is the student enrolled in this subject during the semester).",
               "Function to remove a student from the list.",
-              "Interface to upload a CSV file to bulk-import participants (implements UC-65). The CSV file must contain (student_id, subject_code).",
+              "Interface to upload a CSV file to bulk-import participants (implements UC-60). The CSV file must contain (student_id, subject_code).",
               "Button to download CSV template (new template with 2 columns)."
+            ]
+          },
+          "SCR_ADMIN_BULK_IDENTITY_IMPORT": {
+            "title": "Bulk Identity Import (Data Operator)",
+            "features": [
+              "Interface to upload a .CSV file (containing student_id list)",
+              "Interface to upload a .ZIP file (containing photos named by student_id, e.g., 'HE180001.jpg')",
+              "Button 'Start Import Job' to trigger background processing",
+              "A status table/log showing the result of the latest import jobs (e.g., 'Completed: 990/1000 successful', 'Failed: 10')",
+              "Ability to download error report for failed imports"
             ]
           }
         }
@@ -596,9 +588,6 @@
         }
       },
       "technical_flows": {
-        "identity_registration_flow": "A one-time process for students to register their identity. Students first take a static face photo (which will become the base image for comparison), then record a short face video (used to generate the recognition vector). The data is then sent to Data Operator for manual approval.",
-        "identity_re_registration_flow": "Students can submit a request to update their identity. The process is the same as the initial registration: they must provide a new static face photo and a new face video. This request also requires Data Operator approval. During the waiting period, the system still uses the old photo and vector for attendance.",
-        "identity_submission_rejection_flow": "When Data Operator rejects an identity registration/update request, the system automatically sends a system notification to the student. This notification includes the rejection reason and will appear in the student's Notification Inbox.",
         "evidence_cleanup_flow": {
           "title": "Temporary Attendance Evidence Cleanup Flow",
           "description": "A scheduled job that runs periodically (e.g., daily) to delete old attendance evidence images and their corresponding database records from both regular and exam attendance tables to save storage space.",
@@ -626,6 +615,44 @@
             "3. Scan for Finalized Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that were finalized within the previous calendar day (from 00:00:00 to 23:59:59).",
             "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student.",
             "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
+          ]
+        },
+        "bulk_identity_import_flow": {
+          "title": "Bulk Identity Import Flow (Admin)",
+          "description": "A background job flow triggered by Data Operator to import student identity data (base photo and vector) in bulk.",
+          "steps": [
+            "1. Trigger: Data Operator uploads a CSV (student_id list) and a ZIP (photos named by student_id) via 'SCR_ADMIN_BULK_IDENTITY_IMPORT' and starts the job.",
+            "2. Orchestration (Spring Boot): The main service receives the files, saves them temporarily, and starts an asynchronous job.",
+            "3. Job Processing (Spring Boot):",
+            "  a. Unzip the ZIP file to a temporary directory.",
+            "  b. Read the CSV file row by row (e.g., 'HE180001').",
+            "  c. For each student_id: Find the matching photo ('HE180001.jpg') in the temp directory.",
+            "  d. Send the photo (binary) to the Python 'recognition_service' API.",
+            "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot.",
+            "  f. (Spring Boot): Uploads the original photo to cloud storage (e.g., S3) to get a URL.",
+            "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, is_active) VALUES (...).",
+            "  h. Log success or failure for this student.",
+            "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk.",
+            "5. Reporting: The job status is updated on the admin screen, allowing DOP to see the results."
+          ]
+        },
+        "bulk_catalog_import_flow": {
+          "title": "Bulk Academic Catalog Import Flow (Admin)",
+          "description": "A background job flow to import academic catalog data (Majors, Subjects, Semesters, Classes, Slots) from CSV files with Upsert capability.",
+          "steps": [
+            "1. Trigger: Data Operator navigates to 'SCR_ADMIN_CRUD_ACADEMIC', selects 'Import Mode' (Add Only or Add and Update) and uploads a CSV file.",
+            "2. Orchestration (Spring Boot): Receives the file, saves it temporarily, and starts an asynchronous job (passes the selected 'Import Mode').",
+            "3. Job Processing (Spring Boot):",
+            "  a. Read CSV file (e.g., 'semesters.csv').",
+            "  b. Iterate through each row and validate syntax (e.g., date format in BR-44).",
+            "  c. (Business Logic): Find existing record in database based on 'code' (e.g., 'semesters.code').",
+            "  d. (Branch based on Import Mode):",
+            "    - If FOUND and mode is 'Add and Update': UPDATE the record with new data from file.",
+            "    - If FOUND and mode is 'Add Only': SKIP and log 'duplicate'.",
+            "    - If NOT FOUND: CREATE NEW (INSERT) record.",
+            "  e. (Log Error): Record errors (e.g., validation failed, or 'major_code' does not exist as in BR-43).",
+            "4. Cleanup (Spring Boot): Delete temporary CSV file.",
+            "5. Reporting: Update job status on UI, allow DOP to download detailed error log."
           ]
         }
       },
@@ -749,31 +776,31 @@
         ],
         "dictionary": {
           "slot": {
-            "ui_label": "Buổi học/thi (Slot)",
+            "ui_label": "Slot",
             "concept_key": "slot",
             "description": "A unit of lecture or exam session in the schedule."
           },
           "roster": {
-            "ui_label": "Danh sách lớp (Roster)",
+            "ui_label": "Roster",
             "concept_key": "roster",
             "description": "Student list of a slot used to monitor and review attendance status."
           },
           "supervisor": {
-            "ui_label": "Giám thị (Supervisor)",
+            "ui_label": "Supervisor",
             "concept_key": "supervisor",
             "description": "Person responsible for supervising and taking attendance for an exam slot."
           },
           "system_notification": {
-            "ui_label": "Thông báo hệ thống (System Notification)",
+            "ui_label": "System Notification",
             "concept_key": "system_notification",
             "description": "Notification issued by the system to target users."
           },
           "automated_attendance": {
-            "ui_label": "Điểm danh tự động (Automated Attendance)",
+            "ui_label": "Automated Attendance",
             "description": "System automatically takes attendance via IP cameras."
           },
           "attendance_status_values": {
-            "ui_label": "Trạng thái điểm danh (Attendance Statuses)",
+            "ui_label": "Attendance Statuses",
             "values": [
               "not_yet",
               "present",
@@ -1637,6 +1664,13 @@
                 "UNIQUE"
               ],
               "description": "Student's unique roll number (e.g., HE180314)"
+            },
+            "base_photo_url": {
+              "type": "varchar(255)",
+              "constraints": [
+                null
+              ],
+              "description": "URL/path to the student's base photo (avatar) file, used for visual comparison during attendance verification."
             }
           }
         },
@@ -2256,206 +2290,6 @@
             "A scheduled job should periodically clean up old records from this table."
           ]
         },
-        "identity_submissions": {
-          "primary_key": "id",
-          "description": "Student identity registration and update requests",
-          "columns": {
-            "id": {
-              "type": "INT",
-              "constraints": [
-                "NOT NULL",
-                "PRIMARY KEY",
-                "AUTO_INCREMENT"
-              ],
-              "description": "Unique submission identifier"
-            },
-            "created_at": {
-              "type": "timestamp",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "default": "now()",
-              "description": "Submission creation timestamp"
-            },
-            "updated_at": {
-              "type": "timestamp",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "Submission last update timestamp"
-            },
-            "reviewed_at": {
-              "type": "timestamp",
-              "constraints": [
-                null
-              ],
-              "description": "When submission was reviewed (null if pending)"
-            },
-            "student_user_id": {
-              "type": "int",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "foreign_key": {
-                "table": "users",
-                "column": "id"
-              },
-              "description": "Student submitting identity request"
-            },
-            "reviewed_by_user_id": {
-              "type": "int",
-              "constraints": [
-                null
-              ],
-              "foreign_key": {
-                "table": "users",
-                "column": "id"
-              },
-              "description": "Data operator who reviewed the submission"
-            },
-            "status": {
-              "type": "ENUM('pending', 'approved', 'rejected')",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "Submission status: 'pending', 'approved', 'rejected'"
-            },
-            "submission_type": {
-              "type": "ENUM('initial', 'update')",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "Type of submission: 'initial', 'update'"
-            },
-            "rejection_reason": {
-              "type": "text",
-              "constraints": [
-                null
-              ],
-              "description": "Reason for rejection (required if status is 'rejected')"
-            }
-          },
-          "indexes": [
-            {
-              "name": "idx_identity_submissions_status",
-              "columns": [
-                "status"
-              ],
-              "description": "For pending queue queries"
-            },
-            {
-              "name": "idx_identity_submissions_student_user_id",
-              "columns": [
-                "student_user_id"
-              ],
-              "description": "For student identity history queries"
-            },
-            {
-              "name": "idx_identity_submissions_reviewed_at",
-              "columns": [
-                "reviewed_at"
-              ],
-              "description": "For filtering reviewed vs pending submissions"
-            }
-          ],
-          "notes": [
-            "Initial submissions require both face video and face photo",
-            "Update submissions only require face video",
-            "Approved submissions trigger face embedding generation"
-          ]
-        },
-        "identity_assets": {
-          "primary_key": "id",
-          "description": "Files uploaded as part of identity submissions",
-          "columns": {
-            "id": {
-              "type": "INT",
-              "constraints": [
-                "NOT NULL",
-                "PRIMARY KEY",
-                "AUTO_INCREMENT"
-              ],
-              "description": "Unique asset identifier"
-            },
-            "created_at": {
-              "type": "timestamp",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "default": "now()",
-              "description": "Asset creation timestamp"
-            },
-            "updated_at": {
-              "type": "timestamp",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "Asset last update timestamp"
-            },
-            "submission_id": {
-              "type": "int",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "foreign_key": {
-                "table": "identity_submissions",
-                "column": "id"
-              },
-              "description": "Reference to identity submission"
-            },
-            "is_active": {
-              "type": "boolean",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "default": true,
-              "description": "Asset status"
-            },
-            "asset_type": {
-              "type": "ENUM('face_video', 'face_photo')",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "Type of asset: 'face_video' or 'face_photo'"
-            },
-            "storage_url": {
-              "type": "varchar(255)",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "description": "URL/path to stored file"
-            }
-          },
-          "indexes": [
-            {
-              "name": "idx_identity_assets_submission_id",
-              "columns": [
-                "submission_id"
-              ],
-              "description": "For querying all assets belonging to a specific submission"
-            },
-            {
-              "name": "idx_identity_assets_asset_type",
-              "columns": [
-                "asset_type"
-              ],
-              "description": "For filtering assets by type (face_video, face_photo)"
-            },
-            {
-              "name": "idx_identity_assets_submission_type",
-              "columns": [
-                "submission_id",
-                "asset_type"
-              ],
-              "description": "For querying specific asset types within a submission"
-            }
-          ],
-          "notes": [
-            "Each submission can have multiple assets",
-            "Face videos are processed to generate embeddings",
-            "Face photos are used for manual verification by data operators"
-          ]
-        },
         "face_embeddings": {
           "primary_key": "id",
           "description": "Vector embeddings generated from approved face videos for recognition",
@@ -2494,17 +2328,6 @@
                 "column": "id"
               },
               "description": "Student this embedding belongs to"
-            },
-            "generated_from_asset_id": {
-              "type": "int",
-              "constraints": [
-                "NOT NULL"
-              ],
-              "foreign_key": {
-                "table": "identity_assets",
-                "column": "id"
-              },
-              "description": "Source asset used to generate this embedding"
             },
             "version": {
               "type": "int",
@@ -2825,7 +2648,7 @@
               "description": "Type of action performed on the entity"
             },
             "target_entity": {
-              "type": "ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'identity_submission', 'room', 'camera', 'system_config')",
+              "type": "ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'room', 'camera', 'system_config')",
               "constraints": [
                 "NOT NULL"
               ],
@@ -3294,7 +3117,7 @@
           "action_type": "UPDATE",
           "target_entity": "attendance_record",
           "target_id": 98765,
-          "changes": "{\n  \"status\": {\n    \"before\": \"absent\",\n    \"after\": \"present\"\n  },\n  \"method\": {\n    \"before\": \"auto\",\n    \"after\": \"manual\"\n  },\n  \"reason\": \"Student provided valid excuse\"\n}"
+          "changes": "{\n  \"status\": {\n    \"before\": \"absent\",\n    \"after\": \"present\"\n  },\n  \"method\": {\n    \"before\": \"auto\",\n    \"after\": \"manual\"\n  },\n  \"reason\": \"Student provided valid excuse\"\n}\n"
         }
       ],
       "relationship_with_attendance_records": {
@@ -3332,7 +3155,7 @@
     "requirements": {
       "metadata": {
         "version": "1.1",
-        "total_business_rules": 40,
+        "total_business_rules": 37,
         "domains_covered": [
           "Authentication",
           "Roles",
@@ -3343,8 +3166,8 @@
           "Audit",
           "Infrastructure"
         ],
-        "last_updated": "2025-10-21",
-        "total_use_cases": 85,
+        "last_updated": "2025-10-24",
+        "total_use_cases": 81,
         "roles_covered": [
           "Student",
           "Lecturer",
@@ -3448,63 +3271,6 @@
             ],
             "validation_points": [
               "User creation workflow"
-            ]
-          }
-        },
-        "identity_management": {
-          "BR-08": {
-            "title": "Initial Identity Registration Requirements",
-            "description": "A student's identity registration request (both initial and update) must include a static face photo and a short face video.",
-            "domain": "Identity",
-            "priority": "High",
-            "related_use_cases": [
-              "UC-12",
-              "UC-13"
-            ],
-            "validation_points": [
-              "Identity submission creation"
-            ]
-          },
-          "BR-09": {
-            "title": "Manual Identity Approval",
-            "description": "All identity registration or update requests must be manually approved by a user with the appropriate permissions (e.g., IDENTITY_SUBMISSION_APPROVE).",
-            "domain": "Identity",
-            "priority": "High",
-            "related_use_cases": [
-              "UC-12",
-              "UC-13",
-              "UC-39",
-              "UC-40",
-              "UC-41"
-            ],
-            "validation_points": [
-              "Identity submission workflow"
-            ]
-          },
-          "BR-10": {
-            "title": "Pending Identity Update Handling",
-            "description": "While an identity update request is pending approval, the system must continue to use the previously approved identity data for attendance checking.",
-            "domain": "Identity",
-            "priority": "Medium",
-            "related_use_cases": [
-              "UC-13"
-            ],
-            "validation_points": [
-              "Face recognition process",
-              "Identity update workflow"
-            ]
-          },
-          "BR-11": {
-            "title": "Identity Rejection Notification",
-            "description": "When an identity submission is rejected, the system must automatically send a system notification to the student, stating the reason for rejection.",
-            "domain": "Identity",
-            "priority": "Medium",
-            "related_use_cases": [
-              "UC-11",
-              "UC-41"
-            ],
-            "validation_points": [
-              "Identity rejection workflow"
             ]
           }
         },
@@ -3705,10 +3471,10 @@
             "domain": "System",
             "priority": "Critical",
             "related_use_cases": [
+              "UC-76",
+              "UC-77",
               "UC-80",
-              "UC-81",
-              "UC-84",
-              "UC-85"
+              "UC-81"
             ],
             "validation_points": [
               "System configuration access",
@@ -3867,27 +3633,25 @@
           },
           "BR-32": {
             "title": "Face Embedding Version Management",
-            "description": "Rules for managing face embedding versions when identity is updated. Each approved identity submission generates a new embedding with incremented version. Only one embedding per student can be active at a time.",
+            "description": "Rules for managing face embedding versions when identity data is updated via the Bulk Import flow. Each successful import generates a new embedding with incremented version. Only one embedding per student can be active at a time.",
             "domain": "Identity",
             "priority": "High",
             "related_use_cases": [
-              "UC-12",
-              "UC-13",
-              "UC-40"
+              "UC-75"
             ],
             "validation_points": [
-              "Identity approval workflow",
+              "Bulk Identity Import processing job",
               "Face recognition query"
             ],
             "rules": {
               "version_increment": [
-                "Each approved identity submission generates a new embedding with version = max(version) + 1",
-                "Initial registration: version = 1",
-                "First update: version = 2, etc."
+                "Each successful bulk import for a student generates a new embedding with version = max(existing_version) + 1",
+                "Initial import: version = 1",
+                "First re-import: version = 2, etc."
               ],
               "active_embedding": [
                 "Only ONE embedding per student can have is_active = true",
-                "When new embedding is approved, old embedding is set to is_active = false",
+                "When new embedding is imported, old embedding is set to is_active = false",
                 "System uses only the active embedding for face recognition"
               ],
               "retention_policy": [
@@ -4191,6 +3955,335 @@
                 "Provide warning list for skipped rows (duplicates, already enrolled)"
               ]
             }
+          },
+          "BR-41": {
+            "title": "Bulk Identity Data CSV/ZIP Format and Validation",
+            "description": "Defines the file formats and validation rules for bulk importing student identity data (base photos and generating vectors).",
+            "domain": "Academic",
+            "priority": "High",
+            "related_use_cases": [
+              "UC-75"
+            ],
+            "validation_points": [
+              "CSV/ZIP upload API for identity data",
+              "Bulk identity processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "delimiter": "comma (,)",
+              "header_row": "Required (first row)",
+              "columns": [
+                {
+                  "name": "student_id",
+                  "type": "string",
+                  "required": true,
+                  "description": "Student's username (Student ID)"
+                }
+              ]
+            },
+            "zip_format": {
+              "description": "A .ZIP file containing all base photos. File names must match the 'student_id' in the CSV (e.g., 'HE180001.jpg', 'HE180002.png')."
+            },
+            "validation_rules": {
+              "file_level": [
+                "Must upload 1 CSV and 1 ZIP simultaneously.",
+                "Maximum 2000 rows in CSV (excluding header).",
+                "ZIP file size must not exceed 100MB."
+              ],
+              "row_level": [
+                "'student_id' from CSV must exist in the 'users' table and have the 'STUDENT' role.",
+                "A matching image file (e.g., 'student_id.jpg' or 'student_id.png') must be found inside the ZIP file.",
+                "The image file must be successfully processed by the 'recognition_service' (Python)."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS strategy: Import valid rows, skip invalid rows.",
+                "The background job must log all errors (e.g., 'HE180001: file not found in ZIP', 'HE180002: invalid user', 'HE180003: face not detected in image').",
+                "DOP can download this error log from the UI."
+              ]
+            }
+          },
+          "BR-42": {
+            "title": "Bulk Import Majors CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk importing Majors.",
+            "domain": "Academic",
+            "priority": "Medium",
+            "related_use_cases": [
+              "UC-82"
+            ],
+            "validation_points": [
+              "CSV upload API for Majors",
+              "Bulk catalog processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "header_row": "Required",
+              "columns": [
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Major code (e.g., 'SE')"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true,
+                  "description": "Major name (e.g., 'Software Engineering')"
+                }
+              ]
+            },
+            "validation_rules": {
+              "row_level": [
+                "'code' will be used as the business key.",
+                "Depending on the 'Import Mode' selected by DOP:",
+                "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'.",
+                "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the 'name' field of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT).",
+                "'name' must be valid and not empty (applies to both create and update)."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'name' is empty, or duplicate in 'Add Only' mode)."
+              ]
+            }
+          },
+          "BR-43": {
+            "title": "Bulk Import Subjects CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk importing Subjects.",
+            "domain": "Academic",
+            "priority": "Medium",
+            "related_use_cases": [
+              "UC-83"
+            ],
+            "validation_points": [
+              "CSV upload API for Subjects",
+              "Bulk catalog processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "header_row": "Required",
+              "columns": [
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Subject code (e.g., 'SWP391')"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true,
+                  "description": "Subject name (e.g., 'Application Development Project')"
+                },
+                {
+                  "name": "major_code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Major code that this subject belongs to (references majors.code)"
+                }
+              ]
+            },
+            "validation_rules": {
+              "row_level": [
+                "'code' will be used as the business key.",
+                "Depending on the 'Import Mode' selected by DOP:",
+                "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'.",
+                "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (name, major_code) of the existing record and automatically update the relationships in the 'subject_majors' table. If 'code' does not exist, the system will CREATE NEW (INSERT).",
+                "'major_code' must exist in the 'majors' table (applies to both create and update). If not found, report error.",
+                "'name' must be valid and not empty (applies to both create and update)."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'major_code' does not exist, or duplicate in 'Add Only' mode)."
+              ]
+            }
+          },
+          "BR-44": {
+            "title": "Bulk Import Semesters CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk importing Semesters.",
+            "domain": "Academic",
+            "priority": "Medium",
+            "related_use_cases": [
+              "UC-84"
+            ],
+            "validation_points": [
+              "CSV upload API for Semesters",
+              "Bulk catalog processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "header_row": "Required",
+              "columns": [
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Semester code (e.g., 'FA24')"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true,
+                  "description": "Semester name (e.g., 'Fall 2024')"
+                },
+                {
+                  "name": "start_date",
+                  "type": "string (YYYY-MM-DD)",
+                  "required": true,
+                  "description": "Start date"
+                },
+                {
+                  "name": "end_date",
+                  "type": "string (YYYY-MM-DD)",
+                  "required": true,
+                  "description": "End date"
+                }
+              ]
+            },
+            "validation_rules": {
+              "row_level": [
+                "'code' will be used as the business key.",
+                "Depending on the 'Import Mode' selected by DOP:",
+                "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'.",
+                "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (name, start_date, end_date) of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT).",
+                "'start_date' must be a valid date and must be before 'end_date' (applies to both create and update)."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'start_date' is invalid, or duplicate in 'Add Only' mode)."
+              ]
+            }
+          },
+          "BR-45": {
+            "title": "Bulk Import Classes CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk importing Classes.",
+            "domain": "Academic",
+            "priority": "High",
+            "related_use_cases": [
+              "UC-85"
+            ],
+            "validation_points": [
+              "CSV upload API for Classes",
+              "Bulk catalog processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "header_row": "Required",
+              "columns": [
+                {
+                  "name": "code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Class code (e.g., 'SE1801')"
+                },
+                {
+                  "name": "subject_code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Subject code (references subjects.code)"
+                },
+                {
+                  "name": "semester_code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Semester code (references semesters.code)"
+                }
+              ]
+            },
+            "validation_rules": {
+              "row_level": [
+                "'code' will be used as the business key.",
+                "Depending on the 'Import Mode' selected by DOP:",
+                "  - 'Add Only' mode: If 'code' already exists, this row will be SKIPPED and reported as 'Duplicate'.",
+                "  - 'Add and Update' mode: If 'code' already exists, the system will UPDATE the fields (subject_code, semester_code) of the existing record. If 'code' does not exist, the system will CREATE NEW (INSERT).",
+                "'subject_code' must exist in the 'subjects' table (applies to both create and update).",
+                "'semester_code' must exist in the 'semesters' table (applies to both create and update)."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'subject_code' does not exist, or duplicate in 'Add Only' mode)."
+              ]
+            }
+          },
+          "BR-46": {
+            "title": "Bulk Import Slots CSV Format and Validation",
+            "description": "Defines the CSV file format and validation rules for bulk importing Slots. This is the most complex flow, requiring Class, Staff, and Room data to exist beforehand.",
+            "domain": "Academic",
+            "priority": "High",
+            "related_use_cases": [
+              "UC-86"
+            ],
+            "validation_points": [
+              "CSV upload API for Slots",
+              "Bulk catalog processing job"
+            ],
+            "csv_format": {
+              "encoding": "UTF-8",
+              "header_row": "Required",
+              "columns": [
+                {
+                  "name": "class_code",
+                  "type": "string",
+                  "required": false,
+                  "description": "Class code. Required if slot_category is LECTURE/LECTURE_WITH_PT."
+                },
+                {
+                  "name": "semester_code",
+                  "type": "string",
+                  "required": true,
+                  "description": "Semester code. Used to find 'class_id' (together with class_code) or 'semester_id' (for FINAL_EXAM)."
+                },
+                {
+                  "name": "staff_username",
+                  "type": "string",
+                  "required": true,
+                  "description": "Username (Staff ID) of the lecturer/supervisor (references users.username)."
+                },
+                {
+                  "name": "room_name",
+                  "type": "string",
+                  "required": true,
+                  "description": "Room name (references rooms.name)."
+                },
+                {
+                  "name": "start_time",
+                  "type": "string (YYYY-MM-DD HH:MM:SS)",
+                  "required": true,
+                  "description": "Start time (ISO format or similar, UTC timezone)."
+                },
+                {
+                  "name": "end_time",
+                  "type": "string (YYYY-MM-DD HH:MM:SS)",
+                  "required": true,
+                  "description": "End time (ISO format or similar, UTC timezone)."
+                },
+                {
+                  "name": "slot_category",
+                  "type": "string",
+                  "required": true,
+                  "description": "Must be one of: 'LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM'."
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": false,
+                  "description": "Title (e.g., 'Progress Test 1')."
+                }
+              ]
+            },
+            "validation_rules": {
+              "row_level": [
+                "Slot does not have a simple business key like 'code'. Instead, the combination (class_code, semester_code, start_time, room_name, staff_username) will be used to identify a unique slot.",
+                "Depending on the 'Import Mode' selected by DOP:",
+                "  - 'Add Only' mode: If a matching slot is found (same combination), this row will be SKIPPED and reported as 'Duplicate'.",
+                "  - 'Add and Update' mode: If a matching slot is found, the system will UPDATE the fields (end_time, slot_category, title). If not found, the system will CREATE NEW (INSERT).",
+                "'staff_username' must exist in the 'users' table and have role LECTURER or SUPERVISOR (applies to both create and update).",
+                "'room_name' must exist in the 'rooms' table (applies to both create and update).",
+                "'start_time' must be before 'end_time' (applies to both create and update).",
+                "'slot_category' must be a valid value ('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM') (applies to both create and update).",
+                "Validation logic (BR-34) (applies to both create and update):",
+                "  - If 'slot_category' is 'LECTURE' or 'LECTURE_WITH_PT': 'class_code' and 'semester_code' must be provided and must find a valid 'class_id'.",
+                "  - If 'slot_category' is 'FINAL_EXAM': 'class_code' must be empty and 'semester_code' must find a valid 'semester_id'."
+              ],
+              "error_reporting": [
+                "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'staff_username' not found, BR-34 logic failed, or duplicate in 'Add Only' mode)."
+              ]
+            }
           }
         }
       },
@@ -4203,15 +4296,6 @@
             "BR-04"
           ],
           "description": "Rules governing user authentication and account validation"
-        },
-        "identity_workflow": {
-          "primary_rules": [
-            "BR-08",
-            "BR-09",
-            "BR-10",
-            "BR-11"
-          ],
-          "description": "Rules for identity registration and approval process"
         },
         "attendance_lifecycle": {
           "primary_rules": [
@@ -4404,43 +4488,11 @@
             ],
             "secondary_actors": [],
             "description": "Allows a student to view a feed of notifications, including system alerts and absence rate warnings.",
-            "related_business_rules": [
-              "BR-11"
-            ]
-          },
-          "UC-12": {
-            "title": "Initiate Identity Registration",
-            "primary_actors": [
-              "Student"
-            ],
-            "secondary_actors": [
-              "Data Operator"
-            ],
-            "description": "Allows a new student to submit their identity credentials (a static face photo and a short face video) for verification by a Data Operator.",
-            "related_business_rules": [
-              "BR-08",
-              "BR-09"
-            ]
-          },
-          "UC-13": {
-            "title": "Request Identity Update",
-            "primary_actors": [
-              "Student"
-            ],
-            "secondary_actors": [
-              "Data Operator"
-            ],
-            "description": "Allows a student to submit a request to update their identity profile by providing a new static face photo and a new face video. The request is routed to a Data Operator for approval.",
-            "related_business_rules": [
-              "BR-08",
-              "BR-09",
-              "BR-10",
-              "BR-11"
-            ]
+            "related_business_rules": []
           }
         },
         "lecturer": {
-          "UC-14": {
+          "UC-12": {
             "title": "View Teaching Schedule",
             "primary_actors": [
               "Lecturer"
@@ -4449,7 +4501,7 @@
             "description": "Allows a lecturer to view their personal teaching and supervision schedule for a selected semester.",
             "related_business_rules": []
           },
-          "UC-15": {
+          "UC-13": {
             "title": "Initiate Attendance Session",
             "primary_actors": [
               "Lecturer",
@@ -4462,7 +4514,7 @@
               "BR-18"
             ]
           },
-          "UC-16": {
+          "UC-14": {
             "title": "Perform Re-scan during Session",
             "primary_actors": [
               "Lecturer",
@@ -4475,7 +4527,7 @@
               "BR-20"
             ]
           },
-          "UC-17": {
+          "UC-15": {
             "title": "Monitor Real-Time Roster",
             "primary_actors": [
               "Lecturer"
@@ -4486,7 +4538,7 @@
               "BR-19"
             ]
           },
-          "UC-18": {
+          "UC-16": {
             "title": "View Attendance Status",
             "primary_actors": [
               "Lecturer",
@@ -4496,7 +4548,7 @@
             "description": "Allows the assigned staff to view the current attendance status for a specific student within a slot.",
             "related_business_rules": []
           },
-          "UC-19": {
+          "UC-17": {
             "title": "Manually Update Attendance Status",
             "primary_actors": [
               "Lecturer"
@@ -4509,7 +4561,7 @@
               "BR-28"
             ]
           },
-          "UC-20": {
+          "UC-18": {
             "title": "Add/Edit Attendance Remark",
             "primary_actors": [
               "Lecturer"
@@ -4520,7 +4572,7 @@
               "BR-28"
             ]
           },
-          "UC-21": {
+          "UC-19": {
             "title": "Finalize Attendance Session",
             "primary_actors": [
               "Lecturer"
@@ -4533,7 +4585,7 @@
               "BR-29"
             ]
           },
-          "UC-22": {
+          "UC-20": {
             "title": "Export Slot Attendance Report",
             "primary_actors": [
               "Lecturer"
@@ -4542,7 +4594,7 @@
             "description": "Allows a lecturer to export a detailed attendance report for a finalized lecture slot.",
             "related_business_rules": []
           },
-          "UC-23": {
+          "UC-21": {
             "title": "View Class Attendance Summary Report",
             "primary_actors": [
               "Lecturer"
@@ -4551,7 +4603,7 @@
             "description": "Allows a lecturer to view and export a summary attendance report for an entire class over a semester, which includes each student's absence rate and exam eligibility status based on the system-configured threshold. This report is only accessible after all slots for the class have been finalized.",
             "related_business_rules": []
           },
-          "UC-24": {
+          "UC-22": {
             "title": "Change Slot Category to Include Progress Test",
             "primary_actors": [
               "Lecturer"
@@ -4563,7 +4615,7 @@
               "BR-35"
             ]
           },
-          "UC-25": {
+          "UC-23": {
             "title": "Update Lecture Slot Details",
             "primary_actors": [
               "Lecturer"
@@ -4579,7 +4631,7 @@
               "BR-35"
             ]
           },
-          "UC-26": {
+          "UC-24": {
             "title": "Change Slot Category to Remove Progress Test",
             "primary_actors": [
               "Lecturer"
@@ -4594,7 +4646,7 @@
           }
         },
         "supervisor": {
-          "UC-27": {
+          "UC-25": {
             "title": "View Supervision Schedule",
             "primary_actors": [
               "Supervisor"
@@ -4603,7 +4655,7 @@
             "description": "Allows a supervisor to view their personal supervision schedule for assigned exam slots. For class-based slots, this includes slots from their assigned classes. For independent final exams, this includes slots they are directly assigned to.",
             "related_business_rules": []
           },
-          "UC-28": {
+          "UC-26": {
             "title": "Initiate Attendance Session",
             "primary_actors": [
               "Supervisor"
@@ -4615,7 +4667,7 @@
               "BR-18"
             ]
           },
-          "UC-29": {
+          "UC-27": {
             "title": "Monitor Real-Time Roster",
             "primary_actors": [
               "Supervisor"
@@ -4626,7 +4678,7 @@
               "BR-19"
             ]
           },
-          "UC-30": {
+          "UC-28": {
             "title": "Manually Update Attendance Status",
             "primary_actors": [
               "Supervisor"
@@ -4639,7 +4691,7 @@
               "BR-28"
             ]
           },
-          "UC-31": {
+          "UC-29": {
             "title": "Add/Edit Attendance Remark",
             "primary_actors": [
               "Supervisor"
@@ -4650,7 +4702,7 @@
               "BR-28"
             ]
           },
-          "UC-32": {
+          "UC-30": {
             "title": "Finalize Attendance Session",
             "primary_actors": [
               "Supervisor"
@@ -4663,7 +4715,7 @@
               "BR-29"
             ]
           },
-          "UC-33": {
+          "UC-31": {
             "title": "Export Exam Slot Attendance Report",
             "primary_actors": [
               "Supervisor"
@@ -4675,7 +4727,7 @@
         },
         "data_operator": {
           "user_management": {
-            "UC-34": {
+            "UC-32": {
               "title": "Create User Account",
               "primary_actors": [
                 "Data Operator"
@@ -4690,7 +4742,7 @@
                 "BR-26"
               ]
             },
-            "UC-35": {
+            "UC-33": {
               "title": "View User Accounts",
               "primary_actors": [
                 "Data Operator"
@@ -4701,7 +4753,7 @@
                 "BR-26"
               ]
             },
-            "UC-36": {
+            "UC-34": {
               "title": "Update User Account Details",
               "primary_actors": [
                 "Data Operator"
@@ -4713,7 +4765,7 @@
                 "BR-27"
               ]
             },
-            "UC-37": {
+            "UC-35": {
               "title": "Update User Role Assignment",
               "primary_actors": [
                 "Data Operator"
@@ -4726,7 +4778,7 @@
                 "BR-27"
               ]
             },
-            "UC-38": {
+            "UC-36": {
               "title": "Disable/Enable User Account",
               "primary_actors": [
                 "Data Operator"
@@ -4740,52 +4792,8 @@
               ]
             }
           },
-          "identity_management": {
-            "UC-39": {
-              "title": "View Pending Identity Submissions",
-              "primary_actors": [
-                "Data Operator"
-              ],
-              "secondary_actors": [
-                "Student"
-              ],
-              "description": "Allows the DOP to view a queue of all identity registration and update requests that are awaiting manual review.",
-              "related_business_rules": [
-                "BR-09"
-              ]
-            },
-            "UC-40": {
-              "title": "Approve Identity Submission",
-              "primary_actors": [
-                "Data Operator"
-              ],
-              "secondary_actors": [
-                "Student"
-              ],
-              "description": "Allows the DOP to review the details of an identity submission (facial video, ID card) and approve it.",
-              "related_business_rules": [
-                "BR-09",
-                "BR-27"
-              ]
-            },
-            "UC-41": {
-              "title": "Reject Identity Submission",
-              "primary_actors": [
-                "Data Operator"
-              ],
-              "secondary_actors": [
-                "Student"
-              ],
-              "description": "Allows the DOP to reject an identity submission, providing a reason for the rejection that is sent to the student.",
-              "related_business_rules": [
-                "BR-09",
-                "BR-11",
-                "BR-27"
-              ]
-            }
-          },
           "academic_catalog": {
-            "UC-42": {
+            "UC-37": {
               "title": "Create Major",
               "primary_actors": [
                 "Data Operator"
@@ -4796,7 +4804,7 @@
                 "BR-12"
               ]
             },
-            "UC-43": {
+            "UC-38": {
               "title": "View Majors",
               "primary_actors": [
                 "Data Operator"
@@ -4805,7 +4813,7 @@
               "description": "Allows the DOP to view a list of all Majors in the system.",
               "related_business_rules": []
             },
-            "UC-44": {
+            "UC-39": {
               "title": "Update Major",
               "primary_actors": [
                 "Data Operator"
@@ -4817,7 +4825,7 @@
                 "BR-27"
               ]
             },
-            "UC-45": {
+            "UC-40": {
               "title": "Delete Major Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4829,7 +4837,7 @@
                 "BR-30"
               ]
             },
-            "UC-46": {
+            "UC-41": {
               "title": "Create Semester",
               "primary_actors": [
                 "Data Operator"
@@ -4840,7 +4848,7 @@
                 "BR-12"
               ]
             },
-            "UC-47": {
+            "UC-42": {
               "title": "View Semesters",
               "primary_actors": [
                 "Data Operator"
@@ -4849,7 +4857,7 @@
               "description": "Allows the DOP to view a list of all semesters in the system.",
               "related_business_rules": []
             },
-            "UC-48": {
+            "UC-43": {
               "title": "Update Semester",
               "primary_actors": [
                 "Data Operator"
@@ -4861,7 +4869,7 @@
                 "BR-27"
               ]
             },
-            "UC-49": {
+            "UC-44": {
               "title": "Delete Semester Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4873,7 +4881,7 @@
                 "BR-30"
               ]
             },
-            "UC-50": {
+            "UC-45": {
               "title": "Create Subject",
               "primary_actors": [
                 "Data Operator"
@@ -4884,7 +4892,7 @@
                 "BR-12"
               ]
             },
-            "UC-51": {
+            "UC-46": {
               "title": "View Subjects",
               "primary_actors": [
                 "Data Operator"
@@ -4893,7 +4901,7 @@
               "description": "Allows the DOP to view a list of all Subjects in the system.",
               "related_business_rules": []
             },
-            "UC-52": {
+            "UC-47": {
               "title": "Update Subject",
               "primary_actors": [
                 "Data Operator"
@@ -4905,7 +4913,7 @@
                 "BR-27"
               ]
             },
-            "UC-53": {
+            "UC-48": {
               "title": "Delete Subject Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4917,7 +4925,7 @@
                 "BR-30"
               ]
             },
-            "UC-54": {
+            "UC-49": {
               "title": "Create Class",
               "primary_actors": [
                 "Data Operator"
@@ -4928,7 +4936,7 @@
                 "BR-12"
               ]
             },
-            "UC-55": {
+            "UC-50": {
               "title": "View Classes",
               "primary_actors": [
                 "Data Operator"
@@ -4937,7 +4945,7 @@
               "description": "Allows the DOP to view a list of all classes for a selected semester.",
               "related_business_rules": []
             },
-            "UC-56": {
+            "UC-51": {
               "title": "Update Class",
               "primary_actors": [
                 "Data Operator"
@@ -4949,7 +4957,7 @@
                 "BR-27"
               ]
             },
-            "UC-57": {
+            "UC-52": {
               "title": "Delete Class Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -4961,7 +4969,7 @@
                 "BR-30"
               ]
             },
-            "UC-58": {
+            "UC-53": {
               "title": "Create Schedule/Slot",
               "primary_actors": [
                 "Data Operator"
@@ -4972,11 +4980,10 @@
                 "BR-15",
                 "BR-16",
                 "BR-17",
-                "BR-34",
-                "BR-NEW-01"
+                "BR-34"
               ]
             },
-            "UC-59": {
+            "UC-54": {
               "title": "View Schedules",
               "primary_actors": [
                 "Data Operator"
@@ -4985,7 +4992,7 @@
               "description": "Allows the DOP to view the complete schedule for a class or semester.",
               "related_business_rules": []
             },
-            "UC-60": {
+            "UC-55": {
               "title": "Update Schedule/Slot",
               "primary_actors": [
                 "Data Operator"
@@ -5000,7 +5007,7 @@
                 "BR-34"
               ]
             },
-            "UC-61": {
+            "UC-56": {
               "title": "Delete Schedule/Slot Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -5012,7 +5019,7 @@
                 "BR-30"
               ]
             },
-            "UC-62": {
+            "UC-57": {
               "title": "Add Student to Class Roster",
               "primary_actors": [
                 "Data Operator"
@@ -5023,7 +5030,7 @@
                 "BR-13"
               ]
             },
-            "UC-63": {
+            "UC-58": {
               "title": "Remove Student from Class Roster",
               "primary_actors": [
                 "Data Operator"
@@ -5035,7 +5042,7 @@
                 "BR-27"
               ]
             },
-            "UC-64": {
+            "UC-59": {
               "title": "Manage Exam Slot Participants",
               "primary_actors": [
                 "Data Operator"
@@ -5047,7 +5054,7 @@
                 "BR-39"
               ]
             },
-            "UC-65": {
+            "UC-60": {
               "title": "Bulk Import Participants to Exam Slot",
               "primary_actors": [
                 "Data Operator"
@@ -5060,7 +5067,7 @@
             }
           },
           "infrastructure": {
-            "UC-66": {
+            "UC-61": {
               "title": "Create Room",
               "primary_actors": [
                 "Data Operator"
@@ -5069,7 +5076,7 @@
               "description": "Allows the DOP to add a new physical room to the system.",
               "related_business_rules": []
             },
-            "UC-67": {
+            "UC-62": {
               "title": "View Rooms",
               "primary_actors": [
                 "Data Operator"
@@ -5078,7 +5085,7 @@
               "description": "Allows the DOP to view a list of all rooms in the system.",
               "related_business_rules": []
             },
-            "UC-68": {
+            "UC-63": {
               "title": "Update Room",
               "primary_actors": [
                 "Data Operator"
@@ -5089,7 +5096,7 @@
                 "BR-27"
               ]
             },
-            "UC-69": {
+            "UC-64": {
               "title": "Delete Room Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -5101,7 +5108,7 @@
                 "BR-30"
               ]
             },
-            "UC-70": {
+            "UC-65": {
               "title": "Create Camera",
               "primary_actors": [
                 "Data Operator"
@@ -5110,7 +5117,7 @@
               "description": "Allows the DOP to register a new IP camera by providing its details and assigning it to a specific room.",
               "related_business_rules": []
             },
-            "UC-71": {
+            "UC-66": {
               "title": "View Cameras",
               "primary_actors": [
                 "Data Operator"
@@ -5119,7 +5126,7 @@
               "description": "Allows the DOP to view a list of all registered cameras.",
               "related_business_rules": []
             },
-            "UC-72": {
+            "UC-67": {
               "title": "Update Camera",
               "primary_actors": [
                 "Data Operator"
@@ -5130,7 +5137,7 @@
                 "BR-27"
               ]
             },
-            "UC-73": {
+            "UC-68": {
               "title": "Delete Camera Permanently",
               "primary_actors": [
                 "Data Operator"
@@ -5144,7 +5151,7 @@
             }
           },
           "data_management": {
-            "UC-74": {
+            "UC-69": {
               "title": "Import Academic Data",
               "primary_actors": [
                 "Data Operator"
@@ -5153,7 +5160,7 @@
               "description": "Allows the DOP to bulk-upload academic data (schedules, rosters) for a semester.",
               "related_business_rules": []
             },
-            "UC-75": {
+            "UC-70": {
               "title": "Export Finalized Attendance Results",
               "primary_actors": [
                 "Data Operator"
@@ -5162,7 +5169,7 @@
               "description": "Allows the DOP to export system-wide, finalized attendance results for a selected period.",
               "related_business_rules": []
             },
-            "UC-76": {
+            "UC-71": {
               "title": "View System-Wide Reports",
               "primary_actors": [
                 "Data Operator"
@@ -5171,7 +5178,7 @@
               "description": "Allows the DOP to generate and view aggregate reports on attendance data across various dimensions.",
               "related_business_rules": []
             },
-            "UC-77": {
+            "UC-72": {
               "title": "Search/Lookup Attendance Data",
               "primary_actors": [
                 "Data Operator"
@@ -5180,7 +5187,7 @@
               "description": "Allows the DOP to perform advanced searches for specific attendance records using a variety of filters.",
               "related_business_rules": []
             },
-            "UC-78": {
+            "UC-73": {
               "title": "View Operational Audit Logs",
               "primary_actors": [
                 "Data Operator"
@@ -5191,7 +5198,7 @@
                 "BR-27"
               ]
             },
-            "UC-79": {
+            "UC-74": {
               "title": "Bulk Enroll Students to Classes via CSV",
               "primary_actors": [
                 "Data Operator"
@@ -5203,12 +5210,80 @@
                 "BR-27",
                 "BR-37"
               ]
+            },
+            "UC-75": {
+              "title": "Bulk Import Student Identity Data",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows the DOP to upload a .CSV file (containing student_id) and a .ZIP file (containing corresponding base photos) to perform a mass import of identity data. The system processes this as a background job, converts images to vectors, and saves both the base photo URL and the vector to the database.",
+              "related_business_rules": [
+                "BR-32",
+                "BR-41"
+              ]
+            },
+            "UC-82": {
+              "title": "Bulk Import Majors via CSV",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows DOP to upload a CSV file containing a list of Majors. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing majors based on 'code').",
+              "related_business_rules": [
+                "BR-42"
+              ]
+            },
+            "UC-83": {
+              "title": "Bulk Import Subjects via CSV",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows DOP to upload a CSV file containing a list of Subjects. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing subjects based on 'code').",
+              "related_business_rules": [
+                "BR-43"
+              ]
+            },
+            "UC-84": {
+              "title": "Bulk Import Semesters via CSV",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows DOP to upload a CSV file containing a list of Semesters. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing semesters based on 'code').",
+              "related_business_rules": [
+                "BR-44"
+              ]
+            },
+            "UC-85": {
+              "title": "Bulk Import Classes via CSV",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows DOP to upload a CSV file containing a list of Classes. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing classes based on 'code').",
+              "related_business_rules": [
+                "BR-45"
+              ]
+            },
+            "UC-86": {
+              "title": "Bulk Import Slots via CSV",
+              "primary_actors": [
+                "Data Operator"
+              ],
+              "secondary_actors": [],
+              "description": "Allows DOP to upload a CSV file containing a list of Slots. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing slots based on the business key combination).",
+              "related_business_rules": [
+                "BR-46",
+                "BR-34"
+              ]
             }
           }
         },
         "system_admin": {
           "system_configuration": {
-            "UC-80": {
+            "UC-76": {
               "title": "View System Configuration",
               "primary_actors": [
                 "System Admin"
@@ -5219,7 +5294,7 @@
                 "BR-25"
               ]
             },
-            "UC-81": {
+            "UC-77": {
               "title": "Update System Configuration",
               "primary_actors": [
                 "System Admin"
@@ -5231,7 +5306,7 @@
                 "BR-27"
               ]
             },
-            "UC-82": {
+            "UC-78": {
               "title": "View System Logs",
               "primary_actors": [
                 "System Admin"
@@ -5240,7 +5315,7 @@
               "description": "Allows the System Admin to view a comprehensive stream of system-wide activity logs for monitoring and troubleshooting.",
               "related_business_rules": []
             },
-            "UC-83": {
+            "UC-79": {
               "title": "Export System Logs",
               "primary_actors": [
                 "System Admin"
@@ -5251,7 +5326,7 @@
             }
           },
           "role_permission_management": {
-            "UC-84": {
+            "UC-80": {
               "title": "View Role-Permission Mappings",
               "primary_actors": [
                 "System Admin"
@@ -5262,7 +5337,7 @@
                 "BR-25"
               ]
             },
-            "UC-85": {
+            "UC-81": {
               "title": "Update Role-Permission Mappings",
               "primary_actors": [
                 "System Admin"
@@ -5286,35 +5361,32 @@
             "BR-25": "System configuration and role-permission changes require special permissions"
           },
           {
-            "BR-09": "Identity submissions require manual approval"
-          },
-          {
             "BR-12": "Unique identifiers for academic entities"
           }
         ],
         "use_cases_by_complexity": {
           "high_complexity": [
-            "UC-15",
-            "UC-16",
-            "UC-21",
-            "UC-29",
-            "UC-55",
-            "UC-57"
-          ],
-          "medium_complexity": [
+            "UC-13",
+            "UC-14",
             "UC-19",
             "UC-27",
-            "UC-31",
-            "UC-37",
-            "UC-38"
+            "UC-50",
+            "UC-52"
+          ],
+          "medium_complexity": [
+            "UC-17",
+            "UC-25",
+            "UC-29",
+            "UC-35",
+            "UC-36"
           ],
           "low_complexity": [
             "UC-01",
             "UC-02",
             "UC-07",
             "UC-10",
-            "UC-40",
-            "UC-44"
+            "UC-38",
+            "UC-39"
           ]
         }
       }

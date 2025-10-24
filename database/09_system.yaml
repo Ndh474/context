@@ -66,7 +66,7 @@ tables:
         constraints: [NOT NULL]
         description: "Type of action performed on the entity"
       target_entity:
-        type: ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'identity_submission', 'room', 'camera', 'system_config')
+        type: ENUM('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'room', 'camera', 'system_config')
         constraints: [NOT NULL]
         description: "Entity type that was affected"
       target_id:
@@ -81,15 +81,15 @@ tables:
       - name: idx_audit_logs_actor_user_id
         columns: [actor_user_id]
         description: "For queries: who did what"
-      
+
       - name: idx_audit_logs_target_entity_id
         columns: [target_entity, target_id]
         description: "For queries: history of a specific entity"
-      
+
       - name: idx_audit_logs_created_at
         columns: [created_at]
         description: "For date range queries"
-      
+
       - name: idx_audit_logs_action_type
         columns: [action_type]
         description: "For filtering by action type"
@@ -103,15 +103,15 @@ example_configurations:
   - key: "face_recognition.similarity_threshold"
     value: "0.85"
     description: "Minimum similarity score for face recognition matches"
-  
+
   - key: "attendance.max_absence_percentage"
     value: "20"
     description: "The maximum allowed absence percentage for students before being marked ineligible for the final exam."
-  
+
   - key: "attendance.auto_finalize_hours"
     value: "24"
     description: "Hours after slot end time before auto-finalization"
-  
+
   - key: "notification.email_enabled"
     value: "true"
     description: "Whether to send email notifications"

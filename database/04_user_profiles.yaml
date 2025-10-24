@@ -24,6 +24,10 @@ tables:
         type: varchar(20)
         constraints: [NOT NULL, UNIQUE]
         description: "Student's unique roll number (e.g., HE180314)"
+      base_photo_url:
+        type: varchar(255)
+        constraints: [NULL]
+        description: "URL/path to the student's base photo (avatar) file, used for visual comparison during attendance verification."
 
   staff_profiles:
     primary_key: user_id
