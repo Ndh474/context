@@ -1,8 +1,8 @@
 -- =====================================================
 -- FUACS Database Schema - Complete SQL Script
 -- FU Attendance Checking Smart System
--- Version: 1.0
--- Generated: 2025-10-22
+-- Version: 2.0 - Enhanced with 50+ records per table
+-- Generated: 2025-01-24
 -- =====================================================
 
 -- =====================================================
@@ -43,14 +43,11 @@ DROP TABLE IF EXISTS roles CASCADE;
 DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
--- Drop extensions if needed (uncomment to fully reset)
--- DROP EXTENSION IF EXISTS pgvector CASCADE;
-
 -- =====================================================
 -- SECTION 2: CREATE EXTENSIONS
 -- =====================================================
 
-CREATE EXTENSION IF NOT EXISTS pgvector;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- =====================================================
 -- SECTION 3: CREATE TABLES
@@ -144,6 +141,7 @@ CREATE TABLE student_profiles (
     user_id INTEGER PRIMARY KEY,
     major_id SMALLINT NOT NULL,
     roll_number VARCHAR(20) NOT NULL UNIQUE,
+    base_photo_url VARCHAR(255) NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (major_id) REFERENCES majors(id)
 );
@@ -543,7 +541,7 @@ CREATE INDEX idx_audit_logs_created_at ON operational_audit_logs(created_at);
 CREATE INDEX idx_audit_logs_action_type ON operational_audit_logs(action_type);
 
 -- =====================================================
--- SECTION 4: INSERT SAMPLE DATA
+-- SECTION 4: INSERT FIXED DATA (Roles, Permissions, Majors, etc.)
 -- =====================================================
 
 -- -----------------------------------------------------
@@ -569,11 +567,6 @@ INSERT INTO permissions (name, is_active) VALUES
 ('USER_DELETE_HARD', TRUE),
 ('USER_ASSIGN_ROLES', TRUE),
 ('CREATE_SYSTEM_ADMIN', TRUE),
--- Identity Management
-('IDENTITY_SUBMISSION_READ_QUEUE', TRUE),
-('IDENTITY_SUBMISSION_READ_DETAIL', TRUE),
-('IDENTITY_SUBMISSION_APPROVE', TRUE),
-('IDENTITY_SUBMISSION_REJECT', TRUE),
 -- Academic Catalog Management
 ('SEMESTER_CREATE', TRUE),
 ('SEMESTER_READ', TRUE),
@@ -600,15 +593,22 @@ INSERT INTO permissions (name, is_active) VALUES
 ('SLOT_CREATE_FINAL_EXAM', TRUE),
 ('SLOT_UPDATE_FINAL_EXAM', TRUE),
 ('SLOT_DELETE_HARD_FINAL_EXAM', TRUE),
+('MAJOR_IMPORT', TRUE),
+('SUBJECT_IMPORT', TRUE),
+('SEMESTER_IMPORT', TRUE),
+('CLASS_IMPORT', TRUE),
+('SLOT_IMPORT', TRUE),
 -- Infrastructure Management
 ('ROOM_CREATE', TRUE),
 ('ROOM_READ', TRUE),
 ('ROOM_UPDATE', TRUE),
 ('ROOM_DELETE_HARD', TRUE),
+('ROOM_IMPORT', TRUE),
 ('CAMERA_CREATE', TRUE),
 ('CAMERA_READ', TRUE),
 ('CAMERA_UPDATE', TRUE),
 ('CAMERA_DELETE_HARD', TRUE),
+('CAMERA_IMPORT', TRUE),
 -- Attendance Management
 ('OWN_SCHEDULE_READ', TRUE),
 ('SLOT_SESSION_START', TRUE),
@@ -638,7 +638,6 @@ INSERT INTO permissions (name, is_active) VALUES
 ('PERMISSION_DELETE_HARD', TRUE),
 -- Student Permissions
 ('OWN_ATTENDANCE_HISTORY_READ', TRUE),
-('OWN_IDENTITY_SUBMIT', TRUE),
 -- General Permissions
 ('OWN_PROFILE_READ', TRUE),
 ('OWN_PASSWORD_UPDATE', TRUE);
@@ -660,14 +659,14 @@ SELECT 1, id FROM permissions WHERE name IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 2, id FROM permissions WHERE name IN (
     'USER_CREATE', 'USER_READ_LIST', 'USER_READ_DETAIL', 'USER_UPDATE_INFO',
-    'USER_UPDATE_STATUS', 'USER_ASSIGN_ROLES', 'IDENTITY_SUBMISSION_READ_QUEUE',
-    'IDENTITY_SUBMISSION_READ_DETAIL', 'IDENTITY_SUBMISSION_APPROVE', 'IDENTITY_SUBMISSION_REJECT',
-    'SEMESTER_CREATE', 'SEMESTER_READ', 'SEMESTER_UPDATE', 'MAJOR_CREATE', 'MAJOR_READ',
-    'MAJOR_UPDATE', 'SUBJECT_CREATE', 'SUBJECT_READ', 'SUBJECT_UPDATE', 'CLASS_CREATE',
-    'CLASS_READ', 'CLASS_UPDATE', 'SLOT_CREATE', 'SLOT_READ', 'SLOT_UPDATE',
-    'ENROLLMENT_MANAGE', 'SLOT_CREATE_FINAL_EXAM', 'SLOT_UPDATE_FINAL_EXAM',
-    'SLOT_DELETE_HARD_FINAL_EXAM', 'ATTENDANCE_STATUS_UPDATE_MANUAL', 'ROOM_CREATE',
-    'ROOM_READ', 'ROOM_UPDATE', 'CAMERA_CREATE', 'CAMERA_READ', 'CAMERA_UPDATE',
+    'USER_UPDATE_STATUS', 'USER_ASSIGN_ROLES', 'SEMESTER_CREATE', 'SEMESTER_READ',
+    'SEMESTER_UPDATE', 'SEMESTER_IMPORT', 'MAJOR_CREATE', 'MAJOR_READ', 'MAJOR_UPDATE',
+    'MAJOR_IMPORT', 'SUBJECT_CREATE', 'SUBJECT_READ', 'SUBJECT_UPDATE', 'SUBJECT_IMPORT',
+    'CLASS_CREATE', 'CLASS_READ', 'CLASS_UPDATE', 'CLASS_IMPORT', 'SLOT_CREATE',
+    'SLOT_READ', 'SLOT_UPDATE', 'SLOT_IMPORT', 'ENROLLMENT_MANAGE',
+    'SLOT_CREATE_FINAL_EXAM', 'SLOT_UPDATE_FINAL_EXAM', 'SLOT_DELETE_HARD_FINAL_EXAM',
+    'ATTENDANCE_STATUS_UPDATE_MANUAL', 'ROOM_CREATE', 'ROOM_READ', 'ROOM_UPDATE',
+    'ROOM_IMPORT', 'CAMERA_CREATE', 'CAMERA_READ', 'CAMERA_UPDATE', 'CAMERA_IMPORT',
     'REPORT_READ_SYSTEM_WIDE', 'REPORT_EXPORT_ACADEMIC_DATA', 'AUDIT_LOG_READ',
     'OWN_PROFILE_READ', 'OWN_PASSWORD_UPDATE'
 );
@@ -696,9 +695,9 @@ SELECT 4, id FROM permissions WHERE name IN (
 -- STUDENT permissions
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 5, id FROM permissions WHERE name IN (
-    'OWN_SCHEDULE_READ', 'OWN_ATTENDANCE_HISTORY_READ', 'OWN_IDENTITY_SUBMIT',
-    'OWN_PROFILE_READ', 'OWN_PASSWORD_UPDATE', 'ROOM_READ', 'SEMESTER_READ',
-    'CLASS_READ', 'MAJOR_READ', 'SLOT_READ', 'SUBJECT_READ'
+    'OWN_SCHEDULE_READ', 'OWN_ATTENDANCE_HISTORY_READ', 'OWN_PROFILE_READ',
+    'OWN_PASSWORD_UPDATE', 'ROOM_READ', 'SEMESTER_READ', 'CLASS_READ',
+    'MAJOR_READ', 'SLOT_READ', 'SUBJECT_READ'
 );
 
 -- -----------------------------------------------------
@@ -710,12 +709,17 @@ INSERT INTO majors (name, code, is_active) VALUES
 ('Artificial Intelligence', 'AI', TRUE),
 ('Internet of Things', 'IOT', TRUE),
 ('Digital Art Design', 'DAD', TRUE),
-('Business Administration', 'BA', TRUE);
+('Business Administration', 'BA', TRUE),
+('Multimedia Communications', 'MC', TRUE),
+('Mobile and Web Technology', 'MWT', TRUE);
 
 -- -----------------------------------------------------
 -- Insert Semesters
 -- -----------------------------------------------------
 INSERT INTO semesters (name, code, start_date, end_date, is_active) VALUES
+('Spring 2023', 'SP23', '2023-01-09', '2023-05-12', TRUE),
+('Summer 2023', 'SU23', '2023-05-22', '2023-09-01', TRUE),
+('Fall 2023', 'FA23', '2023-09-04', '2023-12-22', TRUE),
 ('Spring 2024', 'SP24', '2024-01-08', '2024-05-10', TRUE),
 ('Summer 2024', 'SU24', '2024-05-20', '2024-08-30', TRUE),
 ('Fall 2024', 'FA24', '2024-09-02', '2024-12-20', TRUE),
@@ -741,690 +745,37 @@ INSERT INTO subjects (name, code, is_active) VALUES
 ('Cloud Computing', 'CLD201', TRUE),
 ('Business Intelligence', 'BIN301', TRUE),
 ('Project Management', 'PMG302', TRUE),
-('Digital Marketing', 'MKT301', TRUE);
+('Digital Marketing', 'MKT301', TRUE),
+('Advanced Java', 'JPD123', TRUE),
+('Python Programming', 'PYF101', TRUE),
+('DevOps Practices', 'DOP301', TRUE),
+('Cybersecurity Fundamentals', 'CSF201', TRUE),
+('UI/UX Design', 'UIX301', TRUE);
 
 -- -----------------------------------------------------
 -- Insert Subject-Major Mappings
 -- -----------------------------------------------------
 INSERT INTO subject_majors (subject_id, major_id) VALUES
 -- Software Engineering subjects
-(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (9, 1), (10, 1),
+(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (9, 1), (10, 1), (16, 1), (17, 1), (18, 1),
 -- Information Assurance subjects
-(1, 2), (2, 2), (3, 2), (4, 2), (9, 2), (10, 2), (11, 2), (12, 2),
+(1, 2), (2, 2), (3, 2), (4, 2), (9, 2), (10, 2), (11, 2), (12, 2), (19, 2),
 -- Artificial Intelligence subjects
-(1, 3), (2, 3), (3, 3), (4, 3), (8, 3), (10, 3),
+(1, 3), (2, 3), (3, 3), (4, 3), (8, 3), (10, 3), (17, 3),
 -- Internet of Things subjects
 (1, 4), (2, 4), (3, 4), (9, 4), (10, 4), (12, 4),
+-- Digital Art Design subjects
+(20, 5), (15, 5),
 -- Business Administration subjects
-(13, 6), (14, 6), (15, 6);
-
--- -----------------------------------------------------
--- Insert Users (Password: $2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O)
--- -----------------------------------------------------
-
--- System Admin (1 user)
-INSERT INTO users (username, email, full_name, password_hash, is_active) VALUES
-('admin001', 'admin001@fpt.edu.vn', 'Nguyen Van Admin', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE);
-
--- Data Operators (3 users)
-INSERT INTO users (username, email, full_name, password_hash, is_active) VALUES
-('dop001', 'dop001@fpt.edu.vn', 'Tran Thi Data Operator', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('dop002', 'dop002@fpt.edu.vn', 'Le Van Operations', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('dop003', 'dop003@fpt.edu.vn', 'Pham Thi Manager', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE);
-
--- Lecturers (8 users)
-INSERT INTO users (username, email, full_name, password_hash, is_active) VALUES
-('lec001', 'lec001@fpt.edu.vn', 'Dr. Nguyen Van Lecturer', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec002', 'lec002@fpt.edu.vn', 'Dr. Tran Thi Professor', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec003', 'lec003@fpt.edu.vn', 'MSc. Le Van Teacher', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec004', 'lec004@fpt.edu.vn', 'Dr. Pham Thi Instructor', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec005', 'lec005@fpt.edu.vn', 'MSc. Hoang Van Educator', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec006', 'lec006@fpt.edu.vn', 'Dr. Vo Thi Academic', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec007', 'lec007@fpt.edu.vn', 'MSc. Dang Van Faculty', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('lec008', 'lec008@fpt.edu.vn', 'Dr. Bui Thi Scholar', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE);
-
--- Supervisors (4 users)
-INSERT INTO users (username, email, full_name, password_hash, is_active) VALUES
-('sup001', 'sup001@fpt.edu.vn', 'Nguyen Van Supervisor', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('sup002', 'sup002@fpt.edu.vn', 'Tran Thi Proctor', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('sup003', 'sup003@fpt.edu.vn', 'Le Van Monitor', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('sup004', 'sup004@fpt.edu.vn', 'Pham Thi Examiner', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE);
-
--- Students (40 users - diverse across majors)
-INSERT INTO users (username, email, full_name, password_hash, is_active) VALUES
--- SE Students (12)
-('HE180001', 'he180001@fpt.edu.vn', 'Nguyen Van An', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180002', 'he180002@fpt.edu.vn', 'Tran Thi Binh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180003', 'he180003@fpt.edu.vn', 'Le Van Cuong', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180004', 'he180004@fpt.edu.vn', 'Pham Thi Dung', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180005', 'he180005@fpt.edu.vn', 'Hoang Van Em', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180006', 'he180006@fpt.edu.vn', 'Vo Thi Phuong', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180007', 'he180007@fpt.edu.vn', 'Dang Van Giang', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180008', 'he180008@fpt.edu.vn', 'Bui Thi Hoa', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180009', 'he180009@fpt.edu.vn', 'Ngo Van Hung', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180010', 'he180010@fpt.edu.vn', 'Do Thi Khanh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180011', 'he180011@fpt.edu.vn', 'Vu Van Linh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HE180012', 'he180012@fpt.edu.vn', 'Truong Thi Mai', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
--- IA Students (10)
-('HS180001', 'hs180001@fpt.edu.vn', 'Nguyen Van Nam', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180002', 'hs180002@fpt.edu.vn', 'Tran Thi Oanh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180003', 'hs180003@fpt.edu.vn', 'Le Van Phong', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180004', 'hs180004@fpt.edu.vn', 'Pham Thi Quynh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180005', 'hs180005@fpt.edu.vn', 'Hoang Van Rong', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180006', 'hs180006@fpt.edu.vn', 'Vo Thi Son', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180007', 'hs180007@fpt.edu.vn', 'Dang Van Tuan', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180008', 'hs180008@fpt.edu.vn', 'Bui Thi Uyen', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180009', 'hs180009@fpt.edu.vn', 'Ngo Van Vinh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HS180010', 'hs180010@fpt.edu.vn', 'Do Thi Xuan', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
--- AI Students (8)
-('HA180001', 'ha180001@fpt.edu.vn', 'Nguyen Van Yen', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180002', 'ha180002@fpt.edu.vn', 'Tran Thi Anh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180003', 'ha180003@fpt.edu.vn', 'Le Van Bao', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180004', 'ha180004@fpt.edu.vn', 'Pham Thi Cam', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180005', 'ha180005@fpt.edu.vn', 'Hoang Van Dat', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180006', 'ha180006@fpt.edu.vn', 'Vo Thi Nga', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180007', 'ha180007@fpt.edu.vn', 'Dang Van Phuc', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HA180008', 'ha180008@fpt.edu.vn', 'Bui Thi Thao', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
--- IOT Students (6)
-('HI180001', 'hi180001@fpt.edu.vn', 'Nguyen Van Minh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HI180002', 'hi180002@fpt.edu.vn', 'Tran Thi Lan', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HI180003', 'hi180003@fpt.edu.vn', 'Le Van Kien', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HI180004', 'hi180004@fpt.edu.vn', 'Pham Thi Huong', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HI180005', 'hi180005@fpt.edu.vn', 'Hoang Van Tien', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HI180006', 'hi180006@fpt.edu.vn', 'Vo Thi Nhi', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
--- BA Students (4)
-('HB180001', 'hb180001@fpt.edu.vn', 'Nguyen Van Duc', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HB180002', 'hb180002@fpt.edu.vn', 'Tran Thi Hanh', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HB180003', 'hb180003@fpt.edu.vn', 'Le Van Tai', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE),
-('HB180004', 'hb180004@fpt.edu.vn', 'Pham Thi Ly', '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O', TRUE);
-
--- -----------------------------------------------------
--- Insert User Roles
--- -----------------------------------------------------
-
--- System Admin
-INSERT INTO user_roles (user_id, role_id) VALUES (1, 1);
-
--- Data Operators
-INSERT INTO user_roles (user_id, role_id) VALUES (2, 2), (3, 2), (4, 2);
-
--- Lecturers
-INSERT INTO user_roles (user_id, role_id) VALUES (5, 3), (6, 3), (7, 3), (8, 3), (9, 3), (10, 3), (11, 3), (12, 3);
-
--- Supervisors
-INSERT INTO user_roles (user_id, role_id) VALUES (13, 4), (14, 4), (15, 4), (16, 4);
-
--- Students (IDs 17-56)
-INSERT INTO user_roles (user_id, role_id)
-SELECT id, 5 FROM users WHERE id >= 17 AND id <= 56;
-
--- -----------------------------------------------------
--- Insert Staff Profiles
--- -----------------------------------------------------
-INSERT INTO staff_profiles (user_id, staff_code) VALUES
-(2, 'DOP001'), (3, 'DOP002'), (4, 'DOP003'),
-(5, 'LEC001'), (6, 'LEC002'), (7, 'LEC003'), (8, 'LEC004'),
-(9, 'LEC005'), (10, 'LEC006'), (11, 'LEC007'), (12, 'LEC008'),
-(13, 'SUP001'), (14, 'SUP002'), (15, 'SUP003'), (16, 'SUP004');
-
--- -----------------------------------------------------
--- Insert Student Profiles
--- -----------------------------------------------------
--- SE Students
-INSERT INTO student_profiles (user_id, major_id, roll_number) VALUES
-(17, 1, 'HE180001'), (18, 1, 'HE180002'), (19, 1, 'HE180003'), (20, 1, 'HE180004'),
-(21, 1, 'HE180005'), (22, 1, 'HE180006'), (23, 1, 'HE180007'), (24, 1, 'HE180008'),
-(25, 1, 'HE180009'), (26, 1, 'HE180010'), (27, 1, 'HE180011'), (28, 1, 'HE180012');
-
--- IA Students
-INSERT INTO student_profiles (user_id, major_id, roll_number) VALUES
-(29, 2, 'HS180001'), (30, 2, 'HS180002'), (31, 2, 'HS180003'), (32, 2, 'HS180004'),
-(33, 2, 'HS180005'), (34, 2, 'HS180006'), (35, 2, 'HS180007'), (36, 2, 'HS180008'),
-(37, 2, 'HS180009'), (38, 2, 'HS180010');
-
--- AI Students
-INSERT INTO student_profiles (user_id, major_id, roll_number) VALUES
-(39, 3, 'HA180001'), (40, 3, 'HA180002'), (41, 3, 'HA180003'), (42, 3, 'HA180004'),
-(43, 3, 'HA180005'), (44, 3, 'HA180006'), (45, 3, 'HA180007'), (46, 3, 'HA180008');
-
--- IOT Students
-INSERT INTO student_profiles (user_id, major_id, roll_number) VALUES
-(47, 4, 'HI180001'), (48, 4, 'HI180002'), (49, 4, 'HI180003'),
-(50, 4, 'HI180004'), (51, 4, 'HI180005'), (52, 4, 'HI180006');
-
--- BA Students
-INSERT INTO student_profiles (user_id, major_id, roll_number) VALUES
-(53, 6, 'HB180001'), (54, 6, 'HB180002'), (55, 6, 'HB180003'), (56, 6, 'HB180004');
-
--- -----------------------------------------------------
--- Insert Rooms
--- -----------------------------------------------------
-INSERT INTO rooms (name, location, is_active) VALUES
-('Room 101', 'Building Alpha - Floor 1', TRUE),
-('Room 102', 'Building Alpha - Floor 1', TRUE),
-('Room 201', 'Building Alpha - Floor 2', TRUE),
-('Room 202', 'Building Alpha - Floor 2', TRUE),
-('Room 301', 'Building Beta - Floor 3', TRUE),
-('Room 302', 'Building Beta - Floor 3', TRUE),
-('Lab 401', 'Building Beta - Floor 4', TRUE),
-('Lab 402', 'Building Beta - Floor 4', TRUE),
-('Auditorium A', 'Building Gamma - Ground Floor', TRUE),
-('Auditorium B', 'Building Gamma - Ground Floor', TRUE);
-
--- -----------------------------------------------------
--- Insert Cameras
--- -----------------------------------------------------
-INSERT INTO cameras (room_id, name, rtsp_url, is_active) VALUES
-(1, 'CAM-101-FRONT', 'rtsp://192.168.1.101:554/stream1', TRUE),
-(1, 'CAM-101-BACK', 'rtsp://192.168.1.102:554/stream1', TRUE),
-(2, 'CAM-102-FRONT', 'rtsp://192.168.1.103:554/stream1', TRUE),
-(2, 'CAM-102-BACK', 'rtsp://192.168.1.104:554/stream1', TRUE),
-(3, 'CAM-201-FRONT', 'rtsp://192.168.1.105:554/stream1', TRUE),
-(3, 'CAM-201-BACK', 'rtsp://192.168.1.106:554/stream1', TRUE),
-(4, 'CAM-202-FRONT', 'rtsp://192.168.1.107:554/stream1', TRUE),
-(5, 'CAM-301-FRONT', 'rtsp://192.168.1.108:554/stream1', TRUE),
-(5, 'CAM-301-BACK', 'rtsp://192.168.1.109:554/stream1', TRUE),
-(6, 'CAM-302-FRONT', 'rtsp://192.168.1.110:554/stream1', TRUE),
-(7, 'CAM-LAB401-1', 'rtsp://192.168.1.111:554/stream1', TRUE),
-(7, 'CAM-LAB401-2', 'rtsp://192.168.1.112:554/stream1', TRUE),
-(7, 'CAM-LAB401-3', 'rtsp://192.168.1.113:554/stream1', TRUE),
-(8, 'CAM-LAB402-1', 'rtsp://192.168.1.114:554/stream1', TRUE),
-(8, 'CAM-LAB402-2', 'rtsp://192.168.1.115:554/stream1', TRUE),
-(9, 'CAM-AUDA-FRONT', 'rtsp://192.168.1.116:554/stream1', TRUE),
-(9, 'CAM-AUDA-BACK', 'rtsp://192.168.1.117:554/stream1', TRUE),
-(9, 'CAM-AUDA-LEFT', 'rtsp://192.168.1.118:554/stream1', TRUE),
-(10, 'CAM-AUDB-FRONT', 'rtsp://192.168.1.119:554/stream1', TRUE),
-(10, 'CAM-AUDB-BACK', 'rtsp://192.168.1.120:554/stream1', TRUE);
-
--- -----------------------------------------------------
--- Insert Classes (Fall 2024 - Current Semester)
--- -----------------------------------------------------
-INSERT INTO classes (subject_id, semester_id, code, is_active) VALUES
--- PRF192 classes
-(1, 3, 'SE1801', TRUE),
-(1, 3, 'SE1802', TRUE),
-(1, 3, 'AI1801', TRUE),
--- PRO192 classes
-(2, 3, 'SE1803', TRUE),
-(2, 3, 'SE1804', TRUE),
--- CSD201 classes
-(3, 3, 'SE1805', TRUE),
-(3, 3, 'AI1802', TRUE),
--- DBI202 classes
-(4, 3, 'SE1806', TRUE),
-(4, 3, 'IA1801', TRUE),
--- SWP391 classes
-(5, 3, 'SE1807', TRUE),
--- MLA301 classes
-(8, 3, 'AI1803', TRUE),
--- NWC203 classes
-(9, 3, 'SE1808', TRUE),
-(9, 3, 'IOT1801', TRUE),
--- SEC301 classes
-(11, 3, 'IA1802', TRUE),
--- BIN301 classes
-(13, 3, 'BA1801', TRUE);
-
--- -----------------------------------------------------
--- Insert Enrollments
--- -----------------------------------------------------
-
--- PRF192 SE1801 (Class ID 1) - 8 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(1, 17, TRUE), (1, 18, TRUE), (1, 19, TRUE), (1, 20, TRUE),
-(1, 21, TRUE), (1, 22, TRUE), (1, 23, TRUE), (1, 24, TRUE);
-
--- PRF192 SE1802 (Class ID 2) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(2, 25, TRUE), (2, 26, TRUE), (2, 27, TRUE), (2, 28, TRUE);
-
--- PRF192 AI1801 (Class ID 3) - 6 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(3, 39, TRUE), (3, 40, TRUE), (3, 41, TRUE), (3, 42, TRUE), (3, 43, TRUE), (3, 44, TRUE);
-
--- PRO192 SE1803 (Class ID 4) - 6 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(4, 17, TRUE), (4, 18, TRUE), (4, 19, TRUE), (4, 20, TRUE), (4, 21, TRUE), (4, 22, TRUE);
-
--- PRO192 SE1804 (Class ID 5) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(5, 23, TRUE), (5, 24, TRUE), (5, 25, TRUE), (5, 26, TRUE);
-
--- CSD201 SE1805 (Class ID 6) - 5 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(6, 17, TRUE), (6, 18, TRUE), (6, 19, TRUE), (6, 20, TRUE), (6, 21, TRUE);
-
--- CSD201 AI1802 (Class ID 7) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(7, 39, TRUE), (7, 40, TRUE), (7, 41, TRUE), (7, 42, TRUE);
-
--- DBI202 SE1806 (Class ID 8) - 6 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(8, 17, TRUE), (8, 18, TRUE), (8, 19, TRUE), (8, 20, TRUE), (8, 21, TRUE), (8, 22, TRUE);
-
--- DBI202 IA1801 (Class ID 9) - 5 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(9, 29, TRUE), (9, 30, TRUE), (9, 31, TRUE), (9, 32, TRUE), (9, 33, TRUE);
-
--- SWP391 SE1807 (Class ID 10) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(10, 17, TRUE), (10, 18, TRUE), (10, 19, TRUE), (10, 20, TRUE);
-
--- MLA301 AI1803 (Class ID 11) - 5 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(11, 39, TRUE), (11, 40, TRUE), (11, 41, TRUE), (11, 42, TRUE), (11, 43, TRUE);
-
--- NWC203 SE1808 (Class ID 12) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(12, 23, TRUE), (12, 24, TRUE), (12, 25, TRUE), (12, 26, TRUE);
-
--- NWC203 IOT1801 (Class ID 13) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(13, 47, TRUE), (13, 48, TRUE), (13, 49, TRUE), (13, 50, TRUE);
-
--- SEC301 IA1802 (Class ID 14) - 5 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(14, 29, TRUE), (14, 30, TRUE), (14, 31, TRUE), (14, 32, TRUE), (14, 33, TRUE);
-
--- BIN301 BA1801 (Class ID 15) - 4 students
-INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
-(15, 53, TRUE), (15, 54, TRUE), (15, 55, TRUE), (15, 56, TRUE);
-
--- -----------------------------------------------------
--- Insert Slots (Diverse scenarios)
--- -----------------------------------------------------
-
--- Regular LECTURE slots (finalized)
-INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, finalized_at, title, is_active) VALUES
-(1, 3, 1, 5, 'LECTURE', '2024-10-01 08:00:00', '2024-10-01 10:00:00', '2024-10-01 10:30:00', 'Introduction to Programming', TRUE),
-(1, 3, 1, 5, 'LECTURE', '2024-10-03 08:00:00', '2024-10-03 10:00:00', '2024-10-03 10:30:00', 'Variables and Data Types', TRUE),
-(1, 3, 1, 5, 'LECTURE', '2024-10-08 08:00:00', '2024-10-08 10:00:00', '2024-10-08 10:30:00', 'Control Structures', TRUE),
-(4, 3, 2, 6, 'LECTURE', '2024-10-02 13:00:00', '2024-10-02 15:00:00', '2024-10-02 15:30:00', 'OOP Concepts', TRUE),
-(4, 3, 2, 6, 'LECTURE', '2024-10-04 13:00:00', '2024-10-04 15:00:00', '2024-10-04 15:30:00', 'Classes and Objects', TRUE),
-(8, 3, 3, 7, 'LECTURE', '2024-10-05 08:00:00', '2024-10-05 10:00:00', '2024-10-05 10:30:00', 'Database Fundamentals', TRUE),
-(8, 3, 3, 7, 'LECTURE', '2024-10-07 08:00:00', '2024-10-07 10:00:00', '2024-10-07 10:30:00', 'SQL Basics', TRUE);
-
--- LECTURE_WITH_PT slots (finalized)
-INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, finalized_at, title, is_active) VALUES
-(1, 3, 1, 5, 'LECTURE_WITH_PT', '2024-10-10 08:00:00', '2024-10-10 10:00:00', '2024-10-10 10:30:00', 'Progress Test 1', TRUE),
-(4, 3, 2, 6, 'LECTURE_WITH_PT', '2024-10-09 13:00:00', '2024-10-09 15:00:00', '2024-10-09 15:30:00', 'Midterm Progress Test', TRUE),
-(8, 3, 3, 7, 'LECTURE_WITH_PT', '2024-10-12 08:00:00', '2024-10-12 10:00:00', '2024-10-12 10:30:00', 'SQL Quiz', TRUE);
-
--- Upcoming LECTURE slots (not finalized yet)
-INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, finalized_at, title, is_active) VALUES
-(1, 3, 1, 5, 'LECTURE', '2024-10-24 08:00:00', '2024-10-24 10:00:00', NULL, 'Functions and Methods', TRUE),
-(1, 3, 1, 5, 'LECTURE', '2024-10-29 08:00:00', '2024-10-29 10:00:00', NULL, 'Arrays and Collections', TRUE),
-(4, 3, 2, 6, 'LECTURE', '2024-10-25 13:00:00', '2024-10-25 15:00:00', NULL, 'Inheritance', TRUE),
-(4, 3, 2, 6, 'LECTURE', '2024-10-30 13:00:00', '2024-10-30 15:00:00', NULL, 'Polymorphism', TRUE),
-(8, 3, 3, 7, 'LECTURE', '2024-10-26 08:00:00', '2024-10-26 10:00:00', NULL, 'Advanced SQL', TRUE),
-(11, 3, 5, 8, 'LECTURE', '2024-10-27 10:00:00', '2024-10-27 12:00:00', NULL, 'Neural Networks', TRUE),
-(11, 3, 5, 8, 'LECTURE', '2024-11-01 10:00:00', '2024-11-01 12:00:00', NULL, 'Deep Learning', TRUE);
-
--- FINAL_EXAM slots (class_id is NULL, semester_id required)
-INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, finalized_at, title, is_active) VALUES
-(NULL, 3, 9, 13, 'FINAL_EXAM', '2024-12-10 08:00:00', '2024-12-10 10:00:00', NULL, 'Final Exam Slot 1', TRUE),
-(NULL, 3, 9, 13, 'FINAL_EXAM', '2024-12-10 13:00:00', '2024-12-10 15:00:00', NULL, 'Final Exam Slot 2', TRUE),
-(NULL, 3, 10, 14, 'FINAL_EXAM', '2024-12-11 08:00:00', '2024-12-11 10:00:00', NULL, 'Final Exam Slot 3', TRUE),
-(NULL, 3, 10, 14, 'FINAL_EXAM', '2024-12-12 08:00:00', '2024-12-12 10:00:00', NULL, 'Final Exam Slot 4', TRUE);
-
--- -----------------------------------------------------
--- Insert Exam Slot Subjects (for FINAL_EXAM slots)
--- -----------------------------------------------------
-
--- Final Exam Slot 1 (Slot ID 18) - PRF192 and PRO192
-INSERT INTO exam_slot_subjects (slot_id, subject_id) VALUES
-(18, 1), -- PRF192
-(18, 2); -- PRO192
-
--- Final Exam Slot 2 (Slot ID 19) - DBI202 and CSD201
-INSERT INTO exam_slot_subjects (slot_id, subject_id) VALUES
-(19, 4), -- DBI202
-(19, 3); -- CSD201
-
--- Final Exam Slot 3 (Slot ID 20) - MLA301 and NWC203
-INSERT INTO exam_slot_subjects (slot_id, subject_id) VALUES
-(20, 8), -- MLA301
-(20, 9); -- NWC203
-
--- Final Exam Slot 4 (Slot ID 21) - SEC301 and BIN301
-INSERT INTO exam_slot_subjects (slot_id, subject_id) VALUES
-(21, 11), -- SEC301
-(21, 13); -- BIN301
-
--- -----------------------------------------------------
--- Insert Exam Slot Participants
--- -----------------------------------------------------
-
--- Slot 18 - PRF192 participants (exam_slot_subject_id 1)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(1, 17, TRUE), (1, 18, TRUE), (1, 19, TRUE), (1, 20, TRUE),
-(1, 21, TRUE), (1, 22, TRUE), (1, 39, TRUE), (1, 40, TRUE);
-
--- Slot 18 - PRO192 participants (exam_slot_subject_id 2)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(2, 17, TRUE), (2, 18, TRUE), (2, 19, TRUE), (2, 20, TRUE), (2, 23, TRUE), (2, 24, TRUE);
-
--- Slot 19 - DBI202 participants (exam_slot_subject_id 3)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(3, 17, TRUE), (3, 18, TRUE), (3, 19, TRUE), (3, 29, TRUE), (3, 30, TRUE), (3, 31, TRUE);
-
--- Slot 19 - CSD201 participants (exam_slot_subject_id 4)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(4, 17, TRUE), (4, 18, TRUE), (4, 19, TRUE), (4, 39, TRUE), (4, 40, TRUE);
-
--- Slot 20 - MLA301 participants (exam_slot_subject_id 5)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(5, 39, TRUE), (5, 40, TRUE), (5, 41, TRUE), (5, 42, TRUE);
-
--- Slot 20 - NWC203 participants (exam_slot_subject_id 6)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(6, 23, TRUE), (6, 24, TRUE), (6, 47, TRUE), (6, 48, TRUE);
-
--- Slot 21 - SEC301 participants (exam_slot_subject_id 7)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(7, 29, TRUE), (7, 30, TRUE), (7, 31, TRUE), (7, 32, TRUE);
-
--- Slot 21 - BIN301 participants (exam_slot_subject_id 8)
-INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled) VALUES
-(8, 53, TRUE), (8, 54, TRUE), (8, 55, TRUE), (8, 56, TRUE);
-
--- -----------------------------------------------------
--- Insert Attendance Records (for finalized LECTURE slots)
--- -----------------------------------------------------
-
--- Slot 1 attendance (8 students)
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 1, 'present', 'auto', '2024-10-01 08:15:00'),
-(18, 1, 'present', 'auto', '2024-10-01 08:16:00'),
-(19, 1, 'present', 'auto', '2024-10-01 08:17:00'),
-(20, 1, 'absent', 'system_finalize', '2024-10-01 10:30:00'),
-(21, 1, 'present', 'auto', '2024-10-01 08:20:00'),
-(22, 1, 'present', 'manual', '2024-10-01 09:00:00'),
-(23, 1, 'present', 'auto', '2024-10-01 08:25:00'),
-(24, 1, 'absent', 'system_finalize', '2024-10-01 10:30:00');
-
--- Slot 2 attendance
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 2, 'present', 'auto', '2024-10-03 08:10:00'),
-(18, 2, 'present', 'auto', '2024-10-03 08:12:00'),
-(19, 2, 'absent', 'manual', '2024-10-03 09:30:00'),
-(20, 2, 'present', 'manual', '2024-10-03 09:00:00'),
-(21, 2, 'present', 'auto', '2024-10-03 08:15:00'),
-(22, 2, 'present', 'auto', '2024-10-03 08:18:00'),
-(23, 2, 'present', 'auto', '2024-10-03 08:20:00'),
-(24, 2, 'present', 'auto', '2024-10-03 08:22:00');
-
--- Slot 3 attendance
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 3, 'present', 'auto', '2024-10-08 08:05:00'),
-(18, 3, 'present', 'auto', '2024-10-08 08:08:00'),
-(19, 3, 'present', 'auto', '2024-10-08 08:10:00'),
-(20, 3, 'present', 'auto', '2024-10-08 08:12:00'),
-(21, 3, 'absent', 'system_finalize', '2024-10-08 10:30:00'),
-(22, 3, 'present', 'auto', '2024-10-08 08:15:00'),
-(23, 3, 'present', 'auto', '2024-10-08 08:18:00'),
-(24, 3, 'present', 'auto', '2024-10-08 08:20:00');
-
--- Slot 4 attendance (PRO192 class)
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 4, 'present', 'auto', '2024-10-02 13:05:00'),
-(18, 4, 'present', 'auto', '2024-10-02 13:08:00'),
-(19, 4, 'present', 'auto', '2024-10-02 13:10:00'),
-(20, 4, 'absent', 'system_finalize', '2024-10-02 15:30:00'),
-(21, 4, 'present', 'auto', '2024-10-02 13:15:00'),
-(22, 4, 'present', 'auto', '2024-10-02 13:18:00');
-
--- Slot 5 attendance
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 5, 'present', 'auto', '2024-10-04 13:05:00'),
-(18, 5, 'present', 'auto', '2024-10-04 13:08:00'),
-(19, 5, 'present', 'auto', '2024-10-04 13:10:00'),
-(20, 5, 'present', 'manual', '2024-10-04 14:00:00'),
-(21, 5, 'present', 'auto', '2024-10-04 13:15:00'),
-(22, 5, 'present', 'auto', '2024-10-04 13:18:00');
-
--- Slot 6 attendance (DBI202 class)
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 6, 'present', 'auto', '2024-10-05 08:05:00'),
-(18, 6, 'present', 'auto', '2024-10-05 08:08:00'),
-(19, 6, 'absent', 'manual', '2024-10-05 09:30:00'),
-(20, 6, 'present', 'auto', '2024-10-05 08:12:00'),
-(21, 6, 'present', 'auto', '2024-10-05 08:15:00'),
-(22, 6, 'present', 'auto', '2024-10-05 08:18:00');
-
--- Slot 7 attendance
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 7, 'present', 'auto', '2024-10-07 08:05:00'),
-(18, 7, 'present', 'auto', '2024-10-07 08:08:00'),
-(19, 7, 'present', 'auto', '2024-10-07 08:10:00'),
-(20, 7, 'present', 'auto', '2024-10-07 08:12:00'),
-(21, 7, 'present', 'auto', '2024-10-07 08:15:00'),
-(22, 7, 'absent', 'system_finalize', '2024-10-07 10:30:00');
-
--- -----------------------------------------------------
--- Insert Exam Attendance (for LECTURE_WITH_PT slots)
--- -----------------------------------------------------
-
--- Slot 8 exam attendance (LECTURE_WITH_PT - Progress Test 1)
-INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 8, 'present', 'auto', '2024-10-10 08:10:00'),
-(18, 8, 'present', 'auto', '2024-10-10 08:12:00'),
-(19, 8, 'present', 'auto', '2024-10-10 08:15:00'),
-(20, 8, 'absent', 'system_finalize', '2024-10-10 10:30:00'),
-(21, 8, 'present', 'auto', '2024-10-10 08:18:00'),
-(22, 8, 'present', 'manual', '2024-10-10 09:00:00'),
-(23, 8, 'present', 'auto', '2024-10-10 08:22:00'),
-(24, 8, 'present', 'auto', '2024-10-10 08:25:00');
-
--- Slot 9 exam attendance (LECTURE_WITH_PT - Midterm Progress Test)
-INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 9, 'present', 'auto', '2024-10-09 13:05:00'),
-(18, 9, 'present', 'auto', '2024-10-09 13:08:00'),
-(19, 9, 'present', 'auto', '2024-10-09 13:10:00'),
-(20, 9, 'present', 'manual', '2024-10-09 14:00:00'),
-(21, 9, 'present', 'auto', '2024-10-09 13:15:00'),
-(22, 9, 'present', 'auto', '2024-10-09 13:18:00');
-
--- Slot 10 exam attendance (LECTURE_WITH_PT - SQL Quiz)
-INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at) VALUES
-(17, 10, 'present', 'auto', '2024-10-12 08:05:00'),
-(18, 10, 'present', 'auto', '2024-10-12 08:08:00'),
-(19, 10, 'absent', 'manual', '2024-10-12 09:30:00'),
-(20, 10, 'present', 'auto', '2024-10-12 08:12:00'),
-(21, 10, 'present', 'auto', '2024-10-12 08:15:00'),
-(22, 10, 'present', 'auto', '2024-10-12 08:18:00');
-
--- Note: For LECTURE_WITH_PT slots, both attendance_records and exam_attendance exist
--- Insert corresponding regular attendance for these slots
-
-INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
--- Slot 8 regular attendance
-(17, 8, 'present', 'auto', '2024-10-10 08:10:00'),
-(18, 8, 'present', 'auto', '2024-10-10 08:12:00'),
-(19, 8, 'present', 'auto', '2024-10-10 08:15:00'),
-(20, 8, 'absent', 'system_finalize', '2024-10-10 10:30:00'),
-(21, 8, 'present', 'auto', '2024-10-10 08:18:00'),
-(22, 8, 'present', 'manual', '2024-10-10 09:00:00'),
-(23, 8, 'present', 'auto', '2024-10-10 08:22:00'),
-(24, 8, 'present', 'auto', '2024-10-10 08:25:00'),
--- Slot 9 regular attendance
-(17, 9, 'present', 'auto', '2024-10-09 13:05:00'),
-(18, 9, 'present', 'auto', '2024-10-09 13:08:00'),
-(19, 9, 'present', 'auto', '2024-10-09 13:10:00'),
-(20, 9, 'present', 'manual', '2024-10-09 14:00:00'),
-(21, 9, 'present', 'auto', '2024-10-09 13:15:00'),
-(22, 9, 'present', 'auto', '2024-10-09 13:18:00'),
--- Slot 10 regular attendance
-(17, 10, 'present', 'auto', '2024-10-12 08:05:00'),
-(18, 10, 'present', 'auto', '2024-10-12 08:08:00'),
-(19, 10, 'absent', 'manual', '2024-10-12 09:30:00'),
-(20, 10, 'present', 'auto', '2024-10-12 08:12:00'),
-(21, 10, 'present', 'auto', '2024-10-12 08:15:00'),
-(22, 10, 'present', 'auto', '2024-10-12 08:18:00');
-
--- -----------------------------------------------------
--- Insert Attendance Remarks (diverse scenarios)
--- -----------------------------------------------------
-
--- Remark for manual status change
-INSERT INTO regular_attendance_remarks (attendance_record_id, created_by_user_id, remark, is_active) VALUES
-(4, 5, 'Student was sick, provided medical certificate later', TRUE),
-(9, 6, 'Late arrival due to traffic, marked absent initially', TRUE),
-(19, 7, 'Student left early for family emergency', TRUE),
-(20, 6, 'Corrected attendance after reviewing evidence', TRUE);
-
--- Exam attendance remarks
-INSERT INTO exam_attendance_remarks (exam_attendance_id, created_by_user_id, remark, is_active) VALUES
-(4, 5, 'Student was absent due to illness, will take makeup exam', TRUE),
-(9, 7, 'Technical issue with camera, manually verified attendance', TRUE);
-
--- -----------------------------------------------------
--- Insert Attendance Evidence (sample URLs)
--- -----------------------------------------------------
-
--- Regular attendance evidences
-INSERT INTO regular_attendance_evidences (attendance_record_id, image_url, created_at) VALUES
-(1, '/evidence/regular/slot1_student17_20241001_081500.jpg', '2024-10-01 08:15:00'),
-(2, '/evidence/regular/slot1_student18_20241001_081600.jpg', '2024-10-01 08:16:00'),
-(3, '/evidence/regular/slot1_student19_20241001_081700.jpg', '2024-10-01 08:17:00'),
-(5, '/evidence/regular/slot1_student21_20241001_082000.jpg', '2024-10-01 08:20:00'),
-(7, '/evidence/regular/slot1_student23_20241001_082500.jpg', '2024-10-01 08:25:00'),
-(9, '/evidence/regular/slot2_student17_20241003_081000.jpg', '2024-10-03 08:10:00'),
-(10, '/evidence/regular/slot2_student18_20241003_081200.jpg', '2024-10-03 08:12:00');
-
--- Exam attendance evidences
-INSERT INTO exam_attendance_evidences (exam_attendance_id, image_url, created_at) VALUES
-(1, '/evidence/exam/slot8_student17_20241010_081000.jpg', '2024-10-10 08:10:00'),
-(2, '/evidence/exam/slot8_student18_20241010_081200.jpg', '2024-10-10 08:12:00'),
-(3, '/evidence/exam/slot8_student19_20241010_081500.jpg', '2024-10-10 08:15:00'),
-(5, '/evidence/exam/slot8_student21_20241010_081800.jpg', '2024-10-10 08:18:00'),
-(7, '/evidence/exam/slot8_student23_20241010_082200.jpg', '2024-10-10 08:22:00');
-
--- -----------------------------------------------------
--- Insert Identity Submissions (diverse scenarios)
--- -----------------------------------------------------
-
--- Approved initial submissions
-INSERT INTO identity_submissions (student_user_id, reviewed_by_user_id, status, submission_type, reviewed_at, rejection_reason) VALUES
-(17, 2, 'approved', 'initial', '2024-09-15 10:00:00', NULL),
-(18, 2, 'approved', 'initial', '2024-09-15 11:00:00', NULL),
-(19, 2, 'approved', 'initial', '2024-09-15 14:00:00', NULL),
-(20, 3, 'approved', 'initial', '2024-09-16 09:00:00', NULL),
-(21, 3, 'approved', 'initial', '2024-09-16 10:00:00', NULL),
-(22, 3, 'approved', 'initial', '2024-09-16 11:00:00', NULL),
-(23, 2, 'approved', 'initial', '2024-09-17 09:00:00', NULL),
-(24, 2, 'approved', 'initial', '2024-09-17 10:00:00', NULL),
-(29, 3, 'approved', 'initial', '2024-09-18 09:00:00', NULL),
-(30, 3, 'approved', 'initial', '2024-09-18 10:00:00', NULL);
-
--- Pending submissions
-INSERT INTO identity_submissions (student_user_id, reviewed_by_user_id, status, submission_type, reviewed_at, rejection_reason) VALUES
-(39, NULL, 'pending', 'initial', NULL, NULL),
-(40, NULL, 'pending', 'initial', NULL, NULL),
-(41, NULL, 'pending', 'update', NULL, NULL);
-
--- Rejected submission
-INSERT INTO identity_submissions (student_user_id, reviewed_by_user_id, status, submission_type, reviewed_at, rejection_reason) VALUES
-(42, 2, 'rejected', 'initial', '2024-09-20 14:00:00', 'Photo quality is too low, please retake with better lighting'),
-(43, 3, 'rejected', 'update', '2024-10-15 10:00:00', 'Video does not show face clearly, please record again');
-
--- -----------------------------------------------------
--- Insert Identity Assets
--- -----------------------------------------------------
-
--- Assets for approved submissions
-INSERT INTO identity_assets (submission_id, asset_type, storage_url, is_active) VALUES
-(1, 'face_photo', '/identity/student17_photo_20240915.jpg', TRUE),
-(1, 'face_video', '/identity/student17_video_20240915.mp4', TRUE),
-(2, 'face_photo', '/identity/student18_photo_20240915.jpg', TRUE),
-(2, 'face_video', '/identity/student18_video_20240915.mp4', TRUE),
-(3, 'face_photo', '/identity/student19_photo_20240915.jpg', TRUE),
-(3, 'face_video', '/identity/student19_video_20240915.mp4', TRUE),
-(4, 'face_photo', '/identity/student20_photo_20240916.jpg', TRUE),
-(4, 'face_video', '/identity/student20_video_20240916.mp4', TRUE),
-(5, 'face_photo', '/identity/student21_photo_20240916.jpg', TRUE),
-(5, 'face_video', '/identity/student21_video_20240916.mp4', TRUE),
-(6, 'face_photo', '/identity/student22_photo_20240916.jpg', TRUE),
-(6, 'face_video', '/identity/student22_video_20240916.mp4', TRUE),
-(7, 'face_photo', '/identity/student23_photo_20240917.jpg', TRUE),
-(7, 'face_video', '/identity/student23_video_20240917.mp4', TRUE),
-(8, 'face_photo', '/identity/student24_photo_20240917.jpg', TRUE),
-(8, 'face_video', '/identity/student24_video_20240917.mp4', TRUE),
-(9, 'face_photo', '/identity/student29_photo_20240918.jpg', TRUE),
-(9, 'face_video', '/identity/student29_video_20240918.mp4', TRUE),
-(10, 'face_photo', '/identity/student30_photo_20240918.jpg', TRUE),
-(10, 'face_video', '/identity/student30_video_20240918.mp4', TRUE);
-
--- Assets for pending submissions
-INSERT INTO identity_assets (submission_id, asset_type, storage_url, is_active) VALUES
-(11, 'face_photo', '/identity/student39_photo_20241020.jpg', TRUE),
-(11, 'face_video', '/identity/student39_video_20241020.mp4', TRUE),
-(12, 'face_photo', '/identity/student40_photo_20241020.jpg', TRUE),
-(12, 'face_video', '/identity/student40_video_20241020.mp4', TRUE),
-(13, 'face_video', '/identity/student41_video_update_20241021.mp4', TRUE);
-
--- Assets for rejected submissions
-INSERT INTO identity_assets (submission_id, asset_type, storage_url, is_active) VALUES
-(14, 'face_photo', '/identity/student42_photo_rejected_20240920.jpg', FALSE),
-(14, 'face_video', '/identity/student42_video_rejected_20240920.mp4', FALSE),
-(15, 'face_video', '/identity/student43_video_rejected_20241015.mp4', FALSE);
-
--- -----------------------------------------------------
--- Insert Face Embeddings (sample vectors - in production these would be real 512-dim vectors)
--- -----------------------------------------------------
-
--- Note: Using random vectors for demonstration. In production, these would be generated by the ML model.
-INSERT INTO face_embeddings (student_user_id, generated_from_asset_id, version, is_active, embedding_vector) VALUES
-(17, 2, 1, TRUE, array_fill(0.1, ARRAY[512])::vector),
-(18, 4, 1, TRUE, array_fill(0.2, ARRAY[512])::vector),
-(19, 6, 1, TRUE, array_fill(0.3, ARRAY[512])::vector),
-(20, 8, 1, TRUE, array_fill(0.4, ARRAY[512])::vector),
-(21, 10, 1, TRUE, array_fill(0.5, ARRAY[512])::vector),
-(22, 12, 1, TRUE, array_fill(0.6, ARRAY[512])::vector),
-(23, 14, 1, TRUE, array_fill(0.7, ARRAY[512])::vector),
-(24, 16, 1, TRUE, array_fill(0.8, ARRAY[512])::vector),
-(29, 18, 1, TRUE, array_fill(0.9, ARRAY[512])::vector),
-(30, 20, 1, TRUE, array_fill(0.15, ARRAY[512])::vector);
-
--- -----------------------------------------------------
--- Insert System Notifications
--- -----------------------------------------------------
-
-INSERT INTO system_notifications (notification_type, title, content, is_active) VALUES
-('identity_rejected', 'Identity Verification Rejected', 'Your identity verification request has been rejected. Please review the reason and submit again.', TRUE),
-('identity_approved', 'Identity Verification Approved', 'Your identity verification has been approved. You can now use the attendance system.', TRUE),
-('absence_warning_10', 'Absence Warning - 10%', 'You have reached 10% absence rate. Please be aware of the attendance policy.', TRUE),
-('absence_warning_20', 'Absence Warning - 20%', 'You have reached 20% absence rate. You are at risk of being ineligible for the final exam.', TRUE),
-('absence_critical', 'Critical Absence Alert', 'You have exceeded the maximum allowed absence rate and are now ineligible for the final exam.', TRUE),
-('slot_cancelled', 'Slot Cancelled', 'A scheduled slot has been cancelled. Please check your schedule for updates.', TRUE),
-('slot_rescheduled', 'Slot Rescheduled', 'A slot has been rescheduled. Please check the new time and location.', TRUE);
-
--- -----------------------------------------------------
--- Insert Notification Deliveries
--- -----------------------------------------------------
-
--- Identity rejection notifications
-INSERT INTO notification_deliveries (notification_id, recipient_user_id, read_at, is_active) VALUES
-(1, 42, '2024-09-20 15:00:00', TRUE),
-(1, 43, NULL, TRUE); -- Unread
-
--- Identity approval notifications
-INSERT INTO notification_deliveries (notification_id, recipient_user_id, read_at, is_active) VALUES
-(2, 17, '2024-09-15 11:00:00', TRUE),
-(2, 18, '2024-09-15 12:00:00', TRUE),
-(2, 19, '2024-09-15 15:00:00', TRUE),
-(2, 20, '2024-09-16 10:00:00', TRUE),
-(2, 21, '2024-09-16 11:00:00', TRUE);
-
--- Absence warning notifications
-INSERT INTO notification_deliveries (notification_id, recipient_user_id, read_at, is_active) VALUES
-(3, 20, '2024-10-10 12:00:00', TRUE),
-(4, 19, NULL, TRUE); -- Unread warning
+(13, 6), (14, 6), (15, 6),
+-- Multimedia Communications subjects
+(20, 7), (15, 7), (5, 7),
+-- Mobile and Web Technology subjects
+(1, 8), (2, 8), (5, 8), (7, 8), (17, 8);
 
 -- -----------------------------------------------------
 -- Insert System Configurations
 -- -----------------------------------------------------
-
 INSERT INTO system_configurations (key, value, description, is_active) VALUES
 ('face_recognition.similarity_threshold', '0.85', 'Minimum similarity score for face recognition matches (0.0 to 1.0)', TRUE),
 ('attendance.max_absence_percentage', '20', 'Maximum allowed absence percentage before student becomes ineligible for final exam', TRUE),
@@ -1438,69 +789,653 @@ INSERT INTO system_configurations (key, value, description, is_active) VALUES
 ('attendance.auto_finalize_enabled', 'false', 'Whether to automatically finalize slots after a certain period', TRUE);
 
 -- -----------------------------------------------------
--- Insert Operational Audit Logs
+-- Insert System Notifications
 -- -----------------------------------------------------
-
--- Slot finalization logs
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(5, 'FINALIZE', 'slot', 1, '{"finalized_at": {"before": null, "after": "2024-10-01T10:30:00Z"}, "attendance_updates": [{"student_id": 20, "status": {"before": "not_yet", "after": "absent"}}, {"student_id": 24, "status": {"before": "not_yet", "after": "absent"}}]}'::jsonb),
-(5, 'FINALIZE', 'slot', 2, '{"finalized_at": {"before": null, "after": "2024-10-03T10:30:00Z"}}'::jsonb),
-(5, 'FINALIZE', 'slot', 3, '{"finalized_at": {"before": null, "after": "2024-10-08T10:30:00Z"}, "attendance_updates": [{"student_id": 21, "status": {"before": "not_yet", "after": "absent"}}]}'::jsonb),
-(6, 'FINALIZE', 'slot', 4, '{"finalized_at": {"before": null, "after": "2024-10-02T15:30:00Z"}, "attendance_updates": [{"student_id": 20, "status": {"before": "not_yet", "after": "absent"}}]}'::jsonb),
-(6, 'FINALIZE', 'slot', 5, '{"finalized_at": {"before": null, "after": "2024-10-04T15:30:00Z"}}'::jsonb),
-(7, 'FINALIZE', 'slot', 6, '{"finalized_at": {"before": null, "after": "2024-10-05T10:30:00Z"}}'::jsonb),
-(7, 'FINALIZE', 'slot', 7, '{"finalized_at": {"before": null, "after": "2024-10-07T10:30:00Z"}, "attendance_updates": [{"student_id": 22, "status": {"before": "not_yet", "after": "absent"}}]}'::jsonb);
-
--- Attendance manual updates
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(5, 'UPDATE', 'attendance_record', 4, '{"status": {"before": "absent", "after": "present"}, "method": {"before": "system_finalize", "after": "manual"}, "reason": "Student provided medical certificate"}'::jsonb),
-(6, 'UPDATE', 'attendance_record', 9, '{"status": {"before": "absent", "after": "present"}, "method": {"before": "auto", "after": "manual"}, "reason": "Late arrival, verified manually"}'::jsonb),
-(7, 'UPDATE', 'attendance_record', 19, '{"status": {"before": "present", "after": "absent"}, "method": {"before": "auto", "after": "manual"}, "reason": "Student left early for family emergency"}'::jsonb);
-
--- Identity submission approvals
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'APPROVE', 'identity_submission', 1, '{"status": {"before": "pending", "after": "approved"}, "reviewed_at": "2024-09-15T10:00:00Z"}'::jsonb),
-(2, 'APPROVE', 'identity_submission', 2, '{"status": {"before": "pending", "after": "approved"}, "reviewed_at": "2024-09-15T11:00:00Z"}'::jsonb),
-(2, 'APPROVE', 'identity_submission', 3, '{"status": {"before": "pending", "after": "approved"}, "reviewed_at": "2024-09-15T14:00:00Z"}'::jsonb),
-(3, 'APPROVE', 'identity_submission', 4, '{"status": {"before": "pending", "after": "approved"}, "reviewed_at": "2024-09-16T09:00:00Z"}'::jsonb);
-
--- Identity submission rejections
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'REJECT', 'identity_submission', 14, '{"status": {"before": "pending", "after": "rejected"}, "reviewed_at": "2024-09-20T14:00:00Z", "reason": "Photo quality is too low, please retake with better lighting"}'::jsonb),
-(3, 'REJECT', 'identity_submission', 15, '{"status": {"before": "pending", "after": "rejected"}, "reviewed_at": "2024-10-15T10:00:00Z", "reason": "Video does not show face clearly, please record again"}'::jsonb);
-
--- User creation logs
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'CREATE', 'user', 17, '{"username": "HE180001", "email": "he180001@fpt.edu.vn", "full_name": "Nguyen Van An", "roles": ["STUDENT"]}'::jsonb),
-(2, 'CREATE', 'user', 18, '{"username": "HE180002", "email": "he180002@fpt.edu.vn", "full_name": "Tran Thi Binh", "roles": ["STUDENT"]}'::jsonb),
-(3, 'CREATE', 'user', 5, '{"username": "lec001", "email": "lec001@fpt.edu.vn", "full_name": "Dr. Nguyen Van Lecturer", "roles": ["LECTURER"]}'::jsonb);
-
--- Class creation logs
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'CREATE', 'class', 1, '{"subject_id": 1, "semester_id": 3, "code": "SE1801"}'::jsonb),
-(2, 'CREATE', 'class', 2, '{"subject_id": 1, "semester_id": 3, "code": "SE1802"}'::jsonb),
-(3, 'CREATE', 'class', 4, '{"subject_id": 2, "semester_id": 3, "code": "SE1803"}'::jsonb);
-
--- Slot creation logs
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'CREATE', 'slot', 1, '{"class_id": 1, "semester_id": 3, "room_id": 1, "staff_user_id": 5, "slot_category": "LECTURE", "start_time": "2024-10-01T08:00:00Z", "end_time": "2024-10-01T10:00:00Z"}'::jsonb),
-(2, 'CREATE', 'slot', 8, '{"class_id": 1, "semester_id": 3, "room_id": 1, "staff_user_id": 5, "slot_category": "LECTURE_WITH_PT", "start_time": "2024-10-10T08:00:00Z", "end_time": "2024-10-10T10:00:00Z"}'::jsonb);
-
--- System configuration updates
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(1, 'UPDATE', 'system_config', 2, '{"key": "attendance.max_absence_percentage", "value": {"before": "15", "after": "20"}}'::jsonb),
-(1, 'UPDATE', 'system_config', 1, '{"key": "face_recognition.similarity_threshold", "value": {"before": "0.80", "after": "0.85"}}'::jsonb);
-
--- Enrollment management logs
-INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes) VALUES
-(2, 'CREATE', 'enrollment', 1, '{"class_id": 1, "student_user_id": 17, "is_enrolled": true}'::jsonb),
-(3, 'UPDATE', 'enrollment', 5, '{"class_id": 1, "student_user_id": 21, "is_enrolled": {"before": true, "after": false}, "reason": "Student withdrew from course"}'::jsonb);
+INSERT INTO system_notifications (notification_type, title, content, is_active) VALUES
+('identity_rejected', 'Identity Verification Rejected', 'Your identity verification request has been rejected. Please review the reason and submit again.', TRUE),
+('identity_approved', 'Identity Verification Approved', 'Your identity verification has been approved. You can now use the attendance system.', TRUE),
+('absence_warning_10', 'Absence Warning - 10%', 'You have reached 10% absence rate. Please be aware of the attendance policy.', TRUE),
+('absence_warning_20', 'Absence Warning - 20%', 'You have reached 20% absence rate. You are at risk of being ineligible for the final exam.', TRUE),
+('absence_critical', 'Critical Absence Alert', 'You have exceeded the maximum allowed absence rate and are now ineligible for the final exam.', TRUE),
+('slot_cancelled', 'Slot Cancelled', 'A scheduled slot has been cancelled. Please check your schedule for updates.', TRUE),
+('slot_rescheduled', 'Slot Rescheduled', 'A slot has been rescheduled. Please check the new time and location.', TRUE);
 
 -- =====================================================
--- SECTION 5: VERIFICATION QUERIES
+-- SECTION 5: GENERATE DATA USING PL/pgSQL (50+ records per table)
 -- =====================================================
 
--- Verify table counts
+DO $$
+DECLARE
+    v_password_hash VARCHAR(255) := '$2a$12$aSEiCWX1/2jbK5LLgQCwo.Ql4NDzvjYhX6KD0bAtk8eWhSv3X.O3O'; -- Password: "password123"
+    v_user_id INT;
+    v_student_count INT := 0;
+    v_lecturer_count INT := 0;
+    v_dop_count INT := 0;
+    v_supervisor_count INT := 0;
+    v_class_id INT;
+    v_slot_id INT;
+    v_exam_slot_subject_id BIGINT;
+    v_semester_id INT := 6; -- FA24
+    v_room_count INT;
+    v_class_number INT;
+    
+    -- Vietnamese first names
+    v_first_names TEXT[] := ARRAY['Nguyen', 'Tran', 'Le', 'Pham', 'Hoang', 'Vu', 'Vo', 'Dang', 'Bui', 'Do', 'Ngo', 'Duong', 'Ly'];
+    v_middle_names TEXT[] := ARRAY['Van', 'Thi', 'Minh', 'Hoang', 'Thanh', 'Quoc', 'Anh', 'Duc', 'Khanh', 'Duy'];
+    v_last_names TEXT[] := ARRAY['An', 'Binh', 'Cuong', 'Dung', 'Em', 'Phuong', 'Giang', 'Hoa', 'Hung', 'Khanh', 'Linh', 'Mai', 'Nam', 'Oanh', 'Phong', 'Quynh', 'Son', 'Tuan', 'Uyen', 'Vinh', 'Xuan', 'Yen', 'Anh', 'Bao', 'Chi', 'Dat', 'Huy', 'Long', 'Quan', 'Tam', 'Thao', 'Trang'];
+    
+    v_full_name TEXT;
+    v_username TEXT;
+    v_email TEXT;
+    v_major_id INT;
+    v_subject_id INT;
+    v_staff_id INT;
+    v_room_id INT;
+    v_start_time TIMESTAMP;
+    v_end_time TIMESTAMP;
+    v_slot_category TEXT;
+    v_finalized_at TIMESTAMP;
+    
+    i INT;
+    j INT;
+    k INT;
+BEGIN
+    RAISE NOTICE 'Starting data generation...';
+    
+    -- =====================================================
+    -- 1. GENERATE USERS (100+ total: 80 students, 15 lecturers, 5 DOPs, 5 supervisors)
+    -- =====================================================
+    RAISE NOTICE 'Generating users...';
+    
+    -- System Admin (1 user)
+    INSERT INTO users (username, email, full_name, password_hash, is_active)
+    VALUES ('admin001', 'admin001@fpt.edu.vn', 'Nguyen Van Admin', v_password_hash, TRUE);
+    
+    -- Data Operators (5 users)
+    FOR i IN 1..5 LOOP
+        v_full_name := v_first_names[1 + (i % array_length(v_first_names, 1))] || ' ' || 
+                       v_middle_names[1 + (i % array_length(v_middle_names, 1))] || ' DOP' || i;
+        v_username := 'dop' || LPAD(i::TEXT, 3, '0');
+        v_email := v_username || '@fpt.edu.vn';
+        
+        INSERT INTO users (username, email, full_name, password_hash, is_active)
+        VALUES (v_username, v_email, v_full_name, v_password_hash, TRUE)
+        RETURNING id INTO v_user_id;
+        
+        INSERT INTO staff_profiles (user_id, staff_code)
+        VALUES (v_user_id, 'DOP' || LPAD(i::TEXT, 3, '0'));
+        
+        INSERT INTO user_roles (user_id, role_id) VALUES (v_user_id, 2); -- DATA_OPERATOR role
+        
+        v_dop_count := v_dop_count + 1;
+    END LOOP;
+    
+    -- Lecturers (15 users)
+    FOR i IN 1..15 LOOP
+        v_full_name := CASE 
+            WHEN i % 3 = 0 THEN 'Dr. '
+            WHEN i % 3 = 1 THEN 'MSc. '
+            ELSE 'Prof. '
+        END || v_first_names[1 + (i % array_length(v_first_names, 1))] || ' ' || 
+               v_middle_names[1 + (i % array_length(v_middle_names, 1))] || ' ' ||
+               v_last_names[1 + (i % array_length(v_last_names, 1))];
+        v_username := 'lec' || LPAD(i::TEXT, 3, '0');
+        v_email := v_username || '@fpt.edu.vn';
+        
+        INSERT INTO users (username, email, full_name, password_hash, is_active)
+        VALUES (v_username, v_email, v_full_name, v_password_hash, TRUE)
+        RETURNING id INTO v_user_id;
+        
+        INSERT INTO staff_profiles (user_id, staff_code)
+        VALUES (v_user_id, 'LEC' || LPAD(i::TEXT, 3, '0'));
+        
+        INSERT INTO user_roles (user_id, role_id) VALUES (v_user_id, 3); -- LECTURER role
+        
+        v_lecturer_count := v_lecturer_count + 1;
+    END LOOP;
+    
+    -- Supervisors (5 users)
+    FOR i IN 1..5 LOOP
+        v_full_name := v_first_names[1 + (i % array_length(v_first_names, 1))] || ' ' || 
+                       v_middle_names[1 + (i % array_length(v_middle_names, 1))] || ' Supervisor' || i;
+        v_username := 'sup' || LPAD(i::TEXT, 3, '0');
+        v_email := v_username || '@fpt.edu.vn';
+        
+        INSERT INTO users (username, email, full_name, password_hash, is_active)
+        VALUES (v_username, v_email, v_full_name, v_password_hash, TRUE)
+        RETURNING id INTO v_user_id;
+        
+        INSERT INTO staff_profiles (user_id, staff_code)
+        VALUES (v_user_id, 'SUP' || LPAD(i::TEXT, 3, '0'));
+        
+        INSERT INTO user_roles (user_id, role_id) VALUES (v_user_id, 4); -- SUPERVISOR role
+        
+        v_supervisor_count := v_supervisor_count + 1;
+    END LOOP;
+    
+    -- Students (80 users, distributed across majors)
+    FOR i IN 1..80 LOOP
+        v_major_id := 1 + ((i - 1) % 8); -- Distribute across 8 majors
+        
+        v_full_name := v_first_names[1 + (i % array_length(v_first_names, 1))] || ' ' || 
+                       v_middle_names[1 + ((i * 3) % array_length(v_middle_names, 1))] || ' ' ||
+                       v_last_names[1 + ((i * 7) % array_length(v_last_names, 1))];
+        
+        -- Generate username based on major
+        v_username := CASE v_major_id
+            WHEN 1 THEN 'HE' -- SE
+            WHEN 2 THEN 'HS' -- IA
+            WHEN 3 THEN 'HA' -- AI
+            WHEN 4 THEN 'HI' -- IOT
+            WHEN 5 THEN 'HD' -- DAD
+            WHEN 6 THEN 'HB' -- BA
+            WHEN 7 THEN 'HM' -- MC
+            ELSE 'HW' -- MWT
+        END || '18' || LPAD(i::TEXT, 4, '0');
+        
+        v_email := LOWER(v_username) || '@fpt.edu.vn';
+        
+        INSERT INTO users (username, email, full_name, password_hash, is_active)
+        VALUES (v_username, v_email, v_full_name, v_password_hash, TRUE)
+        RETURNING id INTO v_user_id;
+        
+        INSERT INTO student_profiles (user_id, major_id, roll_number, base_photo_url)
+        VALUES (v_user_id, v_major_id, v_username, '/photos/' || LOWER(v_username) || '_base.jpg');
+        
+        INSERT INTO user_roles (user_id, role_id) VALUES (v_user_id, 5); -- STUDENT role
+        
+        v_student_count := v_student_count + 1;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % students, % lecturers, % DOPs, % supervisors', 
+                  v_student_count, v_lecturer_count, v_dop_count, v_supervisor_count;
+    
+    -- =====================================================
+    -- 2. GENERATE ROOMS AND CAMERAS (50+ rooms, 100+ cameras)
+    -- =====================================================
+    RAISE NOTICE 'Generating rooms and cameras...';
+    
+    FOR i IN 1..60 LOOP
+        v_room_id := (SELECT id FROM rooms ORDER BY id DESC LIMIT 1) + 1;
+        
+        INSERT INTO rooms (name, location, is_active)
+        VALUES (
+            CASE 
+                WHEN i <= 30 THEN 'Room ' || (100 + i)
+                WHEN i <= 45 THEN 'Lab ' || (400 + i - 30)
+                ELSE 'Auditorium ' || CHR(64 + i - 45)
+            END,
+            CASE 
+                WHEN i <= 15 THEN 'Building Alpha - Floor ' || ((i - 1) / 5 + 1)
+                WHEN i <= 30 THEN 'Building Beta - Floor ' || ((i - 16) / 5 + 1)
+                WHEN i <= 45 THEN 'Building Gamma - Floor ' || ((i - 31) / 5 + 1)
+                ELSE 'Building Delta - Ground Floor'
+            END,
+            TRUE
+        )
+        RETURNING id INTO v_room_id;
+        
+        -- Each room gets 2-3 cameras
+        FOR j IN 1..(2 + (i % 2)) LOOP
+            INSERT INTO cameras (room_id, name, rtsp_url, is_active)
+            VALUES (
+                v_room_id,
+                'CAM-' || v_room_id || '-' || CASE j 
+                    WHEN 1 THEN 'FRONT'
+                    WHEN 2 THEN 'BACK'
+                    ELSE 'SIDE'
+                END,
+                'rtsp://192.168.' || ((v_room_id - 1) / 250 + 1) || '.' || 
+                ((v_room_id - 1) % 250 + 1) || ':554/stream' || j,
+                TRUE
+            );
+        END LOOP;
+    END LOOP;
+    
+    SELECT COUNT(*) INTO v_room_count FROM rooms;
+    RAISE NOTICE 'Generated % rooms with cameras', v_room_count;
+    
+    -- =====================================================
+    -- 3. GENERATE CLASSES (60+ classes in FA24)
+    -- =====================================================
+    RAISE NOTICE 'Generating classes...';
+
+    FOR i IN 1..60 LOOP
+        v_subject_id := 1 + ((i - 1) % 20); -- Cycle through 20 subjects
+
+        -- Calculate unique class number per subject (3 classes per subject = 60 total / 20 subjects)
+        v_class_number := 1 + FLOOR((i - 1) / 20);
+
+        INSERT INTO classes (subject_id, semester_id, code, is_active)
+        VALUES (
+            v_subject_id,
+            v_semester_id,
+            (SELECT code FROM subjects WHERE id = v_subject_id) ||
+            LPAD(v_class_number::TEXT, 2, '0'),
+            TRUE
+        )
+        ON CONFLICT (subject_id, semester_id, code) DO NOTHING;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % classes', (SELECT COUNT(*) FROM classes WHERE semester_id = v_semester_id);
+    
+    -- =====================================================
+    -- 4. GENERATE ENROLLMENTS (1000+ enrollments, ~15-20 students per class)
+    -- =====================================================
+    RAISE NOTICE 'Generating enrollments...';
+    
+    FOR v_class_id IN (SELECT id FROM classes WHERE semester_id = v_semester_id) LOOP
+        -- Enroll 15-20 random students in each class
+        FOR j IN 1..(15 + (v_class_id % 6)) LOOP
+            -- Pick a random student
+            v_user_id := (SELECT u.id FROM users u 
+                         JOIN user_roles ur ON u.id = ur.user_id 
+                         WHERE ur.role_id = 5 
+                         ORDER BY RANDOM() 
+                         LIMIT 1);
+            
+            -- Check if not already enrolled
+            IF NOT EXISTS (SELECT 1 FROM enrollments WHERE class_id = v_class_id AND student_user_id = v_user_id) THEN
+                INSERT INTO enrollments (class_id, student_user_id, is_enrolled)
+                VALUES (v_class_id, v_user_id, TRUE);
+            END IF;
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % enrollments', (SELECT COUNT(*) FROM enrollments);
+    
+    -- =====================================================
+    -- 5. GENERATE SLOTS (100+ slots: LECTURE, LECTURE_WITH_PT, FINAL_EXAM)
+    -- =====================================================
+    RAISE NOTICE 'Generating slots...';
+    
+    -- Generate LECTURE and LECTURE_WITH_PT slots for each class
+    FOR v_class_id IN (SELECT id FROM classes WHERE semester_id = v_semester_id ORDER BY id LIMIT 50) LOOP
+        -- Get a random lecturer
+        v_staff_id := (SELECT u.id FROM users u 
+                      JOIN user_roles ur ON u.id = ur.user_id 
+                      WHERE ur.role_id = 3 
+                      ORDER BY RANDOM() 
+                      LIMIT 1);
+        
+        -- Get a random room
+        v_room_id := (SELECT id FROM rooms ORDER BY RANDOM() LIMIT 1);
+        
+        -- Generate 4-6 slots per class
+        FOR j IN 1..(4 + (v_class_id % 3)) LOOP
+            v_start_time := '2024-09-02 08:00:00'::TIMESTAMP + (((v_class_id - 1) * 7 + (j - 1) * 2) || ' days')::INTERVAL + 
+                           ((j % 3) * 2 || ' hours')::INTERVAL;
+            v_end_time := v_start_time + '2 hours'::INTERVAL;
+            
+            -- Determine slot category
+            v_slot_category := CASE 
+                WHEN j = (4 + (v_class_id % 3)) THEN 'LECTURE_WITH_PT' -- Last slot is progress test
+                ELSE 'LECTURE'
+            END;
+            
+            -- Finalize past slots
+            v_finalized_at := CASE 
+                WHEN v_start_time < CURRENT_TIMESTAMP - INTERVAL '7 days' THEN v_end_time + '30 minutes'::INTERVAL
+                ELSE NULL
+            END;
+            
+            INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
+                             start_time, end_time, finalized_at, title, is_active)
+            VALUES (
+                v_class_id,
+                v_semester_id,
+                v_room_id,
+                v_staff_id,
+                v_slot_category,
+                v_start_time,
+                v_end_time,
+                v_finalized_at,
+                CASE v_slot_category
+                    WHEN 'LECTURE_WITH_PT' THEN 'Progress Test ' || j
+                    ELSE 'Lecture Session ' || j
+                END,
+                TRUE
+            );
+        END LOOP;
+    END LOOP;
+    
+    -- Generate FINAL_EXAM slots (20 slots)
+    FOR i IN 1..20 LOOP
+        v_staff_id := (SELECT u.id FROM users u 
+                      JOIN user_roles ur ON u.id = ur.user_id 
+                      WHERE ur.role_id = 4 -- Supervisor
+                      ORDER BY RANDOM() 
+                      LIMIT 1);
+        
+        v_room_id := (SELECT id FROM rooms WHERE name LIKE 'Auditorium%' ORDER BY RANDOM() LIMIT 1);
+        
+        v_start_time := '2024-12-10 08:00:00'::TIMESTAMP + ((i - 1) * 12 || ' hours')::INTERVAL;
+        v_end_time := v_start_time + '2 hours'::INTERVAL;
+        
+        INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
+                         start_time, end_time, finalized_at, title, is_active)
+        VALUES (
+            NULL, -- FINAL_EXAM has no class_id
+            v_semester_id,
+            v_room_id,
+            v_staff_id,
+            'FINAL_EXAM',
+            v_start_time,
+            v_end_time,
+            NULL, -- Not finalized yet
+            'Final Exam Slot ' || i,
+            TRUE
+        );
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % slots', (SELECT COUNT(*) FROM slots);
+    
+    -- =====================================================
+    -- 6. GENERATE EXAM_SLOT_SUBJECTS AND EXAM_SLOT_PARTICIPANTS
+    -- =====================================================
+    RAISE NOTICE 'Generating exam slot subjects and participants...';
+    
+    FOR v_slot_id IN (SELECT id FROM slots WHERE slot_category = 'FINAL_EXAM') LOOP
+        -- Each exam slot has 2-3 subjects
+        FOR j IN 1..(2 + (v_slot_id % 2)) LOOP
+            v_subject_id := 1 + ((v_slot_id + j - 1) % 20);
+            
+            INSERT INTO exam_slot_subjects (slot_id, subject_id)
+            VALUES (v_slot_id, v_subject_id)
+            ON CONFLICT DO NOTHING
+            RETURNING id INTO v_exam_slot_subject_id;
+            
+            IF v_exam_slot_subject_id IS NOT NULL THEN
+                -- Add 10-15 students to this exam
+                FOR k IN 1..(10 + (v_slot_id % 6)) LOOP
+                    v_user_id := (SELECT u.id FROM users u 
+                                 JOIN user_roles ur ON u.id = ur.user_id 
+                                 WHERE ur.role_id = 5 
+                                 ORDER BY RANDOM() 
+                                 LIMIT 1);
+                    
+                    INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled)
+                    VALUES (v_exam_slot_subject_id, v_user_id, TRUE)
+                    ON CONFLICT DO NOTHING;
+                END LOOP;
+            END IF;
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % exam slot subjects and % participants', 
+                 (SELECT COUNT(*) FROM exam_slot_subjects),
+                 (SELECT COUNT(*) FROM exam_slot_participants);
+    
+    -- =====================================================
+    -- 7. GENERATE ATTENDANCE_RECORDS FOR FINALIZED SLOTS
+    -- =====================================================
+    RAISE NOTICE 'Generating attendance records...';
+    
+    FOR v_slot_id IN (SELECT id FROM slots 
+                     WHERE slot_category IN ('LECTURE', 'LECTURE_WITH_PT') 
+                     AND finalized_at IS NOT NULL) LOOP
+        
+        -- Get class_id for this slot
+        SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
+        
+        -- Create attendance for all enrolled students
+        FOR v_user_id IN (SELECT student_user_id FROM enrollments WHERE class_id = v_class_id AND is_enrolled = TRUE) LOOP
+            INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at)
+            VALUES (
+                v_user_id,
+                v_slot_id,
+                CASE 
+                    WHEN RANDOM() < 0.85 THEN 'present'
+                    ELSE 'absent'
+                END,
+                CASE 
+                    WHEN RANDOM() < 0.9 THEN 'auto'
+                    ELSE 'manual'
+                END,
+                (SELECT start_time FROM slots WHERE id = v_slot_id) + ((10 + (RANDOM() * 20)::INT) || ' minutes')::INTERVAL
+            );
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % attendance records', (SELECT COUNT(*) FROM attendance_records);
+    
+    -- =====================================================
+    -- 8. GENERATE EXAM_ATTENDANCE FOR FINALIZED LECTURE_WITH_PT SLOTS
+    -- =====================================================
+    RAISE NOTICE 'Generating exam attendance records...';
+    
+    FOR v_slot_id IN (SELECT id FROM slots 
+                     WHERE slot_category = 'LECTURE_WITH_PT' 
+                     AND finalized_at IS NOT NULL) LOOP
+        
+        SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
+        
+        FOR v_user_id IN (SELECT student_user_id FROM enrollments WHERE class_id = v_class_id AND is_enrolled = TRUE) LOOP
+            INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at)
+            VALUES (
+                v_user_id,
+                v_slot_id,
+                CASE 
+                    WHEN RANDOM() < 0.88 THEN 'present'
+                    ELSE 'absent'
+                END,
+                CASE 
+                    WHEN RANDOM() < 0.92 THEN 'auto'
+                    ELSE 'manual'
+                END,
+                (SELECT start_time FROM slots WHERE id = v_slot_id) + ((15 + (RANDOM() * 25)::INT) || ' minutes')::INTERVAL
+            );
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % exam attendance records', (SELECT COUNT(*) FROM exam_attendance);
+    
+    -- =====================================================
+    -- 9. GENERATE IDENTITY_SUBMISSIONS AND FACE_EMBEDDINGS
+    -- =====================================================
+    RAISE NOTICE 'Generating identity submissions and embeddings...';
+    
+    FOR v_user_id IN (SELECT u.id FROM users u 
+                     JOIN user_roles ur ON u.id = ur.user_id 
+                     WHERE ur.role_id = 5 
+                     LIMIT 75) LOOP
+        
+        DECLARE
+            v_submission_id INT;
+            v_asset_id INT;
+            v_status TEXT;
+        BEGIN
+            v_status := CASE 
+                WHEN RANDOM() < 0.85 THEN 'approved'
+                WHEN RANDOM() < 0.95 THEN 'pending'
+                ELSE 'rejected'
+            END;
+            
+            INSERT INTO identity_submissions (student_user_id, reviewed_by_user_id, status, submission_type, reviewed_at, rejection_reason)
+            VALUES (
+                v_user_id,
+                CASE WHEN v_status != 'pending' THEN 2 ELSE NULL END,
+                v_status,
+                'initial',
+                CASE WHEN v_status != 'pending' THEN CURRENT_TIMESTAMP - ((1 + RANDOM() * 30)::INT || ' days')::INTERVAL ELSE NULL END,
+                CASE WHEN v_status = 'rejected' THEN 'Photo quality too low, please retake' ELSE NULL END
+            )
+            RETURNING id INTO v_submission_id;
+            
+            -- Add photo asset
+            INSERT INTO identity_assets (submission_id, asset_type, storage_url, is_active)
+            VALUES (v_submission_id, 'face_photo', '/identity/student_' || v_user_id || '_photo.jpg', v_status = 'approved');
+            
+            -- Add video asset and get its ID
+            INSERT INTO identity_assets (submission_id, asset_type, storage_url, is_active)
+            VALUES (v_submission_id, 'face_video', '/identity/student_' || v_user_id || '_video.mp4', v_status = 'approved')
+            RETURNING id INTO v_asset_id;
+            
+            -- Generate face embedding for approved submissions
+            IF v_status = 'approved' THEN
+                INSERT INTO face_embeddings (student_user_id, generated_from_asset_id, version, is_active, embedding_vector)
+                VALUES (
+                    v_user_id,
+                    v_asset_id,
+                    1,
+                    TRUE,
+                    array_fill(RANDOM()::REAL, ARRAY[512])::vector
+                );
+                
+                -- Update student profile with base photo URL
+                UPDATE student_profiles 
+                SET base_photo_url = '/identity/student_' || v_user_id || '_photo.jpg'
+                WHERE user_id = v_user_id;
+            END IF;
+        END;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % identity submissions and % face embeddings', 
+                 (SELECT COUNT(*) FROM identity_submissions),
+                 (SELECT COUNT(*) FROM face_embeddings);
+    
+    -- =====================================================
+    -- 10. GENERATE ATTENDANCE EVIDENCES
+    -- =====================================================
+    RAISE NOTICE 'Generating attendance evidences...';
+    
+    -- Regular attendance evidences
+    FOR v_user_id IN (SELECT id FROM attendance_records WHERE status = 'present' AND method = 'auto' LIMIT 200) LOOP
+        INSERT INTO regular_attendance_evidences (attendance_record_id, image_url, created_at)
+        VALUES (
+            v_user_id,
+            '/evidence/regular/attendance_' || v_user_id || '_' || 
+            TO_CHAR((SELECT recorded_at FROM attendance_records WHERE id = v_user_id), 'YYYYMMDD_HH24MISS') || '.jpg',
+            (SELECT recorded_at FROM attendance_records WHERE id = v_user_id)
+        );
+    END LOOP;
+    
+    -- Exam attendance evidences
+    FOR v_user_id IN (SELECT id FROM exam_attendance WHERE status = 'present' AND method = 'auto' LIMIT 100) LOOP
+        INSERT INTO exam_attendance_evidences (exam_attendance_id, image_url, created_at)
+        VALUES (
+            v_user_id,
+            '/evidence/exam/exam_' || v_user_id || '_' || 
+            TO_CHAR((SELECT recorded_at FROM exam_attendance WHERE id = v_user_id), 'YYYYMMDD_HH24MISS') || '.jpg',
+            (SELECT recorded_at FROM exam_attendance WHERE id = v_user_id)
+        );
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % regular evidences and % exam evidences',
+                 (SELECT COUNT(*) FROM regular_attendance_evidences),
+                 (SELECT COUNT(*) FROM exam_attendance_evidences);
+    
+    -- =====================================================
+    -- 11. GENERATE REMARKS
+    -- =====================================================
+    RAISE NOTICE 'Generating remarks...';
+    
+    DECLARE
+        v_remarks TEXT[] := ARRAY[
+            'Student was late due to traffic',
+            'Medical certificate provided',
+            'Family emergency',
+            'Technical issue with camera, manually verified',
+            'Student left early with permission',
+            'Attendance corrected after review'
+        ];
+    BEGIN
+        -- Regular attendance remarks
+        FOR i IN 1..50 LOOP
+            INSERT INTO regular_attendance_remarks (attendance_record_id, created_by_user_id, remark, is_active)
+            SELECT 
+                ar.id,
+                s.staff_user_id,
+                v_remarks[1 + (i % array_length(v_remarks, 1))],
+                TRUE
+            FROM attendance_records ar
+            JOIN slots s ON ar.slot_id = s.id
+            WHERE ar.method = 'manual'
+            ORDER BY RANDOM()
+            LIMIT 1;
+        END LOOP;
+        
+        -- Exam attendance remarks
+        FOR i IN 1..30 LOOP
+            INSERT INTO exam_attendance_remarks (exam_attendance_id, created_by_user_id, remark, is_active)
+            SELECT 
+                ea.id,
+                s.staff_user_id,
+                v_remarks[1 + (i % array_length(v_remarks, 1))],
+                TRUE
+            FROM exam_attendance ea
+            JOIN slots s ON ea.slot_id = s.id
+            WHERE ea.method = 'manual'
+            ORDER BY RANDOM()
+            LIMIT 1;
+        END LOOP;
+    END;
+    
+    RAISE NOTICE 'Generated % regular remarks and % exam remarks',
+                 (SELECT COUNT(*) FROM regular_attendance_remarks),
+                 (SELECT COUNT(*) FROM exam_attendance_remarks);
+    
+    -- =====================================================
+    -- 12. GENERATE NOTIFICATION DELIVERIES
+    -- =====================================================
+    RAISE NOTICE 'Generating notification deliveries...';
+    
+    FOR i IN 1..100 LOOP
+        INSERT INTO notification_deliveries (notification_id, recipient_user_id, read_at, is_active)
+        SELECT 
+            (SELECT id FROM system_notifications ORDER BY RANDOM() LIMIT 1),
+            (SELECT u.id FROM users u JOIN user_roles ur ON u.id = ur.user_id WHERE ur.role_id = 5 ORDER BY RANDOM() LIMIT 1),
+            CASE WHEN RANDOM() < 0.7 THEN CURRENT_TIMESTAMP - ((RANDOM() * 10)::INT || ' days')::INTERVAL ELSE NULL END,
+            TRUE
+        ON CONFLICT DO NOTHING;
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % notification deliveries', (SELECT COUNT(*) FROM notification_deliveries);
+    
+    -- =====================================================
+    -- 13. GENERATE OPERATIONAL AUDIT LOGS
+    -- =====================================================
+    RAISE NOTICE 'Generating operational audit logs...';
+    
+    -- Slot finalization logs
+    FOR v_slot_id IN (SELECT id FROM slots WHERE finalized_at IS NOT NULL LIMIT 50) LOOP
+        INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes)
+        SELECT 
+            staff_user_id,
+            'FINALIZE',
+            'slot',
+            id,
+            jsonb_build_object(
+                'finalized_at', jsonb_build_object(
+                    'before', NULL,
+                    'after', finalized_at
+                )
+            )
+        FROM slots WHERE id = v_slot_id;
+    END LOOP;
+    
+    -- User creation logs
+    FOR v_user_id IN (SELECT id FROM users ORDER BY id DESC LIMIT 50) LOOP
+        INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes, created_at)
+        VALUES (
+            2, -- DOP001
+            'CREATE',
+            'user',
+            v_user_id,
+            jsonb_build_object('username', (SELECT username FROM users WHERE id = v_user_id)),
+            (SELECT created_at FROM users WHERE id = v_user_id)
+        );
+    END LOOP;
+    
+    RAISE NOTICE 'Generated % audit logs', (SELECT COUNT(*) FROM operational_audit_logs);
+    
+    RAISE NOTICE 'Data generation completed successfully!';
+END $$;
+
+-- =====================================================
+-- SECTION 6: VERIFICATION QUERIES
+-- =====================================================
+
 SELECT 'users' as table_name, COUNT(*) as record_count FROM users
 UNION ALL
 SELECT 'roles', COUNT(*) FROM roles
@@ -1544,108 +1479,20 @@ UNION ALL
 SELECT 'system_configurations', COUNT(*) FROM system_configurations
 UNION ALL
 SELECT 'operational_audit_logs', COUNT(*) FROM operational_audit_logs
+UNION ALL
+SELECT 'regular_attendance_remarks', COUNT(*) FROM regular_attendance_remarks
+UNION ALL
+SELECT 'exam_attendance_remarks', COUNT(*) FROM exam_attendance_remarks
+UNION ALL
+SELECT 'regular_attendance_evidences', COUNT(*) FROM regular_attendance_evidences
+UNION ALL
+SELECT 'exam_attendance_evidences', COUNT(*) FROM exam_attendance_evidences
 ORDER BY table_name;
-
--- =====================================================
--- SECTION 6: USEFUL SAMPLE QUERIES
--- =====================================================
-
--- Query 1: Get all students in a class with their attendance summary
--- SELECT 
---     u.username,
---     u.full_name,
---     COUNT(ar.id) as total_slots,
---     SUM(CASE WHEN ar.status = 'present' THEN 1 ELSE 0 END) as present_count,
---     SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
---     ROUND(100.0 * SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) / NULLIF(COUNT(ar.id), 0), 2) as absence_percentage
--- FROM users u
--- JOIN enrollments e ON u.id = e.student_user_id
--- JOIN slots s ON e.class_id = s.class_id
--- LEFT JOIN attendance_records ar ON u.id = ar.student_user_id AND s.id = ar.slot_id
--- WHERE e.class_id = 1 AND e.is_enrolled = TRUE AND s.slot_category IN ('LECTURE', 'LECTURE_WITH_PT')
--- GROUP BY u.id, u.username, u.full_name
--- ORDER BY u.username;
-
--- Query 2: Get pending identity submissions
--- SELECT 
---     is_sub.id,
---     u.username,
---     u.full_name,
---     is_sub.submission_type,
---     is_sub.created_at,
---     COUNT(ia.id) as asset_count
--- FROM identity_submissions is_sub
--- JOIN users u ON is_sub.student_user_id = u.id
--- LEFT JOIN identity_assets ia ON is_sub.id = ia.submission_id
--- WHERE is_sub.status = 'pending'
--- GROUP BY is_sub.id, u.username, u.full_name, is_sub.submission_type, is_sub.created_at
--- ORDER BY is_sub.created_at;
-
--- Query 3: Get lecturer schedule for a specific date
--- SELECT 
---     s.id,
---     s.slot_category,
---     s.title,
---     s.start_time,
---     s.end_time,
---     r.name as room_name,
---     c.code as class_code,
---     sub.name as subject_name,
---     COUNT(DISTINCT e.student_user_id) as enrolled_students
--- FROM slots s
--- JOIN rooms r ON s.room_id = r.id
--- LEFT JOIN classes c ON s.class_id = c.id
--- LEFT JOIN subjects sub ON c.subject_id = sub.id
--- LEFT JOIN enrollments e ON c.id = e.class_id AND e.is_enrolled = TRUE
--- WHERE s.staff_user_id = 5 
---   AND DATE(s.start_time) = '2024-10-01'
--- GROUP BY s.id, s.slot_category, s.title, s.start_time, s.end_time, r.name, c.code, sub.name
--- ORDER BY s.start_time;
-
--- Query 4: Get students eligible for final exam in a class
--- SELECT 
---     u.username,
---     u.full_name,
---     ROUND(100.0 * SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) / NULLIF(COUNT(ar.id), 0), 2) as absence_percentage,
---     CASE 
---         WHEN ROUND(100.0 * SUM(CASE WHEN ar.status = 'absent' THEN 1 ELSE 0 END) / NULLIF(COUNT(ar.id), 0), 2) <= 20 
---         THEN 'Eligible' 
---         ELSE 'Ineligible' 
---     END as exam_eligibility
--- FROM users u
--- JOIN enrollments e ON u.id = e.student_user_id
--- JOIN slots s ON e.class_id = s.class_id
--- LEFT JOIN attendance_records ar ON u.id = ar.student_user_id AND s.id = ar.slot_id
--- WHERE e.class_id = 1 
---   AND e.is_enrolled = TRUE 
---   AND s.slot_category IN ('LECTURE', 'LECTURE_WITH_PT')
---   AND s.finalized_at IS NOT NULL
--- GROUP BY u.id, u.username, u.full_name
--- ORDER BY absence_percentage DESC;
-
--- Query 5: Get exam slot participants with subjects
--- SELECT 
---     s.id as slot_id,
---     s.title as slot_title,
---     s.start_time,
---     sub.code as subject_code,
---     sub.name as subject_name,
---     u.username,
---     u.full_name,
---     esp.is_enrolled
--- FROM slots s
--- JOIN exam_slot_subjects ess ON s.id = ess.slot_id
--- JOIN subjects sub ON ess.subject_id = sub.id
--- JOIN exam_slot_participants esp ON ess.id = esp.exam_slot_subject_id
--- JOIN users u ON esp.student_user_id = u.id
--- WHERE s.slot_category = 'FINAL_EXAM' AND s.id = 18
--- ORDER BY sub.code, u.username;
 
 -- =====================================================
 -- END OF SCRIPT
 -- =====================================================
 
--- Script execution summary
 SELECT 
     'Database initialization completed successfully!' as status,
     NOW() as completed_at;
