@@ -103,23 +103,25 @@ Permission: USER_READ_DETAIL
 Permission: USER_CREATE
 Request Body:
 {
-  "fullName": "Tran Thi B",		
-  "email": "tranthib@fpt.edu.vn",		
-  "rollNumber": "HE180314",	
+  "fullName": "Tran Thi B",
+  "email": "tranthib@fpt.edu.vn",
+  "username": "HieuNDHE180314",
+  "rollNumber": "HE180314",
   "majorId": 1,
   "password": "defaultPassword123"
 }
 
 Request Body Schema:
-| Field 	  | Type 		      | Required| Validation 
-| fullName 	| string 	      | Yes 		| Not blank, max 150 chars
+| Field      | Type          | Required | Validation 
+| fullName   | string        | Yes      | Not blank, max 150 chars
 |           |              |         | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
 |           |              |         | No leading/trailing/multiple spaces
-| email 		| string 	      | Yes 		| Valid email format, max 128 chars, unique
-| rollNumber| string        | Yes 		| Not blank, max 20 chars, unique
-|           |              |         | Pattern: ^HE\d{6}$ (HE followed by 6 digits, e.g., HE180314)
-| majorId 	| short         | Yes 		| Valid major ID, must exist and be active
-| password 	| string        | No 		  | Min 8 chars, if not provided system generates default
+| email     | string        | Yes      | Valid email format, max 128 chars, unique
+| username  | string        | Yes      | Unique login username; not equal to rollNumber (e.g., HieuNDHE180314)
+| rollNumber| string        | Yes      | Not blank, max 20 chars, unique
+|           |               |          | Pattern: ^[A-Z]{2}\d{6}$ (two uppercase letters + 6 digits; e.g., HE180314, HS181259, BE170843)
+| majorId   | short         | Yes      | Valid major ID, must exist and be active
+| password  | string        | No       | Min 8 chars; if not provided, system generates default
 
 201-Success Response:
 {
@@ -128,7 +130,7 @@ Request Body Schema:
     "userId": 201,
     "fullName": "Tran Thi B",
     "email": "tranthib@fpt.edu.vn",
-    "username": "HE180314",
+    "username": "HieuNDHE180314",
     "rollNumber": "HE180314",
     "majorId": 1,
     "majorName": "Software Engineering",
@@ -147,7 +149,7 @@ Response Schema:
 | userId 	      | int 	        | User ID (same as user_id in users table)
 | fullName 	    | string 	      | Student full name 
 | email 		    | string 	      | Student email address 
-| username 	    | string 	      | Login username (same as rollNumber)
+| username       | string        | Login username (distinct from rollNumber)
 | rollNumber 	  | string        | Student roll number (e.g., HE180314)
 | majorId 	    | integer       | Major ID
 | majorName 	  | string        | Major name
@@ -211,6 +213,7 @@ Request Body:
 {
   "fullName": "Tran Thi B - Updated",
   "email": "tranthib.updated@fpt.edu.vn",
+  "username": "HieuNDHE180314",
   "rollNumber": "HE180314",
   "majorId": 1,
   "isActive": true
@@ -222,8 +225,9 @@ Request body schema:
 |           |          |           | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
 |           |          |           | No leading/trailing/multiple spaces
 | email     | string   | Yes       | Valid email format, max 128 chars, unique
+| username  | string   | Yes       | Unique login username; not equal to rollNumber
 | rollNumber| string   | Yes       | Not blank, max 20 chars, unique
-|           |          |           | Pattern: ^HE\d{6}$ (HE followed by 6 digits, e.g., HE180314)
+|           |          |           | Pattern: ^[A-Z]{2}\d{6}$ (two uppercase letters + 6 digits)
 | majorId   | short    | Yes       | Valid major ID, must exist and be active
 | isActive  | boolean  | Yes       | Not null
 

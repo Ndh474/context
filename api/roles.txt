@@ -1,0 +1,186 @@
+GET    	| /roles 
+GET    	| /roles/{id}
+POST   	| /roles
+PUT    	| /roles/{id}
+DELETE 	| /roles/{id}
+
+=================================================== Search roles ==================================================
+
+1. GET /api/v1/roles
+Permission: ROLE_READ
+Query Parameters:
+| Parameter 	| Type       | Required | Default | Validation 
+| page       | integer    | No       | 1       | 1-50 
+| pageSize   | integer    | No       | 10      | 1-50 
+| sort       | string     | No       | asc     | asc/desc 
+| sortBy     | string     | No       | name    | name 
+| search     | string     | No       | ""      | Search in role name (LIKE) 
+| isActive   | boolean    | No       | null    | Filter by active status
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "LECTURER",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      }
+    ],
+    "totalPages": 1,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 3
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+=================================================== Get role by id ===============================================
+
+2. GET /api/v1/roles/{id}
+Permission: ROLE_READ
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Role ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 1,
+    "name": "LECTURER",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+404 - Role not found:
+{
+  "status": 404,
+  "message": "Role not found: 99",
+  "code": "ROLE_NOT_FOUND"
+}
+
+================================================ Create a new role ===============================================
+
+3. POST /api/v1/roles
+Permission: ROLE_CREATE
+Request Body:
+{
+  "name": "SUPERVISOR",
+  "permissionIds": [101, 102]
+}
+
+Request Body Schema:
+| Field         | Type          | Required | Validation 
+| name          | string        | Yes      | Not blank, max 100 chars, unique
+| permissionIds | array[short]  | No       | Each must reference an existing permission id
+
+201-Created Response:
+{
+  "status": 201,
+  "data": {
+    "id": 5,
+    "name": "SUPERVISOR",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Role name exists:
+{
+  "status": 400,
+  "message": "Role name already exists: SUPERVISOR",
+  "code": "ROLE_NAME_EXISTS"
+}
+
+==================================================== Update a role ===============================================
+
+4. PUT /api/v1/roles/{id}
+Permission: ROLE_UPDATE
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Role ID
+
+Request Body:
+{
+  "name": "SUPERVISOR",
+  "permissionIds": [101, 103],
+  "isActive": true
+}
+
+Request Body Schema:
+| Field         | Type          | Required | Validation 
+| name          | string        | Yes      | Not blank, max 100 chars, unique
+| permissionIds | array[short]  | No       | Each must reference an existing permission id
+| isActive      | boolean       | Yes      | Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 5,
+    "name": "SUPERVISOR",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+404 - Role not found or not allowed to update:
+{
+  "status": 404,
+  "message": "Role not found or role not allowed to update: 1",
+  "code": "ROLE_NOT_FOUND"
+}
+
+400 - Role name exists:
+{
+  "status": 400,
+  "message": "Role name already exists: SUPERVISOR",
+  "code": "ROLE_NAME_EXISTS"
+}
+
+==================================================== Delete a role ===============================================
+
+5. DELETE /api/v1/roles/{id}
+Permission: ROLE_DELETE
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Role ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete role successfully"
+}
+
+404 - Role not found:
+{
+  "status": 404,
+  "message": "Role not found: 1",
+  "code": "ROLE_NOT_FOUND"
+}
+
+400 - Role in use (constraint):
+{
+  "status": 400,
+  "message": "Cannot delete role. It is currently in use by other records (e.g., users).",
+  "code": "ROLE_CONSTRAINT"
+}
+
+Notes:
+- Schema is based on docs/database/02_roles_and_permissions.yaml (roles table) and service/controller behavior.
+- Some default sorting/paging may be ignored by implementation but are kept consistent with API style.
+

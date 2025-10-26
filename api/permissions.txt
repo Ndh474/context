@@ -1,0 +1,182 @@
+GET    	| /permissions 
+GET    	| /permissions/{id}
+POST   	| /permissions
+PUT    	| /permissions/{id}
+DELETE 	| /permissions/{id}
+
+=================================================== Search permissions ============================================
+
+1. GET /api/v1/permissions
+Permission: PERMISSION_READ
+Query Parameters:
+| Parameter 	| Type       | Required | Default | Validation 
+| page       | integer    | No       | 1       | 1-50 
+| pageSize   | integer    | No       | 10      | 1-50 
+| sort       | string     | No       | asc     | asc/desc 
+| sortBy     | string     | No       | name    | name 
+| search     | string     | No       | ""      | Search in permission name (LIKE) 
+| isActive   | boolean    | No       | null    | Filter by active status
+
+200-Success Response
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 101,
+        "name": "USER_CREATE",
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      }
+    ],
+    "totalPages": 1,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 5
+  }
+}
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+================================================= Get permission by id ============================================
+
+2. GET /api/v1/permissions/{id}
+Permission: PERMISSION_READ
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Permission ID
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 101,
+    "name": "USER_CREATE",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+404 - Permission not found:
+{
+  "status": 404,
+  "message": "Permission not found: 999",
+  "code": "PERMISSION_NOT_FOUND"
+}
+
+=============================================== Create a new permission ===========================================
+
+3. POST /api/v1/permissions
+Permission: PERMISSION_CREATE
+Request Body:
+{
+  "name": "CLASS_READ"
+}
+
+Request Body Schema:
+| Field | Type   | Required | Validation 
+| name  | string | Yes      | Not blank, max 255 chars, unique
+
+201-Created Response:
+{
+  "status": 201,
+  "data": {
+    "id": 120,
+    "name": "CLASS_READ",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T11:00:00Z"
+  }
+}
+
+400 - Permission name exists:
+{
+  "status": 400,
+  "message": "Permission name exists: CLASS_READ",
+  "code": "PERMISSION_NAME_EXISTS"
+}
+
+==================================================== Update a permission ==========================================
+
+4. PUT /api/v1/permissions/{id}
+Permission: PERMISSION_UPDATE
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Permission ID
+
+Request Body:
+{
+  "name": "CLASS_READ",
+  "isActive": true
+}
+
+Request Body Schema:
+| Field    | Type    | Required | Validation 
+| name     | string  | Yes      | Not blank, max 255 chars, unique
+| isActive | boolean | Yes      | Not null
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "id": 120,
+    "name": "CLASS_READ",
+    "isActive": true,
+    "createdAt": "2024-10-16T11:00:00Z",
+    "updatedAt": "2024-10-16T12:30:00Z"
+  }
+}
+
+404 - Permission not found:
+{
+  "status": 404,
+  "message": "Permission not found: 120",
+  "code": "PERMISSION_NOT_FOUND"
+}
+
+400 - Permission name exists:
+{
+  "status": 400,
+  "message": "Permission name already exists: CLASS_READ",
+  "code": "PERMISSION_NAME_EXISTS"
+}
+
+==================================================== Delete a permission ==========================================
+
+5. DELETE /api/v1/permissions/{id}
+Permission: PERMISSION_DELETE
+Path Parameters:
+| Parameter | Type  | Required | Description
+| id        | short | Yes      | Permission ID
+
+200-Success Response:
+{
+  "status": 200,
+  "message": "Delete permission successfully"
+}
+
+404 - Permission not found:
+{
+  "status": 404,
+  "message": "Permission not found: 120",
+  "code": "PERMISSION_NOT_FOUND"
+}
+
+400 - Permission in use (constraint):
+{
+  "status": 400,
+  "message": "Cannot delete permission. It is currently in use by other records (e.g., roles).",
+  "code": "PERMISSION_CONSTRAINT"
+}
+
+Notes:
+- Schema is based on docs/database/02_roles_and_permissions.yaml (permissions table) and service/controller behavior.
+- Some default sorting/paging may be ignored by implementation but are kept consistent with API style.
+

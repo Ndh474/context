@@ -132,6 +132,13 @@ Request Body Schema:
   }
 }
 
+409 - Role assignment conflict:
+{
+  "status": 409,
+  "message": "You do not have permission to assign this role to this account",
+  "code": "ROLE_ASSIGNMENT_CONFLICT"
+}
+
 Response Schema:
 | Field 	    | Type 		      | Description 
 | userId 	    | int 	        | Same as id (reference to users table)

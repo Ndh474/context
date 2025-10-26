@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-24T19:58:40.258428",
+      "generated_at": "2025-10-26T11:55:48.169778",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
