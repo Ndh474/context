@@ -44,6 +44,7 @@ Request Body:
   "endTime": "2024-10-17T10:00:00Z",
   "slotCategory": "LECTURE",
   "classId": 1,
+  "semesterId": 6,
   "roomId": 1,
   "staffUserId": 10
 }
@@ -55,7 +56,8 @@ Request Schema:
 | startTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be before endTime, min 30 mins duration
 | endTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be after startTime, max 4 hours duration
 | slotCategory 		| string 	| Yes 		| Must be "LECTURE", "LECTURE_WITH_PT", or "FINAL_EXAM"
-| classId 		| short 	| Yes 		| Must exist and be active
+| classId 		| short 	| Conditional 	| Required for LECTURE/LECTURE_WITH_PT. Must be null for FINAL_EXAM. Must exist and be active. Must belong to the specified semesterId
+| semesterId 		| short 	| Yes 		| Must exist and be active. For LECTURE/LECTURE_WITH_PT: must match the semester of the specified class
 | roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
 | staffUserId 		| integer 	| Yes 		| Must exist and be active, must have LECTURER or SUPERVISOR role, (startTime + endTime + staffUserId) -> unique
 
@@ -215,11 +217,25 @@ Other inactive reference error codes:
   "code": "INVALID_STAFF_ROLE"
 }
 
+400-Class semester mismatch:
+{
+  "status": 400,
+  "message": "Class does not belong to the specified semester. Class is in semester: Fall 2024",
+  "code": "CLASS_SEMESTER_MISMATCH"
+}
+
 404-Class not found:
 {
   "status": 404,
   "message": "Class not found: 1",
   "code": "CLASS_NOT_FOUND"
+}
+
+404-Semester not found:
+{
+  "status": 404,
+  "message": "Semester not found: 6",
+  "code": "SEMESTER_NOT_FOUND"
 }
 
 404-Room not found:
@@ -255,16 +271,16 @@ Query Parameters:
 | pageSize 	| integer 	| No 		| 10 		| 1-50 
 | sort 		| string 	| No 		| asc 		| asc, desc 
 | sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory
-| slotCategory 	| string 	| No 		| null 		| LECTURE, LECTURE_WITH_PT, FINAL_EXAM
+| slotCategory | array[enum] | No 	| null 		| Include one or more categories by repeating the param. Values: LECTURE, LECTURE_WITH_PT, FINAL_EXAM. Example: slotCategory=LECTURE&slotCategory=FINAL_EXAM
 | classId 	| short 	| No 		| null 		| Filter by class
 | subjectId 	| short 	| No 		| null 		| Filter by subject (via class.subject_id for LECTURE/LECTURE_WITH_PT, via exam_slot_subjects for FINAL_EXAM)
 | staffUserId 	| integer 	| No 		| null 		| Filter by staff (for lecturer's schedule)
 | roomId 	| short 	| No 		| null 		| Filter by room
-| semesterId 	| short 	| No 		| null 		| Filter by semester
-| isActive 	| boolean 	| No 		| null 		| Filter by active status
+| semesterId 	| short 	| No 		| null 		| Filter by semester (class or independent)
+| isActive    	| boolean 	| No 		| null 		| Filter by active status
 | isFinalized 	| boolean 	| No 		| null 		| Filter by finalization status
-| startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime >= this date, inclusive)
-| startTimeTo 	| string 	| No 		| null 		| YYYY-MM-DD (slots with startTime <= this date, inclusive)
+| startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime >= this date)
+| startTimeTo   | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime <= this date)
 
 200-Success Response:
 {
@@ -1319,3 +1335,4 @@ Common Status Codes:
 - 404: Not Found (slot, class, room, or user not found)
 - 409: Conflict (dependencies exist, time conflicts)
 - 500: Internal Server Error
+

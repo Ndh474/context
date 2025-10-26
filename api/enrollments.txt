@@ -36,7 +36,6 @@ Business Rules:
     "classId": 1,
     "studentUserId": 201,
     "student": {
-      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
@@ -202,7 +201,6 @@ Query Parameters:
         "classId": 1,
         "studentUserId": 202,
         "student": {
-          "userId": 202,
           "fullName": "Le Van C",
           "rollNumber": "HE180315",
           "email": "levanc@fpt.edu.vn",
@@ -270,7 +268,6 @@ Path Parameters:
     "classId": 1,
     "studentUserId": 201,
     "student": {
-      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
@@ -345,7 +342,6 @@ Business Rules:
     "classId": 1,
     "studentUserId": 201,
     "student": {
-      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
