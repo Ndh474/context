@@ -101,14 +101,14 @@ Permission: USER_READ_DETAIL
 ================================================ Create a new student profile ================================================
 1. POST /api/v1/student-profiles
 Permission: USER_CREATE
+
 Request Body:
 {
   "fullName": "Tran Thi B",
   "email": "tranthib@fpt.edu.vn",
   "username": "HieuNDHE180314",
   "rollNumber": "HE180314",
-  "majorId": 1,
-  "password": "defaultPassword123"
+  "majorId": 1
 }
 
 Request Body Schema:
@@ -121,7 +121,6 @@ Request Body Schema:
 | rollNumber| string        | Yes      | Not blank, max 20 chars, unique
 |           |               |          | Pattern: ^[A-Z]{2}\d{6}$ (two uppercase letters + 6 digits; e.g., HE180314, HS181259, BE170843)
 | majorId   | short         | Yes      | Valid major ID, must exist and be active
-| password  | string        | No       | Min 8 chars; if not provided, system generates default
 
 201-Success Response:
 {
@@ -311,7 +310,7 @@ Request Body: (Content-Type: multipart/form-data)
 
 Business Rules:
 - Reference BR-51 (Bulk Import Students CSV Format and Validation) from business_rules.yaml.
-- Business key is 'rollNumber'. 'rollNumber' will also be used as 'username'.
+- Business key is 'rollNumber'. Username is independent from rollNumber.
 - If mode = 'AddOnly': Skip rows where 'rollNumber' or 'email' already exists.
 - If mode = 'AddAndUpdate': Update rows where 'rollNumber' already exists (fullName, email, majorId). Does not update password.
 
@@ -748,7 +747,7 @@ GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceStatu
 - Soft delete is done via PUT endpoint by setting isActive = false
 - Hard delete via DELETE endpoint is permanent and may fail if student has enrollment/attendance history
 - Roll number and email must be unique
-- Username is automatically set to rollNumber
+- Username is provided by FE and must be unique; it is not auto-derived from rollNumber. Username cannot be changed after creation via admin API
 - Students always have STUDENT role only
 - hasActiveEmbedding indicates if student has face vector in face_embeddings table
 - canUseFaceRecognition is derived: true if hasActiveEmbedding is true
@@ -770,3 +769,4 @@ Common Status Codes:
 - 404: Not Found (student profile not found)
 - 409: Conflict (foreign key constraint violation)
 - 500: Internal Server Error
+

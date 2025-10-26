@@ -19,7 +19,8 @@ Query Parameters:
 | sort 		    | string 	      | No 		    | asc 		| asc/desc 
 | sortBy 	    | string 	      | No		    | fullName | fullName, staffCode, email
 | search 	    | string 	      | No 		    | "" 		  | Search in fullName, staffCode, email
-| roleId 	    | smallint 	    | No 		    | null 		| Filter by role
+| roleIds 	    | array[short] 	| No 		    | null 		| Include only staff having at least one of these role IDs (comma-separated or multi-param). Example: roleIds=4,3
+| excludeRoles | array[string] | No       | null    | Exclude staff who have any of these role names. Example: excludeRoles=DATA_OPERATOR,SYSTEM_ADMIN
 | isActive    | boolean      | No        | null    | Filter by active status
 
 200-Success Response
@@ -108,11 +109,11 @@ Request Body:
 Request Body Schema:
 | Field 	  | Type 		      | Required| Validation 
 | fullName 	| string 	      | Yes 		| Not blank, max 150 chars
-|           |              |         | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
+|           |              |         | Pattern: [any printable name, unicode letters and punctuation accepted] (letters and spaces only)
 |           |              |         | No leading/trailing/multiple spaces
 | email 		| string 	      | Yes 		| Valid email format, max 128 chars, unique
 | staffCode | string        | Yes 		| Not blank, max 20 chars, unique
-|           |              |         | Pattern: ^[A-Z0-9]+$ (UPPERCASE letters and digits only)
+|           |              |         | Pattern: ^[A-Za-z0-9]+$ (letters and digits, case-insensitive)
 | password 	| string        | No 		  | Min 8 chars, if not provided system generates default
 | roles 	  | array[string] | Yes 		| Valid roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN
 
@@ -131,6 +132,11 @@ Request Body Schema:
     "updatedAt": "2024-10-16T11:00:00Z"
   }
 }
+
+Examples:
+- Only show LECTURER and SUPERVISOR by excluding others used on staff screens:
+  GET /api/v1/staff-profiles?excludeRoles=DATA_OPERATOR,SYSTEM_ADMIN
+  (Assumes staff profiles are for staff only; students are managed via student-profiles.)
 
 409 - Role assignment conflict:
 {
@@ -204,11 +210,11 @@ Request Body:
 Request body schema:
 | Field     | Type          | Required  | Validation
 | fullName  | string        | Yes       | Not blank, max 150 chars
-|           |               |           | Pattern: ^[A-Za-z]+( [A-Za-z]+)*$ (letters and spaces only)
+|           |               |           | Pattern: [any printable name, unicode letters and punctuation accepted] (letters and spaces only)
 |           |               |           | No leading/trailing/multiple spaces
 | email     | string        | Yes       | Valid email format, max 128 chars, unique
 | staffCode | string        | Yes       | Not blank, max 20 chars, unique
-|           |               |           | Pattern: ^[A-Z0-9]+$ (UPPERCASE letters and digits only)
+|           |               |           | Pattern: ^[A-Za-z0-9]+$ (letters and digits, case-insensitive)
 | roles     | array[string] | Yes       | Valid roles, cannot assign STUDENT role to staff
 | isActive  | boolean       | Yes       | Not null
 
@@ -693,3 +699,4 @@ Common Status Codes:
 - 404: Not Found (staff profile not found)
 - 409: Conflict (foreign key constraint violation, role assignment conflict)
 - 500: Internal Server Error
+
