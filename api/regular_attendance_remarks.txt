@@ -303,12 +303,9 @@ Permissions:
 - ATTENDANCE_ROSTER_READ: View remarks (Lecturer, Supervisor, Data Operator)
 
 Business Rules:
-- BR-28: Remarks are used to explain manual status changes
+- Remarks are used to explain manual status changes
 - When manually updating attendance status, a remark is mandatory
 - Remarks are specific to LECTURE slots only (not LECTURE_WITH_PT or FINAL_EXAM)
-
-Related Use Cases:
-- UC-20: Add/Edit Attendance Remark (Lecturer)
 
 Audit Trail:
 - Remark operations are logged in operational_audit_logs

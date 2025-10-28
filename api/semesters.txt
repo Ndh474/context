@@ -199,7 +199,7 @@ Response Schema:
 =======================================================================================================================
 =============================================== Bulk Import Semesters =================================================
 Note:
-- This API implements "Upsert" logic (Add or Update) based on Business Rule BR-44 and supports the 'Interactive Import Flow'.
+- This API implements "Upsert" logic (Add or Update) and supports the 'Interactive Import Flow'.
 - API processes using 'Partial Success' strategy (saves valid rows, returns error rows).
 
 9. POST /api/v1/semesters/import
@@ -207,11 +207,10 @@ Permission: SEMESTER_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type          | Required | Validation / Description                                           |
-| file      | file (.csv)   | Yes      | CSV file containing semester data, following BR-44 format.        |
+| file      | file (.csv)   | Yes      | CSV file containing semester data.        |
 | mode      | string        | Yes      | Import mode. Must be one of: 'AddOnly' or 'AddAndUpdate'. |
 
 Business Rules:
-- Reference BR-44 (Bulk Import Semesters CSV Format and Validation) from system_context.yaml.
 - If mode = 'AddOnly': Skip (SKIP) rows with existing 'code'.
 - If mode = 'AddAndUpdate': Update (UPDATE) rows with existing 'code'.
 

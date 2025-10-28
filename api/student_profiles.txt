@@ -386,11 +386,10 @@ Permission: USER_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | CSV file containing student data, following BR-51 format.
+| file      | file (.csv) | Yes      | CSV file containing student data.
 | mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
 
 Business Rules:
-- Reference BR-51 (Bulk Import Students CSV Format and Validation) from business_rules.yaml.
 - Business key is 'rollNumber'. Username is independent from rollNumber.
 - If mode = 'AddOnly': Skip rows where 'rollNumber' or 'email' already exists.
 - If mode = 'AddAndUpdate': Update rows where 'rollNumber' already exists (fullName, email, majorId). Does not update password.

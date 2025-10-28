@@ -337,11 +337,10 @@ Permission: CAMERA_IMPORT (HYPOTHESIS: Need to add this permission)
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | CSV file containing camera data, following BR-50 format (HYPOTHESIS).
+| file      | file (.csv) | Yes      | CSV file containing camera data.
 | mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
 
 Business Rules:
-- HYPOTHESIS: Reference BR-50 (Bulk Import Cameras CSV Format and Validation).
 - If mode = 'AddOnly': Skip rows where 'name' already exists.
 - If mode = 'AddAndUpdate': Update rows where 'name' already exists (rtspUrl, room_name).
 

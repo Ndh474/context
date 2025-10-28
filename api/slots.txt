@@ -34,7 +34,6 @@ Business Rules:
   * Staff must have LECTURER or SUPERVISOR role
 - Notes for FINAL_EXAM slots:
   * After creating a FINAL_EXAM slot, Data Operator must use endpoints in /api/v1/exam-slots/{slotId}/subjects to assign the subjects that will be tested
-- Related Business Rules: BR-15, BR-16, BR-17, BR-34
 
 Request Body:
 {
@@ -515,8 +514,6 @@ Business Rules:
    - Cannot deactivate if slot is finalized
    - Cannot deactivate if there are attendance records
 
-4. Related Business Rules: BR-34, BR-35
-
 // TODO: DOP ABLE TO DELETE HARD IF NOW() < START_TIME - 30 minute
 
 Path Parameters:
@@ -785,7 +782,7 @@ Path Parameters:
 =======================================================================================================================
 ================================================== Bulk Import Slots ==================================================
 Note:
-- This API implements "Upsert" logic based on Business Rule BR-46 and supports 'Interactive Import Flow'.
+- This API implements "Upsert" logic and supports 'Interactive Import Flow'.
 - API processes with 'Partial Success' pattern (saves valid rows, returns error rows).
 - Business key to identify duplicates/updates is the combination (class_code, semester_code, start_time, room_name, staff_username).
 
@@ -794,11 +791,10 @@ Permission: SLOT_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | CSV file containing slot data, following BR-46 format.
+| file      | file (.csv) | Yes      | CSV file containing slot data.
 | mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
 
 Business Rules:
-- Reference BR-46 (Bulk Import Slots CSV Format and Validation) from core_context.json.
 - If mode = 'AddOnly': Skip rows where the business key combination already exists.
 - If mode = 'AddAndUpdate': Update rows where the business key combination already exists (only updates endTime, slotCategory, title).
 
@@ -861,7 +857,7 @@ Possible Error Codes in data array:
 - INVALID_SLOT_CATEGORY: Invalid slot category specified
 - SLOT_TIME_CONFLICT: Time conflict (room or staff already booked). Can be ROOM_TIME_CONFLICT or STAFF_TIME_CONFLICT
 - SLOT_EXISTS: Duplicate slot in AddOnly mode
-- CLASS_ID_REQUIRED_FOR_LECTURE: Class code required for LECTURE or LECTURE_WITH_PT category (BR-34 validation)
+- CLASS_ID_REQUIRED_FOR_LECTURE: Class code required for LECTURE or LECTURE_WITH_PT category
 - START_TIME_REQUIRED: Start time field is blank
 - END_TIME_REQUIRED: End time field is blank
 - ROOM_NAME_REQUIRED: Room name field is blank
@@ -902,7 +898,6 @@ Business Rules:
   • Includes attendance status for both regular and exam components, depending on slotCategory.
   • The user making the request must be the staff member assigned to this slot.
   • For slots with slotCategory = 'FINAL_EXAM', roster is built using the new business logic through exam_slot_subjects and exam_slot_participants tables.
-  • Related Business Rules: BR-14, BR-33, BR-34
 
 Path Parameters:
   | Parameter | Type    | Required | Description |
@@ -1040,7 +1035,6 @@ Business Rules:
   • Triggers the communication with the Python recognition service
   • Can only be called by the assigned staff member
   • The slot must not be finalized
-  • Related Business Rules: BR-18
 
 Path Parameters:
   | Parameter | Type    | Required | Description |
@@ -1163,7 +1157,6 @@ Business Rules:
   • Sets the finalizedAt timestamp on the slot
   • Can only be called by the assigned staff member
   • The slot must not already be finalized
-  • Related Business Rules: BR-21, BR-29
 
 Path Parameters:
   | Parameter | Type    | Required | Description |
@@ -1304,13 +1297,6 @@ Soft Delete:
 Hard Delete:
 - Permanent deletion via DELETE endpoint
 - Fails if slot has attendance or exam attendance records
-
-Business Rules:
-- BR-15: Slot Room Assignment
-- BR-16: Camera Room Validation
-- BR-17: Single Staff Assignment
-- BR-34: Slot Category Validation
-- BR-35: Lecturer Can Update Slot Category
 
 Roster Endpoint Notes:
 - avatarUrl: URL to student's approved identity photo (from identity_submissions)

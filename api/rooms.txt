@@ -295,11 +295,10 @@ Permission: ROOM_IMPORT (HYPOTHESIS: Need to add this permission)
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | CSV file containing room data, following BR-49 format (HYPOTHESIS).
+| file      | file (.csv) | Yes      | CSV file containing room data.
 | mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
 
 Business Rules:
-- HYPOTHESIS: Reference BR-49 (Bulk Import Rooms CSV Format and Validation).
 - If mode = 'AddOnly': Skip rows where 'name' already exists.
 - If mode = 'AddAndUpdate': Update rows where 'name' already exists (location).
 

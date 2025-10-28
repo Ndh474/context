@@ -185,7 +185,7 @@ Path Parameters:
 
 3. PUT /api/v1/attendance-records/{id}
 Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
-Description: Manually update attendance status. Remark is MANDATORY when changing status (BR-28).
+Description: Manually update attendance status. Remark is MANDATORY when changing status.
 
 Path Parameters:
 | Parameter | Type | Required | Description
@@ -201,13 +201,13 @@ Request Schema:
 | Field  | Type   | Required | Validation
 |--------|--------|----------|-----------
 | status | string | Yes      | Must be: not_yet, present, absent
-| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
+| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY)
 
 Business Rules:
-- BR-28: Remark is MANDATORY for manual status changes
-- BR-22: Before 23:59:59 UTC of slot date, assigned staff can edit
-- BR-23: After 23:59:59 UTC of slot date, only Data Operator can edit
-- BR-31: Status transition rules apply
+- Remark is MANDATORY for manual status changes
+- Before 23:59:59 UTC of slot date, assigned staff can edit
+- After 23:59:59 UTC of slot date, only Data Operator can edit
+- Status transition rules apply
 - Method is automatically set to 'manual'
 - recordedAt is updated to current timestamp
 - Audit log is created
@@ -383,7 +383,7 @@ Request Schema:
 | recognitions[].evidence.examImageUrl    | string  | No       | URL/path to the exam attendance evidence image
 
 Business Rules:
-- BR-19: When face is recognized, update status to 'present'
+- When face is recognized, update status to 'present'
 - Only update if current status is 'not_yet' or 'present' (don't override 'absent')
 - Set method = 'auto'
 - Set recordedAt = recognition timestamp
@@ -553,7 +553,7 @@ Remark Management:
 - Data Operators can update/delete any remark
 - Database table: regular_attendance_remarks
 
-Time-Based Edit Window (BR-22, BR-23):
+Time-Based Edit Window:
 - Cutoff: 23:59:59 UTC of slot date (based on slot.start_time)
 - Before cutoff: Assigned staff can edit
 - After cutoff: Only Data Operator can edit
@@ -584,17 +584,11 @@ Permissions:
 - ATTENDANCE_REMARK_MANAGE: Add/edit/delete remarks (Lecturer, Supervisor, Data Operator)
 
 Business Rules:
-- BR-19: Face Recognition Status Update
-- BR-22: Same-Day Edit Window
-- BR-23: Post-Day Edit Restrictions
-- BR-28: Manual Edit Remark Requirement
-- BR-31: Attendance Status Transition Rules
-
-Related Use Cases:
-- UC-19: Manually Update Attendance Status (Lecturer)
-- UC-20: Add/Edit Attendance Remark (Lecturer)
-- UC-30: Manually Update Attendance Status (Supervisor)
-- UC-31: Add/Edit Attendance Remark (Supervisor)
+- Face Recognition Status Update
+- Same-Day Edit Window
+- Post-Day Edit Restrictions
+- Manual Edit Remark Requirement
+- Attendance Status Transition Rules
 
 Audit Trail:
 - All status changes logged to operational_audit_logs

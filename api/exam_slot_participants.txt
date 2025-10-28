@@ -36,7 +36,6 @@ Business Rules:
 - All subjects must exist and be active
 - Cannot assign duplicate subjects to the same slot
 - Slot must be active (slots.is_active = true)
-- Related Business Rules: BR-34
 
 201-Success Response:
 {
@@ -245,7 +244,7 @@ Business Rules:
 
 4. POST /api/v1/exam-slots/{slotId}/participants
 Permission: ENROLLMENT_MANAGE
-Description: Add a student to a specific subject within an independent final exam slot. This is step 2 in the 2-step process for independent exam management (BR-40).
+Description: Add a student to a specific subject within an independent final exam slot. This is step 2 in the 2-step process for independent exam management.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
@@ -268,14 +267,13 @@ Business Rules:
 - Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
 - Slot must be independent (class_id = NULL)
 - Subject must be assigned to the slot (exam_slot_subjects table)
-- Student must be enrolled in the subject during the semester (BR-40 validation)
+- Student must be enrolled in the subject during the semester
 - A student can only be added once to a specific subject in a specific exam slot
 - If participant exists with is_enrolled=true → 409 Conflict
 - If participant exists with is_enrolled=false → Update to true (re-enrollment)
 - Slot must be active (slots.is_active = true)
 - Student must be active (users.is_active = true)
 - Student must have STUDENT role
-- Related Business Rules: BR-34, BR-38, BR-39, BR-40
 
 201-Success Response (New participant):
 {
@@ -801,7 +799,7 @@ Business Rules:
 
 9. POST /api/v1/exam-slots/{slotId}/participants/bulk
 Permission: ENROLLMENT_MANAGE
-Description: Bulk add students to specific subjects within an independent final exam slot from a CSV file (UC-65). Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk add students to specific subjects within an independent final exam slot from a CSV file. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Path Parameters:
 | Parameter | Type    | Required | Description
@@ -836,7 +834,7 @@ Business Rules:
 - Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
 - Slot must be independent (class_id = NULL)
 - Subject must be assigned to the slot (exam_slot_subjects table)
-- Student must be enrolled in the subject during the semester (BR-40 validation)
+- Student must be enrolled in the subject during the semester
 
 Validation Rules:
 File Level:
@@ -849,7 +847,7 @@ Row Level:
 - student_id must exist in users table and have STUDENT role
 - subject_code must exist in subjects table
 - The pair (slot_id, subject_id) must exist in exam_slot_subjects table
-- Student must be enrolled in the subject during the semester (BR-40 validation)
+- Student must be enrolled in the subject during the semester
 - Student must be active (users.is_active = true)
 - Slot must be active (slots.is_active = true)
 
@@ -915,7 +913,7 @@ Possible Error Codes in data array:
 - STUDENT_NOT_FOUND
 - SUBJECT_NOT_FOUND
 - SUBJECT_NOT_ASSIGNED_TO_SLOT
-- STUDENT_NOT_ENROLLED_IN_SUBJECT (BR-40)
+- STUDENT_NOT_ENROLLED_IN_SUBJECT
 - INVALID_USER_ROLE
 - INACTIVE_STUDENT_NOT_ALLOWED
 - INACTIVE_SLOT_NOT_ALLOWED
@@ -1063,15 +1061,11 @@ Permissions:
 - SLOT_READ: View subjects and participants, download template (Data Operator, Lecturer, Supervisor)
 
 Business Rules:
-- Only for FINAL_EXAM slots with class_id = NULL (BR-34)
+- Only for FINAL_EXAM slots with class_id = NULL
 - Subjects must be assigned before students can be assigned (2-step process)
-- Student must be enrolled in the subject during the semester (BR-40 validation)
+- Student must be enrolled in the subject during the semester
 - Preserves exam attendance history when withdrawing from specific subject
 - Only is_enrolled=true participants appear in roster for that subject
-
-Related Use Cases:
-- UC-64: Manage Exam Slot Participants
-- UC-65: Bulk Import Participants to Exam Slot
 
 Audit Trail:
 - All participant and subject changes are logged to operational_audit_logs
@@ -1093,7 +1087,6 @@ Subject Assignment:
 - Use POST /api/v1/exam-slots/{slotId}/subjects to assign subjects
 - Use DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId} to remove subjects
 - Cannot remove subject if students are assigned to it in that slot
-- Related Business Rules: BR-34, BR-38, BR-39
 
 Common Status Codes:
 - 200: Success

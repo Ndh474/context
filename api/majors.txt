@@ -76,7 +76,7 @@ Response Schema:
 =======================================================================================================================
 ================================================= Bulk Import Majors ==================================================
 Note:
-- This API implements "Upsert" logic (Add or Update) based on Business Rule BR-42 and supports the 'Interactive Import Flow'.
+- This API implements "Upsert" logic (Add or Update) and supports the 'Interactive Import Flow'.
 - API processes using 'Partial Success' strategy (saves valid rows, returns error rows).
 
 7. POST /api/v1/majors/import
@@ -84,11 +84,10 @@ Permission: MAJOR_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type          | Required | Validation / Description                                           |
-| file      | file (.csv)   | Yes      | CSV file containing major data, following BR-42 format.       |
+| file      | file (.csv)   | Yes      | CSV file containing major data.       |
 | mode      | string        | Yes      | Import mode. Must be one of: 'AddOnly' or 'AddAndUpdate'. |
 
 Business Rules:
-- Reference BR-42 (Bulk Import Majors CSV Format and Validation) from system_context.yaml.
 - If mode = 'AddOnly': Skip (SKIP) rows with existing 'code'.
 - If mode = 'AddAndUpdate': Update (UPDATE) rows with existing 'code'.
 

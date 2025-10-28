@@ -295,11 +295,10 @@ Permission: USER_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | CSV file containing staff data, following BR-52 format.
+| file      | file (.csv) | Yes      | CSV file containing staff data.
 | mode      | string      | Yes      | Import mode: 'AddOnly' or 'AddAndUpdate'.
 
 Business Rules:
-- Reference BR-52 (Bulk Import Staff CSV Format and Validation) from business_rules.yaml.
 - Business key is 'staffCode'. 'staffCode' will also be used as 'username'.
 - If mode = 'AddOnly': Skip rows where 'staffCode' or 'email' already exists.
 - If mode = 'AddAndUpdate': Update rows where 'staffCode' already exists (fullName, email, roles). Does not update password.

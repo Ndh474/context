@@ -182,7 +182,7 @@ Path Parameters:
 
 3. PUT /api/v1/exam-attendance/{id}
 Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
-Description: Manually update exam attendance status. Remark is MANDATORY when changing status (BR-28).
+Description: Manually update exam attendance status. Remark is MANDATORY when changing status.
 
 Path Parameters:
 | Parameter | Type | Required | Description
@@ -198,13 +198,13 @@ Request Schema:
 | Field  | Type   | Required | Validation
 |--------|--------|----------|-----------
 | status | string | Yes      | Must be: not_yet, present, absent
-| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY per BR-28)
+| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY)
 
 Business Rules:
-- BR-28: Remark is MANDATORY for manual status changes
-- BR-22: Before 23:59:59 UTC of slot date, assigned staff can edit
-- BR-23: After 23:59:59 UTC of slot date, only Data Operator can edit
-- BR-31: Status transition rules apply
+- Remark is MANDATORY for manual status changes
+- Before 23:59:59 UTC of slot date, assigned staff can edit
+- After 23:59:59 UTC of slot date, only Data Operator can edit
+- Status transition rules apply
 - Method is automatically set to 'manual'
 - recordedAt is updated to current timestamp
 - Audit log is created
@@ -351,7 +351,7 @@ Relationship with Attendance Records:
 Participant Management:
 - LECTURE_WITH_PT: Participants from class enrollments (enrollments table where is_enrolled = true)
 - FINAL_EXAM: Participants always determined by exam_slot_participants table (independent exam registration)
-  * BR-34 requires class_id to be NULL for FINAL_EXAM slots
+  * class_id must be NULL for FINAL_EXAM slots
   * Students are assigned to specific subjects within the exam slot through the 2-step process:
     1. Assign subjects to slot via exam_slot_subjects table
     2. Assign students to specific subjects via exam_slot_participants table
@@ -380,7 +380,7 @@ Python Callback Integration:
 - Python service doesn't need to know about exam vs regular attendance
 - Backend handles routing based on slot category
 
-Time-Based Edit Window (BR-22, BR-23):
+Time-Based Edit Window:
 - Cutoff: 23:59:59 UTC of slot date (based on slot.start_time)
 - Before cutoff: Assigned staff (Lecturer/Supervisor) can edit
 - After cutoff: Only Data Operator can edit
@@ -399,17 +399,10 @@ Permissions:
   * Note: Remarks use dedicated exam-attendance endpoints
 
 Business Rules:
-- BR-22: Same-Day Edit Window
-- BR-23: Post-Day Edit Restrictions
-- BR-28: Manual Edit Remark Requirement
-- BR-31: Attendance Status Transition Rules
-
-Related Use Cases:
-- UC-28: Initiate Attendance Session (Supervisor) - handled by slots endpoints
-- UC-29: Monitor Real-Time Roster (Supervisor) - handled by slots endpoints
-- UC-30: Manually Update Attendance Status (Supervisor)
-- UC-31: Add/Edit Attendance Remark (Supervisor) - handled by exam-attendance endpoints
-- UC-32: Finalize Attendance Session (Supervisor) - handled by slots endpoints
+- Same-Day Edit Window
+- Post-Day Edit Restrictions
+- Manual Edit Remark Requirement
+- Attendance Status Transition Rules
 
 Audit Trail:
 - All status changes logged to operational_audit_logs

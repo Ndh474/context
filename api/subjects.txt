@@ -419,7 +419,7 @@ Path Parameters:
 =======================================================================================================================
 ================================================ Bulk Import Subjects =================================================
 Note:
-- API này triển khai logic "Upsert" (Thêm hoặc Cập nhật) dựa trên Business Rule BR-43 và hỗ trợ luồng 'Interactive Import Flow'.
+- API này triển khai logic "Upsert" (Thêm hoặc Cập nhật) và hỗ trợ luồng 'Interactive Import Flow'.
 - API xử lý theo kiểu 'Partial Success' (lưu hàng tốt, trả lỗi hàng xấu).
 
 7. POST /api/v1/subjects/import
@@ -427,11 +427,10 @@ Permission: SUBJECT_IMPORT
 
 Request Body: (Content-Type: multipart/form-data)
 | Part Name | Type        | Required | Validation / Description
-| file      | file (.csv) | Yes      | File CSV chứa dữ liệu môn học, tuân thủ định dạng của BR-43.
+| file      | file (.csv) | Yes      | File CSV chứa dữ liệu môn học.
 | mode      | string      | Yes      | Chế độ import. Phải là một trong hai giá trị: 'AddOnly' hoặc 'AddAndUpdate'.
 
 Business Rules:
-- Tham chiếu BR-43 (Bulk Import Subjects CSV Format and Validation) từ core_context.json.
 - Nếu mode = 'AddOnly': Bỏ qua (SKIP) các hàng có 'code' đã tồn tại.
 - Nếu mode = 'AddAndUpdate': Cập nhật (UPDATE) các hàng có 'code' đã tồn tại (bao gồm cả việc cập nhật quan hệ subject_majors).
 

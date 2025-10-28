@@ -22,7 +22,7 @@ Request Schema:
 | studentUserId  | integer | Yes      | Must exist, be active, and have STUDENT role
 
 Business Rules:
-- BR-13: A student can only be enrolled once in a specific class
+- A student can only be enrolled once in a specific class
 - If enrollment exists with is_enrolled=true → 400 Bad Request (ALREADY_ENROLLED)
 - If enrollment exists with is_enrolled=false → Update to true (re-enrollment)
 - Class must be active (classes.is_active = true)
@@ -357,9 +357,9 @@ Request Schema:
 | isEnrolled | boolean | Yes      | true (re-enroll) or false (withdraw)
 
 Business Rules:
-- BR-14: When is_enrolled=false (withdraw), student will not appear in future slot rosters
-- BR-14: Past attendance history is preserved
-- BR-33: Only students with is_enrolled=true appear in roster queries
+- When is_enrolled=false (withdraw), student will not appear in future slot rosters
+- Past attendance history is preserved
+- Only students with is_enrolled=true appear in roster queries
 - Audit log is created for this action
 
 200-Success Response:
@@ -432,7 +432,7 @@ Business Rules:
 
 5. POST /api/v1/enrollments/bulk
 Permission: ENROLLMENT_MANAGE
-Description: Bulk enroll existing students into classes from a CSV file (UC-74). This is the primary endpoint for mass enrollment. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
+Description: Bulk enroll existing students into classes from a CSV file. This is the primary endpoint for mass enrollment. Uses PARTIAL SUCCESS strategy - imports valid rows and skips invalid ones.
 
 Request: Multipart form-data
 Content-Type: multipart/form-data
@@ -454,7 +454,7 @@ HE180316,SE1802,FA24
 ```
 
 Business Rules:
-- BR-37: CSV format validation (encoding, columns, max rows, max file size)
+- CSV format validation (encoding, columns, max rows, max file size)
 - PARTIAL SUCCESS: Import valid rows, skip invalid rows. Return ONLY errors/warnings.
 - Duplicate handling:
   - Within file: If same student_id + class_code appears multiple times, only first occurrence is processed
@@ -759,15 +759,10 @@ Permissions:
 - CLASS_READ: View enrollments, download template (Data Operator, Lecturer)
 
 Business Rules:
-- BR-13: Single Class Enrollment (unique constraint)
-- BR-14: Enrollment History Preservation (keep attendance records)
-- BR-33: Roster Generation Rules (only is_enrolled=true)
-- BR-37: Bulk Enrollment CSV Format
-
-Related Use Cases:
-- UC-62: Add Student to Roster
-- UC-63: Remove Student from Roster
-- UC-77: Bulk Enroll Students to Classes via CSV
+- Single Class Enrollment (unique constraint)
+- Enrollment History Preservation (keep attendance records)
+- Roster Generation Rules (only is_enrolled=true)
+- Bulk Enrollment CSV Format
 
 Audit Trail:
 - All enrollment changes are logged to operational_audit_logs
