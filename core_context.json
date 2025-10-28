@@ -1,7 +1,7 @@
 {
   "fuacs_core_context": {
     "metadata": {
-      "generated_at": "2025-10-26T11:55:48.169778",
+      "generated_at": "2025-10-28T21:02:59.065807",
       "version": "1.0",
       "description": "FUACS system core context - merged from system, database, and requirements documentation files",
       "excluded_folders": [
@@ -190,7 +190,9 @@
             "SLOT_CREATE_FINAL_EXAM",
             "SLOT_UPDATE_FINAL_EXAM",
             "SLOT_DELETE_HARD_FINAL_EXAM",
+            "ATTENDANCE_ROSTER_READ",
             "ATTENDANCE_STATUS_UPDATE_MANUAL",
+            "ATTENDANCE_REMARK_MANAGE",
             "ROOM_CREATE",
             "ROOM_READ",
             "ROOM_UPDATE",
@@ -400,8 +402,9 @@
               "Dynamically loads the student roster based on slot type: from Class Enrollments (for LECTURE/LECTURE_WITH_PT) or from the independent Exam Participant list (for FINAL_EXAM slots).",
               "Interface displays appropriate functions based on role (Lecturer, Supervisor).",
               "Display camera names and connection status of all cameras in the assigned room",
-              "Interface updates attendance status in real-time from recognition service results",
-              "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for quick visual comparison by the lecturer.",
+              "Interface updates attendance status in real-time based on the new processing logic (e.g., 'Present' status may revert to 'Not Yet' after a re-scan).",
+              "For each student marked 'present' automatically (from the first scan), display the captured evidence image next to their base avatar for quick visual comparison by the lecturer.",
+              "NEW: For students in 'Not Yet' status, the interface must visually distinguish between those who have an associated evidence image and those who do not.",
               "Review/edit status",
               "Add/Edit attendance remarks for each student",
               "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions",
@@ -569,10 +572,10 @@
           "description": "The only attendance mode, activated by Lecturer (for lecture slots) or Supervisor (for exam slots). The system uses IP cameras pre-installed in classrooms to automatically recognize and record student presence. A Python middleware service processes video streams and sends results back to the system."
         },
         "face_recognition": {
-          "decision_flow_summary": "Face scan has 2 possible outcomes only",
+          "decision_flow_summary": "Face scan results are processed based on the student's current state.",
           "outcomes": {
-            "match": "set attendance = present",
-            "no_match": "no-op (person in charge marks attendance manually)"
+            "match": "Handle 'Match' (Scan finds student): If current status is 'Not Yet', remain 'Not Yet' but capture/update evidence image. If current status is 'Present', do nothing (no-op).",
+            "no_match": "Handle 'No Match' (Scan does not find student): If current status is 'Present', update status to 'Not Yet'. If current status is 'Not Yet', do nothing (no-op)."
           }
         },
         "attendance_statuses": [
@@ -607,7 +610,7 @@
             "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record."
           ]
         },
-        "face_identification_flow": "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system adds a new event to the student's history record and updates the displayed status on the interface based on the latest result. This process does not overwrite old data.",
+        "face_identification_flow": "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system processes the result based on the student's current state (see 'face_recognition.outcomes' logic): 1) A 'No Match' on a 'Present' student will revert their status to 'Not Yet'. 2) A 'Match' on a 'Not Yet' student will update their evidence image but keep their status as 'Not Yet'. The system adds relevant events to the student's history record. This process does not overwrite old data.",
         "data_export_flow": "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS.",
         "authentication_flow": "Users on all platforms (Web, Mobile) can log in with Google. Upon successful authentication, Google provides an email address. The FUACS system uses this email address to directly look up the corresponding user account that already exists in the system. If an active account with a matching email is found, the system grants a session token with the permissions assigned to that user. This flow is entirely based on email matching.",
         "system_notification_flow": "When a business event occurs (e.g., identity rejection), the system generates notification content (hardcoded in backend), creates a notification record and delivery record for the target user, and sends a push notification.",
@@ -1083,7 +1086,8 @@
             "email": {
               "type": "varchar(128)",
               "constraints": [
-                "NOT NULL"
+                "NOT NULL",
+                "UNIQUE"
               ],
               "description": "Email address for password reset"
             },
@@ -1671,7 +1675,7 @@
                 "NOT NULL",
                 "UNIQUE"
               ],
-              "description": "Student's unique roll number (e.g., HE180314)"
+              "description": "Student's unique roll number: two uppercase letters + 6 digits (e.g., HE180314, HS181259, BE170843)"
             },
             "base_photo_url": {
               "type": "varchar(255)",
@@ -1895,7 +1899,7 @@
                 "table": "semesters",
                 "column": "id"
               },
-              "description": "Reference to semester. Required for all slots. For class-based slots, this is redundant but ensures consistency. For independent final exam slots (where class_id is NULL), this is the only link to a semester."
+              "description": "Reference to semester. Required for all slots. Must be provided when creating any slot. For LECTURE/LECTURE_WITH_PT slots, this must match the semester of the specified class. For FINAL_EXAM slots (where class_id is NULL), this is the only link to a semester."
             },
             "room_id": {
               "type": "smallint",
@@ -3162,8 +3166,8 @@
     },
     "requirements": {
       "metadata": {
-        "version": "1.1",
-        "total_business_rules": 37,
+        "version": "1.2",
+        "total_business_rules": 35,
         "domains_covered": [
           "Authentication",
           "Roles",
@@ -3390,33 +3394,6 @@
             ]
           },
           "BR-19": {
-            "title": "Face Recognition Status Update",
-            "description": "When a face is recognized, the system updates the student's attendance status to PRESENT. The final status and timestamp are recorded in the attendance record.",
-            "domain": "Attendance",
-            "priority": "High",
-            "related_use_cases": [
-              "UC-16",
-              "UC-17",
-              "UC-29"
-            ],
-            "validation_points": [
-              "Face recognition processing",
-              "Status update logic"
-            ]
-          },
-          "BR-20": {
-            "title": "Unrecognized Face Handling",
-            "description": "If a face is not recognized, the system takes no action, and the student's attendance status remains unchanged during that scan.",
-            "domain": "Attendance",
-            "priority": "Medium",
-            "related_use_cases": [
-              "UC-16"
-            ],
-            "validation_points": [
-              "Face recognition processing"
-            ]
-          },
-          "BR-21": {
             "title": "Finalization Rules Setup",
             "description": "When finalizing a slot, the system must display a 'Finalization Rules Setup' screen. The lecturer must then make a bulk decision for each group of students with intermediate status (e.g., NOT_YET) to convert their final status to either PRESENT or ABSENT.",
             "domain": "Attendance",
@@ -3429,7 +3406,7 @@
               "Slot finalization workflow"
             ]
           },
-          "BR-22": {
+          "BR-20": {
             "title": "Same-Day Edit Window",
             "description": "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC).",
             "domain": "Attendance",
@@ -3443,7 +3420,7 @@
               "Time-based access control"
             ]
           },
-          "BR-23": {
+          "BR-21": {
             "title": "Post-Day Edit Restrictions",
             "description": "After 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC), only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator.",
             "domain": "Attendance",
@@ -3457,7 +3434,7 @@
               "Time-based access control"
             ]
           },
-          "BR-24": {
+          "BR-22": {
             "title": "Unique Attendance Record",
             "description": "An attendance record for a student in a specific slot must be unique.",
             "domain": "Attendance",
@@ -3473,7 +3450,7 @@
           }
         },
         "system_administration": {
-          "BR-25": {
+          "BR-23": {
             "title": "System Configuration Permissions",
             "description": "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role.",
             "domain": "System",
@@ -3489,7 +3466,7 @@
               "Role-permission management"
             ]
           },
-          "BR-26": {
+          "BR-24": {
             "title": "User Management Permissions",
             "description": "User account management (creating, updating, assigning roles, etc.) must be controlled by a granular set of permissions (e.g., USER_CREATE, USER_UPDATE_STATUS, USER_ASSIGN_ROLES). By default, these permissions are granted to the DATA_OPERATOR role.",
             "domain": "User Management",
@@ -3506,7 +3483,7 @@
               "Permission validation"
             ]
           },
-          "BR-27": {
+          "BR-25": {
             "title": "Audit Trail Requirement",
             "description": "Critical business data changes (e.g., finalizing attendance, updating student information) must be logged in the operational audit trail (operational_audit_logs).",
             "domain": "Audit",
@@ -3547,7 +3524,7 @@
           }
         },
         "attendance_data_integrity": {
-          "BR-28": {
+          "BR-26": {
             "title": "Manual Edit Remark Requirement",
             "description": "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty.",
             "domain": "Attendance",
@@ -3563,7 +3540,7 @@
               "Remark validation"
             ]
           },
-          "BR-29": {
+          "BR-27": {
             "title": "Final Status Requirement",
             "description": "After a slot is finalized, the primary status for all attendance records must be either PRESENT or ABSENT.",
             "domain": "Attendance",
@@ -3577,7 +3554,7 @@
               "Status validation"
             ]
           },
-          "BR-30": {
+          "BR-28": {
             "title": "Hard Delete Dependency Check",
             "description": "Any request to permanently delete a resource (e.g., Major, Semester, Room) must be rejected with a user-friendly error message if the resource has dependent child resources (e.g., Subjects, Classes, Cameras).",
             "domain": "Data Integrity",
@@ -3597,9 +3574,9 @@
           }
         },
         "attendance_status_management": {
-          "BR-31": {
+          "BR-29": {
             "title": "Attendance Status Transition Rules",
-            "description": "Defines valid state transitions for attendance records and time-based edit restrictions. Before finalization, all transitions are allowed. After finalization, assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit.",
+            "description": "Defines valid state transitions for attendance records and time-based edit restrictions. Before finalization, all transitions are manual. After finalization, assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit.",
             "domain": "Attendance",
             "priority": "High",
             "related_use_cases": [
@@ -3616,7 +3593,7 @@
             "rules": {
               "valid_transitions": {
                 "before_finalization": [
-                  "not_yet → present (auto or manual)",
+                  "not_yet → present (manual only)",
                   "not_yet → absent (manual only)",
                   "present → absent (manual with remark)",
                   "absent → present (manual with remark)"
@@ -3639,7 +3616,7 @@
               }
             }
           },
-          "BR-32": {
+          "BR-30": {
             "title": "Face Embedding Version Management",
             "description": "Rules for managing face embedding versions when identity data is updated via the Bulk Import flow. Each successful import generates a new embedding with incremented version. Only one embedding per student can be active at a time.",
             "domain": "Identity",
@@ -3670,7 +3647,7 @@
           }
         },
         "academic_data_management": {
-          "BR-33": {
+          "BR-31": {
             "title": "Class Enrollment Status and Roster Visibility",
             "description": "When generating a roster for a class-based slot (LECTURE, LECTURE_WITH_PT), only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment. This rule does not apply to independent final exams.",
             "domain": "Academic",
@@ -3701,7 +3678,7 @@
               ]
             }
           },
-          "BR-34": {
+          "BR-32": {
             "title": "Slot Category Validation and Roster Logic",
             "description": "Defines the core validation logic for creating/updating slots and determines the source of the student roster. This logic must be enforced at the application layer.",
             "domain": "Academic",
@@ -3736,7 +3713,7 @@
               }
             }
           },
-          "BR-35": {
+          "BR-33": {
             "title": "Lecturer Can Update Slot Category",
             "description": "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT for their assigned slots, subject to certain constraints.",
             "domain": "Academic",
@@ -3776,7 +3753,7 @@
           }
         },
         "time_based_rules": {
-          "BR-36": {
+          "BR-34": {
             "title": "Time-Based Edit Window Calculation",
             "description": "Defines how the 23:59:59 cutoff time is calculated for attendance editing. All timestamps are in UTC, cutoff is based on slot start_time date.",
             "domain": "Attendance",
@@ -3814,7 +3791,7 @@
           }
         },
         "bulk_operations": {
-          "BR-37": {
+          "BR-35": {
             "title": "Bulk Class Enrollment CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk student enrollment into classes. This rule does not apply to independent final exams.",
             "domain": "Academic",
@@ -3877,7 +3854,7 @@
               ]
             }
           },
-          "BR-38": {
+          "BR-36": {
             "title": "Exam Slot Participant Uniqueness",
             "description": "A student can only be added to the participant list of a specific independent final exam slot once.",
             "domain": "Academic",
@@ -3891,7 +3868,7 @@
               "Bulk exam participant import"
             ]
           },
-          "BR-39": {
+          "BR-37": {
             "title": "Exam Participant Roster Visibility",
             "description": "When generating the roster for an independent final exam slot (slot_category = 'FINAL_EXAM'), the system must only include students from the 'exam_slot_participants' table who are linked to that slot_id and have their 'is_enrolled' status set to true.",
             "domain": "Academic",
@@ -3905,7 +3882,7 @@
               "Exam attendance processing"
             ]
           },
-          "BR-40": {
+          "BR-38": {
             "title": "Bulk Exam Participant CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot. This file assigns students to specific subjects within that slot.",
             "domain": "Academic",
@@ -3964,7 +3941,7 @@
               ]
             }
           },
-          "BR-41": {
+          "BR-39": {
             "title": "Bulk Identity Data CSV/ZIP Format and Validation",
             "description": "Defines the file formats and validation rules for bulk importing student identity data (base photos and generating vectors).",
             "domain": "Academic",
@@ -4010,7 +3987,7 @@
               ]
             }
           },
-          "BR-42": {
+          "BR-40": {
             "title": "Bulk Import Majors CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk importing Majors.",
             "domain": "Academic",
@@ -4053,7 +4030,7 @@
               ]
             }
           },
-          "BR-43": {
+          "BR-41": {
             "title": "Bulk Import Subjects CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk importing Subjects.",
             "domain": "Academic",
@@ -4103,7 +4080,7 @@
               ]
             }
           },
-          "BR-44": {
+          "BR-42": {
             "title": "Bulk Import Semesters CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk importing Semesters.",
             "domain": "Academic",
@@ -4158,7 +4135,7 @@
               ]
             }
           },
-          "BR-45": {
+          "BR-43": {
             "title": "Bulk Import Classes CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk importing Classes.",
             "domain": "Academic",
@@ -4208,7 +4185,7 @@
               ]
             }
           },
-          "BR-46": {
+          "BR-44": {
             "title": "Bulk Import Slots CSV Format and Validation",
             "description": "Defines the CSV file format and validation rules for bulk importing Slots. This is the most complex flow, requiring Class, Staff, and Room data to exist beforehand.",
             "domain": "Academic",
@@ -4293,7 +4270,7 @@
               ]
             }
           },
-          "BR-49": {
+          "BR-45": {
             "title": "HYPOTHESIS: Bulk Import Rooms CSV Format and Validation",
             "description": "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Rooms.",
             "domain": "Infrastructure",
@@ -4337,7 +4314,7 @@
               ]
             }
           },
-          "BR-50": {
+          "BR-46": {
             "title": "HYPOTHESIS: Bulk Import Cameras CSV Format and Validation",
             "description": "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Cameras.",
             "domain": "Infrastructure",
@@ -4406,12 +4383,11 @@
           "primary_rules": [
             "BR-18",
             "BR-19",
-            "BR-21",
-            "BR-28",
+            "BR-26",
+            "BR-27",
             "BR-29",
-            "BR-31",
-            "BR-36",
-            "BR-37"
+            "BR-34",
+            "BR-35"
           ],
           "description": "Rules governing the complete attendance management lifecycle"
         },
@@ -4419,26 +4395,26 @@
           "primary_rules": [
             "BR-12",
             "BR-13",
-            "BR-24",
-            "BR-27"
+            "BR-22",
+            "BR-25"
           ],
           "description": "Rules ensuring data consistency and audit trail"
         },
         "academic_data_management": {
           "primary_rules": [
-            "BR-34",
-            "BR-35",
-            "BR-38",
-            "BR-39",
-            "BR-40"
+            "BR-32",
+            "BR-33",
+            "BR-36",
+            "BR-37",
+            "BR-38"
           ],
           "description": "Rules for academic data management including slot categories, lecturer permissions, and exam participant management"
         },
         "permission_control": {
           "primary_rules": [
             "BR-05",
-            "BR-25",
-            "BR-26"
+            "BR-23",
+            "BR-24"
           ],
           "description": "Rules controlling access and permission management"
         }
@@ -4456,17 +4432,17 @@
             "implementation": "Role compatibility check before assignment"
           },
           {
-            "rule": "BR-21",
+            "rule": "BR-19",
             "validation_type": "Workflow validation",
             "implementation": "Finalization rules UI with mandatory status conversion"
           },
           {
-            "rule": "BR-27",
+            "rule": "BR-25",
             "validation_type": "Audit validation",
             "implementation": "Automatic audit log creation for critical operations"
           },
           {
-            "rule": "BR-28",
+            "rule": "BR-26",
             "validation_type": "Input validation",
             "implementation": "Non-empty remark validation for manual attendance edits"
           }
@@ -4626,11 +4602,8 @@
               "Supervisor"
             ],
             "secondary_actors": [],
-            "description": "Allows the assigned staff to trigger a new attendance scan while a session is active. The system will update student statuses based on the latest recognition results.",
-            "related_business_rules": [
-              "BR-19",
-              "BR-20"
-            ]
+            "description": "Allows the assigned staff to trigger a new attendance scan while a session is active. The system uses this scan to gather data and flag anomalies for the lecturer's final review. 1) A 'No Match' on a 'Present' student updates their status to 'Not Yet'. 2) A 'Match' on a 'Not Yet' student will capture their evidence image but keep the status as 'Not Yet'. The lecturer must review all 'Not Yet' statuses during finalization.",
+            "related_business_rules": []
           },
           "UC-15": {
             "title": "Monitor Real-Time Roster",
@@ -4639,9 +4612,7 @@
             ],
             "secondary_actors": [],
             "description": "Allows a lecturer to view the class roster for an active session, where statuses are updated in real-time based on results from all assigned cameras.",
-            "related_business_rules": [
-              "BR-19"
-            ]
+            "related_business_rules": []
           },
           "UC-16": {
             "title": "View Attendance Status",
@@ -4661,9 +4632,9 @@
             "secondary_actors": [],
             "description": "Allows a lecturer to manually override a student's attendance status for a slot before finalization. A non-empty remark explaining the reason for the change is mandatory.",
             "related_business_rules": [
-              "BR-22",
-              "BR-23",
-              "BR-28"
+              "BR-20",
+              "BR-21",
+              "BR-26"
             ]
           },
           "UC-18": {
@@ -4674,7 +4645,7 @@
             "secondary_actors": [],
             "description": "Allows a lecturer to add or modify a remark for a student's attendance record within a slot.",
             "related_business_rules": [
-              "BR-28"
+              "BR-26"
             ]
           },
           "UC-19": {
@@ -4685,9 +4656,9 @@
             "secondary_actors": [],
             "description": "Allows a lecturer to end the attendance session. The system will display a 'Finalization Rules Setup' screen for the lecturer to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent).",
             "related_business_rules": [
-              "BR-21",
-              "BR-27",
-              "BR-29"
+              "BR-19",
+              "BR-25",
+              "BR-27"
             ]
           },
           "UC-20": {
@@ -4716,8 +4687,8 @@
             "secondary_actors": [],
             "description": "Allows a lecturer to change the category of an existing slot from 'LECTURE' to 'LECTURE_WITH_PT'. This action signifies adding a progress test component to a regular lecture session.",
             "related_business_rules": [
-              "BR-34",
-              "BR-35"
+              "BR-32",
+              "BR-33"
             ]
           },
           "UC-23": {
@@ -4731,9 +4702,9 @@
               "BR-15",
               "BR-16",
               "BR-17",
-              "BR-27",
-              "BR-34",
-              "BR-35"
+              "BR-25",
+              "BR-32",
+              "BR-33"
             ]
           },
           "UC-24": {
@@ -4744,9 +4715,9 @@
             "secondary_actors": [],
             "description": "Allows a lecturer to change the category of a slot from 'LECTURE_WITH_PT' back to 'LECTURE', provided that no exam attendance records exist for that slot.",
             "related_business_rules": [
-              "BR-27",
-              "BR-34",
-              "BR-35"
+              "BR-25",
+              "BR-32",
+              "BR-33"
             ]
           }
         },
@@ -4779,9 +4750,7 @@
             ],
             "secondary_actors": [],
             "description": "Allows a supervisor to view the exam roster for an active session, where statuses are updated in real-time based on results from all assigned cameras. The system dynamically fetches the roster from either class enrollments (for LECTURE_WITH_PT) or independent exam participants (for FINAL_EXAM).",
-            "related_business_rules": [
-              "BR-19"
-            ]
+            "related_business_rules": []
           },
           "UC-28": {
             "title": "Manually Update Attendance Status",
@@ -4791,9 +4760,9 @@
             "secondary_actors": [],
             "description": "Allows a supervisor to manually override a candidate's attendance status for an exam slot before finalization. A non-empty remark explaining the reason for the change is mandatory.",
             "related_business_rules": [
-              "BR-22",
-              "BR-23",
-              "BR-28"
+              "BR-20",
+              "BR-21",
+              "BR-26"
             ]
           },
           "UC-29": {
@@ -4804,7 +4773,7 @@
             "secondary_actors": [],
             "description": "Allows a supervisor to add or modify a remark for a candidate's attendance record within an exam slot.",
             "related_business_rules": [
-              "BR-28"
+              "BR-26"
             ]
           },
           "UC-30": {
@@ -4815,9 +4784,9 @@
             "secondary_actors": [],
             "description": "Allows a supervisor to end the attendance session. The system will display a 'Finalization Rules Setup' screen for the supervisor to make bulk decisions on converting intermediate statuses (e.g., Not Yet) to a final status (Present or Absent).",
             "related_business_rules": [
-              "BR-21",
-              "BR-27",
-              "BR-29"
+              "BR-19",
+              "BR-25",
+              "BR-27"
             ]
           },
           "UC-31": {
@@ -4844,7 +4813,7 @@
                 "BR-04",
                 "BR-05",
                 "BR-07",
-                "BR-26"
+                "BR-24"
               ]
             },
             "UC-33": {
@@ -4855,7 +4824,7 @@
               "secondary_actors": [],
               "description": "Allows the DOP to view and search a list of all user accounts in the system.",
               "related_business_rules": [
-                "BR-26"
+                "BR-24"
               ]
             },
             "UC-34": {
@@ -4866,8 +4835,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to edit the information of an existing user account.",
               "related_business_rules": [
-                "BR-26",
-                "BR-27"
+                "BR-24",
+                "BR-25"
               ]
             },
             "UC-35": {
@@ -4879,8 +4848,8 @@
               "description": "Allows the DOP to change the role assigned to a user, subject to system constraints.",
               "related_business_rules": [
                 "BR-05",
-                "BR-26",
-                "BR-27"
+                "BR-24",
+                "BR-25"
               ]
             },
             "UC-36": {
@@ -4892,8 +4861,8 @@
               "description": "Allows the DOP to change the status of a user account to active or inactive.",
               "related_business_rules": [
                 "BR-03",
-                "BR-26",
-                "BR-27"
+                "BR-24",
+                "BR-25"
               ]
             }
           },
@@ -4927,7 +4896,7 @@
               "description": "Allows the DOP to edit the details of an existing Major.",
               "related_business_rules": [
                 "BR-12",
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-40": {
@@ -4938,8 +4907,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Major from the system. The action will be blocked with a clear error message if the Major is still associated with any Subjects. This action requires the 'MAJOR_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-41": {
@@ -4971,7 +4940,7 @@
               "description": "Allows the DOP to edit the details of an existing semester.",
               "related_business_rules": [
                 "BR-12",
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-44": {
@@ -4982,8 +4951,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Semester from the system. The action will be blocked with a clear error message if the Semester is still associated with any Classes. This action requires the 'SEMESTER_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-45": {
@@ -5015,7 +4984,7 @@
               "description": "Allows the DOP to edit the details of an existing Subject.",
               "related_business_rules": [
                 "BR-12",
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-48": {
@@ -5026,8 +4995,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Subject from the system. The action will be blocked with a clear error message if the Subject is still associated with any Classes. This action requires the 'SUBJECT_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-49": {
@@ -5059,7 +5028,7 @@
               "description": "Allows the DOP to edit the details of an existing class.",
               "related_business_rules": [
                 "BR-12",
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-52": {
@@ -5070,8 +5039,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Class from the system. The action will be blocked with a clear error message if the Class is still associated with any Slots or Enrollments. This action requires the 'CLASS_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-53": {
@@ -5085,7 +5054,7 @@
                 "BR-15",
                 "BR-16",
                 "BR-17",
-                "BR-34"
+                "BR-32"
               ]
             },
             "UC-54": {
@@ -5108,8 +5077,8 @@
                 "BR-15",
                 "BR-16",
                 "BR-17",
-                "BR-27",
-                "BR-34"
+                "BR-25",
+                "BR-32"
               ]
             },
             "UC-56": {
@@ -5120,8 +5089,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Slot from the system. The action will be blocked with a clear error message if the Slot has any Attendance records or exam participants. This action requires the 'SLOT_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-57": {
@@ -5144,7 +5113,7 @@
               "description": "Allows the DOP to unenroll a student from a class. This affects class-based slots only.",
               "related_business_rules": [
                 "BR-14",
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-59": {
@@ -5155,8 +5124,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to manage the list of participants for an independent final exam slot (where class_id is NULL). The workflow includes: selecting a slot, then selecting a subject that has been assigned to that slot, and then adding or removing individual students from that specific subject within the exam.",
               "related_business_rules": [
-                "BR-38",
-                "BR-39"
+                "BR-36",
+                "BR-37"
               ]
             },
             "UC-60": {
@@ -5167,7 +5136,7 @@
               "secondary_actors": [],
               "description": "Allows the DOP to select an independent final exam slot and upload a CSV file containing (student_id, subject_code) pairs to perform mass registration of students to specific subjects within that exam slot.",
               "related_business_rules": [
-                "BR-40"
+                "BR-38"
               ]
             }
           },
@@ -5198,7 +5167,7 @@
               "secondary_actors": [],
               "description": "Allows the DOP to edit the details of an existing room.",
               "related_business_rules": [
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-64": {
@@ -5209,8 +5178,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Room from the system. The action will be blocked with a clear error message if the Room is still associated with any Cameras or Slots. This action requires the 'ROOM_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-65": {
@@ -5239,7 +5208,7 @@
               "secondary_actors": [],
               "description": "Allows the DOP to edit the details of an existing camera, including re-assigning it to a different room.",
               "related_business_rules": [
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-68": {
@@ -5250,8 +5219,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to permanently delete a Camera from the system. The action will be blocked with a clear error message if the Camera is still assigned to any Slots. This action requires the 'CAMERA_DELETE_HARD' permission.",
               "related_business_rules": [
-                "BR-27",
-                "BR-30"
+                "BR-25",
+                "BR-28"
               ]
             },
             "UC-87": {
@@ -5262,7 +5231,7 @@
               "secondary_actors": [],
               "description": "HYPOTHESIS: Allows DOP to upload a CSV file containing Room data. Supports 'Add Only' or 'Add and Update' modes based on room 'name'.",
               "related_business_rules": [
-                "BR-49"
+                "BR-41"
               ]
             },
             "UC-88": {
@@ -5273,7 +5242,7 @@
               "secondary_actors": [],
               "description": "HYPOTHESIS: Allows DOP to upload a CSV file containing Camera data. Supports 'Add Only' or 'Add and Update' modes based on camera 'name'. Requires referenced rooms to exist.",
               "related_business_rules": [
-                "BR-50"
+                "BR-46"
               ]
             }
           },
@@ -5322,7 +5291,7 @@
               "secondary_actors": [],
               "description": "Allows the DOP to view a historical log of business data changes, which includes detailed before-and-after values for updates.",
               "related_business_rules": [
-                "BR-27"
+                "BR-25"
               ]
             },
             "UC-74": {
@@ -5334,8 +5303,8 @@
               "description": "Allows the DOP to upload a CSV file containing a list of student-class pairings (e.g., student_id, class_code) to perform mass enrollment for a selected semester into classes. This is not used for independent final exams.",
               "related_business_rules": [
                 "BR-13",
-                "BR-27",
-                "BR-37"
+                "BR-25",
+                "BR-35"
               ]
             },
             "UC-75": {
@@ -5346,8 +5315,8 @@
               "secondary_actors": [],
               "description": "Allows the DOP to upload a .CSV file (containing student_id) and a .ZIP file (containing corresponding base photos) to perform a mass import of identity data. The system processes this as a background job, converts images to vectors, and saves both the base photo URL and the vector to the database.",
               "related_business_rules": [
-                "BR-32",
-                "BR-41"
+                "BR-30",
+                "BR-39"
               ]
             },
             "UC-82": {
@@ -5358,7 +5327,7 @@
               "secondary_actors": [],
               "description": "Allows DOP to upload a CSV file containing a list of Majors. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing majors based on 'code').",
               "related_business_rules": [
-                "BR-42"
+                "BR-38"
               ]
             },
             "UC-83": {
@@ -5369,7 +5338,7 @@
               "secondary_actors": [],
               "description": "Allows DOP to upload a CSV file containing a list of Subjects. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing subjects based on 'code').",
               "related_business_rules": [
-                "BR-43"
+                "BR-41"
               ]
             },
             "UC-84": {
@@ -5380,7 +5349,7 @@
               "secondary_actors": [],
               "description": "Allows DOP to upload a CSV file containing a list of Semesters. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing semesters based on 'code').",
               "related_business_rules": [
-                "BR-44"
+                "BR-38"
               ]
             },
             "UC-85": {
@@ -5391,7 +5360,7 @@
               "secondary_actors": [],
               "description": "Allows DOP to upload a CSV file containing a list of Classes. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing classes based on 'code').",
               "related_business_rules": [
-                "BR-45"
+                "BR-41"
               ]
             },
             "UC-86": {
@@ -5402,8 +5371,8 @@
               "secondary_actors": [],
               "description": "Allows DOP to upload a CSV file containing a list of Slots. DOP can select 'Add Only' mode (skip if duplicate) or 'Add and Update' mode (overwrite existing slots based on the business key combination).",
               "related_business_rules": [
-                "BR-46",
-                "BR-34"
+                "BR-44",
+                "BR-32"
               ]
             }
           }
@@ -5429,8 +5398,8 @@
               "secondary_actors": [],
               "description": "Allows the System Admin to modify core system-level configurations to fine-tune system behavior.",
               "related_business_rules": [
-                "BR-25",
-                "BR-27"
+                "BR-23",
+                "BR-25"
               ]
             },
             "UC-78": {
@@ -5472,8 +5441,8 @@
               "secondary_actors": [],
               "description": "Allows the System Admin to grant or revoke specific permissions for each role, controlling access to system functions.",
               "related_business_rules": [
-                "BR-25",
-                "BR-27"
+                "BR-23",
+                "BR-25"
               ]
             }
           }

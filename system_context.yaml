@@ -386,8 +386,9 @@ system_context:
           - "Dynamically loads the student roster based on slot type: from Class Enrollments (for LECTURE/LECTURE_WITH_PT) or from the independent Exam Participant list (for FINAL_EXAM slots)."
           - "Interface displays appropriate functions based on role (Lecturer, Supervisor)."
           - "Display camera names and connection status of all cameras in the assigned room"
-          - "Interface updates attendance status in real-time from recognition service results"
-          - "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for quick visual comparison by the lecturer."
+          - "Interface updates attendance status in real-time based on the new processing logic (e.g., 'Present' status may revert to 'Not Yet' after a re-scan)."
+          - "For each student marked 'present' automatically (from the first scan), display the captured evidence image next to their base avatar for quick visual comparison by the lecturer."
+          - "NEW: For students in 'Not Yet' status, the interface must visually distinguish between those who have an associated evidence image and those who do not."
           - "Review/edit status"
           - "Add/Edit attendance remarks for each student"
           - "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions"
@@ -532,10 +533,10 @@ system_context:
       description: "The only attendance mode, activated by Lecturer (for lecture slots) or Supervisor (for exam slots). The system uses IP cameras pre-installed in classrooms to automatically recognize and record student presence. A Python middleware service processes video streams and sends results back to the system."
 
     face_recognition:
-      decision_flow_summary: "Face scan has 2 possible outcomes only"
+      decision_flow_summary: "Face scan results are processed based on the student's current state."
       outcomes:
-        match: "set attendance = present"
-        no_match: "no-op (person in charge marks attendance manually)"
+        match: "Handle 'Match' (Scan finds student): If current status is 'Not Yet', remain 'Not Yet' but capture/update evidence image. If current status is 'Present', do nothing (no-op)."
+        no_match: "Handle 'No Match' (Scan does not find student): If current status is 'Present', update status to 'Not Yet'. If current status is 'Not Yet', do nothing (no-op)."
 
     attendance_statuses:
       - "not_yet"
@@ -570,7 +571,7 @@ system_context:
           "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
         ]
 
-    face_identification_flow: "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system adds a new event to the student's history record and updates the displayed status on the interface based on the latest result. This process does not overwrite old data."
+    face_identification_flow: "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system processes the result based on the student's current state (see 'face_recognition.outcomes' logic): 1) A 'No Match' on a 'Present' student will revert their status to 'Not Yet'. 2) A 'Match' on a 'Not Yet' student will update their evidence image but keep their status as 'Not Yet'. The system adds relevant events to the student's history record. This process does not overwrite old data."
 
     data_export_flow: "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS."
 
