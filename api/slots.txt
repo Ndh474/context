@@ -1088,9 +1088,23 @@ Endpoint: POST /api/v1/slots/{id}/rescan
 Permission: SLOT_SESSION_RESCAN
 
 Business Rules:
-  • Triggers a new attendance scan while a session is active
-  • The slot must have an active session and must not be finalized
+  • Triggers a rescan to verify and update attendance with specific logic
+  • Rescan Mode Logic:
+
+    Case 1: Student was PRESENT but NOT detected in rescan
+    → UPDATE status to NOT_YET (downgrade)
+    → PRESERVE old evidence image
+
+    Case 2: Student was NOT_YET and IS detected in rescan
+    → KEEP status as NOT_YET (requires manual review)
+    → SAVE new evidence image
+
+    Case 3: Student was ABSENT (manual override)
+    → PROTECTED - no automatic changes
+
+  • Sends mode="RESCAN" to Python recognition service
   • Can only be called by the assigned staff member
+  • The slot must not be finalized
 
 Path Parameters:
   | Parameter | Type    | Required | Description |

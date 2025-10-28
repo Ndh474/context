@@ -23,6 +23,7 @@ Request Body:
 {
   "slotId": 1,
   "roomId": 1,
+  "mode": "INITIAL",
   "students": [
     {
       "userId": 201,
@@ -63,6 +64,7 @@ Request Schema:
 |------------------------------|---------|----------|-----------
 | slotId                       | integer | Yes      | Slot ID for this session
 | roomId                       | short   | Yes      | Room ID
+| mode                         | string  | Yes      | Scan mode: "INITIAL" (first scan) or "RESCAN" (verification scan). Default: "INITIAL"
 | students                     | array   | Yes      | List of enrolled students with embeddings
 | students[].userId            | integer | Yes      | Student user ID
 | students[].fullName          | string  | Yes      | Student full name (for logging)
@@ -79,10 +81,10 @@ Request Schema:
 | config.callbackUrl           | string  | Yes      | Java backend callback URL
 
 Processing Flow:
-1. Validate request (API key, required fields)
+1. Validate request (API key, required fields, mode)
 2. Check if session already exists for slotId -> 409 Conflict
 3. For each camera, test RTSP connection.
-4. Create session object in memory.
+4. Create session object in memory with specified mode.
 5. Start background task for each camera:
    - Connect to RTSP stream
    - Capture frames at scanInterval
@@ -93,8 +95,36 @@ Processing Flow:
      * **Crop the matched face from the frame.**
      * **Save the cropped face image to a temporary file (e.g., /uploads/evidence/{slotId}/{userId}_{timestamp}.jpg).**
      * Prepare recognition result, **including the URL of the saved evidence image.**
-     * Send to Java backend via callback (POST callbackUrl).
+     * Send to Java backend via callback (POST callbackUrl) with mode information.
 6. Return 200 OK immediately (async processing).
+
+Scan Mode Behavior:
+
+INITIAL MODE (mode="INITIAL"):
+  • Used for the first scan of a slot
+  • Face recognition automatically updates attendance status to PRESENT when student is detected
+  • Creates new attendance records if they don't exist
+  • Normal automatic face recognition flow
+  • Callback includes mode="INITIAL" in payload
+
+RESCAN MODE (mode="RESCAN"):
+  • Used for verification scans after initial attendance
+  • Python service tracks ALL students detected during the rescan session
+  • When session stops, sends complete list of detected students to backend
+  • Backend compares with existing attendance and applies specific logic:
+
+    Case 1: Student PRESENT → Not detected in rescan
+    → Backend updates status to NOT_YET (downgrade)
+    → Preserves old evidence image
+
+    Case 2: Student NOT_YET → Detected in rescan
+    → Backend keeps status as NOT_YET (no auto-update)
+    → Saves new evidence image for review
+
+    Case 3: Student ABSENT → Any detection
+    → Backend protects status (no automatic changes)
+
+  • Callback includes mode="RESCAN" and list of detected student IDs in payload
 
 200-Success Response:
 {
@@ -103,6 +133,7 @@ Processing Flow:
   "data": {
     "slotId": 1,
     "roomId": 1,
+    "mode": "INITIAL",
     "totalStudents": 25,
     "totalCameras": 2,
     "activeCameras": 2,
@@ -120,6 +151,7 @@ Response Schema:
 |------------------|--------|-----------
 | slotId           | integer| Slot ID
 | roomId           | short  | Room ID
+| mode             | string | Scan mode used: "INITIAL" or "RESCAN"
 | totalStudents    | integer| Number of students in session
 | totalCameras     | integer| Total cameras configured
 | activeCameras    | integer| Cameras successfully connected
@@ -212,19 +244,23 @@ Processing Flow:
   "message": "Face recognition session stopped successfully",
   "data": {
     "slotId": 1,
+    "mode": "RESCAN",
     "sessionDuration": 1800,
     "totalRecognitions": 23,
-    "sessionStoppedAt": "2024-10-19T08:30:00Z"
+    "sessionStoppedAt": "2024-10-19T08:30:00Z",
+    "recognizedStudentIds": [101, 102, 105, 108, 110]
   }
 }
 
 Response Schema:
-| Field             | Type   | Description
-|-------------------|--------|-----------
-| slotId            | integer| Slot ID
-| sessionDuration   | integer| Session duration in seconds
-| totalRecognitions | integer| Total recognitions sent to Java backend
-| sessionStoppedAt  | string | YYYY-MM-DDTHH:mm:SSZ
+| Field                 | Type          | Description
+|-----------------------|---------------|------------
+| slotId                | integer       | Slot ID
+| mode                  | string        | Scan mode that was used: "INITIAL" or "RESCAN"
+| sessionDuration       | integer       | Session duration in seconds
+| totalRecognitions     | integer       | Total recognitions sent to Java backend
+| sessionStoppedAt      | string        | YYYY-MM-DDTHH:mm:SSZ
+| recognizedStudentIds  | integer array | List of student user IDs detected during session (for RESCAN mode Case 1). Empty list or null if no detections.
 
 400-Fields required:
 {
