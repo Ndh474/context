@@ -40,8 +40,8 @@ Request Body:
 {
   "title": "Introduction to Software Development",
   "description": "Chapter 1: Overview of software development lifecycle",
-  "startTime": "2024-10-17T08:00:00Z",
-  "endTime": "2024-10-17T10:00:00Z",
+  "startTime": "2024-10-17T08:00:00",
+  "endTime": "2024-10-17T10:00:00",
   "slotCategory": "LECTURE",
   "classId": 1,
   "semesterId": 6,
@@ -50,14 +50,14 @@ Request Body:
 }
 
 Request Schema:
-| Field 		| Type 		| Required 	| Validation 
+| Field 		| Type 		| Required 	| Validation
 | title 		| string 	| No 		| Max 255 chars. Examples: "Regular Lecture", "Progress Test 1", "Final Exam"
 | description 		| string 	| No 		| Max 1000 chars. General notes or instructions for the slot
-| startTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be before endTime, min 30 mins duration
-| endTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:SSZ), must be after startTime, max 4 hours duration
+| startTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:ss), UTC timezone, must be before endTime, min 30 mins duration
+| endTime 		| string 	| Yes 		| ISO 8601 format (YYYY-MM-DDTHH:mm:ss), UTC timezone, must be after startTime, max 4 hours duration
 | slotCategory 		| string 	| Yes 		| Must be "LECTURE", "LECTURE_WITH_PT", or "FINAL_EXAM"
 | classId 		| short 	| Conditional 	| Required for LECTURE/LECTURE_WITH_PT. Must be null for FINAL_EXAM. Must exist and be active. Must belong to the specified semesterId
-| semesterId 		| short 	| Yes 		| Must exist and be active. For LECTURE/LECTURE_WITH_PT: must match the semester of the specified class
+| semesterId 		| short 	| Yes 		| Required for all slot types. Must exist and be active. UI flow: User selects semester first, then loads classes filtered by that semester. For LECTURE/LECTURE_WITH_PT: must match the semester of the specified class
 | roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
 | staffUserId 		| integer 	| Yes 		| Must exist and be active, must have LECTURER or SUPERVISOR role, (startTime + endTime + staffUserId) -> unique
 
@@ -109,15 +109,14 @@ SlotCategory Enum Values:
 }
 
 Response Schema:
-Response Schema:
-| Field 		| Type 		| Description 
+| Field 		| Type 		| Description
 | id 			| integer 	| Slot ID
 | title 		| string 	| Slot title (nullable)
 | description 		| string 	| Slot description (nullable)
-| startTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
-| endTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| startTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone)
+| endTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone)
 | slotCategory 		| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| finalizedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
+| finalizedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone, null if not finalized)
 | room 			| object 	| Room object:
 |               |           |   - id (short): Room ID
 |               |           |   - name (string): Room name
@@ -266,9 +265,9 @@ Other inactive reference error codes:
 Permission: SLOT_READ
 
 Query Parameters:
-| Parameter 	| Type 		| Required 	| Default 	| Validation 
+| Parameter 	| Type 		| Required 	| Default 	| Validation
 | page 		| integer 	| No 		| 1 		| >= 1
-| pageSize 	| integer 	| No 		| 10 		| 1-50 
+| pageSize 	| integer 	| No 		| 10 		| >= 1 
 | sort 		| string 	| No 		| asc 		| asc, desc 
 | sortBy 	| string 	| No		| startTime 	| startTime, endTime, slotCategory
 | slotCategory | array[enum] | No 	| null 		| Include one or more categories by repeating the param. Values: LECTURE, LECTURE_WITH_PT, FINAL_EXAM. Example: slotCategory=LECTURE&slotCategory=FINAL_EXAM
@@ -528,10 +527,11 @@ Request Body (Data Operator - Full Update):
 {
   "title": "Updated Lecture Title",
   "description": "Updated description for the lecture",
-  "startTime": "2024-10-17T08:30:00Z",
-  "endTime": "2024-10-17T10:30:00Z",
+  "startTime": "2024-10-17T08:30:00",
+  "endTime": "2024-10-17T10:30:00",
   "slotCategory": "LECTURE_WITH_PT",
   "classId": 1,
+  "semesterId": 6,
   "roomId": 2,
   "staffUserId": 10,
   "isActive": true
@@ -546,10 +546,11 @@ Request Schema (Full Update):
 | Field 		| Type 		| Required 	| Validation
 | title 		| string 	| No 		| Max 255 chars
 | description 		| string 	| No 		| Max 1000 chars
-| startTime 		| string 	| Yes 		| ISO 8601, must be before endTime, min 30 mins duration
-| endTime 		| string 	| Yes 		| ISO 8601, must be after startTime, max 4 hours duration
+| startTime 		| string 	| Yes 		| ISO 8601 (YYYY-MM-DDTHH:mm:ss), UTC timezone, must be before endTime, min 30 mins duration
+| endTime 		| string 	| Yes 		| ISO 8601 (YYYY-MM-DDTHH:mm:ss), UTC timezone, must be after startTime, max 4 hours duration
 | slotCategory 		| string 	| Yes 		| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| classId 		| short 	| Yes 		| Must exist and be active
+| classId 		| short 	| Conditional 	| Required for LECTURE/LECTURE_WITH_PT. Must be null for FINAL_EXAM. Must exist and be active
+| semesterId 		| short 	| Yes 		| Required for all slot types. Must exist and be active. UI flow: User selects semester first, then loads classes filtered by that semester. For LECTURE/LECTURE_WITH_PT: must match the semester of the specified class
 | roomId 		| short 	| Yes 		| Must exist and be active, (startTime + endTime + roomId) -> unique
 | staffUserId 		| integer 	| Yes 		| Must exist and be active, must have LECTURER or SUPERVISOR role, (startTime + endTime + staffUserId) -> unique
 | isActive 		| boolean 	| Yes 		| true or false

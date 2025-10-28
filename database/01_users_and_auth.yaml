@@ -60,7 +60,7 @@ tables:
         description: "Token expiration timestamp"
       email:
         type: varchar(128)
-        constraints: [NOT NULL]
+        constraints: [NOT NULL, UNIQUE]
         description: "Email address for password reset"
       token_hash:
         type: varchar(100)

@@ -17,7 +17,7 @@ Query Parameters:
 | Parameter      | Type    | Required | Default | Validation
 |----------------|---------|----------|---------|-----------
 | page           | integer | No       | 1       | >= 1
-| pageSize       | integer | No       | 10      | 1-50
+| pageSize       | integer | No       | 10      | >= 1
 | sort           | string  | No       | desc    | asc, desc
 | sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
 | slotId         | integer | No       | null    | Filter by slot
@@ -98,7 +98,7 @@ Response Schema (items):
 {
   "status": 400,
   "message": "Page must be >= 1 / Invalid status value",
-  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_STATUS"
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "STATUS_REQUIRED"
 }
 
 =======================================================================================================================

@@ -38,17 +38,23 @@ Request Schema:
 {
   "status": 201,
   "data": {
+    "createdAt": "2025-10-27T07:41:45.705493Z",
+    "updatedAt": "2025-10-27T07:41:45.705493Z",
     "id": 1,
     "name": "Software Development Project",
     "code": "SWP391",
     "majors": [
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 1,
         "name": "Software Engineering",
         "code": "SE",
         "isActive": true
       },
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 2,
         "name": "Information Assurance",
         "code": "IA",
@@ -57,9 +63,7 @@ Request Schema:
     ],
     "totalClass": 0,
     "totalActiveClass": 0,
-    "isActive": true,
-    "createdAt": "2024-10-16T11:30:00Z",
-    "updatedAt": "2024-10-16T11:30:00Z"
+    "isActive": true
   }
 }
 
@@ -72,8 +76,8 @@ Response Schema:
 | totalClass       | integer       | Total number of classes (active + inactive)
 | totalActiveClass | integer       | Number of active classes only
 | isActive         | boolean       | Active status
-| createdAt        | string        | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt        | string        | YYYY-MM-DDTHH:mm:SSZ
+| createdAt        | string        | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
+| updatedAt        | string        | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 
 400-Fields required:
 {
@@ -145,17 +149,23 @@ Query Parameters:
   "data": {
     "items": [
       {
+        "createdAt": "2025-10-27T06:09:54.644005Z",
+        "updatedAt": "2025-10-27T06:09:54.644005Z",
         "id": 1,
         "name": "Software Development Project",
         "code": "SWP391",
         "majors": [
           {
+            "createdAt": "2024-10-16T11:20:00Z",
+            "updatedAt": "2024-10-16T11:20:00Z",
             "id": 1,
             "name": "Software Engineering",
             "code": "SE",
             "isActive": true
           },
           {
+            "createdAt": "2024-10-16T11:20:00Z",
+            "updatedAt": "2024-10-16T11:20:00Z",
             "id": 2,
             "name": "Information Assurance",
             "code": "IA",
@@ -164,9 +174,7 @@ Query Parameters:
         ],
         "totalClass": 8,
         "totalActiveClass": 5,
-        "isActive": true,
-        "createdAt": "2024-10-16T11:30:00Z",
-        "updatedAt": "2024-10-16T11:30:00Z"
+        "isActive": true
       },
 	...
     ],
@@ -195,17 +203,23 @@ Permission: SUBJECT_READ
 {
   "status": 200,
   "data": {
+    "createdAt": "2025-10-27T07:41:45.705493Z",
+    "updatedAt": "2025-10-27T07:41:45.705493Z",
     "id": 1,
     "name": "Software Development Project",
     "code": "SWP391",
     "majors": [
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 1,
         "name": "Software Engineering",
         "code": "SE",
         "isActive": true
       },
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 2,
         "name": "Information Assurance",
         "code": "IA",
@@ -214,9 +228,7 @@ Permission: SUBJECT_READ
     ],
     "totalClass": 8,
     "totalActiveClass": 5,
-    "isActive": true,
-    "createdAt": "2024-10-16T11:30:00Z",
-    "updatedAt": "2024-10-16T11:30:00Z"
+    "isActive": true
   }
 }
 
@@ -246,7 +258,7 @@ Business Rules:
    - Cannot deactivate subject if there are active classes
    - Inactive classes don't block deactivation
 
-4. PUT /api/v1/subjects/{id}
+3. PUT /api/v1/subjects/{id}
 Permission: SUBJECT_UPDATE
 
 Path Parameters:
@@ -275,17 +287,23 @@ Request Schema:
 {
   "status": 200,
   "data": {
+    "createdAt": "2025-10-27T07:41:45.705493Z",
+    "updatedAt": "2025-10-27T07:41:45.705493Z",
     "id": 1,
     "name": "Software Development Project - Updated",
     "code": "SWP391",
     "majors": [
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 2,
         "name": "Information Assurance",
         "code": "IA",
         "isActive": true
       },
       {
+        "createdAt": "2025-10-27T06:09:54.640050Z",
+        "updatedAt": "2025-10-27T06:09:54.640050Z",
         "id": 3,
         "name": "Artificial Intelligence",
         "code": "AI",
@@ -294,9 +312,7 @@ Request Schema:
     ],
     "totalClass": 8,
     "totalActiveClass": 5,
-    "isActive": true,
-    "createdAt": "2024-10-16T11:30:00Z",
-    "updatedAt": "2024-10-16T12:45:00Z"
+    "isActive": true
   }
 }
 
@@ -509,6 +525,8 @@ Query Parameters:
   "data": {
     "items": [
       {
+        "createdAt": "2025-10-27T06:09:54.697234Z",
+        "updatedAt": "2025-10-27T06:09:54.697234Z",
         "id": 1,
         "code": "SE1801",
         "subject": {
@@ -520,13 +538,20 @@ Query Parameters:
         "semester": {
           "id": 1,
           "name": "Fall 2024",
-          "code": "FA24"
+          "code": "FA24",
+          "startDate": "2024-09-01",
+          "endDate": "2024-12-31",
+          "isActive": true
         },
-        "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
+        "totalStudent": 15,
+        "totalEnrolledStudent": 12,
+        "totalSlot": 20,
+        "totalActiveSlot": 18,
+        "isActive": true
       },
       {
+        "createdAt": "2025-10-27T06:09:54.697234Z",
+        "updatedAt": "2025-10-27T06:09:54.697234Z",
         "id": 2,
         "code": "SE1802",
         "subject": {
@@ -538,11 +563,16 @@ Query Parameters:
         "semester": {
           "id": 1,
           "name": "Fall 2024",
-          "code": "FA24"
+          "code": "FA24",
+          "startDate": "2024-09-01",
+          "endDate": "2024-12-31",
+          "isActive": true
         },
-        "isActive": true,
-        "createdAt": "2024-10-16T11:05:00Z",
-        "updatedAt": "2024-10-16T11:05:00Z"
+        "totalStudent": 18,
+        "totalEnrolledStudent": 15,
+        "totalSlot": 22,
+        "totalActiveSlot": 20,
+        "isActive": true
       }
     ],
     "totalPages": 2,
@@ -553,14 +583,18 @@ Query Parameters:
 }
 
 Class Object Schema:
-| Field     | Type    | Description 
-| id        | integer | Class ID (Short type in DB)
-| code      | string  | Class code
-| subject   | object  | Subject object (id, name, code, isActive)
-| semester  | object  | Semester object (id, name, code)
-| isActive  | boolean | Class active status
-| createdAt | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt | string  | YYYY-MM-DDTHH:mm:SSZ
+| Field                | Type    | Description 
+| id                   | integer | Class ID (Short type in DB)
+| code                 | string  | Class code
+| subject              | object  | Subject object (id, name, code, isActive)
+| semester             | object  | Semester object (id, name, code, startDate, endDate, isActive)
+| totalStudent         | integer | Total students (enrolled + withdrawn)
+| totalEnrolledStudent | integer | Currently enrolled students only (is_enrolled = true)
+| totalSlot            | integer | Total slots (active + inactive)
+| totalActiveSlot      | integer | Active slots only (is_active = true)
+| isActive             | boolean | Class active status
+| createdAt            | string  | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
+| updatedAt            | string  | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 
 400 - Invalid Field type:
 {
@@ -581,7 +615,7 @@ Class Object Schema:
 
 - Subject ID is of type Short (max value: 32,767)
 - Major ID is also of type Short
-- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 - Search parameter searches in both name and code fields
 - Pagination is 1-based (page=1 is the first page)
 - Default sort is by id in ascending order
@@ -596,7 +630,6 @@ Class Object Schema:
 - Import endpoint supports 'Interactive Import Flow' with partial success pattern
 - Import mode 'AddOnly' skips existing subjects, 'AddAndUpdate' updates them
 - Import always returns 200 OK with error array (empty array means all rows succeeded)
--  = Modified
 
 Validation Patterns:
 - Subject name: ^[A-Za-z0-9]+( [A-Za-z0-9]+)*$ (letters, digits, spaces, no leading/trailing/multiple spaces, max 150 chars)

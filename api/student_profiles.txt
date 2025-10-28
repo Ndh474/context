@@ -30,13 +30,18 @@ Query Parameters:
         "userId": 201,
         "fullName": "Tran Thi B",
         "email": "tranthib@fpt.edu.vn",
+        "username": "HE180314",
         "rollNumber": "HE180314",
-        "majorId": 1,
-        "majorName": "Software Engineering",
-        "majorCode": "SE",
+        "major": {
+          "id": 1,
+          "name": "Software Engineering",
+          "code": "SE",
+          "isActive": true
+        },
+        "baseUrl": "/identity/student_201_photo.jpg",
         "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
+        "createdAt": "2025-10-27T06:09:54.697234Z",
+        "updatedAt": "2025-10-27T06:09:54.697234Z"
       },
 	...
     ],
@@ -46,6 +51,23 @@ Query Parameters:
     "totalItems": 45
   }
 }
+
+Response Schema (items):
+| Field      | Type          | Description
+| userId     | integer       | User ID (same as user_id in users table)
+| fullName   | string        | Student full name
+| email      | string        | Student email address
+| username   | string        | Login username (distinct from rollNumber)
+| rollNumber | string        | Student roll number (e.g., HE180314)
+| major      | object        | Major object (nested)
+| major.id   | short         | Major ID
+| major.name | string        | Major name
+| major.code | string        | Major code (e.g., SE, IA, IOT)
+| major.isActive | boolean   | Major active status
+| baseUrl    | string        | Path to student's identity photo (e.g., "/identity/student_201_photo.jpg"), nullable if not uploaded
+| isActive   | boolean       | Account active status
+| createdAt  | string        | Creation timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
+| updatedAt  | string        | Last update timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
 
 400-Invalid query parameters:
 {
@@ -71,17 +93,41 @@ Permission: USER_READ_DETAIL
     "email": "tranthib@fpt.edu.vn",
     "username": "HE180314",
     "rollNumber": "HE180314",
-    "majorId": 1,
-    "majorName": "Software Engineering",
-    "majorCode": "SE",
+    "major": {
+      "id": 1,
+      "name": "Software Engineering",
+      "code": "SE",
+      "isActive": true
+    },
     "roles": ["STUDENT"],
+    "baseUrl": "/identity/student_201_photo.jpg",
     "isActive": true,
     "hasActiveEmbedding": true,
     "canUseFaceRecognition": true,
-    "createdAt": "2024-10-16T11:00:00Z",
-    "updatedAt": "2024-10-16T11:00:00Z"
+    "createdAt": "2025-10-27T07:53:36.176219800Z",
+    "updatedAt": "2025-10-27T07:53:36.176219800Z"
   }
 }
+
+Response Schema:
+| Field      | Type          | Description
+| userId     | integer       | User ID (same as user_id in users table)
+| fullName   | string        | Student full name
+| email      | string        | Student email address
+| username   | string        | Login username (distinct from rollNumber)
+| rollNumber | string        | Student roll number (e.g., HE180314)
+| major      | object        | Major object (nested)
+| major.id   | short         | Major ID
+| major.name | string        | Major name
+| major.code | string        | Major code (e.g., SE, IA, IOT)
+| major.isActive | boolean   | Major active status
+| roles      | array[string] | Always ["STUDENT"]
+| baseUrl    | string        | Path to student's identity photo (e.g., "/identity/student_201_photo.jpg"), nullable if not uploaded
+| isActive   | boolean       | Account active status
+| hasActiveEmbedding | boolean | Indicates if the student has an active face vector in the 'face_embeddings' table
+| canUseFaceRecognition | boolean | Derived logic. True if 'hasActiveEmbedding' is true
+| createdAt  | string        | Creation timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
+| updatedAt  | string        | Last update timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
 
 400 - Invalid Field type:
 {
@@ -122,6 +168,10 @@ Request Body Schema:
 |           |               |          | Pattern: ^[A-Z]{2}\d{6}$ (two uppercase letters + 6 digits; e.g., HE180314, HS181259, BE170843)
 | majorId   | short         | Yes      | Valid major ID, must exist and be active
 
+Notes:
+- Response items also return `username` (login identifier) and `baseUrl` (path to identity photo) for convenience.
+- Major is returned as a nested object for consistency with other endpoints.
+
 201-Success Response:
 {
   "status": 201,
@@ -131,15 +181,19 @@ Request Body Schema:
     "email": "tranthib@fpt.edu.vn",
     "username": "HieuNDHE180314",
     "rollNumber": "HE180314",
-    "majorId": 1,
-    "majorName": "Software Engineering",
-    "majorCode": "SE",
+    "major": {
+      "id": 1,
+      "name": "Software Engineering",
+      "code": "SE",
+      "isActive": true
+    },
     "roles": ["STUDENT"],
+    "baseUrl": null,
     "isActive": true,
     "hasActiveEmbedding": false,
     "canUseFaceRecognition": false,
-    "createdAt": "2024-10-16T11:00:00Z",
-    "updatedAt": "2024-10-16T11:00:00Z"
+    "createdAt": "2025-10-27T07:53:36.176219800Z",
+    "updatedAt": "2025-10-27T07:53:36.176219800Z"
   }
 }
 
@@ -150,15 +204,18 @@ Response Schema:
 | email 		    | string 	      | Student email address 
 | username       | string        | Login username (distinct from rollNumber)
 | rollNumber 	  | string        | Student roll number (e.g., HE180314)
-| majorId 	    | integer       | Major ID
-| majorName 	  | string        | Major name
-| majorCode 	  | string        | Major code
+| major          | object        | Major object (nested)
+| major.id       | short         | Major ID
+| major.name     | string        | Major name
+| major.code     | string        | Major code (e.g., SE, IA, IOT)
+| major.isActive | boolean       | Major active status
 | roles 	      | array[string] | Always ["STUDENT"]
+| baseUrl        | string        | Path to student's identity photo, null initially (not yet uploaded). Note: Create response may omit baseUrl field entirely if not set.
 | isActive 	    | boolean 	    | Account active status
 | hasActiveEmbedding | boolean | Indicates if the student has an active face vector in the 'face_embeddings' table
 | canUseFaceRecognition | boolean | Derived logic. True if 'hasActiveEmbedding' is true
-| createdAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt 	  | string 	      | YYYY-MM-DDTHH:mm:SSZ
+| createdAt 	  | string 	      | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
+| updatedAt 	  | string 	      | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 
 400-Missing fields required:
 {
@@ -239,17 +296,41 @@ Request body schema:
     "email": "tranthib.updated@fpt.edu.vn",
     "username": "HE180314",
     "rollNumber": "HE180314",
-    "majorId": 1,
-    "majorName": "Software Engineering",
-    "majorCode": "SE",
+    "major": {
+      "id": 1,
+      "name": "Software Engineering",
+      "code": "SE",
+      "isActive": true
+    },
     "roles": ["STUDENT"],
+    "baseUrl": "/identity/student_201_photo.jpg",
     "isActive": true,
     "hasActiveEmbedding": true,
     "canUseFaceRecognition": true,
-    "createdAt": "2024-10-16T11:00:00Z",
-    "updatedAt": "2024-10-16T12:30:00Z"
+    "createdAt": "2025-10-27T07:53:36.176220Z",
+    "updatedAt": "2025-10-27T07:53:36.176220Z"
   }
 }
+
+Response Schema:
+| Field      | Type          | Description
+| userId     | integer       | User ID (same as user_id in users table)
+| fullName   | string        | Student full name
+| email      | string        | Student email address
+| username   | string        | Login username (distinct from rollNumber, cannot be changed)
+| rollNumber | string        | Student roll number (e.g., HE180314)
+| major      | object        | Major object (nested)
+| major.id   | short         | Major ID
+| major.name | string        | Major name
+| major.code | string        | Major code (e.g., SE, IA, IOT)
+| major.isActive | boolean   | Major active status
+| roles      | array[string] | Always ["STUDENT"]
+| baseUrl    | string        | Path to student's identity photo, nullable if not uploaded
+| isActive   | boolean       | Account active status
+| hasActiveEmbedding | boolean | Indicates if the student has an active face vector in the 'face_embeddings' table
+| canUseFaceRecognition | boolean | Derived logic. True if 'hasActiveEmbedding' is true
+| createdAt  | string        | Creation timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
+| updatedAt  | string        | Last update timestamp (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
 
 Other errors are similar to Create Student Profile plus the following:
 404-Student profile not found:
@@ -432,8 +513,8 @@ Query Parameters:
         },
         "enrollmentStatus": true,
         "isActive": true,
-        "createdAt": "2024-10-16T11:00:00Z",
-        "updatedAt": "2024-10-16T11:00:00Z"
+        "createdAt": "2025-10-27T06:09:54.697234Z",
+        "updatedAt": "2025-10-27T06:09:54.697234Z"
       },
 	    ...
     ],
@@ -452,8 +533,8 @@ Class Object Schema:
 | semester         | object  | Semester object (id, name, code, isActive)
 | enrollmentStatus | boolean | Student enrollment status (true=enrolled, false=withdrawn)
 | isActive         | boolean | Class active status
-| createdAt        | string  | YYYY-MM-DDTHH:mm:SSZ
-| updatedAt        | string  | YYYY-MM-DDTHH:mm:SSZ
+| createdAt        | string  | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
+| updatedAt        | string  | YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 
 400-Invalid query parameters:
 {
@@ -653,7 +734,7 @@ Response Schema (items):
 | attendanceStatus | string | "present", "absent", or "not_yet"
 | method           | string | How status was recorded: "auto", "manual", "system_finalize"
 | remarks          | string | Any remarks added for this attendance record (null if none)
-| finalizedAt      | string | Timestamp when the slot was finalized (YYYY-MM-DDTHH:mm:SSZ)
+| finalizedAt      | string | Timestamp when the slot was finalized (YYYY-MM-DDTHH:mm:SS.sssZ with milliseconds/microseconds)
 
 Response Schema (summary):
 | Field                          | Type   | Description
@@ -740,7 +821,7 @@ GET /api/v1/student-profiles/201/attendance-history?semesterId=1&attendanceStatu
 ====================================================== Notes ==========================================================
 
 - Student Profile ID is of type Integer (same as user_id)
-- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SSZ
+- All timestamps are in ISO 8601 format (UTC): YYYY-MM-DDTHH:mm:SS.sssZ (with milliseconds/microseconds)
 - Search parameter searches in fullName, rollNumber, and email fields
 - Pagination is 1-based (page=1 is the first page)
 - Default sort is by id in ascending order

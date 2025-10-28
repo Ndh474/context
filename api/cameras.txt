@@ -75,16 +75,16 @@ Response Schema:
   "code": "ROOM_NOT_FOUND"
 }
 
-409 - RTSP URL already exists:
+400 - RTSP URL already exists:
 {
-  "status": 409,
+  "status": 400,
   "message": "RTSP URL already exists: rtsp://192.168.1.100:554/stream1",
   "code": "RTSP_URL_EXISTS"
 }
 
-409 - Camera name already exists:
+400 - Camera name already exists:
 {
-  "status": 409,
+  "status": 400,
   "message": "Camera name already exists: Camera A101-01",
   "code": "CAMERA_NAME_EXISTS"
 }

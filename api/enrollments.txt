@@ -23,7 +23,7 @@ Request Schema:
 
 Business Rules:
 - BR-13: A student can only be enrolled once in a specific class
-- If enrollment exists with is_enrolled=true → 409 Conflict
+- If enrollment exists with is_enrolled=true → 400 Bad Request (ALREADY_ENROLLED)
 - If enrollment exists with is_enrolled=false → Update to true (re-enrollment)
 - Class must be active (classes.is_active = true)
 - Student must be active (users.is_active = true)
@@ -36,10 +36,15 @@ Business Rules:
     "classId": 1,
     "studentUserId": 201,
     "student": {
+      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
-      "majorName": "Software Engineering"
+      "major": {
+        "name": "Software Engineering",
+        "code": "SE"
+      },
+      "baseUrl": null
     },
     "class": {
       "id": 1,
@@ -47,13 +52,22 @@ Business Rules:
       "subject": {
         "id": 1,
         "name": "Software Development Project",
-        "code": "SWP391"
+        "code": "SWP391",
+        "createdAt": "2024-09-01T06:00:00Z",
+        "updatedAt": "2024-09-01T06:00:00Z",
+        "isActive": true
       },
       "semester": {
         "id": 1,
         "name": "Fall 2024",
-        "code": "FA24"
-      }
+        "code": "FA24",
+        "createdAt": "2024-09-01T06:00:00Z",
+        "updatedAt": "2024-09-01T06:00:00Z",
+        "isActive": true
+      },
+      "createdAt": "2024-09-01T08:00:00Z",
+      "updatedAt": "2024-09-01T08:00:00Z",
+      "isActive": true
     },
     "isEnrolled": true,
     "createdAt": "2024-10-19T10:00:00Z",
@@ -77,11 +91,11 @@ Business Rules:
 }
 
 Response Schema:
-| Field         | Type    | Description 
+| Field         | Type    | Description
 | classId       | short   | Class ID
 | studentUserId | integer | Student user ID
-| student       | object  | Student details (userId, fullName, rollNumber, email, majorName)
-| class         | object  | Class details with nested subject and semester
+| student       | object  | Student details (userId, fullName, rollNumber, email, major{name, code}, baseUrl)
+| class         | object  | Class details with nested subject and semester (includes timestamps and isActive)
 | isEnrolled    | boolean | Enrollment status (always true in success response)
 | createdAt     | string  | YYYY-MM-DDTHH:mm:SSZ (original enrollment date)
 | updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
@@ -127,13 +141,13 @@ Other inactive reference error codes:
 404-Student not found:
 {
   "status": 404,
-  "message": "User not found: 201",
-  "code": "USER_NOT_FOUND"
+  "message": "Student profile not found: 201",
+  "code": "STUDENT_PROFILE_NOT_FOUND"
 }
 
-409-Already enrolled:
+400-Already enrolled:
 {
-  "status": 409,
+  "status": 400,
   "message": "Student is already enrolled in this class",
   "code": "ALREADY_ENROLLED"
 }
@@ -177,7 +191,11 @@ Query Parameters:
           "fullName": "Tran Thi B",
           "rollNumber": "HE180314",
           "email": "tranthib@fpt.edu.vn",
-          "majorName": "Software Engineering"
+          "major": {
+            "name": "Software Engineering",
+            "code": "SE"
+          },
+          "baseUrl": null
         },
         "class": {
           "id": 1,
@@ -201,10 +219,15 @@ Query Parameters:
         "classId": 1,
         "studentUserId": 202,
         "student": {
+          "userId": 202,
           "fullName": "Le Van C",
           "rollNumber": "HE180315",
           "email": "levanc@fpt.edu.vn",
-          "majorName": "Software Engineering"
+          "major": {
+            "name": "Software Engineering",
+            "code": "SE"
+          },
+          "baseUrl": null
         },
         "class": {
           "id": 1,
@@ -268,10 +291,15 @@ Path Parameters:
     "classId": 1,
     "studentUserId": 201,
     "student": {
+      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
-      "majorName": "Software Engineering"
+      "major": {
+        "name": "Software Engineering",
+        "code": "SE"
+      },
+      "baseUrl": null
     },
     "class": {
       "id": 1,
@@ -337,15 +365,19 @@ Business Rules:
 200-Success Response:
 {
   "status": 200,
-  "message": "Enrollment updated successfully",
   "data": {
     "classId": 1,
     "studentUserId": 201,
     "student": {
+      "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
-      "majorName": "Software Engineering"
+      "major": {
+        "name": "Software Engineering",
+        "code": "SE"
+      },
+      "baseUrl": null
     },
     "class": {
       "id": 1,
@@ -593,23 +625,31 @@ Query Parameters:
     },
     "items": [
       {
+        "userId": 201,
         "studentUserId": 201,
         "fullName": "Tran Thi B",
         "rollNumber": "HE180314",
         "email": "tranthib@fpt.edu.vn",
-        "majorName": "Software Engineering",
-        "majorCode": "SE",
+        "major": {
+          "name": "Software Engineering",
+          "code": "SE"
+        },
+        "baseUrl": null,
         "isEnrolled": true,
         "enrolledAt": "2024-09-01T08:00:00Z",
         "updatedAt": "2024-09-01T08:00:00Z"
       },
       {
+        "userId": 202,
         "studentUserId": 202,
         "fullName": "Le Van C",
         "rollNumber": "HE180315",
         "email": "levanc@fpt.edu.vn",
-        "majorName": "Software Engineering",
-        "majorCode": "SE",
+        "major": {
+          "name": "Software Engineering",
+          "code": "SE"
+        },
+        "baseUrl": null,
         "isEnrolled": true,
         "enrolledAt": "2024-09-01T08:05:00Z",
         "updatedAt": "2024-09-01T08:05:00Z"
@@ -636,13 +676,14 @@ Response Schema:
 | totalItems     | integer | Total items (based on isEnrolled filter)
 
 Student Object Schema:
-| Field         | Type    | Description 
-| studentUserId | integer | Student user ID
+| Field         | Type    | Description
+| userId        | integer | Student user ID (same as studentUserId)
+| studentUserId | integer | Student user ID (alias for roster context)
 | fullName      | string  | Student full name
 | rollNumber    | string  | Student roll number
 | email         | string  | Student email
-| majorName     | string  | Major name
-| majorCode     | string  | Major code
+| major         | object  | Major object with name and code
+| baseUrl       | string  | Base URL for student profile image (nullable)
 | isEnrolled    | boolean | Enrollment status
 | enrolledAt    | string  | YYYY-MM-DDTHH:mm:SSZ (enrollment date)
 | updatedAt     | string  | YYYY-MM-DDTHH:mm:SSZ (last update date)
@@ -695,8 +736,10 @@ Pagination:
 
 Response Structure:
 - Nested objects for student and class details
-- Student: userId, fullName, rollNumber, email, majorName
-- Class: id, code, subject (id, name, code), semester (id, name, code)
+- Student: userId, fullName, rollNumber, email, major{name, code}, baseUrl
+- Class: id, code, subject (id, name, code, createdAt, updatedAt, isActive), semester (id, name, code, createdAt, updatedAt, isActive)
+- All entities include timestamp fields (createdAt, updatedAt) and status flags where applicable
+- Roster endpoint includes both userId and studentUserId (same value) for API compatibility
 
 Bulk Import Strategy:
 - PARTIAL SUCCESS: Import valid rows, skip invalid rows
@@ -738,9 +781,8 @@ Hard Delete:
 Common Status Codes:
 - 200: Success
 - 201: Created
-- 400: Bad Request (validation errors, invalid parameters)
+- 400: Bad Request (validation errors, invalid parameters, already enrolled)
 - 401: Unauthorized (missing or invalid token)
 - 403: Forbidden (insufficient permissions)
 - 404: Not Found (enrollment, class, or student not found)
-- 409: Conflict (already enrolled)
 - 500: Internal Server Error

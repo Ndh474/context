@@ -44,7 +44,7 @@ tables:
         foreign_key:
           table: semesters
           column: id
-        description: "Reference to semester. Required for all slots. For class-based slots, this is redundant but ensures consistency. For independent final exam slots (where class_id is NULL), this is the only link to a semester."
+        description: "Reference to semester. Required for all slots. Must be provided when creating any slot. For LECTURE/LECTURE_WITH_PT slots, this must match the semester of the specified class. For FINAL_EXAM slots (where class_id is NULL), this is the only link to a semester."
       room_id:
         type: smallint
         constraints: [NOT NULL]
@@ -219,11 +219,11 @@ tables:
       - name: idx_regular_attendance_remarks_record_id
         columns: [attendance_record_id]
         description: "For querying all remarks for a specific attendance record"
-      
+
       - name: idx_regular_attendance_remarks_created_by
         columns: [created_by_user_id]
         description: "For querying remarks created by a specific staff member"
-      
+
       - name: idx_regular_attendance_remarks_created_at
         columns: [created_at]
         description: "For chronological queries"

@@ -18,7 +18,7 @@ Query Parameters:
 | Parameter      | Type    | Required | Default | Validation
 |----------------|---------|----------|---------|-----------
 | page           | integer | No       | 1       | >= 1
-| pageSize       | integer | No       | 10      | 1-50
+| pageSize       | integer | No       | 10      | >= 1
 | sort           | string  | No       | desc    | asc, desc
 | sortBy         | string  | No       | recordedAt | recordedAt, createdAt, updatedAt
 | slotId         | integer | No       | null    | Filter by slot
@@ -64,7 +64,7 @@ Query Parameters:
             "id": 1001,
             "remark": "Recognized by camera 1",
             "createdBy": {
-              "userId": 10,
+              "id": 10,
               "fullName": "John Lecturer"
             },
             "createdAt": "2024-10-17T08:15:30Z"
@@ -97,8 +97,8 @@ Response Schema (items):
 400-Invalid query parameters:
 {
   "status": 400,
-  "message": "Page must be >= 1 / Invalid status value",
-  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_STATUS"
+  "message": "Page must be >= 1 / Page size must >= 1 / Invalid status value",
+  "code": "INVALID_PAGE" | "INVALID_SORT" | "INVALID_STATUS"
 }
 
 =======================================================================================================================
@@ -122,7 +122,10 @@ Path Parameters:
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
       "email": "tranthib@fpt.edu.vn",
-      "majorName": "Software Engineering"
+      "major": {
+        "name": "Software Engineering"
+      },
+      "baseUrl": null
     },
     "slot": {
       "id": 1,
@@ -138,8 +141,8 @@ Path Parameters:
         "semester": { "name": "Fall 2024", "code": "FA24" }
       },
       "staffUser": {
-        "userId": 10,
-        "fullName": "John Lecturer"
+        "id": 10,
+        "username": "John Lecturer"
       }
     },
     "status": "present",
@@ -150,7 +153,7 @@ Path Parameters:
         "id": 1001,
         "remark": "Recognized by camera 1 with 95% confidence",
         "createdBy": {
-          "userId": 10,
+          "id": 10,
           "fullName": "John Lecturer"
         },
         "isActive": true,
@@ -231,7 +234,11 @@ Time-Based Edit Window Validation:
       "userId": 201,
       "fullName": "Tran Thi B",
       "rollNumber": "HE180314",
-      "email": "tranthib@fpt.edu.vn"
+      "email": "tranthib@fpt.edu.vn",
+      "major": {
+        "name": "Software Engineering"
+      },
+      "baseUrl": null
     },
     "slot": {
       "id": 1,
@@ -248,7 +255,7 @@ Time-Based Edit Window Validation:
         "id": 1002,
         "remark": "Student was sick, provided medical certificate",
         "createdBy": {
-          "userId": 10,
+          "id": 10,
           "fullName": "John Lecturer"
         },
         "createdAt": "2024-10-19T14:30:00Z"
@@ -257,7 +264,7 @@ Time-Based Edit Window Validation:
         "id": 1001,
         "remark": "Recognized by camera 1 with 95% confidence",
         "createdBy": {
-          "userId": 10,
+          "id": 10,
           "fullName": "John Lecturer"
         },
         "createdAt": "2024-10-17T08:15:30Z"

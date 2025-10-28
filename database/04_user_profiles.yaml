@@ -23,7 +23,7 @@ tables:
       roll_number:
         type: varchar(20)
         constraints: [NOT NULL, UNIQUE]
-        description: "Student's unique roll number (e.g., HE180314)"
+        description: "Student's unique roll number: two uppercase letters + 6 digits (e.g., HE180314, HS181259, BE170843)"
       base_photo_url:
         type: varchar(255)
         constraints: [NULL]

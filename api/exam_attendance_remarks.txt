@@ -105,8 +105,8 @@ Path Parameters:
 
 Query Parameters:
 | Parameter | Type    | Required | Default   | Validation
-| page      | integer | No       | 1         | 1-50
-| pageSize  | integer | No       | 10        | 1-50
+| page      | integer | No       | 1         | >= 1
+| pageSize  | integer | No       | 10        | >= 1
 | sort      | string  | No       | desc      | asc/desc
 | sortBy    | string  | No       | createdAt | createdAt
 
@@ -150,8 +150,8 @@ Query Parameters:
 400-Invalid query parameters:
 {
   "status": 400,
-  "message": "Page must >= 1, ...",
-  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+  "message": "Page must >= 1, page size must >= 1, ...",
+  "code": "INVALID_PAGE" | "INVALID_SORT" | "INVALID_SORT_BY"
 }
 
 400-Invalid field type:

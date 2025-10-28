@@ -66,9 +66,9 @@ HttpMessageNotReadableException:
   "code": "MALFORMED_JSON"
 }
 
-409 - Room name already exists:
+400 - Room name already exists:
 {
-  "status": 409,
+  "status": 400,
   "message": "Room name already exists: Room A101",
   "code": "ROOM_NAME_EXISTS"
 }
@@ -212,9 +212,9 @@ Request Schema:
   "code": "INVALID_FIELD_TYPE"
 }
 
-409 - Room name already exists:
+400 - Room name already exists:
 {
-  "status": 409,
+  "status": 400,
   "message": "Room name already exists: Room A101",
   "code": "ROOM_NAME_EXISTS"
 }
