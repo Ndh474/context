@@ -72,7 +72,7 @@ tables:
 
   exam_slot_subjects:
     primary_key: id
-    description: "Stores the list of subjects allowed to be tested in a specific FINAL_EXAM slot. This is step 1 in the student assignment workflow."
+    description: "Stores the list of subjects allowed to be tested in a specific FINAL_EXAM slot. This is step 1 in the student assignment workflow. Supports soft delete to prevent data loss."
     columns:
       id:
         type: BIGINT
@@ -97,18 +97,42 @@ tables:
         constraints: [NOT NULL]
         default: now()
         description: "Timestamp when the subject was added to the slot"
+      is_active:
+        type: boolean
+        constraints: [NOT NULL]
+        default: true
+        description: "Soft delete flag - false means logically deleted but data preserved for audit"
+      deactivated_at:
+        type: timestamp
+        constraints: []
+        description: "Timestamp when subject was removed from exam slot"
+      deactivated_by_user_id:
+        type: int
+        constraints: []
+        foreign_key:
+          table: users
+          column: id
+        description: "User ID who removed the subject (for audit trail)"
     indexes:
       - name: idx_exam_slot_subjects_slot_subject
         columns: [slot_id, subject_id]
         unique: true
-        description: "Ensures a subject can only be added once to a slot"
+        description: "Ensures a subject can only be added once to a slot (allows re-adding after soft delete)"
 
       - name: idx_exam_slot_subjects_slot_id
         columns: [slot_id]
         description: "For fast queries of subjects within a slot"
+
+      - name: idx_exam_slot_subjects_active
+        columns: [slot_id, is_active]
+        where: "is_active = true"
+        description: "Partial index for performance when filtering active records"
     notes:
       - "This table is only used when slots.slot_category = 'FINAL_EXAM'."
       - "Data Operator must define these records BEFORE adding students."
+      - "Soft delete (is_active=false) is used instead of hard delete to preserve audit trail and prevent accidental data loss."
+      - "When a subject is removed from a slot, is_active is set to false, deactivated_at is set to current timestamp, and deactivated_by_user_id tracks who performed the action."
+      - "All queries should filter by is_active = true to only show active assignments."
 
   exam_slot_participants:
     primary_key: id

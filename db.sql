@@ -360,13 +360,22 @@ CREATE TABLE exam_slot_subjects (
     id BIGSERIAL PRIMARY KEY,
     slot_id INTEGER NOT NULL,
     subject_id SMALLINT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deactivated_at TIMESTAMP,
+    deactivated_by_user_id INTEGER,
     FOREIGN KEY (slot_id) REFERENCES slots(id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id)
+    FOREIGN KEY (subject_id) REFERENCES subjects(id),
+    CONSTRAINT fk_exam_slot_subjects_deactivated_by FOREIGN KEY (deactivated_by_user_id) REFERENCES users(id)
 );
 
 CREATE UNIQUE INDEX idx_exam_slot_subjects_slot_subject ON exam_slot_subjects(slot_id, subject_id);
 CREATE INDEX idx_exam_slot_subjects_slot_id ON exam_slot_subjects(slot_id);
+CREATE INDEX idx_exam_slot_subjects_active ON exam_slot_subjects(slot_id, is_active) WHERE is_active = true;
+
+COMMENT ON COLUMN exam_slot_subjects.is_active IS 'Soft delete flag - false means logically deleted but data preserved for audit';
+COMMENT ON COLUMN exam_slot_subjects.deactivated_at IS 'Timestamp when subject was removed from exam slot';
+COMMENT ON COLUMN exam_slot_subjects.deactivated_by_user_id IS 'User ID who removed the subject (for audit trail)';
 
 -- -----------------------------------------------------
 -- Table: exam_slot_participants

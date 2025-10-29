@@ -183,7 +183,7 @@ Response Schema:
 
 3. DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId}
 Permission: ENROLLMENT_MANAGE
-Description: Remove a subject from a FINAL_EXAM slot. Cannot remove if students are already assigned to that subject in this slot.
+Description: Remove a subject from a FINAL_EXAM slot using soft delete. Subject is marked as inactive (is_active=false) rather than permanently deleted to preserve audit trail. Cannot remove if students are already assigned to that subject in this slot.
 
 Path Parameters:
 | Parameter  | Type    | Required | Description
@@ -193,15 +193,22 @@ Path Parameters:
 
 Business Rules:
 - Slot must be FINAL_EXAM type (slot_category = 'FINAL_EXAM')
-- Slot must be independent (class_id = NULL)
-- Subject must be assigned to the slot
-- Cannot remove if participants exist for this subject in this slot
-- Slot must be active (slots.is_active = true)
+- Subject must be currently active in the slot (is_active = true)
+- Cannot remove if active participants exist for this subject in this slot (must withdraw/remove students first)
+- Soft delete implementation: Sets is_active=false, records deactivated_at timestamp and deactivated_by_user_id
+- Audit log entry created for compliance (BR-25)
+
+Implementation Details:
+- Uses soft delete pattern to prevent data loss
+- Preserves historical data for audit purposes
+- Deactivated subjects are filtered from GET queries (only active subjects returned)
+- Can re-assign the same subject after soft delete (unique constraint allows is_active=false duplicates)
 
 200-Success Response:
 {
   "status": 200,
-  "message": "Subject removed from exam slot successfully"
+  "message": "Subject removed from exam slot successfully",
+  "data": null
 }
 
 400-Invalid field type:
@@ -211,6 +218,13 @@ Business Rules:
   "code": "INVALID_FIELD_TYPE"
 }
 
+400-Invalid slot category:
+{
+  "status": 400,
+  "message": "Can only remove subjects from FINAL_EXAM slots",
+  "code": "INVALID_SLOT_CATEGORY"
+}
+
 404-Slot not found:
 {
   "status": 404,
@@ -218,25 +232,25 @@ Business Rules:
   "code": "SLOT_NOT_FOUND"
 }
 
-404-Subject not found:
+404-Subject not found in slot:
 {
   "status": 404,
-  "message": "Subject not found in slot: 5",
-  "code": "SUBJECT_NOT_FOUND_IN_SLOT"
+  "message": "Subject 5 is not assigned to slot 1",
+  "code": "EXAM_SLOT_SUBJECT_NOT_FOUND"
 }
 
-409-Cannot remove subject:
-{
-  "status": 409,
-  "message": "Cannot remove subject. 3 students are already assigned to this subject in this slot",
-  "code": "SUBJECT_HAS_PARTICIPANTS"
-}
-
-400-Malformed JSON:
+400-Cannot remove subject (has active participants):
 {
   "status": 400,
-  "message": "Malformed JSON request",
-  "code": "MALFORMED_JSON"
+  "message": "Cannot remove subject. 3 student(s) are enrolled. Please remove or withdraw participants first.",
+  "code": "EXAM_SLOT_SUBJECT_HAS_PARTICIPANTS"
+}
+
+404-User not found:
+{
+  "status": 404,
+  "message": "User not found: 10",
+  "code": "USER_NOT_FOUND"
 }
 
 =======================================================================================================================
@@ -1085,8 +1099,10 @@ Soft Delete vs Hard Delete:
 
 Subject Assignment:
 - Use POST /api/v1/exam-slots/{slotId}/subjects to assign subjects
-- Use DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId} to remove subjects
-- Cannot remove subject if students are assigned to it in that slot
+- Use DELETE /api/v1/exam-slots/{slotId}/subjects/{subjectId} to remove subjects (soft delete)
+- Cannot remove subject if active participants exist (must withdraw/remove students first)
+- Soft delete preserves historical data and audit trail
+- Deactivated subjects don't appear in GET queries
 
 Common Status Codes:
 - 200: Success
