@@ -261,7 +261,6 @@ CREATE TABLE slots (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    finalized_at TIMESTAMP NULL,
     class_id SMALLINT NULL,
     semester_id SMALLINT NOT NULL,
     room_id SMALLINT NOT NULL,
@@ -281,7 +280,6 @@ CREATE INDEX idx_slots_semester_id ON slots(semester_id);
 CREATE INDEX idx_slots_staff_user_id ON slots(staff_user_id);
 CREATE INDEX idx_slots_room_id ON slots(room_id);
 CREATE INDEX idx_slots_start_time ON slots(start_time);
-CREATE INDEX idx_slots_finalized_at ON slots(finalized_at);
 
 -- -----------------------------------------------------
 -- Table: attendance_records
@@ -633,12 +631,11 @@ INSERT INTO enrollments (class_id, student_user_id, is_enrolled) VALUES
 ON CONFLICT (class_id, student_user_id) DO UPDATE SET is_enrolled = EXCLUDED.is_enrolled;
 
 -- Test Slots with Dynamic Timing
-INSERT INTO slots (id, class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, finalized_at, title, is_active) VALUES
+INSERT INTO slots (id, class_id, semester_id, room_id, staff_user_id, slot_category, start_time, end_time, title, is_active) VALUES
 -- Slot 9001: CURRENTLY ACTIVE (started 1 hour ago, ends in 1 hour)
-(9001, 901, 99, 901, 9001, 'LECTURE', 
- CURRENT_TIMESTAMP - INTERVAL '1 hour', 
- CURRENT_TIMESTAMP + INTERVAL '1 hour', 
- NULL, 
+(9001, 901, 99, 901, 9001, 'LECTURE',
+ CURRENT_TIMESTAMP - INTERVAL '1 hour',
+ CURRENT_TIMESTAMP + INTERVAL '1 hour',
  'TEST: Active Lecture Session', TRUE),
 
 -- Slot 9002: ENDED BUT NOT FINALIZED (ended 30 minutes ago)
@@ -669,7 +666,6 @@ ON CONFLICT (id) DO UPDATE SET
     slot_category = EXCLUDED.slot_category,
     start_time = EXCLUDED.start_time,
     end_time = EXCLUDED.end_time,
-    finalized_at = EXCLUDED.finalized_at,
     title = EXCLUDED.title,
     is_active = EXCLUDED.is_active;
 
@@ -1033,7 +1029,7 @@ DECLARE
     v_start_time TIMESTAMP;
     v_end_time TIMESTAMP;
     v_slot_category TEXT;
-    v_finalized_at TIMESTAMP;
+    v_removed_field_placeholder;
     
     i INT;
     j INT;
@@ -1296,13 +1292,13 @@ BEGIN
             END;
             
             -- Finalize past slots
-            v_finalized_at := CASE 
+            v_removed_placeholder := CASE 
                 WHEN v_start_time < CURRENT_TIMESTAMP - INTERVAL '7 days' THEN v_end_time + '30 minutes'::INTERVAL
                 ELSE NULL
             END;
             
             INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
-                             start_time, end_time, finalized_at, title, is_active)
+                             start_time, end_time title, is_active)
             VALUES (
                 v_class_id,
                 v_semester_id,
@@ -1311,7 +1307,7 @@ BEGIN
                 v_slot_category,
                 v_start_time,
                 v_end_time,
-                v_finalized_at,
+                v_removed_placeholder,
                 CASE v_slot_category
                     WHEN 'LECTURE_WITH_PT' THEN 'Progress Test ' || j
                     ELSE 'Lecture Session ' || j
@@ -1336,7 +1332,7 @@ BEGIN
         v_end_time := v_start_time + '2 hours'::INTERVAL;
         
         INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
-                         start_time, end_time, finalized_at, title, is_active)
+                         start_time, end_time title, is_active)
         VALUES (
             NULL, -- FINAL_EXAM has no class_id
             v_semester_id,
@@ -1396,7 +1392,6 @@ BEGIN
     
     FOR v_slot_id IN (SELECT id FROM slots 
                      WHERE slot_category IN ('LECTURE', 'LECTURE_WITH_PT') 
-                     AND finalized_at IS NOT NULL) LOOP
         
         -- Get class_id for this slot
         SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
@@ -1430,7 +1425,6 @@ BEGIN
     
     FOR v_slot_id IN (SELECT id FROM slots 
                      WHERE slot_category = 'LECTURE_WITH_PT' 
-                     AND finalized_at IS NOT NULL) LOOP
         
         SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
         
@@ -1588,24 +1582,7 @@ BEGIN
     -- 13. GENERATE OPERATIONAL AUDIT LOGS
     -- =====================================================
     RAISE NOTICE 'Generating operational audit logs...';
-    
-    -- Slot finalization logs
-    FOR v_slot_id IN (SELECT id FROM slots WHERE finalized_at IS NOT NULL LIMIT 50) LOOP
-        INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes)
-        SELECT 
-            staff_user_id,
-            'FINALIZE',
-            'slot',
-            id,
-            jsonb_build_object(
-                'finalized_at', jsonb_build_object(
-                    'before', NULL,
-                    'after', finalized_at
-                )
-            )
-        FROM slots WHERE id = v_slot_id;
-    END LOOP;
-    
+
     -- User creation logs
     FOR v_user_id IN (SELECT id FROM users ORDER BY id DESC LIMIT 50) LOOP
         INSERT INTO operational_audit_logs (actor_user_id, action_type, target_entity, target_id, changes, created_at)
