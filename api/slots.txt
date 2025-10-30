@@ -1,13 +1,12 @@
 POST   	| /slots 	   		| Create new slot 		| SLOT_CREATE | SLOT_CREATE_FINAL_EXAM
-GET    	| /slots 	   		| Get all slots 		| SLOT_READ 
-GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ 
+GET    	| /slots 	   		| Get all slots 		| SLOT_READ
+GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ
 PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE | SLOT_UPDATE_CATEGORY | SLOT_UPDATE_FINAL_EXAM
 DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD
 POST   	| /slots/import 		| Bulk import slots 	| SLOT_IMPORT
 GET /api/v1/slots/{id}/roster
-POST /api/v1/slots/{id}/start-session 
-POST /api/v1/slots/{id}/rescan 
-POST /api/v1/slots/{id}/finalize
+POST /api/v1/slots/{id}/start-session
+POST /api/v1/slots/{id}/rescan
 
 ================================================= Create a new slot ===================================================
 1. POST /api/v1/slots
@@ -75,7 +74,6 @@ SlotCategory Enum Values:
     "startTime": "2024-10-17T08:00:00Z",
     "endTime": "2024-10-17T10:00:00Z",
     "slotCategory": "LECTURE",
-    "finalizedAt": null,
     "room": {
       "id": 1,
       "name": "Room A101",
@@ -115,7 +113,6 @@ Response Schema:
 | startTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone)
 | endTime 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone)
 | slotCategory 		| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| finalizedAt 		| string 	| ISO 8601: YYYY-MM-DDTHH:mm:ss (UTC timezone, null if not finalized)
 | room 			| object 	| Room object:
 |               |           |   - id (short): Room ID
 |               |           |   - name (string): Room name
@@ -276,7 +273,6 @@ Query Parameters:
 | roomId 	| short 	| No 		| null 		| Filter by room
 | semesterId 	| short 	| No 		| null 		| Filter by semester (class or independent)
 | isActive    	| boolean 	| No 		| null 		| Filter by active status
-| isFinalized 	| boolean 	| No 		| null 		| Filter by finalization status
 | startTimeFrom | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime >= this date)
 | startTimeTo   | string 	| No 		| null 		| YYYY-MM-DD (slots with startTime <= this date)
 
@@ -292,7 +288,6 @@ Query Parameters:
         "startTime": "2024-10-17T08:00:00Z",
         "endTime": "2024-10-17T10:00:00Z",
         "slotCategory": "LECTURE",
-        "finalizedAt": null,
         "room": {
           "id": 1,
           "name": "Room A101",
@@ -353,7 +348,6 @@ Response Schema (items):
 | startTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | endTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | slotCategory 			| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| finalizedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
 | room 				| object 	| Room object (id, name, location)
 | staffUser 			| object 	| Staff/lecturer user object (id, username, fullName)
 | class 			| object 	| Class object with nested subject and semester
@@ -400,7 +394,6 @@ Path Parameters:
     "startTime": "2024-10-17T08:00:00Z",
     "endTime": "2024-10-17T10:00:00Z",
     "slotCategory": "LECTURE",
-    "finalizedAt": null,
     "room": {
       "id": 1,
       "name": "Room A101",
@@ -450,7 +443,6 @@ Response Schema:
 | startTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | endTime 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
 | slotCategory 			| string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
-| finalizedAt 			| string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
 | room 				| object 	| Room object:
 |                   |           |   - id (short): Room ID
 |                   |           |   - name (string): Room name
@@ -506,12 +498,10 @@ Business Rules:
    - Cannot update other fields (time, room, staff, class, title, description)
    - Constraints:
      * Slot must belong to lecturer's assigned class
-     * Slot must not be finalized
      * Cannot change to/from FINAL_EXAM
      * Cannot change from LECTURE_WITH_PT to LECTURE if exam_attendance records exist
-   
+
 3. Deactivation:
-   - Cannot deactivate if slot is finalized
    - Cannot deactivate if there are attendance records
 
 // TODO: DOP ABLE TO DELETE HARD IF NOW() < START_TIME - 30 minute
@@ -566,7 +556,6 @@ Request Schema (Category Update Only):
     "startTime": "2024-10-17T08:30:00Z",
     "endTime": "2024-10-17T10:30:00Z",
     "slotCategory": "LECTURE_WITH_PT",
-    "finalizedAt": null,
     "room": {
       "id": 2,
       "name": "Room A102",
@@ -652,13 +641,6 @@ Other field required error codes:
   "status": 400,
   "message": "Cannot change from LECTURE_WITH_PT to LECTURE. Exam attendance records exist",
   "code": "EXAM_ATTENDANCE_EXISTS"
-}
-
-400-Slot already finalized:
-{
-  "status": 400,
-  "message": "Cannot update finalized slot",
-  "code": "SLOT_ALREADY_FINALIZED"
 }
 
 400-Invalid time range:
@@ -1034,7 +1016,6 @@ Business Rules:
   • Initiates the first automated attendance scan for a slot
   • Triggers the communication with the Python recognition service
   • Can only be called by the assigned staff member
-  • The slot must not be finalized
 
 Path Parameters:
   | Parameter | Type    | Required | Description |
@@ -1072,14 +1053,6 @@ Path Parameters:
     "code": "SLOT_NOT_FOUND"
   }
 
---------------------------------------------------------------------------------
-409 - Slot already finalized:
-  {
-    "status": 409,
-    "message": "Cannot start session for a finalized slot",
-    "code": "SLOT_ALREADY_FINALIZED"
-  }
-
 
 ================================================================================
 TRIGGER RE-SCAN
@@ -1104,7 +1077,6 @@ Business Rules:
 
   • Sends mode="RESCAN" to Python recognition service
   • Can only be called by the assigned staff member
-  • The slot must not be finalized
 
 Path Parameters:
   | Parameter | Type    | Required | Description |
@@ -1143,113 +1115,12 @@ Path Parameters:
   }
 
 --------------------------------------------------------------------------------
-409 - Slot already finalized:
-  {
-    "status": 409,
-    "message": "Cannot re-scan a finalized slot",
-    "code": "SLOT_ALREADY_FINALIZED"
-  }
-
---------------------------------------------------------------------------------
 409 - Session not started:
   {
     "status": 409,
     "message": "Cannot trigger re-scan because the attendance session has not been started",
     "code": "SESSION_NOT_STARTED"
   }
-
-
-================================================================================
-FINALIZE ATTENDANCE SESSION
-================================================================================
-Endpoint: POST /api/v1/slots/{id}/finalize
-Permission: SLOT_SESSION_FINALIZE
-
-Business Rules:
-  • Ends the attendance session and sets the final status for all students
-  • Requires a rule to resolve students who are still in 'not_yet' status
-  • Sets the finalizedAt timestamp on the slot
-  • Can only be called by the assigned staff member
-  • The slot must not already be finalized
-
-Path Parameters:
-  | Parameter | Type    | Required | Description |
-  |-----------|---------|----------|-------------|
-  | id        | integer | Yes      | Slot ID     |
-
---------------------------------------------------------------------------------
-Request Body:
-  {
-    "notYetStatusResolution": "MARK_AS_ABSENT"
-  }
-
-Request Schema:
-  | Field                  | Type   | Required | Validation                                      |
-  |------------------------|--------|----------|-------------------------------------------------|
-  | notYetStatusResolution | string | Yes      | Must be "MARK_AS_ABSENT" or "MARK_AS_PRESENT"   |
-
---------------------------------------------------------------------------------
-200 - Success Response:
-  {
-    "status": 200,
-    "message": "Slot finalized successfully.",
-    "data": {
-      "id": 1,
-      "title": "Introduction to Software Development",
-      "startTime": "2024-10-17T08:00:00Z",
-      "endTime": "2024-10-17T10:00:00Z",
-      "slotCategory": "LECTURE",
-      "finalizedAt": "2024-10-17T10:05:12Z",
-      // ... other slot fields ...
-      "totalStudent": 25,
-      "totalPresentStudent": 20,
-      "totalAbsentStudent": 5,
-      "totalNotYetStudent": 0,
-      "isActive": true,
-      "updatedAt": "2024-10-17T10:05:12Z"
-    }
-  }
-
---------------------------------------------------------------------------------
-400 - Invalid field type:
-  {
-    "status": 400,
-    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
-    "code": "INVALID_FIELD_TYPE"
-  }
-
---------------------------------------------------------------------------------
-400 - Invalid finalization rule:
-  {
-    "status": 400,
-    "message": "Invalid value for notYetStatusResolution. Must be MARK_AS_ABSENT or MARK_AS_PRESENT",
-    "code": "INVALID_FINALIZATION_RULE"
-  }
-
---------------------------------------------------------------------------------
-403 - Not assigned to slot:
-  {
-    "status": 403,
-    "message": "You are not assigned to this slot and cannot finalize it",
-    "code": "NOT_ASSIGNED_TO_SLOT"
-  }
-
---------------------------------------------------------------------------------
-404 - Slot not found:
-  {
-    "status": 404,
-    "message": "Slot not found: 1",
-    "code": "SLOT_NOT_FOUND"
-  }
-
---------------------------------------------------------------------------------
-409 - Slot already finalized:
-  {
-    "status": 409,
-    "message": "This slot has already been finalized",
-    "code": "SLOT_ALREADY_FINALIZED"
-  }
-
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 
@@ -1306,7 +1177,7 @@ Attendance Counts:
 
 Soft Delete:
 - Done via PUT endpoint by setting isActive = false
-- Cannot deactivate if slot is finalized or has attendance records
+- Cannot deactivate if slot has attendance records
 
 Hard Delete:
 - Permanent deletion via DELETE endpoint

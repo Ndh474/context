@@ -492,7 +492,7 @@ CREATE TABLE operational_audit_logs (
     id BIGSERIAL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actor_user_id INTEGER NOT NULL,
-    action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('CREATE', 'UPDATE', 'DELETE', 'FINALIZE', 'REOPEN', 'APPROVE', 'REJECT', 'ACTIVATE', 'DEACTIVATE')),
+    action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('CREATE', 'UPDATE', 'DELETE', 'REOPEN', 'APPROVE', 'REJECT', 'ACTIVATE', 'DEACTIVATE')),
     target_entity VARCHAR(50) NOT NULL CHECK (target_entity IN ('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'room', 'camera', 'system_config')),
     target_id BIGINT NOT NULL,
     changes JSONB NULL,
@@ -638,25 +638,22 @@ INSERT INTO slots (id, class_id, semester_id, room_id, staff_user_id, slot_categ
  CURRENT_TIMESTAMP + INTERVAL '1 hour',
  'TEST: Active Lecture Session', TRUE),
 
--- Slot 9002: ENDED BUT NOT FINALIZED (ended 30 minutes ago)
-(9002, 902, 99, 901, 9001, 'LECTURE_WITH_PT', 
- CURRENT_TIMESTAMP - INTERVAL '2 hours 30 minutes', 
- CURRENT_TIMESTAMP - INTERVAL '30 minutes', 
- NULL, 
+-- Slot 9002: ENDED (ended 30 minutes ago)
+(9002, 902, 99, 901, 9001, 'LECTURE_WITH_PT',
+ CURRENT_TIMESTAMP - INTERVAL '2 hours 30 minutes',
+ CURRENT_TIMESTAMP - INTERVAL '30 minutes',
  'TEST: Ended Lecture with Progress Test', TRUE),
 
--- Slot 9003: FINALIZED (ended yesterday)
-(9003, 901, 99, 901, 9001, 'LECTURE', 
- CURRENT_TIMESTAMP - INTERVAL '1 day 2 hours', 
- CURRENT_TIMESTAMP - INTERVAL '1 day', 
- CURRENT_TIMESTAMP - INTERVAL '23 hours 30 minutes', 
- 'TEST: Finalized Lecture Session', TRUE),
+-- Slot 9003: ENDED (ended yesterday)
+(9003, 901, 99, 901, 9001, 'LECTURE',
+ CURRENT_TIMESTAMP - INTERVAL '1 day 2 hours',
+ CURRENT_TIMESTAMP - INTERVAL '1 day',
+ 'TEST: Ended Lecture Session', TRUE),
 
 -- Slot 9004: FUTURE FINAL EXAM (tomorrow)
-(9004, NULL, 99, 901, 9001, 'FINAL_EXAM', 
- CURRENT_TIMESTAMP + INTERVAL '1 day', 
- CURRENT_TIMESTAMP + INTERVAL '1 day 2 hours', 
- NULL, 
+(9004, NULL, 99, 901, 9001, 'FINAL_EXAM',
+ CURRENT_TIMESTAMP + INTERVAL '1 day',
+ CURRENT_TIMESTAMP + INTERVAL '1 day 2 hours',
  'TEST: Final Exam Session', TRUE)
 ON CONFLICT (id) DO UPDATE SET 
     class_id = EXCLUDED.class_id,
@@ -669,7 +666,7 @@ ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     is_active = EXCLUDED.is_active;
 
--- Test Attendance Records for Finalized Slot (9003)
+-- Test Attendance Records for Ended Slot (9003)
 INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at) VALUES
 (9010, 9003, 'present', 'auto', CURRENT_TIMESTAMP - INTERVAL '23 hours 45 minutes'),
 (9011, 9003, 'present', 'auto', CURRENT_TIMESTAMP - INTERVAL '23 hours 45 minutes'),
@@ -806,7 +803,6 @@ INSERT INTO permissions (name, is_active) VALUES
 ('OWN_SCHEDULE_READ', TRUE),
 ('SLOT_SESSION_START', TRUE),
 ('SLOT_SESSION_RESCAN', TRUE),
-('SLOT_SESSION_FINALIZE', TRUE),
 ('ATTENDANCE_ROSTER_READ', TRUE),
 ('ATTENDANCE_STATUS_UPDATE_MANUAL', TRUE),
 ('ATTENDANCE_REMARK_MANAGE', TRUE),
@@ -868,7 +864,7 @@ SELECT 2, id FROM permissions WHERE name IN (
 -- LECTURER permissions
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 3, id FROM permissions WHERE name IN (
-    'OWN_SCHEDULE_READ', 'SLOT_SESSION_START', 'SLOT_SESSION_RESCAN', 'SLOT_SESSION_FINALIZE',
+    'OWN_SCHEDULE_READ', 'SLOT_SESSION_START', 'SLOT_SESSION_RESCAN',
     'ATTENDANCE_ROSTER_READ', 'ATTENDANCE_STATUS_UPDATE_MANUAL', 'ATTENDANCE_REMARK_MANAGE',
     'REPORT_READ_OWN_SLOT', 'REPORT_EXPORT_OWN_SLOT', 'REPORT_READ_CLASS_SUMMARY',
     'REPORT_READ_SYSTEM_WIDE', 'OWN_PROFILE_READ', 'OWN_PASSWORD_UPDATE', 'ROOM_READ',
@@ -879,7 +875,7 @@ SELECT 3, id FROM permissions WHERE name IN (
 -- SUPERVISOR permissions
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 4, id FROM permissions WHERE name IN (
-    'OWN_SCHEDULE_READ', 'SLOT_SESSION_START', 'SLOT_SESSION_RESCAN', 'SLOT_SESSION_FINALIZE',
+    'OWN_SCHEDULE_READ', 'SLOT_SESSION_START', 'SLOT_SESSION_RESCAN',
     'ATTENDANCE_ROSTER_READ', 'ATTENDANCE_STATUS_UPDATE_MANUAL', 'ATTENDANCE_REMARK_MANAGE',
     'REPORT_READ_OWN_SLOT', 'REPORT_EXPORT_OWN_SLOT', 'REPORT_READ_SYSTEM_WIDE',
     'OWN_PROFILE_READ', 'OWN_PASSWORD_UPDATE', 'ROOM_READ', 'CAMERA_READ',
@@ -975,13 +971,12 @@ INSERT INTO system_configurations (key, value, description, is_active) VALUES
 ('face_recognition.similarity_threshold', '0.85', 'Minimum similarity score for face recognition matches (0.0 to 1.0)', TRUE),
 ('attendance.max_absence_percentage', '20', 'Maximum allowed absence percentage before student becomes ineligible for final exam', TRUE),
 ('attendance.evidence_retention_days', '30', 'Number of days to retain attendance evidence images before cleanup', TRUE),
-('attendance.edit_window_hours', '24', 'Hours after finalization during which lecturer can edit attendance (within same day)', TRUE),
+('attendance.edit_window_hours', '24', 'Hours after slot end time during which lecturer can edit attendance (within same day)', TRUE),
 ('notification.email_enabled', 'true', 'Whether to send email notifications in addition to in-app notifications', TRUE),
 ('notification.push_enabled', 'true', 'Whether to send push notifications to mobile devices', TRUE),
 ('system.maintenance_mode', 'false', 'System maintenance mode flag', TRUE),
 ('face_recognition.model_version', 'v2.1.0', 'Current face recognition model version in use', TRUE),
-('face_recognition.min_face_size', '80', 'Minimum face size in pixels for detection', TRUE),
-('attendance.auto_finalize_enabled', 'false', 'Whether to automatically finalize slots after a certain period', TRUE);
+('face_recognition.min_face_size', '80', 'Minimum face size in pixels for detection', TRUE);
 
 -- -----------------------------------------------------
 -- Insert System Notifications
@@ -1029,8 +1024,7 @@ DECLARE
     v_start_time TIMESTAMP;
     v_end_time TIMESTAMP;
     v_slot_category TEXT;
-    v_removed_field_placeholder;
-    
+
     i INT;
     j INT;
     k INT;
@@ -1278,7 +1272,7 @@ BEGIN
         -- Get a random room
         v_room_id := (SELECT id FROM rooms ORDER BY RANDOM() LIMIT 1);
         
-        -- Generate 4-6 slots per class (starting from 60 days ago to ensure finalized slots)
+        -- Generate 4-6 slots per class (starting from 60 days ago to ensure past slots for test data)
         FOR j IN 1..(4 + (v_class_id % 3)) LOOP
             v_start_time := (CURRENT_TIMESTAMP - INTERVAL '60 days')::DATE::TIMESTAMP + INTERVAL '08:00:00' +
                            (((v_class_id - 1) * 7 + (j - 1) * 2) || ' days')::INTERVAL +
@@ -1286,19 +1280,13 @@ BEGIN
             v_end_time := v_start_time + '2 hours'::INTERVAL;
             
             -- Determine slot category
-            v_slot_category := CASE 
+            v_slot_category := CASE
                 WHEN j = (4 + (v_class_id % 3)) THEN 'LECTURE_WITH_PT' -- Last slot is progress test
                 ELSE 'LECTURE'
             END;
-            
-            -- Finalize past slots
-            v_removed_placeholder := CASE 
-                WHEN v_start_time < CURRENT_TIMESTAMP - INTERVAL '7 days' THEN v_end_time + '30 minutes'::INTERVAL
-                ELSE NULL
-            END;
-            
-            INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
-                             start_time, end_time title, is_active)
+
+            INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category,
+                             start_time, end_time, title, is_active)
             VALUES (
                 v_class_id,
                 v_semester_id,
@@ -1307,7 +1295,6 @@ BEGIN
                 v_slot_category,
                 v_start_time,
                 v_end_time,
-                v_removed_placeholder,
                 CASE v_slot_category
                     WHEN 'LECTURE_WITH_PT' THEN 'Progress Test ' || j
                     ELSE 'Lecture Session ' || j
@@ -1331,8 +1318,8 @@ BEGIN
                        ((i - 1) * 12 || ' hours')::INTERVAL;
         v_end_time := v_start_time + '2 hours'::INTERVAL;
         
-        INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category, 
-                         start_time, end_time title, is_active)
+        INSERT INTO slots (class_id, semester_id, room_id, staff_user_id, slot_category,
+                         start_time, end_time, title, is_active)
         VALUES (
             NULL, -- FINAL_EXAM has no class_id
             v_semester_id,
@@ -1341,7 +1328,6 @@ BEGIN
             'FINAL_EXAM',
             v_start_time,
             v_end_time,
-            NULL, -- Not finalized yet
             'Final Exam Slot ' || i,
             TRUE
         );
@@ -1386,13 +1372,13 @@ BEGIN
                  (SELECT COUNT(*) FROM exam_slot_participants);
     
     -- =====================================================
-    -- 7. GENERATE ATTENDANCE_RECORDS FOR FINALIZED SLOTS
+    -- 7. GENERATE ATTENDANCE_RECORDS FOR PAST SLOTS
     -- =====================================================
     RAISE NOTICE 'Generating attendance records...';
     
-    FOR v_slot_id IN (SELECT id FROM slots 
-                     WHERE slot_category IN ('LECTURE', 'LECTURE_WITH_PT') 
-        
+    FOR v_slot_id IN (SELECT id FROM slots
+                     WHERE slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) LOOP
+
         -- Get class_id for this slot
         SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
         
@@ -1419,13 +1405,13 @@ BEGIN
     RAISE NOTICE 'Generated % attendance records', (SELECT COUNT(*) FROM attendance_records);
     
     -- =====================================================
-    -- 8. GENERATE EXAM_ATTENDANCE FOR FINALIZED LECTURE_WITH_PT SLOTS
+    -- 8. GENERATE EXAM_ATTENDANCE FOR PAST LECTURE_WITH_PT SLOTS
     -- =====================================================
     RAISE NOTICE 'Generating exam attendance records...';
     
-    FOR v_slot_id IN (SELECT id FROM slots 
-                     WHERE slot_category = 'LECTURE_WITH_PT' 
-        
+    FOR v_slot_id IN (SELECT id FROM slots
+                     WHERE slot_category = 'LECTURE_WITH_PT') LOOP
+
         SELECT class_id INTO v_class_id FROM slots WHERE id = v_slot_id;
         
         FOR v_user_id IN (SELECT student_user_id FROM enrollments WHERE class_id = v_class_id AND is_enrolled = TRUE) LOOP
@@ -1442,7 +1428,8 @@ BEGIN
                     ELSE 'manual'
                 END,
                 (SELECT start_time FROM slots WHERE id = v_slot_id) + ((15 + (RANDOM() * 25)::INT) || ' minutes')::INTERVAL
-            );
+            )
+            ON CONFLICT (student_user_id, slot_id) DO NOTHING;
         END LOOP;
     END LOOP;
     

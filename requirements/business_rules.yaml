@@ -2,8 +2,8 @@
 # FUACS Requirements - Version 1.0
 
 metadata:
-  version: "1.2"
-  total_business_rules: 35
+  version: "1.3"
+  total_business_rules: 40
   domains_covered:
     [
       Authentication,
@@ -77,9 +77,9 @@ business_rules:
       related_use_cases: ["UC-34"]
       validation_points: ["User creation workflow"]
 
-  # Academic Catalog (BR-12 to BR-17)
+  # Academic Catalog (BR-08 to BR-13)
   academic_catalog:
-    BR-12:
+    BR-08:
       title: "Unique Academic Identifiers"
       description: "Each Major, Subject, and Class must have a unique identifier (code or name)."
       domain: "Academic"
@@ -87,7 +87,7 @@ business_rules:
       related_use_cases: ["UC-42", "UC-46", "UC-50", "UC-54"]
       validation_points: ["Academic entity creation", "Academic entity update"]
 
-    BR-13:
+    BR-09:
       title: "Single Class Enrollment"
       description: "A student can only be enrolled in a specific class once."
       domain: "Academic"
@@ -95,7 +95,7 @@ business_rules:
       related_use_cases: ["UC-62"]
       validation_points: ["Student enrollment"]
 
-    BR-14:
+    BR-10:
       title: "Enrollment History Preservation"
       description: "When a student is unenrolled from a class (enrollments.is_enrolled = false), they must not appear in the roster for future slots of that class, but their past attendance history must be preserved."
       domain: "Academic"
@@ -108,7 +108,7 @@ business_rules:
           "Attendance history queries",
         ]
 
-    BR-15:
+    BR-11:
       title: "Slot Room Assignment"
       description: "Each lecture/exam slot must be associated with a specific room."
       domain: "Academic"
@@ -116,7 +116,7 @@ business_rules:
       related_use_cases: ["UC-25", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update"]
 
-    BR-16:
+    BR-12:
       title: "Camera Room Validation"
       description: "All active cameras in the slot's assigned room are automatically used for attendance monitoring. No manual camera selection is required."
       domain: "Infrastructure"
@@ -124,7 +124,7 @@ business_rules:
       related_use_cases: ["UC-25", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Camera availability check"]
 
-    BR-17:
+    BR-13:
       title: "Single Staff Assignment"
       description: "Each lecture/exam slot must be assigned to one and only one staff member (Lecturer or Supervisor) at a time."
       domain: "Academic"
@@ -132,9 +132,9 @@ business_rules:
       related_use_cases: ["UC-15", "UC-25", "UC-28", "UC-58", "UC-60"]
       validation_points: ["Slot creation", "Slot update", "Staff assignment"]
 
-  # Attendance Management (BR-18 to BR-22)
+  # Attendance Management (BR-14 to BR-17)
   attendance_management:
-    BR-18:
+    BR-14:
       title: "Attendance Session Authorization"
       description: "An automated attendance session can only be initiated by the staff member assigned to that slot who has the SLOT_SESSION_START permission."
       domain: "Attendance"
@@ -142,15 +142,7 @@ business_rules:
       related_use_cases: ["UC-15", "UC-28"]
       validation_points: ["Session initiation", "Permission check"]
 
-    BR-19:
-      title: "Finalization Rules Setup"
-      description: "When finalizing a slot, the system must display a 'Finalization Rules Setup' screen. The lecturer must then make a bulk decision for each group of students with intermediate status (e.g., NOT_YET) to convert their final status to either PRESENT or ABSENT."
-      domain: "Attendance"
-      priority: "High"
-      related_use_cases: ["UC-21", "UC-32"]
-      validation_points: ["Slot finalization workflow"]
-
-    BR-20:
+    BR-15:
       title: "Same-Day Edit Window"
       description: "The assigned Lecturer/Supervisor can manually edit the attendance results for a slot until 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC)."
       domain: "Attendance"
@@ -159,7 +151,7 @@ business_rules:
       validation_points:
         ["Attendance edit authorization", "Time-based access control"]
 
-    BR-21:
+    BR-16:
       title: "Post-Day Edit Restrictions"
       description: "After 23:59:59 UTC on the day of the slot (based on slot.start_time date in UTC), only a user with permissions such as ATTENDANCE_STATUS_UPDATE_MANUAL can edit the attendance results, typically a Data Operator."
       domain: "Attendance"
@@ -168,7 +160,7 @@ business_rules:
       validation_points:
         ["Attendance edit authorization", "Time-based access control"]
 
-    BR-22:
+    BR-17:
       title: "Unique Attendance Record"
       description: "An attendance record for a student in a specific slot must be unique."
       domain: "Attendance"
@@ -176,9 +168,9 @@ business_rules:
       related_use_cases: ["UC-15", "UC-16", "UC-28"]
       validation_points: ["Attendance record creation"]
 
-  # System Administration (BR-23 to BR-25)
+  # System Administration (BR-18 to BR-20)
   system_administration:
-    BR-23:
+    BR-18:
       title: "System Configuration Permissions"
       description: "Actions to modify core system configurations and manage role-permission mappings must be protected by distinct permissions (e.g., SYSTEM_CONFIG_UPDATE, ROLE_PERMISSION_MAPPING_UPDATE). By default, these permissions are granted only to the SYSTEM_ADMIN role."
       domain: "System"
@@ -187,7 +179,7 @@ business_rules:
       validation_points:
         ["System configuration access", "Role-permission management"]
 
-    BR-24:
+    BR-19:
       title: "User Management Permissions"
       description: "User account management (creating, updating, assigning roles, etc.) must be controlled by a granular set of permissions (e.g., USER_CREATE, USER_UPDATE_STATUS, USER_ASSIGN_ROLES). By default, these permissions are granted to the DATA_OPERATOR role."
       domain: "User Management"
@@ -195,7 +187,7 @@ business_rules:
       related_use_cases: ["UC-34", "UC-35", "UC-36", "UC-37", "UC-38"]
       validation_points: ["User management operations", "Permission validation"]
 
-    BR-25:
+    BR-20:
       title: "Audit Trail Requirement"
       description: "Critical business data changes (e.g., finalizing attendance, updating student information) must be logged in the operational audit trail (operational_audit_logs)."
       domain: "Audit"
@@ -233,9 +225,9 @@ business_rules:
         ]
       validation_points: ["All critical data modifications"]
 
-  # Attendance Data Integrity (BR-26 to BR-28)
+  # Attendance Data Integrity (BR-21 to BR-22)
   attendance_data_integrity:
-    BR-26:
+    BR-21:
       title: "Manual Edit Remark Requirement"
       description: "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty."
       domain: "Attendance"
@@ -243,15 +235,7 @@ business_rules:
       related_use_cases: ["UC-19", "UC-20", "UC-30", "UC-31"]
       validation_points: ["Manual status update", "Remark validation"]
 
-    BR-27:
-      title: "Final Status Requirement"
-      description: "After a slot is finalized, the primary status for all attendance records must be either PRESENT or ABSENT."
-      domain: "Attendance"
-      priority: "High"
-      related_use_cases: ["UC-21", "UC-32"]
-      validation_points: ["Slot finalization", "Status validation"]
-
-    BR-28:
+    BR-22:
       title: "Hard Delete Dependency Check"
       description: "Any request to permanently delete a resource (e.g., Major, Semester, Room) must be rejected with a user-friendly error message if the resource has dependent child resources (e.g., Subjects, Classes, Cameras)."
       domain: "Data Integrity"
@@ -260,14 +244,14 @@ business_rules:
         ["UC-45", "UC-49", "UC-53", "UC-57", "UC-61", "UC-69", "UC-73"]
       validation_points: ["All hard delete operations in the backend services"]
 
-  # Attendance Status Management (BR-29 to BR-30)
+  # Attendance Status Management (BR-23 to BR-24)
   attendance_status_management:
-    BR-29:
+    BR-23:
       title: "Attendance Status Transition Rules"
-      description: "Defines valid state transitions for attendance records and time-based edit restrictions. Before finalization, all transitions are manual. After finalization, assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit."
+      description: "Defines valid state transitions for attendance records and time-based edit restrictions. Assigned staff can edit until 23:59:59 UTC of the slot date. After that, only Data Operators can edit."
       domain: "Attendance"
       priority: "High"
-      related_use_cases: ["UC-19", "UC-21", "UC-30", "UC-32"]
+      related_use_cases: ["UC-19", "UC-30"]
       validation_points:
         [
           "Attendance edit API",
@@ -276,25 +260,29 @@ business_rules:
         ]
       rules:
         valid_transitions:
-          before_finalization:
-            - "not_yet → present (manual only)"
-            - "not_yet → absent (manual only)"
-            - "present → absent (manual with remark)"
-            - "absent → present (manual with remark)"
-          after_finalization_same_day:
+          manual_updates:
+            - "not_yet → present (manual only, remark mandatory)"
+            - "not_yet → absent (manual only, remark mandatory)"
+            - "present → absent (manual only, remark mandatory)"
+            - "absent → present (manual only, remark mandatory)"
+          automated_updates:
+            - "not_yet → present (auto via face recognition, no remark required)"
+        edit_windows:
+          same_day_window:
             - "All transitions allowed until 23:59:59 UTC of slot date"
-            - "Must have ATTENDANCE_STATUS_UPDATE_MANUAL permission"
-            - "Remark is mandatory for all manual changes"
-          after_finalization_next_day:
+            - "Assigned staff must have ATTENDANCE_STATUS_UPDATE_MANUAL permission"
+            - "Remark is mandatory for manual status changes (present/absent)"
+            - "Remark is optional for not_yet status"
+          post_day_window:
             - "Lecturer/Supervisor: NO edit permission"
-            - "Data Operator: Can edit with appropriate permissions"
+            - "Data Operator: Can edit with ATTENDANCE_STATUS_UPDATE_MANUAL permission"
             - "All changes must be logged in operational_audit_logs"
         time_boundary:
           calculation: "Based on slot.start_time date in server timezone (UTC)"
           cutoff: "23:59:59 UTC of the slot date"
           example: "If slot starts 2024-10-19 14:00 UTC, edit window closes 2024-10-19 23:59:59 UTC"
 
-    BR-30:
+    BR-24:
       title: "Face Embedding Version Management"
       description: "Rules for managing face embedding versions when identity data is updated via the Bulk Import flow. Each successful import generates a new embedding with incremented version. Only one embedding per student can be active at a time."
       domain: "Identity"
@@ -315,9 +303,9 @@ business_rules:
           - "Keep last 3 versions for audit and rollback purposes"
           - "Older versions can be archived or deleted after 1 year"
 
-  # Academic Data Management (BR-31 to BR-33)
+  # Academic Data Management (BR-25 to BR-27)
   academic_data_management:
-    BR-31:
+    BR-25:
       title: "Class Enrollment Status and Roster Visibility"
       description: "When generating a roster for a class-based slot (LECTURE, LECTURE_WITH_PT), only include students where enrollments.is_enrolled = true. Historical attendance records are preserved even after unenrollment. This rule does not apply to independent final exams."
       domain: "Academic"
@@ -341,7 +329,7 @@ business_rules:
           - "If student is unenrolled AFTER slot is finalized, their attendance record is preserved"
           - "If student is unenrolled BEFORE slot starts, no attendance record is created"
 
-    BR-32:
+    BR-26:
       title: "Slot Category Validation and Roster Logic"
       description: "Defines the core validation logic for creating/updating slots and determines the source of the student roster. This logic must be enforced at the application layer."
       domain: "Academic"
@@ -359,7 +347,7 @@ business_rules:
           validation: "The 'class_id' field MUST be NULL, and the 'semester_id' field MUST NOT be NULL."
           roster_source: "The student roster is derived from the 'exam_slot_participants' table based on the slot's 'id'."
 
-    BR-33:
+    BR-27:
       title: "Lecturer Can Update Slot Category"
       description: "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT for their assigned slots, subject to certain constraints."
       domain: "Academic"
@@ -369,7 +357,6 @@ business_rules:
       rules:
         can_update_category_if:
           - "Slot belongs to lecturer's assigned class"
-          - "Slot has not been finalized yet"
           - "Current user has SLOT_UPDATE_CATEGORY permission"
           - "Update is between LECTURE and LECTURE_WITH_PT only"
 
@@ -385,13 +372,12 @@ business_rules:
         cannot_update_if:
           - "Slot category is 'FINAL_EXAM' (only DOP can manage)"
           - "Trying to change to/from 'FINAL_EXAM'"
-          - "Slot already finalized"
           - "Slot is in the past (after 23:59:59 UTC of slot date)"
           - "Exam attendance records exist (for LECTURE_WITH_PT → LECTURE)"
 
-  # Time-Based Rules (BR-34)
+  # Time-Based Rules (BR-28)
   time_based_rules:
-    BR-34:
+    BR-28:
       title: "Time-Based Edit Window Calculation"
       description: "Defines how the 23:59:59 cutoff time is calculated for attendance editing. All timestamps are in UTC, cutoff is based on slot start_time date."
       domain: "Attendance"
@@ -415,9 +401,9 @@ business_rules:
           - "4. If time expired: check if user has DATA_OPERATOR role"
           - "5. If DATA_OPERATOR: allow edit, else deny"
 
-  # Bulk Operations (BR-35 to BR-46)
+  # Bulk Operations (BR-29 to BR-40)
   bulk_operations:
-    BR-35:
+    BR-29:
       title: "Bulk Class Enrollment CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk student enrollment into classes. This rule does not apply to independent final exams."
       domain: "Academic"
@@ -462,7 +448,7 @@ business_rules:
           - "Provide detailed error list for failed rows"
           - "Provide warning list for skipped rows (duplicates, already enrolled)"
 
-    BR-36:
+    BR-30:
       title: "Exam Slot Participant Uniqueness"
       description: "A student can only be added to the participant list of a specific independent final exam slot once."
       domain: "Academic"
@@ -471,7 +457,7 @@ business_rules:
       validation_points:
         ["Exam participant creation", "Bulk exam participant import"]
 
-    BR-37:
+    BR-31:
       title: "Exam Participant Roster Visibility"
       description: "When generating the roster for an independent final exam slot (slot_category = 'FINAL_EXAM'), the system must only include students from the 'exam_slot_participants' table who are linked to that slot_id and have their 'is_enrolled' status set to true."
       domain: "Academic"
@@ -480,7 +466,7 @@ business_rules:
       validation_points:
         ["Roster query API for exam slots", "Exam attendance processing"]
 
-    BR-38:
+    BR-32:
       title: "Bulk Exam Participant CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk registering participants to an independent final exam slot. This file assigns students to specific subjects within that slot."
       domain: "Academic"
@@ -527,7 +513,7 @@ business_rules:
           - "Provide detailed error list for failed rows"
           - "Provide warning list for skipped rows (duplicates, already enrolled)"
 
-    BR-39:
+    BR-33:
       title: "Bulk Identity Data CSV/ZIP Format and Validation"
       description: "Defines the file formats and validation rules for bulk importing student identity data (base photos and generating vectors)."
       domain: "Academic"
@@ -560,7 +546,7 @@ business_rules:
           - "The background job must log all errors (e.g., 'HE180001: file not found in ZIP', 'HE180002: invalid user', 'HE180003: face not detected in image')."
           - "DOP can download this error log from the UI."
 
-    BR-40:
+    BR-34:
       title: "Bulk Import Majors CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk importing Majors."
       domain: "Academic"
@@ -590,7 +576,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'name' is empty, or duplicate in 'Add Only' mode)."
 
-    BR-41:
+    BR-35:
       title: "Bulk Import Subjects CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk importing Subjects."
       domain: "Academic"
@@ -625,7 +611,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'major_code' does not exist, or duplicate in 'Add Only' mode)."
 
-    BR-42:
+    BR-36:
       title: "Bulk Import Semesters CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk importing Semesters."
       domain: "Academic"
@@ -663,7 +649,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'start_date' is invalid, or duplicate in 'Add Only' mode)."
 
-    BR-43:
+    BR-37:
       title: "Bulk Import Classes CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk importing Classes."
       domain: "Academic"
@@ -698,7 +684,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'subject_code' does not exist, or duplicate in 'Add Only' mode)."
 
-    BR-44:
+    BR-38:
       title: "Bulk Import Slots CSV Format and Validation"
       description: "Defines the CSV file format and validation rules for bulk importing Slots. This is the most complex flow, requiring Class, Staff, and Room data to exist beforehand."
       domain: "Academic"
@@ -758,7 +744,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'staff_username' not found, BR-34 logic failed, or duplicate in 'Add Only' mode)."
 
-    BR-45:
+    BR-39:
       title: "HYPOTHESIS: Bulk Import Rooms CSV Format and Validation"
       description: "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Rooms."
       domain: "Infrastructure"
@@ -789,7 +775,7 @@ business_rules:
         error_reporting:
           - "PARTIAL SUCCESS: The system will process all valid rows (create or update) and report detailed errors for failed rows (e.g., 'name' is empty, format validation failed, or duplicate in 'Add Only' mode)."
 
-    BR-46:
+    BR-40:
       title: "HYPOTHESIS: Bulk Import Cameras CSV Format and Validation"
       description: "HYPOTHESIS: Defines the CSV file format and validation rules for bulk importing Cameras."
       domain: "Infrastructure"
@@ -834,20 +820,19 @@ rule_relationships:
     description: "Rules governing user authentication and account validation"
 
   attendance_lifecycle:
-    primary_rules:
-      ["BR-18", "BR-19", "BR-26", "BR-27", "BR-29", "BR-34", "BR-35"]
+    primary_rules: ["BR-14", "BR-21", "BR-23", "BR-28", "BR-29"]
     description: "Rules governing the complete attendance management lifecycle"
 
   data_integrity:
-    primary_rules: ["BR-12", "BR-13", "BR-22", "BR-25"]
+    primary_rules: ["BR-08", "BR-09", "BR-17", "BR-20"]
     description: "Rules ensuring data consistency and audit trail"
 
   academic_data_management:
-    primary_rules: ["BR-32", "BR-33", "BR-36", "BR-37", "BR-38"]
+    primary_rules: ["BR-26", "BR-27", "BR-30", "BR-31", "BR-32"]
     description: "Rules for academic data management including slot categories, lecturer permissions, and exam participant management"
 
   permission_control:
-    primary_rules: ["BR-05", "BR-23", "BR-24"]
+    primary_rules: ["BR-05", "BR-18", "BR-19"]
     description: "Rules controlling access and permission management"
 
 # Validation Matrix
@@ -861,19 +846,15 @@ validation_requirements:
       validation_type: "Business logic validation"
       implementation: "Role compatibility check before assignment"
 
-    - rule: "BR-19"
-      validation_type: "Workflow validation"
-      implementation: "Finalization rules UI with mandatory status conversion"
-
-    - rule: "BR-25"
+    - rule: "BR-20"
       validation_type: "Audit validation"
       implementation: "Automatic audit log creation for critical operations"
 
-    - rule: "BR-26"
+    - rule: "BR-21"
       validation_type: "Input validation"
       implementation: "Non-empty remark validation for manual attendance edits"
 
   runtime_validations:
-    - rule: "BR-16"
+    - rule: "BR-12"
       validation_type: "Referential integrity"
       implementation: "Camera-room relationship validation during slot creation"

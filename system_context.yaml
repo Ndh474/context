@@ -89,7 +89,6 @@ system_context:
       OWN_SCHEDULE_READ: "View personal schedule (teaching/exam/learning)."
       SLOT_SESSION_START: "Start an automated attendance session for a slot."
       SLOT_SESSION_RESCAN: "Trigger a re-scan for attendance."
-      SLOT_SESSION_FINALIZE: "Finalize and complete the attendance session."
       ATTENDANCE_ROSTER_READ: "View the roster and real-time attendance status of a slot."
       ATTENDANCE_STATUS_UPDATE_MANUAL: "Manually update attendance status for students."
       ATTENDANCE_REMARK_MANAGE: "Add, edit, delete attendance remarks."
@@ -203,14 +202,13 @@ system_context:
 
     LECTURER:
       role_name: "Lecturer"
-      description: "Responsible for managing lecture sessions, monitoring class rosters, and finalizing attendance results."
+      description: "Responsible for managing lecture sessions, monitoring class rosters, and managing attendance results."
       platform: "GENERAL_WEB"
       permissions:
         [
           "OWN_SCHEDULE_READ",
           "SLOT_SESSION_START",
           "SLOT_SESSION_RESCAN",
-          "SLOT_SESSION_FINALIZE",
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ATTENDANCE_REMARK_MANAGE",
@@ -232,14 +230,13 @@ system_context:
 
     SUPERVISOR:
       role_name: "Exam Supervisor"
-      description: "Responsible for supervising exam sessions, initiating and finalizing attendance results for exams."
+      description: "Responsible for supervising exam sessions, initiating and managing attendance results for exams."
       platform: "GENERAL_WEB"
       permissions:
         [
           "OWN_SCHEDULE_READ",
           "SLOT_SESSION_START",
           "SLOT_SESSION_RESCAN",
-          "SLOT_SESSION_FINALIZE",
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ATTENDANCE_REMARK_MANAGE",
@@ -378,7 +375,7 @@ system_context:
         features:
           - "View teaching schedule and exam supervision schedule by semester on a unified interface"
           - "Advanced filters to filter lecture/exam slots by multiple criteria, including 'Category' (slot_category: LECTURE, LECTURE_WITH_PT, FINAL_EXAM)"
-          - "Open/Close/Finalize slot"
+          - "Open/Close slot"
 
       SCR_LECTURER_ROSTER:
         title: "Roster & Attendance"
@@ -393,7 +390,7 @@ system_context:
           - "Add/Edit attendance remarks for each student"
           - "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions"
           - "Manual attendance edit window, requires mandatory reason (remark) input when changing status"
-          - "'Finalization Rules Setup' screen displays when finalizing slot to batch process undetermined statuses"
+          - "Bulk update dialog for processing multiple student statuses at once"
 
       SCR_LECTURER_SLOT_DETAILS:
         title: "Slot Details"
@@ -416,7 +413,7 @@ system_context:
           - "Visually highlight students who are ineligible for the exam"
           - "Function to export summary report to file (CSV, Excel)"
         notes:
-          - "IMPORTANT: This entire screen/report is only accessible after ALL slots (both LECTURE and EXAM) for the selected class have been finalized by the responsible staff."
+          - "IMPORTANT: This report displays real-time attendance data for all slots (both LECTURE and EXAM) for the selected class."
 
     web_admin_portal_screens:
       SCR_ADMIN_LOGIN:
@@ -547,15 +544,13 @@ system_context:
 
     slot_control:
       open_by: "Lecturer/Supervisor"
-      finalize_by: "Lecturer/Supervisor"
-      finalization_logic: "When a lecturer finalizes a slot, the system displays a 'Finalization Rules Setup' screen. This screen allows the lecturer to batch decide how students with intermediate statuses (Not Yet) will be converted to final statuses (Present or Absent)."
-      editability_rules: "After the first finalization (first_submission), Lecturer/Supervisor can edit attendance results until 23:59:59 of that day. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator."
-      finalization_audit_trail_note: "The timestamp of the MOST RECENT finalization is stored in slots.finalized_at for quick queries and reporting. When a slot is re-finalized, this value is updated (overwrites previous value). Detailed information about WHO performed the finalization (actor_user_id), along with the complete history of all finalization-related actions (finalize, reopen, re-finalize), is comprehensively recorded in the operational_audit_logs table. This dual approach balances query performance with comprehensive audit trail requirements."
+      editability_rules: "Lecturer/Supervisor can edit attendance results until 23:59:59 UTC of the slot date. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator with ATTENDANCE_STATUS_UPDATE_MANUAL permission."
+      bulk_update_logic: "Lecturers can use the bulk update feature to process multiple student attendance statuses at once. This is especially useful for handling students with 'not_yet' status after the attendance session."
 
     lecturer_ui_rules:
       description: "Rules on the lecturer/supervisor attendance screen."
       real_time_update: "Attendance status is updated in real-time as soon as the recognition service sends successful results."
-      finalization_confirmation: "The system must display a warning dialog and request confirmation if the user finalizes a lecture/exam slot while there are still students in 'not_yet' status."
+      bulk_update_feature: "The system provides bulk update functionality for efficiently processing multiple student attendance records at once, with validation for mandatory remarks."
 
   technical_flows:
     evidence_cleanup_flow:
@@ -585,11 +580,11 @@ system_context:
 
     daily_absence_calculation_flow:
       title: "Daily Absence Calculation and Notification Flow"
-      description: "A scheduled job that runs automatically every day after midnight to ensure data consistency and timely notifications based on finalized attendance records from the previous day."
+      description: "A scheduled job that runs automatically every day after midnight to ensure data consistency and timely notifications based on attendance records from the previous day."
       steps:
         - "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time daily (e.g., 00:05 AM)."
         - "2. Read Configuration: The job first reads the value of 'attendance.max_absence_percentage' from the system_configurations table to get the current threshold."
-        - "3. Scan for Finalized Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that were finalized within the previous calendar day (from 00:00:00 to 23:59:59)."
+        - "3. Scan for Completed Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that have ended within the previous calendar day (where end_time is between 00:00:00 and 23:59:59 of previous day)."
         - "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student."
         - "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
 
@@ -632,8 +627,8 @@ system_context:
 
   information_flows:
     - "Student ↔ System: view schedule/slots; view attendance status"
-    - "Lecturer ↔ System: open/finalize slots; start automated attendance session; review/edit status before finalizing"
-    - "Supervisor ↔ System: open/finalize exam slots; start automated attendance session; review/edit status"
+    - "Lecturer ↔ System: open/close slots; start automated attendance session; review/edit attendance status"
+    - "Supervisor ↔ System: open/close exam slots; start automated attendance session; review/edit attendance status"
     - "System → External systems (SIS/LMS): export academic data and attendance results on demand"
     - "System ↔ Python Recognition Service: send session start request; receive attendance results"
     - "System ↔ Data Operations Staff: attendance reports, catalog management and data synchronization; approve identity registrations; manage user accounts; manage rooms and cameras; review activity history"
@@ -854,11 +849,6 @@ system_context:
         reason: "Slots are academic data managed by DOP, not by Lecturers"
         status: "FINAL - Lecturers cannot cancel slots, do not suggest this feature"
 
-      - item: "Slot Reopen after Finalization"
-        decision: "Feature exists (same-day only) but NOT documented as separate UC"
-        reason: "Part of normal attendance management flow, covered by existing permissions"
-        status: "FINAL - Do not suggest adding separate UC for this"
-
     validation_and_constraints_clarifications:
       - item: "Password Reset Token Status Tracking"
         decision: "NOT implemented - rely on expires_at only"
@@ -882,7 +872,7 @@ system_context:
         status: "SKIP - Implementation detail, not a requirements concern"
 
   to_be_discussed_or_backlog:
-    - "Dashboard Design: Finalize KPIs displayed for each role"
+    - "Dashboard Design: Define KPIs displayed for each role"
     - "Standardize reasons/forms: If upgrading 'Slot Announcement' to a standardized approval (request) flow in the future"
     - "API Integration: Define scope/security/throttling/response format for planned endpoints"
     - "Conflict resolution with external systems (SIS/LMS): Priority rules for data overwrite when importing"
