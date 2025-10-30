@@ -7,6 +7,7 @@ POST   	| /staff-profiles/import
 GET    	| /staff-profiles/{id}/classes
 GET    	| /staff-profiles/{id}/subjects
 GET    	| /staff-profiles/{id}/rooms
+GET     | /staff-profiles/{id}/slots
 
 =================================================== Search staff profiles ==================================================
 
@@ -665,6 +666,157 @@ Room Object Schema:
   "message": "Staff profile not found: 1",
   "code": "STAFF_PROFILE_NOT_FOUND"
 }
+
+=======================================================================================================================
+============================================== Get slots by staff profile id ===============================================
+Note:
+- Get slots where this staff member is assigned as lecturer or supervisor
+- Returns paginated list of slots with full details (class, room, attendance stats, subjects)
+- Useful for My Schedule and My Slots pages in lecturer/supervisor portal
+- Automatically filters by staffUserId to ensure only slots assigned to this staff are returned
+
+10. GET /api/v1/staff-profiles/{staffId}/slots
+Permission: SLOT_READ
+
+Path Parameters:
+| Parameter 	| Type 	| Required 	| Description
+| staffId 	  | int   | Yes 		  | Staff Profile ID (user_id)
+
+Query Parameters:
+| Parameter 	  | Type 		    | Required| Default     | Validation
+| page 		      | integer     | No 		  | 1 		      | 1-50
+| pageSize 	    | integer     | No 		  | 10 		      | 1-50
+| sort 		      | string 	    | No 		  | asc 		    | asc/desc
+| sortBy 	      | string 	    | No 		  | startTime 	| startTime, endTime, slotCategory
+| slotCategory  | array[enum] | No      | null        | LECTURE, LECTURE_WITH_PT, FINAL_EXAM (can specify multiple)
+| classId       | short       | No      | null        | Filter by class ID
+| subjectId     | short       | No      | null        | Filter by subject ID (searches both class subjects and exam subjects)
+| roomId        | short       | No      | null        | Filter by room ID
+| semesterId    | short       | No      | null        | Filter by semester ID
+| isActive      | boolean     | No      | null        | Filter by active status
+| isFinalized   | boolean     | No      | null        | Filter by finalization status (true = finalized, false = not finalized)
+| startTimeFrom | string      | No      | null        | YYYY-MM-DD (slots starting from this date, inclusive)
+| startTimeTo   | string      | No      | null        | YYYY-MM-DD (slots starting until this date, inclusive)
+
+200-Success Response:
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "title": "Introduction to Java Programming",
+        "description": "Chapter 1: Getting Started",
+        "startTime": "2024-10-17T08:00:00Z",
+        "endTime": "2024-10-17T10:00:00Z",
+        "slotCategory": "LECTURE",
+        "finalizedAt": null,
+        "room": {
+          "id": 1,
+          "name": "Room A101",
+          "location": "Building A, Floor 1"
+        },
+        "staffUser": {
+          "id": 10,
+          "username": "lecturer01",
+          "fullName": "Nguyen Van A"
+        },
+        "class": {
+          "id": 1,
+          "code": "SE1801",
+          "subject": {
+            "id": 1,
+            "name": "Java Programming",
+            "code": "PRJ301",
+            "isActive": true
+          },
+          "semester": {
+            "id": 1,
+            "name": "Fall 2024",
+            "code": "FA24"
+          }
+        },
+        "subjects": [],
+        "examSubjects": [],
+        "totalStudent": 25,
+        "totalPresentStudent": 20,
+        "totalAbsentStudent": 3,
+        "totalNotYetStudent": 2,
+        "isActive": true,
+        "createdAt": "2024-10-16T11:00:00Z",
+        "updatedAt": "2024-10-16T11:00:00Z"
+      },
+      ...
+    ],
+    "totalPages": 3,
+    "currentPage": 1,
+    "pageSize": 10,
+    "totalItems": 25
+  }
+}
+
+Response Schema (items): Same as GET /api/v1/slots
+| Field 			      | Type 		| Description
+| id 				        | integer 	| Slot ID
+| title 			      | string 	| Slot title (nullable)
+| description 		  | string 	| Slot description (nullable)
+| startTime 		    | string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| endTime 			    | string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| slotCategory 		  | string 	| LECTURE, LECTURE_WITH_PT, or FINAL_EXAM
+| finalizedAt 		  | string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ (null if not finalized)
+| room 				      | object 	| Room object (id, name, location)
+| staffUser 		    | object 	| Staff user object (id, username, fullName)
+| class 			      | object 	| Class object with nested subject and semester (null for FINAL_EXAM slots)
+| subjects          | array   | Empty array for LECTURE/LECTURE_WITH_PT slots
+| examSubjects      | array   | Array of subject objects for FINAL_EXAM slots (id, name, code)
+| totalStudent 		  | integer 	| Total enrolled students in the class
+| totalPresentStudent| integer 	| Total students marked present
+| totalAbsentStudent | integer 	| Total students marked absent
+| totalNotYetStudent | integer 	| Total students not yet marked
+| isActive 			    | boolean 	| Active status
+| createdAt 		    | string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+| updatedAt 		    | string 	| ISO 8601: YYYY-MM-DDTHH:mm:SSZ
+
+400-Invalid query parameters:
+{
+  "status": 400,
+  "message": "Page must >= 1, Invalid sort parameter...",
+  "code": "INVALID_PAGE" | "INVALID_PAGE_SIZE" | "INVALID_SORT" | "INVALID_SORT_BY"
+}
+
+400 - Invalid date format:
+{
+  "status": 400,
+  "message": "Invalid date format. Expected YYYY-MM-DD",
+  "code": "INVALID_DATE_FORMAT"
+}
+
+400 - Invalid Field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+404 - Staff profile not found:
+{
+  "status": 404,
+  "message": "Staff profile not found: 1",
+  "code": "STAFF_PROFILE_NOT_FOUND"
+}
+
+Examples:
+- Get all slots for staff ID 10:
+  GET /api/v1/staff-profiles/10/slots
+
+- Get upcoming unfinalized slots for current semester:
+  GET /api/v1/staff-profiles/10/slots?semesterId=5&isFinalized=false&startTimeFrom=2024-11-01&sort=asc&sortBy=startTime
+
+- Get slots for a specific date range:
+  GET /api/v1/staff-profiles/10/slots?startTimeFrom=2024-10-01&startTimeTo=2024-10-31&sort=asc
+
+- Get only lecture slots (exclude exams):
+  GET /api/v1/staff-profiles/10/slots?slotCategory=LECTURE&slotCategory=LECTURE_WITH_PT
 
 =======================================================================================================================
 ====================================================== Notes ==========================================================
