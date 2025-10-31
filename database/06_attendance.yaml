@@ -27,10 +27,6 @@ tables:
         type: timestamp
         constraints: [NOT NULL]
         description: "Slot end time"
-      finalized_at:
-        type: timestamp
-        constraints: [NULL]
-        description: "Timestamp of the MOST RECENT finalization. NULL if slot has never been finalized. When slot is re-finalized, this value is updated to the new finalization timestamp (overwrites previous value). This field is used for quick queries (e.g., filtering finalized slots, calculating edit window cutoff). For complete audit trail including WHO finalized and all finalization history (first finalize, reopen, re-finalize), query operational_audit_logs table with target_entity='slot' and action_type IN ('FINALIZE', 'REOPEN')."
       class_id:
         type: smallint
         constraints: [NULL]
@@ -97,17 +93,12 @@ tables:
       - name: idx_slots_start_time
         columns: [start_time]
         description: "For date range queries and schedule display"
-
-      - name: idx_slots_finalized_at
-        columns: [finalized_at]
-        description: "For filtering finalized vs pending slots"
     notes:
       - "slot_category determines slot behavior and available functions."
       - "LECTURE/LECTURE_WITH_PT slots must have a non-null class_id."
       - "FINAL_EXAM slots must have a null class_id and a non-null semester_id."
       - "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT."
       - "Cannot change to/from FINAL_EXAM (only DOP can manage)."
-      - "finalized_at tracks when attendance was completed by staff."
 
   attendance_records:
     primary_key: id

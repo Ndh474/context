@@ -14,11 +14,10 @@ system_context:
       ADMIN_PORTAL: "Web platform (Admin Portal)"
 
     role_platform_mapping:
-      Student: "MOBILE_APP"
+      Student: "GENERAL_WEB"
       Lecturer: "GENERAL_WEB"
       Supervisor: "GENERAL_WEB"
       Data_Operator: "ADMIN_PORTAL"
-      System_Admin: "ADMIN_PORTAL"
 
   authentication_and_role_mapping:
     mapping_method: "System Native"
@@ -99,20 +98,6 @@ system_context:
       REPORT_READ_CLASS_SUMMARY: "View comprehensive attendance summary report for a class."
       REPORT_READ_SYSTEM_WIDE: "View system-wide summary reports."
       REPORT_EXPORT_ACADEMIC_DATA: "Export academic data (class lists, attendance results, etc.)."
-      AUDIT_LOG_READ: "View audit logs of important business data changes."
-
-    SYSTEM_ADMINISTRATION:
-      SYSTEM_CONFIG_READ: "View system configurations."
-      SYSTEM_CONFIG_UPDATE: "Modify system configurations."
-      ROLE_PERMISSION_MAPPING_READ: "View role-permission mapping matrix."
-      ROLE_PERMISSION_MAPPING_UPDATE: "Edit role-permission mapping matrix."
-      SYSTEM_LOG_READ: "View technical system activity logs."
-      ROLE_CREATE: "Create a new user role."
-      ROLE_UPDATE: "Update a role's information, including its name and description."
-      ROLE_DELETE_HARD: "Permanently delete a role. This action is dangerous and will fail if the role is assigned to any user."
-      PERMISSION_CREATE: "Create a new permission in the system's master catalog."
-      PERMISSION_UPDATE: "Update the details of an existing permission."
-      PERMISSION_DELETE_HARD: "Permanently delete a permission from the master catalog. Extremely dangerous action that can break role assignments."
 
     STUDENT_PERMISSIONS:
       OWN_ATTENDANCE_HISTORY_READ: "View own attendance history."
@@ -122,27 +107,6 @@ system_context:
       OWN_PASSWORD_UPDATE: "Change own password."
 
   role_definitions:
-    SYSTEM_ADMIN:
-      role_name: "System Administrator"
-      description: "The highest technical role, responsible for defining policies, system configuration, and managing the permission structure of roles. Does not manage user accounts or intervene in daily operations."
-      platform: "ADMIN_PORTAL"
-      permissions:
-        [
-          "SYSTEM_CONFIG_READ",
-          "SYSTEM_CONFIG_UPDATE",
-          "ROLE_PERMISSION_MAPPING_READ",
-          "ROLE_PERMISSION_MAPPING_UPDATE",
-          "SYSTEM_LOG_READ",
-          "OWN_PROFILE_READ",
-          "OWN_PASSWORD_UPDATE",
-          "ROLE_CREATE",
-          "ROLE_UPDATE",
-          "ROLE_DELETE_HARD",
-          "PERMISSION_CREATE",
-          "PERMISSION_UPDATE",
-          "PERMISSION_DELETE_HARD",
-        ]
-
     DATA_OPERATOR:
       role_name: "Data Operations Staff"
       description: "The main operational role, responsible for all academic data and user account lifecycle management."
@@ -257,7 +221,7 @@ system_context:
     STUDENT:
       role_name: "Student"
       description: "Uses the system to track schedules, view attendance history, and send notifications."
-      platform: "MOBILE_APP"
+      platform: "GENERAL_WEB"
       permissions:
         [
           "OWN_SCHEDULE_READ",
@@ -279,7 +243,6 @@ system_context:
       - "System notifications"
       - "Search & filter"
       - "Role-based dashboard"
-      - "Activity logs"
       - "Reports & file export"
 
     student_functions: []
@@ -296,20 +259,15 @@ system_context:
       - "Manage slot enrollment"
       - "Export academic data"
       - "Manage Camera and Room catalogs"
-      - "View operational activity logs"
+      # Removed: View operational activity logs (out of scope)
       - "Manage Majors"
       - "Manage bulk student enrollments via CSV import"
       - "Bulk import student identity data (Photos + Vectors)"
       - "Bulk import academic catalog data (Semester, Major, Subject, Class, Slot)"
       - "HYPOTHESIS: Bulk import infrastructure data (Room, Camera)"
 
-    system_admin_functions:
-      - "Configure system (AI model, similarity threshold, etc.)"
-      - "Monitor logs and anomalous data"
-      - "Manage permission catalog & Role-Permission mapping"
-
   screen_catalog:
-    mobile_student_screens:
+    web_student_screens:
       SCR_STUDENT_LOGIN:
         title: "Login Screen"
         features:
@@ -441,8 +399,8 @@ system_context:
         features:
           - "Manage Semesters, Majors, Subjects, and Classes (View list, Create, Edit, Update status)."
           - "On each respective management screen (e.g., Semester list, Class list), provide 'Import from CSV' and 'Export to CSV' buttons."
-          - "The 'Import' button opens a modal allowing file upload, template download, and displays validation results (implements UC-82, UC-83, UC-84, UC-85). The modal must include an option (e.g., radio button) for 'Import Mode': [1] 'Add Only (Skip duplicates)', [2] 'Add and Update (Overwrite if duplicate exists)'."
-          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button implementing UC-86 (also includes the 'Import Mode' option)."
+          - "The 'Import' button allows uploading a CSV file and shows a read-only list of error rows returned by the backend. No inline editing or iteration in UI."
+          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button implementing UC-86 (single upload; show error rows only)."
           - "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table)."
           - "Add/Remove students from a class (Roster Management for class-based slots only)."
 
@@ -452,11 +410,7 @@ system_context:
           - "Advanced search filters"
           - "View and export custom reports"
 
-      SCR_ADMIN_AUDIT_LOGS:
-        title: "Operational Audit Log Viewer (Data Operator)"
-        features:
-          - "View history of business data changes (who, what, when)"
-          - "Filter by actor, action type, and time range"
+      # REMOVED: SCR_ADMIN_AUDIT_LOGS (Audit Log Viewer) - out of scope
 
       SCR_ADMIN_USER_MGMT:
         title: "User & Role Management (Data Operator)"
@@ -473,20 +427,12 @@ system_context:
           - "Add/Edit/Delete camera information (Name, RTSP connection string, Status)"
           - "Assign a camera to a room"
           - "View list of all cameras and rooms in the system"
-          - "HYPOTHESIS: Add 'Import Rooms from CSV' button (implements UC-87, uses Import Mode option)."
-          - "HYPOTHESIS: Add 'Import Cameras from CSV' button (implements UC-88, uses Import Mode option)."
+          - "HYPOTHESIS: Add 'Import Rooms from CSV' button (single upload; show error rows only)."
+          - "HYPOTHESIS: Add 'Import Cameras from CSV' button (single upload; show error rows only)."
 
-      SCR_SYSADMIN_CONFIG:
-        title: "System Configuration (System Admin)"
-        features:
-          - "Configure AI model"
-          - "Configure business rule parameters (e.g., max absence percentage for students)"
-          - "Manage permission catalog & Role-Permission mapping"
+      # REMOVED: SCR_SYSADMIN_CONFIG (System Admin Configuration) - out of scope
 
-      SCR_SYSADMIN_LOGS:
-        title: "System Logs Viewer (System Admin)"
-        features:
-          - "View and filter system logs"
+      # REMOVED: SCR_SYSADMIN_LOGS (System Admin Logs Viewer) - out of scope
 
       SCR_ADMIN_BULK_ENROLLMENT:
         title: "Bulk Student Enrollment (Class-based) Screen"
@@ -494,9 +440,7 @@ system_context:
           - "Semester selector to choose the target semester."
           - "Interface to upload a CSV file containing class enrollment data (e.g., columns: student_id, class_id). NOTE: This screen is for class enrollments only, not for independent exams."
           - "Button to download a CSV template file to ensure correct formatting."
-          - "A preview table to display data parsed from the uploaded file."
-          - "Validation feedback area to show errors found in the file (e.g., invalid student ID, non-existent class)."
-          - "A 'Confirm Enrollment' button to execute the bulk creation of enrollment records."
+          - "After upload, display a read-only list of error rows returned by the backend."
 
       SCR_ADMIN_EXAM_PARTICIPANTS:
         title: "Independent Exam Participant Management"
@@ -607,23 +551,14 @@ system_context:
         - "5. Reporting: The job status is updated on the admin screen, allowing DOP to see the results."
 
     bulk_catalog_import_flow:
-      title: "Interactive Bulk Import Flow (Admin)"
-      description: "HYPOTHESIS: An interactive session allowing Data Operator to upload, preview, fix errors, and import catalog data (Academic AND Infrastructure: Majors, Subjects, Semesters, Classes, Slots, Rooms, Cameras) from CSV files. This flow is synchronous and iterative."
+      title: "Simple Bulk Import Flow (Admin)"
+      description: "Single-step CSV upload for catalog data (Majors, Subjects, Semesters, Classes, Slots, Rooms, Cameras). No inline editing or iteration in UI."
       steps:
-        - "1. (FE) Upload & Preview: DOP uploads CSV file (V1). FE reads file (e.g., PapaParse) and displays data in an editable table (editable table)."
-        - "2. (FE -> BE) Submit Iteration 1: DOP selects 'Import Mode' (AddOnly/AddAndUpdate) and clicks 'Submit'. FE sends file V1 (as multipart/form-data) to the corresponding import API (e.g., POST /semesters/import)."
-        - "3. (BE) Process & Partial Success: BE processes file V1. BE executes 'Partial Success' strategy:"
-        - "  a. Valid rows: SAVED to database (INSERT or UPDATE based on mode)."
-        - "  b. Invalid rows: SKIPPED (not saved) and collected into an error list."
-        - "4. (BE -> FE) Return Only Errors: BE always returns 200 OK. The 'data' field of response contains ONLY the list of error rows (e.g., [ { rowNumber: 5, error: '...' }, { rowNumber: 8, error: '...' } ]). If all rows succeed, BE returns an empty array []."
-        - "5. (FE) Update UI: FE receives error list:"
-        - "  a. Removes all successful rows (not in error list) from the preview table."
-        - "  b. Keeps error rows in the table and displays error messages on corresponding rows/cells."
-        - "6. (FE) Direct Error Fixing: DOP fixes errors directly in table cells."
-        - "7. (FE) 'Un-parse' & Submit Iteration 2: DOP clicks 'Submit' again."
-        - "  a. FE 'Un-parses' (recreates CSV) ONLY from the corrected error rows in the table, creating a new CSV file (V2) in memory."
-        - "  b. FE sends file V2 (multipart/form-data) to the SAME API (Step 2)."
-        - "8. (Loop) Iterate: Process repeats from Step 3. Loop ends when BE returns an empty error array []."
+        - "1. (FE) Upload CSV: DOP uploads a CSV file via the import dialog."
+        - "2. (FE -> BE) Submit: FE sends the file (multipart/form-data) to the import API."
+        - "3. (BE) Process & Partial Success: BE saves valid rows; invalid rows are skipped and collected as errors."
+        - "4. (BE -> FE) Return Errors: Response contains ONLY error rows (e.g., [ { rowNumber: 5, error: '...' } ]). Empty array [] means full success."
+        - "5. (FE) Display: FE displays the error rows read-only for user review/download."
 
   information_flows:
     - "Student ↔ System: view schedule/slots; view attendance status"
@@ -631,8 +566,7 @@ system_context:
     - "Supervisor ↔ System: open/close exam slots; start automated attendance session; review/edit attendance status"
     - "System → External systems (SIS/LMS): export academic data and attendance results on demand"
     - "System ↔ Python Recognition Service: send session start request; receive attendance results"
-    - "System ↔ Data Operations Staff: attendance reports, catalog management and data synchronization; approve identity registrations; manage user accounts; manage rooms and cameras; review activity history"
-    - "System ↔ System Administrator: monitor and configure system"
+    - "System ↔ Data Operations Staff: attendance reports, catalog management and data synchronization; approve identity registrations; manage user accounts; manage rooms and cameras"
     - "System ↔ Google: login & basic profile"
 
   integrations:
@@ -767,12 +701,13 @@ system_context:
   tech_stack:
     frontend:
       web:
-        description: "Web platform for Lecturers, Supervisors, and Admin"
+        description: "Web platform for Students, Lecturers, Supervisors, and Admin"
         technology: "Next.js"
         ui_library: "shadcn/ui"
-      mobile_app:
-        description: "Mobile application for Students"
-        technology: "React Native"
+      # mobile_app is no longer used for Students
+      # mobile_app:
+      #   description: "(Deprecated) Mobile application"
+      #   technology: "React Native"
 
     backend:
       main_service:

@@ -9,7 +9,6 @@ DROP TABLE IF EXISTS attendance_records CASCADE;
 DROP TABLE IF EXISTS slots CASCADE;
 DROP TABLE IF EXISTS notification_deliveries CASCADE;
 DROP TABLE IF EXISTS system_notifications CASCADE;
-DROP TABLE IF EXISTS operational_audit_logs CASCADE;
 DROP TABLE IF EXISTS system_configurations CASCADE;
 DROP TABLE IF EXISTS face_embeddings CASCADE;
 DROP TABLE IF EXISTS cameras CASCADE;
@@ -377,20 +376,3 @@ CREATE TABLE system_configurations (
     value TEXT NOT NULL,
     description TEXT NULL
 );
-
-CREATE TABLE operational_audit_logs (
-    id BIGSERIAL PRIMARY KEY,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    actor_user_id INTEGER NOT NULL,
-    action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('CREATE', 'UPDATE', 'DELETE', 'REOPEN', 'APPROVE', 'REJECT', 'ACTIVATE', 'DEACTIVATE')),
-    target_entity VARCHAR(50) NOT NULL CHECK (target_entity IN ('user', 'role', 'permission', 'semester', 'major', 'subject', 'class', 'slot', 'enrollment', 'attendance_record', 'exam_attendance', 'room', 'camera', 'system_config')),
-    target_id BIGINT NOT NULL,
-    changes JSONB NULL,
-    FOREIGN KEY (actor_user_id) REFERENCES users(id)
-);
-
-CREATE INDEX idx_audit_logs_actor_user_id ON operational_audit_logs(actor_user_id);
-CREATE INDEX idx_audit_logs_target_entity_id ON operational_audit_logs(target_entity, target_id);
-CREATE INDEX idx_audit_logs_created_at ON operational_audit_logs(created_at);
-CREATE INDEX idx_audit_logs_action_type ON operational_audit_logs(action_type);
-

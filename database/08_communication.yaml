@@ -88,7 +88,7 @@ tables:
       - name: idx_notification_deliveries_recipient_unread
         columns: [recipient_user_id, read_at]
         description: "For unread notification queries (WHERE read_at IS NULL)"
-      
+
       - name: idx_notification_deliveries_recipient_created
         columns: [recipient_user_id, created_at]
         description: "For notification inbox ordered by date"
@@ -100,4 +100,4 @@ tables:
 communication_flow:
   - "System generates system_notifications for various events (identity rejection, absence warnings, etc.)"
   - "notification_deliveries tracks which users receive which notifications"
-  - "Students see system notifications in their notification inbox"
+  - "Students view system notifications in their Web notification inbox"
