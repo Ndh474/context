@@ -229,7 +229,7 @@ business_rules:
   attendance_data_integrity:
     BR-21:
       title: "Manual Edit Remark Requirement"
-      description: "Any manual edit of a student's attendance status requires a non-empty remark explaining the reason for the change. The system must prevent saving the change if the remark is empty."
+      description: "Any manual edit of a student's attendance status may include an optional remark explaining the reason for the change. The system allows saving the change with or without a remark."
       domain: "Attendance"
       priority: "High"
       related_use_cases: ["UC-19", "UC-20", "UC-30", "UC-31"]
@@ -261,18 +261,17 @@ business_rules:
       rules:
         valid_transitions:
           manual_updates:
-            - "not_yet → present (manual only, remark mandatory)"
-            - "not_yet → absent (manual only, remark mandatory)"
-            - "present → absent (manual only, remark mandatory)"
-            - "absent → present (manual only, remark mandatory)"
+            - "not_yet → present (manual only, remark optional)"
+            - "not_yet → absent (manual only, remark optional)"
+            - "present → absent (manual only, remark optional)"
+            - "absent → present (manual only, remark optional)"
           automated_updates:
             - "not_yet → present (auto via face recognition, no remark required)"
         edit_windows:
           same_day_window:
             - "All transitions allowed until 23:59:59 UTC of slot date"
             - "Assigned staff must have ATTENDANCE_STATUS_UPDATE_MANUAL permission"
-            - "Remark is mandatory for manual status changes (present/absent)"
-            - "Remark is optional for not_yet status"
+            - "Remark is optional for all manual status changes"
           post_day_window:
             - "Lecturer/Supervisor: NO edit permission"
             - "Data Operator: Can edit with ATTENDANCE_STATUS_UPDATE_MANUAL permission"

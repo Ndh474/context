@@ -1,7 +1,6 @@
 GET     | /exam-attendance                              | ATTENDANCE_ROSTER_READ
 GET     | /exam-attendance/{id}                         | ATTENDANCE_ROSTER_READ
 PUT     | /exam-attendance/{id}                         | ATTENDANCE_STATUS_UPDATE_MANUAL
-POST    | /exam-attendance/bulk-update                  | ATTENDANCE_STATUS_UPDATE_MANUAL
 
 # Remarks (see exam_attendance_remarks.txt for details)
 POST    | /exam-attendance/{examAttendanceId}/remarks   | ATTENDANCE_REMARK_MANAGE
@@ -183,7 +182,7 @@ Path Parameters:
 
 3. PUT /api/v1/exam-attendance/{id}
 Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
-Description: Manually update exam attendance status. Remark is MANDATORY when changing status.
+Description: Manually update exam attendance status. Remark is optional when changing status.
 
 Path Parameters:
 | Parameter | Type | Required | Description
@@ -199,10 +198,10 @@ Request Schema:
 | Field  | Type   | Required | Validation
 |--------|--------|----------|-----------
 | status | string | Yes      | Must be: not_yet, present, absent
-| remark | string | Yes      | Not blank, max 1000 chars (MANDATORY)
+| remark | string | No       | Optional, max 1000 chars
 
 Business Rules:
-- Remark is MANDATORY for manual status changes
+- Remark is optional for manual status changes
 - Before 23:59:59 UTC of slot date, assigned staff can edit
 - After 23:59:59 UTC of slot date, only Data Operator can edit
 - Status transition rules apply
@@ -316,165 +315,6 @@ Time-Based Edit Window Validation:
   "status": 404,
   "message": "Exam attendance record not found: 1001",
   "code": "EXAM_ATTENDANCE_NOT_FOUND"
-}
-
-400-Malformed JSON:
-{
-  "status": 400,
-  "message": "Malformed JSON request",
-  "code": "MALFORMED_JSON"
-}
-
-=======================================================================================================================
-======================================= Bulk update exam attendance records ===========================================
-
-4. POST /api/v1/exam-attendance/bulk-update
-Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
-Description: Bulk update exam attendance status for multiple students in a slot. Uses partial success pattern.
-
-Query Parameters:
-| Parameter | Type    | Required | Validation
-|-----------|---------|----------|-----------
-| slotId    | integer | Yes      | Must exist and be accessible by current user
-
-Request Body:
-{
-  "updates": [
-    {
-      "studentUserId": 201,
-      "status": "present",
-      "remark": "Verified exam attendance manually"
-    },
-    {
-      "studentUserId": 202,
-      "status": "absent",
-      "remark": "Did not attend exam"
-    },
-    {
-      "studentUserId": 203,
-      "status": "not_yet"
-    }
-  ]
-}
-
-Request Schema:
-| Field                  | Type   | Required | Validation
-|------------------------|--------|----------|-----------
-| updates                | array  | Yes      | Not empty, max 100 items
-| updates[].studentUserId| integer| Yes      | Must exist and be enrolled/registered for exam
-| updates[].status       | string | Yes      | Must be: not_yet, present, absent
-| updates[].remark       | string | Conditional | Required when status = present OR absent. Max 1000 chars
-
-Business Rules:
-- Same edit window rules as single update
-- Before 23:59:59 UTC of slot date: assigned staff can edit
-- After 23:59:59 UTC of slot date: only Data Operator can edit
-- Remark is MANDATORY when status = 'present' or 'absent'
-- Remark is OPTIONAL when status = 'not_yet' (resetting to undetermined)
-- Method is automatically set to 'manual'
-- recordedAt is updated to current timestamp
-- Audit log is created for each successful update
-- Partial success: Valid updates are applied, invalid ones are reported
-
-200-Success Response (Partial Success Pattern):
-{
-  "status": 200,
-  "message": "Bulk update processed",
-  "data": {
-    "slotId": 1,
-    "totalRequested": 3,
-    "successCount": 2,
-    "errorCount": 1,
-    "results": [
-      {
-        "studentUserId": 201,
-        "status": "success",
-        "message": "Exam attendance updated successfully"
-      },
-      {
-        "studentUserId": 202,
-        "status": "success",
-        "message": "Exam attendance updated successfully"
-      },
-      {
-        "studentUserId": 203,
-        "status": "error",
-        "errorCode": "REMARK_REQUIRED",
-        "message": "Remark is required when status is present or absent"
-      }
-    ]
-  }
-}
-
-Response Schema:
-| Field                      | Type    | Description
-|----------------------------|---------|------------
-| slotId                     | integer | The slot ID
-| totalRequested             | integer | Total number of updates requested
-| successCount               | integer | Number of successful updates
-| errorCount                 | integer | Number of failed updates
-| results                    | array   | Array of result objects
-| results[].studentUserId    | integer | Student user ID
-| results[].status           | string  | "success" or "error"
-| results[].message          | string  | Success message or error description
-| results[].errorCode        | string  | Error code (only present if status = "error")
-
-Possible Error Codes in results[]:
-- REMARK_REQUIRED: Remark is required for present/absent status
-- REMARK_TOO_LONG: Remark exceeds 1000 characters
-- INVALID_STATUS_VALUE: Invalid status value
-- EXAM_ATTENDANCE_NOT_FOUND: Exam attendance record not found for student
-- STUDENT_NOT_REGISTERED: Student not registered for this exam slot
-- EDIT_WINDOW_EXPIRED: Edit window has expired (403 at individual level)
-- NOT_ASSIGNED_TO_SLOT: User not assigned to this slot (403 at individual level)
-
-400-Empty updates array:
-{
-  "status": 400,
-  "message": "Updates array cannot be empty",
-  "code": "EMPTY_UPDATES_ARRAY"
-}
-
-400-Too many updates:
-{
-  "status": 400,
-  "message": "Maximum 100 updates per request",
-  "code": "TOO_MANY_UPDATES"
-}
-
-400-Missing slotId parameter:
-{
-  "status": 400,
-  "message": "slotId query parameter is required",
-  "code": "SLOT_ID_REQUIRED"
-}
-
-400-Invalid field type:
-{
-  "status": 400,
-  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
-  "code": "INVALID_FIELD_TYPE"
-}
-
-403-Edit window expired (slot level):
-{
-  "status": 403,
-  "message": "Cannot edit exam attendance after 23:59:59 UTC on slot date. Only Data Operators can edit after this time",
-  "code": "EDIT_WINDOW_EXPIRED"
-}
-
-403-Not assigned to slot:
-{
-  "status": 403,
-  "message": "You are not assigned to this slot",
-  "code": "NOT_ASSIGNED_TO_SLOT"
-}
-
-404-Slot not found:
-{
-  "status": 404,
-  "message": "Slot not found: 1",
-  "code": "SLOT_NOT_FOUND"
 }
 
 400-Malformed JSON:

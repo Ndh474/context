@@ -4,9 +4,10 @@ GET    	| /slots/{id} 			| Get slot by id 		| SLOT_READ
 PUT    	| /slots/{id} 			| Update slot	 		| SLOT_UPDATE | SLOT_UPDATE_CATEGORY | SLOT_UPDATE_FINAL_EXAM
 DELETE 	| /slots/{id} 			| Delete slot	 		| SLOT_DELETE_HARD
 POST   	| /slots/import 		| Bulk import slots 	| SLOT_IMPORT
-GET /api/v1/slots/{id}/roster
-POST /api/v1/slots/{id}/start-session
-POST /api/v1/slots/{id}/rescan
+GET     | /slots/{id}/roster            | Get slot roster       | ATTENDANCE_ROSTER_READ
+POST    | /slots/{id}/start-session     | Start attendance session | SLOT_SESSION_START
+POST    | /slots/{id}/rescan            | Trigger re-scan       | SLOT_SESSION_RESCAN
+POST    | /slots/{id}/submit-attendance | Submit attendance     | ATTENDANCE_STATUS_UPDATE_MANUAL
 
 ================================================= Create a new slot ===================================================
 1. POST /api/v1/slots
@@ -1116,11 +1117,252 @@ Path Parameters:
 
 --------------------------------------------------------------------------------
 409 - Session not started:
+{
+  "status": 409,
+  "message": "Cannot trigger re-scan because the attendance session has not been started",
+  "code": "SESSION_NOT_STARTED"
+}
+
+================================================================================
+STOP ATTENDANCE SESSION
+================================================================================
+Endpoint: POST /api/v1/slots/{id}/stop-session
+Permission: SLOT_SESSION_FINALIZE
+
+Business Rules:
+  • Stops the current face recognition session and disconnects from cameras
+  • Returns session statistics (e.g., totalRecognitions, sessionStoppedAt)
+  • When stopping a RESCAN session, applies Case 1 downgrade:
+    - Students previously PRESENT but not detected during RESCAN → update to NOT_YET
+    - Preserves old evidence image for those downgraded
+  • Can only be called by the assigned staff member
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+--------------------------------------------------------------------------------
+200 - Success Response:
+  {
+    "status": 200,
+    "data": {
+      "slotId": 123,
+      "sessionStatus": "STOPPED",
+      "message": "Face recognition session stopped successfully",
+      "sessionStoppedAt": "2025-10-31T00:20:00Z",
+      "totalRecognitions": 42
+    }
+  }
+
+--------------------------------------------------------------------------------
+400 - Invalid field type:
+  {
+    "status": 400,
+    "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+    "code": "INVALID_FIELD_TYPE"
+  }
+
+--------------------------------------------------------------------------------
+403 - Not assigned to slot:
+  {
+    "status": 403,
+    "message": "You are not assigned to this slot and cannot stop the session",
+    "code": "NOT_ASSIGNED_TO_SLOT"
+  }
+
+--------------------------------------------------------------------------------
+404 - Slot not found:
+  {
+    "status": 404,
+    "message": "Slot not found: 1",
+    "code": "SLOT_NOT_FOUND"
+  }
+
+--------------------------------------------------------------------------------
+409 - Session not started:
   {
     "status": 409,
-    "message": "Cannot trigger re-scan because the attendance session has not been started",
+    "message": "Cannot stop session because it has not been started",
     "code": "SESSION_NOT_STARTED"
   }
+
+================================================================================
+SUBMIT ATTENDANCE
+================================================================================
+Endpoint: POST /api/v1/slots/{id}/submit-attendance
+Permission: ATTENDANCE_STATUS_UPDATE_MANUAL
+
+Business Rules:
+  • Submit attendance status for multiple students in a slot
+  • Backend automatically determines which attendance records to update based on slotCategory:
+    - LECTURE: Update attendance_records only
+    - LECTURE_WITH_PT: Update BOTH attendance_records AND exam_attendance
+    - FINAL_EXAM: Update exam_attendance only
+  • Same edit window rules as single update:
+    - Before 23:59:59 UTC of slot date: assigned staff can edit
+    - After 23:59:59 UTC of slot date: only Data Operator can edit
+  • Remark is optional for all status values ('present', 'absent', 'not_yet')
+  • Method is automatically set to 'manual'
+  • recordedAt is updated to current timestamp
+  • Audit log is created for each successful update
+  • Partial success: Valid submissions are applied, invalid ones are reported
+  • Backend finds attendance records by (slotId, studentUserId) automatically
+
+Path Parameters:
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | Yes      | Slot ID     |
+
+Request Body:
+{
+  "submissions": [
+    {
+      "studentUserId": 201,
+      "status": "present",
+      "remark": "Verified attendance manually"
+    },
+    {
+      "studentUserId": 202,
+      "status": "absent",
+      "remark": "Did not attend session"
+    },
+    {
+      "studentUserId": 203,
+      "status": "not_yet"
+    }
+  ]
+}
+
+Request Schema:
+  | Field                        | Type   | Required | Validation                                          |
+  |------------------------------|--------|----------|-----------------------------------------------------|
+  | submissions                  | array  | Yes      | Not empty, max 100 items                            |
+  | submissions[].studentUserId | integer| Yes      | Must be enrolled/registered in slot                |
+  | submissions[].status        | string | Yes      | Must be: not_yet, present, absent                    |
+  | submissions[].remark        | string | Optional    | Optional for all status values. Max 1000 chars |
+
+200 - Success Response (Partial Success Pattern):
+{
+  "status": 200,
+  "data": {
+    "successCount": 2,
+    "failureCount": 1,
+    "results": [
+      {
+        "studentUserId": 201,
+        "success": true,
+        "updatedRecords": {
+          "regularAttendance": {
+            "id": 501,
+            "status": "present",
+            "method": "manual",
+            "recordedAt": "2025-10-31T00:20:00Z"
+          },
+          "examAttendance": null
+        }
+      },
+      {
+        "studentUserId": 202,
+        "success": true,
+        "updatedRecords": {
+          "regularAttendance": {
+            "id": 502,
+            "status": "absent",
+            "method": "manual",
+            "recordedAt": "2025-10-31T00:20:00Z"
+          },
+          "examAttendance": {
+            "id": 1002,
+            "status": "absent",
+            "method": "manual",
+            "recordedAt": "2025-10-31T00:20:00Z"
+          }
+        }
+      },
+      {
+        "studentUserId": 203,
+        "success": false,
+        "errorCode": "ATTENDANCE_RECORD_NOT_FOUND",
+        "errorMessage": "Attendance record not found for student"
+      }
+    ]
+  }
+}
+
+Response Schema:
+  | Field                            | Type    | Description                                                      |
+  |----------------------------------|---------|------------------------------------------------------------------|
+  | successCount                     | integer | Number of successful submissions                                 |
+  | failureCount                     | integer | Number of failed submissions                                     |
+  | results                          | array   | Array of result objects for each submission                      |
+  | results[].studentUserId          | integer | Student user ID                                                   |
+  | results[].success                | boolean | Whether the submission succeeded                                 |
+  | results[].updatedRecords         | object  | Updated attendance records (only present if success = true)      |
+  | results[].updatedRecords.regularAttendance | object | Regular attendance record (null if slotCategory = FINAL_EXAM) |
+  | results[].updatedRecords.examAttendance | object | Exam attendance record (null if slotCategory = LECTURE)      |
+  | results[].errorCode              | string  | Error code (only present if success = false)                    |
+  | results[].errorMessage           | string  | Error description (only present if success = false)              |
+
+Possible Error Codes in results[]:
+- REMARK_TOO_LONG: Remark exceeds 1000 characters
+- INVALID_STATUS_VALUE: Invalid status value
+- ATTENDANCE_RECORD_NOT_FOUND: Attendance record not found for student
+- EXAM_ATTENDANCE_NOT_FOUND: Exam attendance record not found for student
+- STUDENT_NOT_ENROLLED: Student not enrolled in slot's class (for LECTURE/LECTURE_WITH_PT)
+- STUDENT_NOT_REGISTERED: Student not registered for this exam slot (for FINAL_EXAM)
+- EDIT_WINDOW_EXPIRED: Edit window has expired (403 at individual level)
+- NOT_ASSIGNED_TO_SLOT: User not assigned to this slot (403 at individual level)
+
+400 - Empty submissions array:
+{
+  "status": 400,
+  "message": "Submissions array cannot be empty",
+  "code": "EMPTY_SUBMISSIONS_ARRAY"
+}
+
+400 - Too many submissions:
+{
+  "status": 400,
+  "message": "Maximum 100 submissions per request",
+  "code": "TOO_MANY_SUBMISSIONS"
+}
+
+400 - Invalid field type:
+{
+  "status": 400,
+  "message": "Failed to convert value of type 'java.lang.String' to required type 'java.lang.Integer'",
+  "code": "INVALID_FIELD_TYPE"
+}
+
+403 - Edit window expired (slot level):
+{
+  "status": 403,
+  "message": "Cannot edit attendance after 23:59:59 UTC on slot date. Only Data Operators can edit after this time",
+  "code": "EDIT_WINDOW_EXPIRED"
+}
+
+403 - Not assigned to slot:
+{
+  "status": 403,
+  "message": "You are not assigned to this slot",
+  "code": "NOT_ASSIGNED_TO_SLOT"
+}
+
+404 - Slot not found:
+{
+  "status": 404,
+  "message": "Slot not found: 1",
+  "code": "SLOT_NOT_FOUND"
+}
+
+400 - Malformed JSON:
+{
+  "status": 400,
+  "message": "Malformed JSON request",
+  "code": "MALFORMED_JSON"
+}
+
 =======================================================================================================================
 ====================================================== Notes ==========================================================
 
