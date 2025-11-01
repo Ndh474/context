@@ -1,7 +1,47 @@
 -- =====================================================
+-- XÓA TẤT CẢ DỮ LIỆU CỦA ỨNG DỤNG (FUACS)
+-- Sử dụng TRUNCATE TABLE để xóa nhanh và đặt lại ID.
+-- KHÔNG XÓA BẢNG flyway_schema_history
+-- =====================================================
+
+TRUNCATE TABLE 
+    attendance_records,         -- Bản ghi tham dự
+    face_embeddings,            -- Vector nhúng khuôn mặt
+    enrollments,                -- Đăng ký lớp học
+    slots,                      -- Slots giảng dạy/thi
+
+    classes,                    -- Lớp học
+    subject_majors,             -- Ánh xạ Môn học - Ngành
+    subjects,                   -- Môn học
+
+    student_profiles,           -- Hồ sơ sinh viên
+    staff_profiles,             -- Hồ sơ nhân viên
+    user_roles,                 -- Vai trò người dùng
+
+    users,                      -- Người dùng
+    majors,                     -- Ngành học
+    semesters,                  -- Kỳ học
+
+    cameras,                    -- Camera
+    rooms,                      -- Phòng học
+    role_permissions,           -- Phân quyền Role-Permission
+    permissions,                -- Quyền hạn
+    roles,                      -- Vai trò (nếu không muốn giữ các ID cố định)
+    system_notifications        -- Thông báo hệ thống
+RESTART IDENTITY CASCADE;
+
+-- LƯU Ý: Nếu bạn KHÔNG muốn đặt lại ID (sequence) của các bảng, 
+-- hãy bỏ từ khóa RESTART IDENTITY và CASCADE.
+-- Tuy nhiên, RESTART IDENTITY được khuyến nghị khi re-seed data.
+
+SELECT 'Data reset completed. All application tables truncated and sequences restarted.' AS status;
+
+
+-- =====================================================
 -- FUACS Seed Data Script
 -- Comprehensive test data for development and testing
 -- Compatible with Flyway migrations V1 and V2
+-- UPDATED: 180 Classes, 3780 Slots, 18 Active Semesters
 -- =====================================================
 
 -- Password for all users: "password123"
@@ -91,33 +131,33 @@ SELECT 4, id FROM permissions WHERE name IN (
 ) ON CONFLICT DO NOTHING;
 
 -- =====================================================
--- SECTION 2: SEMESTERS (2020-2025)
+-- SECTION 2: SEMESTERS (18 KỲ - 2020-2025, TẤT CẢ ĐỀU ACTIVE)
 -- =====================================================
 
 INSERT INTO semesters (name, code, start_date, end_date, is_active) VALUES
 -- 2020
-('Spring 2020', 'SP20', '2020-01-01', '2020-04-30', FALSE),
-('Summer 2020', 'SU20', '2020-05-01', '2020-08-31', FALSE),
-('Fall 2020', 'FA20', '2020-09-01', '2020-12-31', FALSE),
+('Spring 2020', 'SP20', '2020-01-01', '2020-04-30', TRUE),
+('Summer 2020', 'SU20', '2020-05-01', '2020-08-31', TRUE),
+('Fall 2020', 'FA20', '2020-09-01', '2020-12-31', TRUE),
 -- 2021
-('Spring 2021', 'SP21', '2021-01-01', '2021-04-30', FALSE),
-('Summer 2021', 'SU21', '2021-05-01', '2021-08-31', FALSE),
-('Fall 2021', 'FA21', '2021-09-01', '2021-12-31', FALSE),
+('Spring 2021', 'SP21', '2021-01-01', '2021-04-30', TRUE),
+('Summer 2021', 'SU21', '2021-05-01', '2021-08-31', TRUE),
+('Fall 2021', 'FA21', '2021-09-01', '2021-12-31', TRUE),
 -- 2022
-('Spring 2022', 'SP22', '2022-01-01', '2022-04-30', FALSE),
-('Summer 2022', 'SU22', '2022-05-01', '2022-08-31', FALSE),
-('Fall 2022', 'FA22', '2022-09-01', '2022-12-31', FALSE),
+('Spring 2022', 'SP22', '2022-01-01', '2022-04-30', TRUE),
+('Summer 2022', 'SU22', '2022-05-01', '2022-08-31', TRUE),
+('Fall 2022', 'FA22', '2022-09-01', '2022-12-31', TRUE),
 -- 2023
-('Spring 2023', 'SP23', '2023-01-01', '2023-04-30', FALSE),
-('Summer 2023', 'SU23', '2023-05-01', '2023-08-31', FALSE),
-('Fall 2023', 'FA23', '2023-09-01', '2023-12-31', FALSE),
+('Spring 2023', 'SP23', '2023-01-01', '2023-04-30', TRUE),
+('Summer 2023', 'SU23', '2023-05-01', '2023-08-31', TRUE),
+('Fall 2023', 'FA23', '2023-09-01', '2023-12-31', TRUE),
 -- 2024
-('Spring 2024', 'SP24', '2024-01-01', '2024-04-30', FALSE),
-('Summer 2024', 'SU24', '2024-05-01', '2024-08-31', FALSE),
+('Spring 2024', 'SP24', '2024-01-01', '2024-04-30', TRUE),
+('Summer 2024', 'SU24', '2024-05-01', '2024-08-31', TRUE),
 ('Fall 2024', 'FA24', '2024-09-01', '2024-12-31', TRUE),
 -- 2025
-('Spring 2025', 'SP25', '2025-01-01', '2025-04-30', FALSE),
-('Summer 2025', 'SU25', '2025-05-01', '2025-08-31', FALSE),
+('Spring 2025', 'SP25', '2025-01-01', '2025-04-30', TRUE),
+('Summer 2025', 'SU25', '2025-05-01', '2025-08-31', TRUE),
 ('Fall 2025', 'FA25', '2025-09-01', '2025-12-31', TRUE)
 ON CONFLICT (code) DO NOTHING;
 
@@ -192,24 +232,42 @@ WHERE (s.code = 'PRF192' AND m.code IN ('SE', 'AI', 'IOT'))
 ON CONFLICT DO NOTHING;
 
 -- =====================================================
--- SECTION 5: ROOMS AND CAMERAS
+-- SECTION 5: ROOMS AND CAMERAS (20 Rooms, 40 Cameras)
 -- =====================================================
 
 INSERT INTO rooms (name, location, is_active) VALUES
+-- Building Alpha - 5 rooms
 ('Room 101', 'Building Alpha - Floor 1', TRUE),
 ('Room 102', 'Building Alpha - Floor 1', TRUE),
+('Room 103', 'Building Alpha - Floor 1', TRUE),
+('Room 104', 'Building Alpha - Floor 1', TRUE),
+('Room 105', 'Building Alpha - Floor 1', TRUE),
+-- Building Beta - 5 rooms
 ('Room 201', 'Building Beta - Floor 2', TRUE),
 ('Room 202', 'Building Beta - Floor 2', TRUE),
+('Room 203', 'Building Beta - Floor 2', TRUE),
+('Room 204', 'Building Beta - Floor 2', TRUE),
+('Room 205', 'Building Beta - Floor 2', TRUE),
+-- Building Gamma - 5 labs
 ('Lab 301', 'Building Gamma - Floor 3', TRUE),
-('Lab 302', 'Building Gamma - Floor 3', TRUE)
+('Lab 302', 'Building Gamma - Floor 3', TRUE),
+('Lab 303', 'Building Gamma - Floor 3', TRUE),
+('Lab 304', 'Building Gamma - Floor 3', TRUE),
+('Lab 305', 'Building Gamma - Floor 3', TRUE),
+-- Building Delta - 5 rooms
+('Room 401', 'Building Delta - Floor 4', TRUE),
+('Room 402', 'Building Delta - Floor 4', TRUE),
+('Room 403', 'Building Delta - Floor 4', TRUE),
+('Room 404', 'Building Delta - Floor 4', TRUE),
+('Room 405', 'Building Delta - Floor 4', TRUE)
 ON CONFLICT (name) DO NOTHING;
 
--- Cameras (including the specific one requested)
+-- Cameras (2 cameras per room: FRONT and BACK)
 INSERT INTO cameras (room_id, name, rtsp_url, is_active)
 SELECT r.id, 'CAM-' || r.name || '-FRONT', 
        CASE 
            WHEN r.name = 'Room 101' THEN 'rtsp://C200C_FUACS2:12345678@192.168.1.80:554/stream1'
-           ELSE 'rtsp://192.168.1.' || (100 + r.id) || ':554/stream1'
+           ELSE 'rtsp://192.168.1.' || (80 + (r.id % 100)) || ':554/stream1'
        END,
        TRUE
 FROM rooms r
@@ -217,14 +275,13 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO cameras (room_id, name, rtsp_url, is_active)
 SELECT r.id, 'CAM-' || r.name || '-BACK', 
-       'rtsp://192.168.1.' || (200 + r.id) || ':554/stream1',
+       'rtsp://192.168.1.' || (180 + (r.id % 100)) || ':554/stream2',
        TRUE
 FROM rooms r
-WHERE r.name IN ('Room 101', 'Room 102')
 ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
--- SECTION 6: USERS
+-- SECTION 6: USERS (Data Operator, 5 Supervisors, 10 Lecturers, ~150 Students)
 -- =====================================================
 
 -- Data Operator
@@ -397,27 +454,29 @@ BEGIN
 END $$;
 
 -- =====================================================
--- SECTION 7: CLASSES (5 classes per semester for FA24 and FA25)
+-- SECTION 7: CLASSES (10 classes per semester for ALL 18 semesters)
+-- Total classes: 18 * 10 = 180 classes
+-- CẬP NHẬT: Lặp qua TẤT CẢ 18 semesters (thay vì chỉ 2)
 -- =====================================================
 
 DO $$
 DECLARE
-    v_semester_codes TEXT[] := ARRAY['FA24', 'FA25'];
-    v_subject_codes TEXT[] := ARRAY['PRF192', 'PRO192', 'CSD201', 'DBI202', 'SWE201'];
-    v_semester_id INT;
+    v_subject_codes TEXT[] := ARRAY['PRF192', 'PRO192', 'CSD201', 'DBI202', 'SWE201', 
+                                     'SWP391', 'SEC301', 'MLA301', 'EMB301', 'UIX301'];
+    v_semester_record RECORD;
     v_subject_id INT;
     v_class_id INT;
-    i INT;
     j INT;
 BEGIN
-    FOR i IN 1..2 LOOP -- FA24 and FA25
-        SELECT id INTO v_semester_id FROM semesters WHERE code = v_semester_codes[i];
-        
-        FOR j IN 1..5 LOOP -- 5 classes per semester
+    -- Lặp qua TẤT CẢ các semester
+    FOR v_semester_record IN (SELECT id, code, start_date FROM semesters ORDER BY start_date) LOOP
+        -- Tạo 10 classes cho MỖI semester (Đúng yêu cầu)
+        FOR j IN 1..10 LOOP 
             SELECT id INTO v_subject_id FROM subjects WHERE code = v_subject_codes[j];
             
             INSERT INTO classes (subject_id, semester_id, code, is_active)
-            VALUES (v_subject_id, v_semester_id, v_subject_codes[j] || '01', TRUE)
+            -- Tạo mã lớp: SEMESTERCODE-SUBJECTCODE-ClassIndex (e.g., SP20-PRF192-01)
+            VALUES (v_subject_id, v_semester_record.id, v_semester_record.code || '-' || v_subject_codes[j] || '-' || LPAD(j::TEXT, 2, '0'), TRUE)
             ON CONFLICT DO NOTHING
             RETURNING id INTO v_class_id;
         END LOOP;
@@ -425,7 +484,8 @@ BEGIN
 END $$;
 
 -- =====================================================
--- SECTION 8: ENROLLMENTS (20-25 students per class)
+-- SECTION 8: ENROLLMENTS (20 students per class - matching major and subject)
+-- TỰ ĐỘNG xử lý 180 classes mới tạo
 -- =====================================================
 
 DO $$
@@ -433,38 +493,60 @@ DECLARE
     v_class_record RECORD;
     v_student_ids INT[];
     v_student_id INT;
-    v_count INT;
-    i INT;
+    v_major_ids INT[];
 BEGIN
-    FOR v_class_record IN (SELECT id FROM classes) LOOP
-        -- Get random 20-25 students
-        v_count := 20 + FLOOR(RANDOM() * 6)::INT;
+    FOR v_class_record IN (
+        SELECT c.id as class_id, c.subject_id
+        FROM classes c
+    ) LOOP
+        -- Get majors that can take this subject
+        SELECT ARRAY_AGG(DISTINCT sm.major_id)
+        INTO v_major_ids
+        FROM subject_majors sm
+        WHERE sm.subject_id = v_class_record.subject_id;
         
-        SELECT ARRAY_AGG(u.id ORDER BY RANDOM())
-        INTO v_student_ids
-        FROM users u
-        JOIN user_roles ur ON u.id = ur.user_id
-        WHERE ur.role_id = 4
-        LIMIT v_count;
+        -- If no specific majors, allow all students
+        IF v_major_ids IS NULL OR array_length(v_major_ids, 1) IS NULL THEN
+            SELECT ARRAY_AGG(u.id ORDER BY RANDOM())
+            INTO v_student_ids
+            FROM users u
+            JOIN user_roles ur ON u.id = ur.user_id
+            WHERE ur.role_id = 4
+            LIMIT 20;
+        ELSE
+            -- Get 20 students from matching majors
+            SELECT ARRAY_AGG(u.id ORDER BY RANDOM())
+            INTO v_student_ids
+            FROM users u
+            JOIN user_roles ur ON u.id = ur.user_id
+            JOIN student_profiles sp ON u.id = sp.user_id
+            WHERE ur.role_id = 4 
+              AND sp.major_id = ANY(v_major_ids)
+            LIMIT 20;
+        END IF;
         
         -- Enroll students
-        FOREACH v_student_id IN ARRAY v_student_ids LOOP
-            INSERT INTO enrollments (class_id, student_user_id, is_enrolled)
-            VALUES (v_class_record.id, v_student_id, TRUE)
-            ON CONFLICT DO NOTHING;
-        END LOOP;
+        IF v_student_ids IS NOT NULL THEN
+            FOREACH v_student_id IN ARRAY v_student_ids LOOP
+                INSERT INTO enrollments (class_id, student_user_id, is_enrolled)
+                VALUES (v_class_record.class_id, v_student_id, TRUE)
+                ON CONFLICT DO NOTHING;
+            END LOOP;
+        END IF;
     END LOOP;
 END $$;
 
 -- =====================================================
--- SECTION 9: SLOTS (20 slots per class + exam slots)
--- Time slots: 7:30-9:50, 10:00-12:20, 12:50-15:10, 15:20-17:40
+-- SECTION 9: SLOTS (20 lecture slots + 1 exam slot per class)
+-- Tổng slots: 180 classes * 20 lecture + 180 exam = 3,780 slots
+-- CẬP NHẬT: Tự động lặp qua TẤT CẢ 180 classes
 -- =====================================================
 
 DO $$
 DECLARE
     v_class_record RECORD;
     v_lecturer_id INT;
+    v_supervisor_id INT; -- Thêm biến cho supervisor
     v_room_ids INT[];
     v_room_id INT;
     v_semester_start DATE;
@@ -478,24 +560,31 @@ DECLARE
     v_week INT := 0;
     v_time_slot INT;
     v_time_slots TIME[] := ARRAY['07:30:00'::TIME, '10:00:00'::TIME, '12:50:00'::TIME, '15:20:00'::TIME];
-    v_durations INTERVAL[] := ARRAY['2 hours 20 minutes'::INTERVAL, '2 hours 20 minutes'::INTERVAL, 
-                                     '2 hours 20 minutes'::INTERVAL, '2 hours 20 minutes'::INTERVAL];
+    v_duration INTERVAL := '2 hours 20 minutes'::INTERVAL;
     i INT;
 BEGIN
-    -- Get room IDs
-    SELECT ARRAY_AGG(id) INTO v_room_ids FROM rooms LIMIT 2;
+    -- Get room IDs (use all 20 rooms)
+    SELECT ARRAY_AGG(id) INTO v_room_ids FROM rooms;
     
     FOR v_class_record IN (
         SELECT c.id as class_id, c.semester_id, s.start_date, s.end_date, s.code as sem_code
         FROM classes c
         JOIN semesters s ON c.semester_id = s.id
-        WHERE s.code IN ('FA24', 'FA25')
+        ORDER BY s.start_date, c.id
     ) LOOP
-        -- Get random lecturer
+        -- Get random lecturer for lecture slots
         SELECT u.id INTO v_lecturer_id
         FROM users u
         JOIN user_roles ur ON u.id = ur.user_id
         WHERE ur.role_id = 2
+        ORDER BY RANDOM()
+        LIMIT 1;
+
+        -- Get random supervisor for exam slots
+        SELECT u.id INTO v_supervisor_id
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        WHERE ur.role_id = 3
         ORDER BY RANDOM()
         LIMIT 1;
         
@@ -504,21 +593,23 @@ BEGIN
         v_slot_count := 0;
         v_week := 0;
         
-        -- Create 20 lecture slots (Mon, Wed, Fri)
+        -- Create 20 lecture slots 
         WHILE v_slot_count < 20 LOOP
-            FOREACH v_day_of_week IN ARRAY ARRAY[1, 3, 5] LOOP -- Monday, Wednesday, Friday
+            -- Lặp qua các ngày trong tuần (Thứ Hai, Thứ Tư, Thứ Sáu)
+            FOREACH v_day_of_week IN ARRAY ARRAY[1, 3, 5] LOOP 
                 EXIT WHEN v_slot_count >= 20;
                 
                 v_slot_date := v_semester_start + (v_week * 7 + v_day_of_week) * INTERVAL '1 day';
-                EXIT WHEN v_slot_date > v_semester_end - INTERVAL '30 days'; -- Leave room for exams
+                -- Giới hạn ngày tạo slots để chừa chỗ cho Exam (30 ngày cuối kỳ)
+                EXIT WHEN v_slot_date > v_semester_end - INTERVAL '30 days'; 
                 
                 -- Cycle through 4 time slots
                 v_time_slot := (v_slot_count % 4) + 1;
                 v_start_time := v_slot_date + v_time_slots[v_time_slot];
-                v_end_time := v_start_time + v_durations[v_time_slot];
+                v_end_time := v_start_time + v_duration;
                 
-                -- Alternate between 2 rooms
-                v_room_id := v_room_ids[1 + (v_slot_count % 2)];
+                -- Cycle through all available rooms
+                v_room_id := v_room_ids[1 + (v_slot_count % array_length(v_room_ids, 1))];
                 
                 INSERT INTO slots (
                     class_id, semester_id, room_id, staff_user_id, slot_category,
@@ -562,7 +653,7 @@ BEGIN
             v_week := v_week + 1;
         END LOOP;
         
-        -- Create exam slot (mid-April for Spring, mid-December for Fall)
+        -- Create exam slot
         v_slot_date := CASE 
             WHEN v_class_record.sem_code LIKE 'SP%' THEN 
                 DATE_TRUNC('year', v_semester_end) + INTERVAL '3 months 15 days'
@@ -580,8 +671,8 @@ BEGIN
         VALUES (
             v_class_record.class_id,
             v_class_record.semester_id,
-            v_room_ids[1],
-            v_lecturer_id,
+            v_room_ids[1 + (v_class_record.class_id % array_length(v_room_ids, 1))],
+            v_supervisor_id, -- Use supervisor for exam slots
             'FINAL_EXAM',
             v_start_time,
             v_end_time,
@@ -620,7 +711,7 @@ BEGIN
     SELECT c.id, c.semester_id INTO v_test_class_id, v_test_semester_id
     FROM classes c
     JOIN semesters s ON c.semester_id = s.id
-    WHERE s.code = 'FA25'
+    WHERE s.code = 'FA25' AND c.code LIKE 'FA25-PRF192%'
     LIMIT 1;
     
     SELECT u.id INTO v_test_lecturer_id
@@ -658,6 +749,7 @@ BEGIN
         'RUNNING',
         TRUE
     )
+    ON CONFLICT DO NOTHING
     RETURNING id INTO v_lecture_slot_id;
     
     -- Create attendance records for ongoing lecture (status: not_yet for testing)
@@ -692,6 +784,7 @@ BEGIN
         'RUNNING',
         TRUE
     )
+    ON CONFLICT DO NOTHING
     RETURNING id INTO v_exam_slot_id;
     
     -- Create attendance records for ongoing exam (status: not_yet for testing)
