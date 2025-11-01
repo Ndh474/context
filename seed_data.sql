@@ -244,6 +244,40 @@ FROM users u
 WHERE u.username = 'dop001'
 ON CONFLICT DO NOTHING;
 
+-- Supervisors (5 supervisors for exam supervision)
+DO $$
+DECLARE
+    v_supervisor_names TEXT[] := ARRAY[
+        'Mr. Nguyen Van Supervisor', 'Ms. Tran Thi Supervisor', 'Mr. Le Van Supervisor',
+        'Ms. Pham Thi Supervisor', 'Mr. Hoang Van Supervisor'
+    ];
+    v_user_id INT;
+    i INT;
+BEGIN
+    FOR i IN 1..5 LOOP
+        INSERT INTO users (username, email, full_name, password_hash, is_active)
+        VALUES (
+            'sup' || LPAD(i::TEXT, 3, '0'),
+            'sup' || LPAD(i::TEXT, 3, '0') || '@fpt.edu.vn',
+            v_supervisor_names[i],
+            '$2a$12$7mndAdNMDa2v0rzNZo/zAeSyizvL0s0gcYmrJU0jEvm8lla8buOza',
+            TRUE
+        )
+        ON CONFLICT (username) DO NOTHING
+        RETURNING id INTO v_user_id;
+        
+        IF v_user_id IS NOT NULL THEN
+            INSERT INTO staff_profiles (user_id, staff_code)
+            VALUES (v_user_id, 'SUP' || LPAD(i::TEXT, 3, '0'))
+            ON CONFLICT (user_id) DO NOTHING;
+            
+            INSERT INTO user_roles (user_id, role_id)
+            VALUES (v_user_id, 3)
+            ON CONFLICT DO NOTHING;
+        END IF;
+    END LOOP;
+END $$;
+
 -- Lecturers (10 lecturers)
 DO $$
 DECLARE
