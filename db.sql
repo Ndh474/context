@@ -197,6 +197,10 @@ CREATE TABLE slots (
     title VARCHAR(255) NULL,
     description TEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Session metadata for face recognition workflow
+    session_status VARCHAR(20) NOT NULL DEFAULT 'NOT_STARTED' CHECK (session_status IN ('NOT_STARTED', 'RUNNING', 'STOPPED')),
+    scan_count INTEGER NOT NULL DEFAULT 0,
+    last_session_stopped_at TIMESTAMP NULL,
     FOREIGN KEY (class_id) REFERENCES classes(id),
     FOREIGN KEY (semester_id) REFERENCES semesters(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id),
@@ -208,6 +212,7 @@ CREATE INDEX idx_slots_semester_id ON slots(semester_id);
 CREATE INDEX idx_slots_staff_user_id ON slots(staff_user_id);
 CREATE INDEX idx_slots_room_id ON slots(room_id);
 CREATE INDEX idx_slots_start_time ON slots(start_time);
+CREATE INDEX idx_slots_session_status ON slots(session_status);
 
 CREATE TABLE attendance_records (
     id BIGSERIAL PRIMARY KEY,
