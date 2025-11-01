@@ -38,7 +38,6 @@ system_context:
       USER_UPDATE_STATUS: "Deactivate or activate user account (soft delete)."
       USER_DELETE_HARD: "Permanently delete user account (dangerous action, requires consideration)."
       USER_ASSIGN_ROLES: "Assign or revoke roles from a user."
-      CREATE_SYSTEM_ADMIN: "Create an account with System Admin role (extremely sensitive permission, only for system setup purposes)."
 
     ACADEMIC_CATALOG_MANAGEMENT:
       SEMESTER_CREATE: "Create a new semester."
