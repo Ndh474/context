@@ -8,6 +8,9 @@
 ### Priority
 <!-- (Required) High / Medium / Low -->
 
+### CHECKLIST
+<!-- (Required) Mark the checklist items that apply to this task. -->
+
 ---
 
 ## 2. CONTEXT & OBJECTIVES
@@ -17,6 +20,9 @@
 
 ### What Is Missing
 <!-- (Required) Describe the problem, bug, or missing feature to be addressed. -->
+
+### Reference files (For better context)
+<!-- (Optional) List any relevant files, modules, or components related to this task. -->
 
 ### Task Objective
 <!-- (Required) What is the specific, completed goal of this task? Example: "Create 2 endpoints: GET /users and POST /users". -->
