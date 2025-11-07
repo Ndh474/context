@@ -1,0 +1,161 @@
+UC-01 - Login with Username Password
+
+UC-02 - Login with Google
+
+UC-03 - Logout
+
+UC-04 - Request Password Reset
+
+UC-05 - Reset Password using Token
+
+UC-06 - Change Own Password
+
+UC-07 - Send Email Exam Present Attendance
+
+UC-08 - Create Semester
+
+UC-09 - View Semester List
+
+UC-10 - Update Semester
+
+UC-11 - Delete Semester
+
+UC-12 - View Semester Details
+
+UC-13 - Import Semesters via CSV
+
+UC-14 - Create Major
+
+UC-15 - View Major List
+
+UC-16 - Update Major
+
+UC-17 - Delete Major
+
+UC-18 - View Major Details
+
+UC-19 - Import Majors via CSV
+
+UC-20 - Create Subject
+
+UC-21 - View Subject List
+
+UC-22 - Update Subject
+
+UC-23 - Delete Subject
+
+UC-24 - View Subject Details
+
+UC-25 - Import Subjects via CSV
+
+UC-26 - Create Class
+
+UC-27 - View Class List
+
+UC-28 - Update Class
+
+UC-29 - Delete Class
+
+UC-30 - View Class Details
+
+UC-31 - Import Classes via CSV
+
+UC-32 - View Class’s Students
+
+UC-33 - Enroll/Unenroll Student from Class
+
+UC-34 - Import Student to Class via CSV
+
+UC-35 - Create Slot
+
+UC-36 - View Slot List
+
+UC-37 - Update Slot
+
+UC-38 - Delete Slot
+
+UC-39 - View Slot Roster (cả cho lecturer và supervisor)
+
+UC-40 - Update Student Attendance Status (cả cho lecturer và supervisor)
+
+UC-41 - Import Slot via CSV
+
+UC-42 - Add/Remove Slot Participants (FINAL_EXAM only)
+
+UC-43 - Import Participants to Exam Slot via CSV
+
+UC-44 - Create Student
+
+UC-45 - View Student List
+
+UC-46 - View Student Details
+
+UC-47 - Update Student
+
+UC-48 - Delete Student
+
+UC-49 - Create Staff (Lecturer/Supervisor)
+
+UC-50 - View Staff (Lecturer/Supervisor) List
+
+UC-51 - View Staff (Lecturer/Supervisor) Details
+
+UC-52 - Update Staff (Lecturer/Supervisor)
+
+UC-53 - Delete Staff (Lecturer/Supervisor)
+
+UC-54 - Import Students via CSV
+
+UC-55 - Import Staffs via CSV
+
+UC-56 - View Admin Dashboard
+
+UC-57 - Create Room
+
+UC-58 - View Room List
+
+UC-59 - View Room Details
+
+UC-60 - Update Room
+
+UC-61 - Delete Room
+
+UC-62 - Create Camera
+
+UC-63 - View Camera List
+
+UC-64 - Update Camera
+
+UC-65 - Delete Camera
+
+UC-66 - View Camera Details
+
+UC-67 - Import Rooms via CSV
+
+UC-68 - Import Cameras via CSV
+
+UC-69 - View Lecturer/Supervisor Dashboard
+
+UC-70 - View Teaching Schedule
+
+UC-71 - Update Slot Category (lecturer only)
+
+UC-72 - Perform Face Scanning Session
+
+UC-73 - View Class Summary
+
+UC-74 - Export Class Summary
+
+UC-75 - View Slot Details (also admin, student)
+
+UC-76 - Export Class’s Slots Attendance
+
+UC-77 - View Student Dashboard
+
+UC-78 - View Student Profile
+
+UC-79 - View Attendance History
+
+UC-80 - View Student TimeTable
+
+UC-81 - View Email Attendance Notifications

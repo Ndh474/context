@@ -9,7 +9,6 @@ system_context:
 
   platform_definitions:
     platform_types:
-      MOBILE_APP: "Mobile platform for iOS and Android"
       GENERAL_WEB: "Web platform"
       ADMIN_PORTAL: "Web platform (Admin Portal)"
 
@@ -21,7 +20,7 @@ system_context:
 
   authentication_and_role_mapping:
     mapping_method: "System Native"
-    description: "Users are created and role-managed directly in the system by Data Operators. The primary login identifier (username) is defined as the Student ID or Employee ID. The system supports Google login (for email verification) and direct login using username/password. The system uses specialized profiles (student_profiles, staff_profiles) to manage specific attributes."
+    description: "Users are created and role-managed directly in the system by Data Operators. The system supports Google login (for email-based authentication) and direct login using username/password. The system uses specialized profiles (student_profiles, staff_profiles) to manage specific attributes. Data Operators cannot create other Data Operator accounts or create new roles - they can only assign existing roles to user accounts."
 
     role_assignment_rules: "SUPERVISOR or LECTURER roles cannot be assigned to users with the STUDENT role."
 
@@ -31,62 +30,86 @@ system_context:
 
   master_permission_catalog:
     USER_MANAGEMENT:
-      USER_CREATE: "Create a new user account."
-      USER_READ_LIST: "View the list of all users."
-      USER_READ_DETAIL: "View detailed information of a user."
-      USER_UPDATE_INFO: "Update user personal information (name, email)."
-      USER_UPDATE_STATUS: "Deactivate or activate user account (soft delete)."
-      USER_DELETE_HARD: "Permanently delete user account (dangerous action, requires consideration)."
-      USER_ASSIGN_ROLES: "Assign or revoke roles from a user."
+      STUDENT_CREATE: "Create a new student account and profile."
+      STUDENT_READ_LIST: "View the list of all student accounts."
+      STUDENT_READ_DETAIL: "View detailed information of a student account and profile."
+      STUDENT_UPDATE: "Update student information (personal details, activate/deactivate account, assign/revoke roles)."
+      STUDENT_DELETE: "Permanently delete a student account and profile (hard delete)."
+      STUDENT_IMPORT: "Bulk import student accounts via CSV."
+
+      STAFF_CREATE: "Create a new staff account and profile."
+      STAFF_READ_LIST: "View the list of all staff accounts."
+      STAFF_READ_DETAIL: "View detailed information of a staff account and profile."
+      STAFF_UPDATE: "Update staff information (personal details, activate/deactivate account, assign/revoke roles)."
+      STAFF_DELETE: "Permanently delete a staff account and profile (hard delete)."
+      STAFF_IMPORT: "Bulk import staff accounts via CSV."
+      STAFF_SLOTS: "View the list of slots assigned to a specific staff member (accessible by Data Operator and the staff member themselves)."
+      STAFF_CLASSES: "View the list of classes assigned to a specific staff member (accessible by Data Operator and the staff member themselves)."
+      STAFF_SUBJECTS: "View the list of subjects assigned to a specific staff member (accessible by Data Operator and the staff member themselves)."
 
     ACADEMIC_CATALOG_MANAGEMENT:
       SEMESTER_CREATE: "Create a new semester."
-      SEMESTER_READ: "View the list and details of semesters."
+      SEMESTER_READ_LIST: "View the list of all semesters."
+      SEMESTER_READ_DETAIL: "View detailed information of a specific semester."
       SEMESTER_UPDATE: "Update semester information, including deactivating or activating it."
-      SEMESTER_DELETE_HARD: "Permanently delete a semester. This action cannot be undone and will fail if related data (classes, etc.) still exists."
-      MAJOR_CREATE: "Create a new major."
-      MAJOR_READ: "View the list and details of majors."
-      MAJOR_UPDATE: "Update major information, including deactivating or activating it."
-      MAJOR_DELETE_HARD: "Permanently delete a major. This action cannot be undone and will fail if related data (subjects, etc.) still exists."
-      SUBJECT_CREATE: "Create a new subject."
-      SUBJECT_READ: "View the list and details of subjects."
-      SUBJECT_UPDATE: "Update subject information, including deactivating or activating it."
-      SUBJECT_DELETE_HARD: "Permanently delete a subject. This action cannot be undone and will fail if related data (classes, etc.) still exists."
-      CLASS_CREATE: "Create a new class."
-      CLASS_READ: "View the list and details of classes."
-      CLASS_UPDATE: "Update class information, including deactivating or activating it."
-      CLASS_DELETE_HARD: "Permanently delete a class. This action cannot be undone and will fail if related data (slots, enrollments, etc.) still exists."
-      SLOT_CREATE: "Create a new lecture/exam slot."
-      SLOT_READ: "View the list and details of lecture/exam slots."
-      SLOT_UPDATE: "Update lecture/exam slot information, including cancelling (deactivating) it."
-      SLOT_DELETE_HARD: "Permanently delete a lecture/exam slot. This action is dangerous and cannot be undone."
-      ENROLLMENT_MANAGE: "Add or remove students from a class."
-      SLOT_UPDATE_CATEGORY: "Update slot category (Lecturer can change LECTURE ↔ LECTURE_WITH_PT)."
-      SLOT_CREATE_FINAL_EXAM: "Create a new slot classified as a Final Exam."
-      SLOT_UPDATE_FINAL_EXAM: "Update the details of an existing Final Exam slot."
-      SLOT_DELETE_HARD_FINAL_EXAM: "Permanently delete a Final Exam slot."
-      MAJOR_IMPORT: "Bulk import Majors via CSV."
-      SUBJECT_IMPORT: "Bulk import Subjects via CSV."
+      SEMESTER_DELETE: "Permanently delete a semester. This action cannot be undone and will fail if related data (classes, etc.) still exists."
       SEMESTER_IMPORT: "Bulk import Semesters via CSV."
+
+      MAJOR_CREATE: "Create a new major."
+      MAJOR_READ_LIST: "View the list of all majors."
+      MAJOR_READ_DETAIL: "View detailed information of a specific major."
+      MAJOR_UPDATE: "Update major information, including deactivating or activating it."
+      MAJOR_DELETE: "Permanently delete a major. This action cannot be undone and will fail if related data (subjects, etc.) still exists."
+      MAJOR_IMPORT: "Bulk import Majors via CSV."
+
+      SUBJECT_CREATE: "Create a new subject."
+      SUBJECT_READ_LIST: "View the list of all subjects."
+      SUBJECT_READ_DETAIL: "View detailed information of a specific subject."
+      SUBJECT_UPDATE: "Update subject information, including deactivating or activating it."
+      SUBJECT_DELETE: "Permanently delete a subject. This action cannot be undone and will fail if related data (classes, etc.) still exists."
+      SUBJECT_IMPORT: "Bulk import Subjects via CSV."
+
+      CLASS_CREATE: "Create a new class."
+      CLASS_READ_LIST: "View the list of all classes."
+      CLASS_READ_DETAIL: "View detailed information of a specific class."
+      CLASS_UPDATE: "Update class information, including deactivating or activating it."
+      CLASS_DELETE: "Permanently delete a class. This action cannot be undone and will fail if related data (slots, enrollments, etc.) still exists."
       CLASS_IMPORT: "Bulk import Classes via CSV."
+
+      SLOT_CREATE: "Create a new lecture/exam slot (includes LECTURE, LECTURE_WITH_PT, and FINAL_EXAM)."
+      SLOT_READ_LIST: "View the list of all lecture/exam slots."
+      SLOT_READ_DETAIL: "View detailed information of a specific slot."
+      SLOT_UPDATE: "Update lecture/exam slot information, including cancelling (deactivating) it. Includes updates to all slot categories (LECTURE, LECTURE_WITH_PT, FINAL_EXAM)."
+      SLOT_DELETE: "Permanently delete a lecture/exam slot. This action is dangerous and cannot be undone. Applies to all slot categories."
       SLOT_IMPORT: "Bulk import Slots via CSV."
+      SLOT_UPDATE_CATEGORY: "Update slot category (Lecturer can change LECTURE ↔ LECTURE_WITH_PT)."
+
+      ENROLLMENT_CREATE: "Add a student to a class (enroll student)."
+      ENROLLMENT_READ_LIST: "View the list of all enrollments."
+      ENROLLMENT_READ_DETAIL: "View detailed information of a specific enrollment."
+      ENROLLMENT_UPDATE: "Update enrollment information (change enrollment status)."
+      ENROLLMENT_DELETE: "Remove a student from a class (unenroll student)."
+      ENROLLMENT_IMPORT: "Bulk import enrollments via CSV."
 
     INFRASTRUCTURE_MANAGEMENT:
       ROOM_CREATE: "Create a new room."
-      ROOM_READ: "View the list and details of rooms."
+      ROOM_READ_LIST: "View the list of all rooms."
+      ROOM_READ_DETAIL: "View detailed information of a specific room."
       ROOM_UPDATE: "Update room information, including deactivating or activating it."
-      ROOM_DELETE_HARD: "Permanently delete a room. This action cannot be undone and will fail if related data (cameras, slots, etc.) still exists."
+      ROOM_DELETE: "Permanently delete a room. This action cannot be undone and will fail if related data (cameras, slots, etc.) still exists."
       ROOM_IMPORT: "HYPOTHESIS: Bulk import Rooms via CSV."
       CAMERA_CREATE: "Create a new camera and assign it to a room."
-      CAMERA_READ: "View the list and details of cameras."
+      CAMERA_READ_LIST: "View the list of all cameras."
+      CAMERA_READ_DETAIL: "View detailed information of a specific camera."
       CAMERA_UPDATE: "Update camera information, including deactivating or activating it."
-      CAMERA_DELETE_HARD: "Permanently delete a camera. This action cannot be undone."
-      CAMERA_IMPORT: "HYPOTHESIS: Bulk import Cameras via CSV."
+      CAMERA_DELETE: "Permanently delete a camera. This action cannot be undone."
+      CAMERA_IMPORT: "Bulk import Cameras via CSV."
 
     ATTENDANCE_MANAGEMENT:
       OWN_SCHEDULE_READ: "View personal schedule (teaching/exam/learning)."
-      SLOT_SESSION_START: "Start an automated attendance session for a slot."
-      SLOT_SESSION_RESCAN: "Trigger a re-scan for attendance."
+      SLOT_SESSION_START: "Start an automated attendance session (regular or exam) for a slot."
+      SLOT_SESSION_STOP: "Stop the currently running attendance session (regular or exam) for a slot."
+      SLOT_SESSION_RESCAN: "Trigger a re-scan for attendance during an active session."
       ATTENDANCE_ROSTER_READ: "View the roster and real-time attendance status of a slot."
       ATTENDANCE_STATUS_UPDATE_MANUAL: "Manually update attendance status for students."
       ATTENDANCE_REMARK_MANAGE: "Add, edit, delete attendance remarks."
@@ -95,7 +118,6 @@ system_context:
       REPORT_READ_OWN_SLOT: "View attendance reports for slots under own responsibility."
       REPORT_EXPORT_OWN_SLOT: "Export report files for slots under own responsibility."
       REPORT_READ_CLASS_SUMMARY: "View comprehensive attendance summary report for a class."
-      REPORT_READ_SYSTEM_WIDE: "View system-wide summary reports."
       REPORT_EXPORT_ACADEMIC_DATA: "Export academic data (class lists, attendance results, etc.)."
 
     STUDENT_PERMISSIONS:
@@ -110,55 +132,65 @@ system_context:
       role_name: "Data Operations Staff"
       description: "The main operational role, responsible for all academic data and user account lifecycle management."
       platform: "ADMIN_PORTAL"
-      # Note: Most hard delete permissions (*_DELETE_HARD) are intentionally NOT assigned for safety.
-      # Exception: SLOT_DELETE_HARD_FINAL_EXAM is granted to allow DOP to manage exam schedules.
-      # Soft delete (deactivate/activate) is the preferred method via *_UPDATE permissions.
       permissions:
         [
-          "USER_CREATE",
-          "USER_READ_LIST",
-          "USER_READ_DETAIL",
-          "USER_UPDATE_INFO",
-          "USER_UPDATE_STATUS",
-          "USER_ASSIGN_ROLES",
+          "STUDENT_CREATE",
+          "STUDENT_READ_LIST",
+          "STUDENT_READ_DETAIL",
+          "STUDENT_UPDATE",
+          "STUDENT_IMPORT",
+          "STAFF_CREATE",
+          "STAFF_READ_LIST",
+          "STAFF_READ_DETAIL",
+          "STAFF_UPDATE",
+          "STAFF_IMPORT",
+          "STAFF_SLOTS",
+          "STAFF_CLASSES",
+          "STAFF_SUBJECTS",
           "SEMESTER_CREATE",
-          "SEMESTER_READ",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
           "SEMESTER_UPDATE",
           "SEMESTER_IMPORT",
           "MAJOR_CREATE",
-          "MAJOR_READ",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
           "MAJOR_UPDATE",
           "MAJOR_IMPORT",
           "SUBJECT_CREATE",
-          "SUBJECT_READ",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
           "SUBJECT_UPDATE",
           "SUBJECT_IMPORT",
           "CLASS_CREATE",
-          "CLASS_READ",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
           "CLASS_UPDATE",
           "CLASS_IMPORT",
           "SLOT_CREATE",
-          "SLOT_READ",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
           "SLOT_UPDATE",
           "SLOT_IMPORT",
-          "ENROLLMENT_MANAGE",
-          "SLOT_CREATE_FINAL_EXAM",
-          "SLOT_UPDATE_FINAL_EXAM",
-          "SLOT_DELETE_HARD_FINAL_EXAM",
+          "ENROLLMENT_CREATE",
+          "ENROLLMENT_READ_LIST",
+          "ENROLLMENT_READ_DETAIL",
+          "ENROLLMENT_UPDATE",
+          "ENROLLMENT_IMPORT",
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ATTENDANCE_REMARK_MANAGE",
           "ROOM_CREATE",
-          "ROOM_READ",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
           "ROOM_UPDATE",
           "ROOM_IMPORT",
           "CAMERA_CREATE",
-          "CAMERA_READ",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
           "CAMERA_UPDATE",
           "CAMERA_IMPORT",
-          "REPORT_READ_SYSTEM_WIDE",
           "REPORT_EXPORT_ACADEMIC_DATA",
-          "AUDIT_LOG_READ",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
         ]
@@ -171,6 +203,7 @@ system_context:
         [
           "OWN_SCHEDULE_READ",
           "SLOT_SESSION_START",
+          "SLOT_SESSION_STOP",
           "SLOT_SESSION_RESCAN",
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
@@ -178,16 +211,22 @@ system_context:
           "REPORT_READ_OWN_SLOT",
           "REPORT_EXPORT_OWN_SLOT",
           "REPORT_READ_CLASS_SUMMARY",
-          "REPORT_READ_SYSTEM_WIDE",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
-          "ROOM_READ",
-          "CAMERA_READ",
-          "SEMESTER_READ",
-          "CLASS_READ",
-          "MAJOR_READ",
-          "SLOT_READ",
-          "SUBJECT_READ",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
           "SLOT_UPDATE_CATEGORY",
         ]
 
@@ -199,22 +238,29 @@ system_context:
         [
           "OWN_SCHEDULE_READ",
           "SLOT_SESSION_START",
+          "SLOT_SESSION_STOP",
           "SLOT_SESSION_RESCAN",
           "ATTENDANCE_ROSTER_READ",
           "ATTENDANCE_STATUS_UPDATE_MANUAL",
           "ATTENDANCE_REMARK_MANAGE",
           "REPORT_READ_OWN_SLOT",
           "REPORT_EXPORT_OWN_SLOT",
-          "REPORT_READ_SYSTEM_WIDE",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
-          "ROOM_READ",
-          "CAMERA_READ",
-          "SEMESTER_READ",
-          "CLASS_READ",
-          "MAJOR_READ",
-          "SLOT_READ",
-          "SUBJECT_READ",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
         ]
 
     STUDENT:
@@ -227,12 +273,18 @@ system_context:
           "OWN_ATTENDANCE_HISTORY_READ",
           "OWN_PROFILE_READ",
           "OWN_PASSWORD_UPDATE",
-          "ROOM_READ",
-          "SEMESTER_READ",
-          "CLASS_READ",
-          "MAJOR_READ",
-          "SLOT_READ",
-          "SUBJECT_READ",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
         ]
 
   function_catalog:
@@ -244,123 +296,157 @@ system_context:
       - "Role-based dashboard"
       - "Reports & file export"
 
-    student_functions: []
+    student_functions:
+      - "View personal schedule (class schedule, exam schedule)"
+      - "View own attendance history"
+      - "View slot details and information"
+      - "Receive system notifications"
 
     lecturer_functions:
+      - "View personal teaching schedule"
+      - "Manage attendance sessions (start/stop/rescan)"
+      - "Manually update attendance status"
+      - "Add and manage attendance remarks"
+      - "View attendance reports for own slots"
       - "View comprehensive attendance reports by class/semester"
+      - "Export attendance reports"
+
+    supervisor_functions:
+      - "View personal exam supervision schedule"
+      - "Manage exam attendance sessions (start/stop/rescan)"
+      - "Manually update exam attendance status"
+      - "Add and manage exam attendance remarks"
+      - "View attendance reports for own exam slots"
+      - "Export exam attendance reports"
 
     data_operator_functions:
-      - "Manage Semesters"
-      - "Manage academic catalogs"
-      - "Receive and export attendance reports"
-      - "Query & reconcile data"
-      - "Manage user accounts"
-      - "Manage slot enrollment"
-      - "Export academic data"
-      - "Manage Camera and Room catalogs"
-      # Removed: View operational activity logs (out of scope)
-      - "Manage Majors"
-      - "Manage bulk student enrollments via CSV import"
-      - "Bulk import student identity data (Photos + Vectors)"
-      - "Bulk import academic catalog data (Semester, Major, Subject, Class, Slot)"
-      - "HYPOTHESIS: Bulk import infrastructure data (Room, Camera)"
+      - "Manage Semesters (create, update, deactivate, import via CSV)"
+      - "Manage Majors (create, update, deactivate, import via CSV)"
+      - "Manage Subjects (create, update, deactivate, import via CSV)"
+      - "Manage Classes (create, update, deactivate, import via CSV)"
+      - "Manage Slots (create, update, deactivate, import via CSV)"
+      - "Manage Rooms (create, update, deactivate, import via CSV)"
+      - "Manage Cameras (create, update, deactivate, import via CSV)"
+      - "Manage Students (create, update, deactivate, import via CSV)"
+      - "Manage Staff (create, update, deactivate, import via CSV)"
+      - "Manage class enrollments (add/remove students, import via CSV)"
+      - "Manage final exam participants (assign students to exam slots)"
+      - "Bulk import student identity data (photos and face embeddings)"
+      - "View and export attendance reports"
+      - "Query and reconcile data"
 
   screen_catalog:
-    web_student_screens:
-      SCR_STUDENT_LOGIN:
+    common_screens:
+      SCR_LOGIN:
         title: "Login Screen"
         features:
           - "Google login"
           - "Username and Password login form"
           - "'Forgot Password?' link"
+        applies_to:
+          - "Student Web"
+          - "Lecturer Web"
+          - "Admin Portal"
 
+      SCR_FORGOT_PASSWORD:
+        title: "Forgot Password Screen"
+        features:
+          - "Email input form to receive reset link"
+          - "'Send Request' button"
+        applies_to:
+          - "Student Web"
+          - "Lecturer Web"
+          - "Admin Portal"
+
+      SCR_RESET_PASSWORD:
+        title: "Reset Password Screen"
+        features:
+          - "New password and confirm password input form"
+          - "'Reset Password' button"
+        applies_to:
+          - "Student Web"
+          - "Lecturer Web"
+          - "Admin Portal"
+
+    web_student_screens:
       SCR_STUDENT_DASHBOARD:
-        title: "Home Screen/Dashboard"
+        title: "Dashboard"
         features:
           - "View upcoming lecture/exam slots"
+          - "Quick statistics (attendance rate, next class, etc.)"
           - "Shortcuts to main functions"
 
       SCR_STUDENT_SCHEDULE:
-        title: "Schedule Screen"
+        title: "Schedule (Calendar)"
         features:
           - "Semester selector"
           - "Filter Lecture/Exam schedule"
           - "View schedule in week/month format"
           - "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM)."
           - "For FINAL_EXAM slots, the API queries through 'exam_slot_participants' and 'exam_slot_subjects' to display the exact Subject name(s) that the student must take the exam for in that slot."
+          - "Click on slot to view details (time, room, lecturer, etc.)"
 
-      SCR_STUDENT_SLOT_DETAILS:
-        title: "Slot Details Screen"
+      SCR_STUDENT_ATTENDANCE_HISTORY:
+        title: "Attendance History"
         features:
-          - "View detailed slot information (including slot type: LECTURE or EXAM)"
+          - "View personal attendance history by semester/class"
+          - "Display attendance status for each slot (Present/Absent/Late/Excused)"
+          - "View attendance statistics (total present, absent, attendance rate)"
+          - "Filter by date range, class, or subject"
+          - "View exam eligibility status based on attendance rate"
 
       SCR_STUDENT_PROFILE:
-        title: "Profile Screen"
+        title: "Profile Management"
         features:
-          - "'Change Password' function"
-
-      SCR_STUDENT_NOTIFICATIONS:
-        title: "Notifications Inbox"
-        features:
-          - "System notifications feed (absence warnings, system alerts, etc.)"
-          - "Filters: All | Absence warnings | System alerts"
-          - "Unread indicator at notification level and filter level"
-          - "View notification details"
-
-      SCR_STUDENT_FORGOT_PASSWORD:
-        title: "Forgot Password Screen"
-        features:
-          - "Email input form to receive reset link"
-          - "'Send Request' button"
-
-      SCR_STUDENT_RESET_PASSWORD:
-        title: "Reset Password Screen"
-        features:
-          - "New password and confirm password input form"
-          - "'Reset Password' button"
+          - "View personal information (Name, Student ID, Email, Major, etc.)"
+          - "View avatar/profile photo"
+          - "Change password"
 
     web_lecturer_screens:
-      SCR_LECTURER_LOGIN:
-        title: "Login Screen"
+      SCR_LECTURER_DASHBOARD:
+        title: "Dashboard"
         features:
-          - "Google login"
-          - "Username and Password login form"
-          - "'Forgot Password?' link"
+          - "View upcoming lecture slots"
+          - "Quick statistics (total slots this week, attendance summary)"
+          - "Shortcuts to main functions"
 
-      SCR_LECTURER_SCHEDULE:
-        title: "Schedule & Slots"
+      SCR_LECTURER_SCHEDULE_CALENDAR:
+        title: "Schedule (Calendar View)"
         features:
-          - "View teaching schedule and exam supervision schedule by semester on a unified interface"
-          - "Advanced filters to filter lecture/exam slots by multiple criteria, including 'Category' (slot_category: LECTURE, LECTURE_WITH_PT, FINAL_EXAM)"
-          - "Open/Close slot"
+          - "View teaching schedule by semester"
+          - "Display slots in calendar format (week/month view)"
+          - "Filter by slot category (LECTURE, LECTURE_WITH_PT)"
+          - "Click on a slot to navigate to attendance management screen"
+          - "Color-coded by slot type and status"
 
-      SCR_LECTURER_ROSTER:
-        title: "Roster & Attendance"
+      SCR_LECTURER_SCHEDULE_TABLE:
+        title: "Schedule (Table View)"
         features:
-          - "Dynamically loads the student roster based on slot type: from Class Enrollments (for LECTURE/LECTURE_WITH_PT) or from the independent Exam Participant list (for FINAL_EXAM slots)."
-          - "Interface displays appropriate functions based on role (Lecturer, Supervisor)."
+          - "View teaching schedule by semester in table format"
+          - "Advanced filters (by date range, class, subject, slot category)"
+          - "Update slot category (switch between LECTURE <-> LECTURE_WITH_PT)"
+          - "Cancel/Activate slot"
+          - "Click on a slot to navigate to attendance management screen"
+          - "Sort and search slots"
+
+      SCR_LECTURER_ATTENDANCE:
+        title: "Attendance Management"
+        features:
+          - "Display student roster for selected slot (loaded from class enrollments)"
           - "Display camera names and connection status of all cameras in the assigned room"
-          - "Interface updates attendance status in real-time based on the new processing logic (e.g., 'Present' status may revert to 'Not Yet' after a re-scan)."
-          - "For each student marked 'present' automatically (from the first scan), display the captured evidence image next to their base avatar for quick visual comparison by the lecturer."
-          - "NEW: For students in 'Not Yet' status, the interface must visually distinguish between those who have an associated evidence image and those who do not."
-          - "Review/edit status"
-          - "Add/Edit attendance remarks for each student"
           - "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions"
-          - "Manual attendance edit window, requires mandatory reason (remark) input when changing status"
+          - "Interface updates attendance status in real-time based on scan results"
+          - "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for visual comparison"
+          - "Visually distinguish between students with/without evidence images"
+          - "Manually update attendance status (requires mandatory remark)"
+          - "Add/Edit attendance remarks for each student"
           - "Bulk update dialog for processing multiple student statuses at once"
+        notes:
+          - "This screen is accessed from Schedule Calendar or Schedule Table screens"
+          - "Used during the slot session to conduct attendance"
 
-      SCR_LECTURER_SLOT_DETAILS:
-        title: "Slot Details"
-        features:
-          - "View slot information and settings"
-
-      SCR_LECTURER_REPORTS:
-        title: "Slot Reports"
-        features:
-          - "View/Export reports by slot/class"
-
-      SCR_LECTURER_CLASS_REPORT:
-        title: "Class Attendance Report Screen"
+      SCR_LECTURER_CLASS_SUMMARY:
+        title: "Class Attendance Summary Report"
         features:
           - "Filter to select Semester and Class"
           - "Display summary report in table (matrix) format: students by rows, slots by columns"
@@ -369,108 +455,261 @@ system_context:
           - "Display exam eligibility status (e.g., 'Eligible', 'Ineligible') based on the system-configured rule"
           - "Visually highlight students who are ineligible for the exam"
           - "Function to export summary report to file (CSV, Excel)"
+
+      SCR_LECTURER_PROFILE:
+        title: "Profile Management"
+        features:
+          - "View personal information (Name, Employee ID, Email, Department, etc.)"
+          - "View avatar/profile photo"
+          - "Change password"
+
+    web_supervisor_screens:
+      SCR_SUPERVISOR_DASHBOARD:
+        title: "Dashboard"
+        features:
+          - "View upcoming exam supervision slots"
+          - "Quick statistics (total exam slots this week, attendance summary)"
+          - "Shortcuts to main functions"
+
+      SCR_SUPERVISOR_SCHEDULE_CALENDAR:
+        title: "Schedule (Calendar View)"
+        features:
+          - "View exam supervision schedule by semester"
+          - "Display exam slots (FINAL_EXAM) in calendar format (week/month view)"
+          - "Click on a slot to navigate to attendance management screen"
+          - "Color-coded by slot status"
+
+      SCR_SUPERVISOR_SCHEDULE_TABLE:
+        title: "Schedule (Table View)"
+        features:
+          - "View exam supervision schedule by semester in table format"
+          - "Advanced filters (by date range, room, subject)"
+          - "Cancel/Activate exam slot"
+          - "Click on a slot to navigate to attendance management screen"
+          - "Sort and search exam slots"
+
+      SCR_SUPERVISOR_ATTENDANCE:
+        title: "Attendance Management"
+        features:
+          - "Display student roster for selected exam slot (loaded from exam_slot_participants)"
+          - "Subject filter dropdown (shows subjects assigned to this exam slot)"
+          - "Display camera names and connection status of all cameras in the assigned room"
+          - "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions"
+          - "Interface updates attendance status in real-time based on scan results"
+          - "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for visual comparison"
+          - "Visually distinguish between students with/without evidence images"
+          - "Manually update attendance status (requires mandatory remark)"
+          - "Add/Edit attendance remarks for each student"
+          - "Bulk update dialog for processing multiple student statuses at once"
         notes:
-          - "IMPORTANT: This report displays real-time attendance data for all slots (both LECTURE and EXAM) for the selected class."
+          - "This screen is accessed from Schedule Calendar or Schedule Table screens"
+          - "Used during the exam slot session to conduct attendance"
+
+      SCR_SUPERVISOR_EXAM_SUMMARY:
+        title: "Exam Slot Attendance Summary Report"
+        features:
+          - "Filter to select Semester and Exam Slot"
+          - "Subject filter dropdown (shows subjects assigned to the exam slot)"
+          - "Display summary report in table format: students by rows, attendance status by columns"
+          - "Display attendance status (Present/Absent) for the selected exam slot"
+          - "View attendance statistics for the exam slot"
+          - "Function to export summary report to file (CSV, Excel)"
+
+      SCR_SUPERVISOR_PROFILE:
+        title: "Profile Management"
+        features:
+          - "View personal information (Name, Employee ID, Email, Department, etc.)"
+          - "View avatar/profile photo"
+          - "Change password"
 
     web_admin_portal_screens:
-      SCR_ADMIN_LOGIN:
-        title: "Login Screen"
-        features:
-          - "Google login"
-          - "Username and Password login form"
-          - "'Forgot Password?' link"
-
       SCR_ADMIN_DASHBOARD:
-        title: "Admin Dashboard"
+        title: "Dashboard"
         features:
-          - "Overview charts"
+          - "Overview charts and statistics"
           - "Semester filter"
-          - "Permission-based display"
+          - "Quick access to main functions"
 
-      SCR_ADMIN_EXPORT:
-        title: "Data Export Screen (Data Operator)"
+      SCR_ADMIN_SEMESTER_MGMT:
+        title: "Semester Management"
         features:
-          - "Interface to configure and execute academic data export (CSV, JSON, etc.)"
-          - "View export history"
+          - "View list of all semesters"
+          - "Create/Edit/Deactivate semester"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter semesters"
 
-      SCR_ADMIN_CRUD_ACADEMIC:
-        title: "CRUD Screens (Data Operator)"
+      SCR_ADMIN_MAJOR_MGMT:
+        title: "Major Management"
         features:
-          - "Manage Semesters, Majors, Subjects, and Classes (View list, Create, Edit, Update status)."
-          - "On each respective management screen (e.g., Semester list, Class list), provide 'Import from CSV' and 'Export to CSV' buttons."
-          - "The 'Import' button allows uploading a CSV file and shows a read-only list of error rows returned by the backend. No inline editing or iteration in UI."
-          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button with single upload workflow showing error rows only."
-          - "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table)."
-          - "Add/Remove students from a class (Roster Management for class-based slots only)."
+          - "View list of all majors"
+          - "Create/Edit/Deactivate major"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter majors"
 
-      SCR_ADMIN_REPORTING:
-        title: "Reporting & Lookup Screen (Data Operator)"
+      SCR_ADMIN_SUBJECT_MGMT:
+        title: "Subject Management"
         features:
-          - "Advanced search filters"
-          - "View and export custom reports"
+          - "View list of all subjects"
+          - "Create/Edit/Deactivate subject"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter subjects"
+
+      SCR_ADMIN_CLASS_MGMT:
+        title: "Class Management"
+        features:
+          - "View list of all classes"
+          - "Create/Edit/Deactivate class"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter classes (by semester, major, subject)"
+          - "Click on a class to navigate to class enrollment management screen"
+
+      SCR_ADMIN_CLASS_ENROLLMENT:
+        title: "Class Enrollment Management"
+        features:
+          - "View list of students enrolled in selected class"
+          - "Add student to class"
+          - "Remove student from class"
+          - "Import enrollments from CSV"
+          - "Export enrollments to CSV"
+        notes:
+          - "This is a sub-screen accessed from Class Management"
+
+      SCR_ADMIN_CLASS_SLOT_MGMT:
+        title: "Class Slot Management (Lecture Slots)"
+        features:
+          - "View list of all class slots (LECTURE/LECTURE_WITH_PT)"
+          - "Create/Edit/Cancel slot"
+          - "Filter by semester, class, date range"
+          - "Import slots from CSV / Export to CSV"
+          - "Click on a slot to navigate to attendance roster management screen"
+
+      SCR_ADMIN_SLOT_ATTENDANCE_ROSTER:
+        title: "Slot Attendance Roster Management"
+        features:
+          - "View attendance roster for selected slot"
+          - "Display student list with attendance status (Present/Absent/Late/Excused)"
+          - "Manually update attendance status"
+          - "Add/Edit attendance remarks"
+          - "View attendance statistics for the slot"
+          - "Export attendance data to CSV"
+        notes:
+          - "This is a sub-screen accessed from Class Slot Management"
+
+      SCR_ADMIN_EXAM_SLOT_MGMT:
+        title: "Exam Slot Management (Final Exam Slots)"
+        features:
+          - "View list of all exam slots (FINAL_EXAM)"
+          - "Create/Edit/Cancel exam slot"
+          - "Assign multiple subjects to exam slot (updates exam_slot_subjects table)"
+          - "Filter by semester, date range"
+          - "Import exam slots from CSV / Export to CSV"
+          - "Click on a slot to navigate to exam participant management or attendance roster management"
+
+      SCR_ADMIN_EXAM_SLOT_PARTICIPANTS:
+        title: "Exam Slot Participants Management"
+        features:
+          - "View list of students registered for selected exam slot"
+          - "Subject filter dropdown (shows subjects assigned to this exam slot from exam_slot_subjects table)"
+          - "Add student to exam slot (for specific subject)"
+          - "Remove student from exam slot"
+          - "Import exam participants from CSV (columns: student_id, subject_code)"
+          - "Export participant list to CSV"
+          - "Download CSV template"
+          - "Search and filter students"
+        notes:
+          - "This is a sub-screen accessed from Exam Slot Management"
+          - "This screen manages WHO is taking the exam in this slot, similar to class enrollment management"
+
+      SCR_ADMIN_EXAM_SLOT_ATTENDANCE_ROSTER:
+        title: "Exam Slot Attendance Roster Management"
+        features:
+          - "View attendance roster for selected exam slot"
+          - "Subject filter dropdown (shows subjects assigned to this exam slot)"
+          - "Display student list with attendance status (Present/Absent/Late/Excused)"
+          - "Manually update attendance status"
+          - "Add/Edit attendance remarks"
+          - "View attendance statistics for the exam slot"
+          - "Export attendance data to CSV"
+        notes:
+          - "This is a sub-screen accessed from Exam Slot Management"
+          - "This screen manages attendance tracking for exam slots, separate from participant management"
+
+      SCR_ADMIN_ROOM_MGMT:
+        title: "Room Management"
+        features:
+          - "View list of all rooms"
+          - "Create/Edit/Deactivate room"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter rooms"
+
+      SCR_ADMIN_CAMERA_MGMT:
+        title: "Camera Management"
+        features:
+          - "View list of all cameras"
+          - "Create/Edit/Deactivate camera"
+          - "Configure camera settings (RTSP URL, room assignment)"
+          - "Import from CSV / Export to CSV"
+          - "Search and filter cameras"
+          - "View camera connection status"
 
       SCR_ADMIN_USER_MGMT:
-        title: "User & Role Management (Data Operator)"
+        title: "User Management"
         features:
-          - "Add/Edit/Delete accounts"
-          - "Assign one or more roles to users (LECTURER, SUPERVISOR, STUDENT); includes constraint check to not assign SUPERVISOR/LECTURER to STUDENT"
-          - "Does NOT edit permission catalog or Role-Permission mapping"
-          - "Create specialized profiles (Student/Staff)"
-
-      SCR_ADMIN_INFRA_MGMT:
-        title: "Camera & Room Management (Data Operator)"
-        features:
-          - "Add/Edit/Delete room information"
-          - "Add/Edit/Delete camera information (Name, RTSP connection string, Status)"
-          - "Assign a camera to a room"
-          - "View list of all cameras and rooms in the system"
-          - "HYPOTHESIS: Add 'Import Rooms from CSV' button (single upload; show error rows only)."
-          - "HYPOTHESIS: Add 'Import Cameras from CSV' button (single upload; show error rows only)."
-
-      SCR_ADMIN_BULK_ENROLLMENT:
-        title: "Bulk Student Enrollment (Class-based) Screen"
-        features:
-          - "Semester selector to choose the target semester."
-          - "Interface to upload a CSV file containing class enrollment data (e.g., columns: student_id, class_id). NOTE: This screen is for class enrollments only, not for independent exams."
-          - "Button to download a CSV template file to ensure correct formatting."
-          - "After upload, display a read-only list of error rows returned by the backend."
-
-      SCR_ADMIN_EXAM_PARTICIPANTS:
-        title: "Independent Exam Participant Management"
-        features:
-          - "Semester selector to filter FINAL_EXAM slots (where class_id is NULL)."
-          - "Slot selector to choose a specific independent exam slot."
-          - "NEW: Subject filter (Dropdown) that displays only subjects assigned to the selected slot (from 'exam_slot_subjects' table)."
-          - "Display a data table of students registered for the selected (Slot + Subject) pair (from 'exam_slot_participants' table)."
-          - "Function to manually add a student (by student_id) to the selected (Slot + Subject) pair. System must validate business logic (e.g., is the student enrolled in this subject during the semester)."
-          - "Function to remove a student from the list."
-          - "Interface to upload a CSV file to bulk-import participants. The CSV file must contain (student_id, subject_code)."
-          - "Button to download CSV template (new template with 2 columns)."
-
-      SCR_ADMIN_BULK_IDENTITY_IMPORT:
-        title: "Bulk Identity Import (Data Operator)"
-        features:
-          - "Interface to upload a .CSV file (containing student_id list)"
-          - "Interface to upload a .ZIP file (containing photos named by student_id, e.g., 'HE180001.jpg')"
-          - "Button 'Start Import Job' to trigger background processing"
-          - "A status table/log showing the result of the latest import jobs (e.g., 'Completed: 990/1000 successful', 'Failed: 10')"
-          - "Ability to download error report for failed imports"
-
-  complex_component_catalog:
-    COMPLEX_SEMESTER_DATATABLE:
-      description: "A reusable data table for displaying and managing semesters. Includes sorting, filtering, and pagination."
-      required_features:
-        - "CRUD operations on Semester data"
+          - "Tab 1: Student Management"
+          - "  - View list of all students"
+          - "  - Create/Edit/Deactivate student account"
+          - "  - Manage student profile information"
+          - "  - Import students from CSV / Export to CSV"
+          - "  - Bulk import student identity data (photos and face embeddings via CSV + ZIP upload)"
+          - "  - View import job status and history"
+          - "  - Download error report for failed imports"
+          - "  - Search and filter students"
+          - "Tab 2: Staff Management"
+          - "  - View list of all staff (Lecturers, Supervisors)"
+          - "  - Create/Edit/Deactivate staff account"
+          - "  - Assign roles (LECTURER, SUPERVISOR) to staff"
+          - "  - Manage staff profile information"
+          - "  - Import staff from CSV / Export to CSV"
+          - "  - Bulk import staff identity data (photos and face embeddings via CSV + ZIP upload)"
+          - "  - View import job status and history"
+          - "  - Download error report for failed imports"
+          - "  - Search and filter staff"
+        notes:
+          - "Cannot assign LECTURER/SUPERVISOR roles to users with STUDENT role"
+          - "DOP cannot create other DOP accounts"
 
   attendance_system:
     attendance_mode:
       description: "The only attendance mode, activated by Lecturer (for lecture slots) or Supervisor (for exam slots). The system uses IP cameras pre-installed in classrooms to automatically recognize and record student presence. A Python middleware service processes video streams and sends results back to the system."
 
     face_recognition:
-      decision_flow_summary: "Face scan results are processed based on the student's current state."
-      outcomes:
-        match: "Handle 'Match' (Scan finds student): If current status is 'Not Yet', remain 'Not Yet' but capture/update evidence image. If current status is 'Present', do nothing (no-op)."
-        no_match: "Handle 'No Match' (Scan does not find student): If current status is 'Present', update status to 'Not Yet'. If current status is 'Not Yet', do nothing (no-op)."
+      description: "Face scan results are processed differently based on the session type (regular vs exam) and scan count (first scan vs rescan)."
+
+      start_session_logic:
+        description: "First scan (scan_count = 1) - Same logic for both regular and exam sessions"
+        outcomes:
+          match: "Student is scanned successfully → status: 'present' + capture evidence image"
+          no_match: "Student is not scanned → status: 'not_yet' (no evidence image)"
+
+      rescan_logic_regular:
+        description: "Rescan (scan_count >= 2) for regular attendance sessions (LECTURE, LECTURE_WITH_PT regular session)"
+        outcomes:
+          not_yet_no_match: "Current: 'not_yet' + Not scanned → Remain 'not_yet' (no evidence image)"
+          not_yet_match: "Current: 'not_yet' + Scanned successfully → Remain 'not_yet' + capture/update evidence image (lecturer must manually approve to change to 'present')"
+          present_no_match: "Current: 'present' + Not scanned → Change to 'not_yet' + keep old evidence image (for lecturer review)"
+          present_match: "Current: 'present' + Scanned successfully → Remain 'present' + keep old evidence image"
+
+      rescan_logic_exam:
+        description: "Rescan (scan_count >= 2) for exam attendance sessions (LECTURE_WITH_PT exam session, FINAL_EXAM)"
+        outcomes:
+          not_yet_no_match: "Current: 'not_yet' + Not scanned → Remain 'not_yet' (no evidence image)"
+          not_yet_match: "Current: 'not_yet' + Scanned successfully → Automatically change to 'present' + capture evidence image"
+          present_no_match: "Current: 'present' + Not scanned → Remain 'present' + keep old evidence image"
+          present_match: "Current: 'present' + Scanned successfully → Remain 'present' + keep old evidence image"
+
+      key_difference: "The main difference between regular and exam sessions is how 'not_yet' students are handled when scanned during rescan: Regular sessions keep them as 'not_yet' (requiring manual approval), while exam sessions automatically promote them to 'present'."
+
+      future_consideration: "Evidence image update policy for 'present' students who are scanned again may change in the future (currently keeps old image, may update to new image). This needs further discussion."
 
     attendance_statuses:
       - "not_yet"
@@ -499,13 +738,19 @@ system_context:
       exam_sessions:
         purpose: "Track exam/test attendance independently from regular lectures"
         applicable_to: ["LECTURE_WITH_PT", "FINAL_EXAM"]
-        fields_used: ["exam_session_status", "exam_scan_count", "last_exam_session_stopped_at"]
+        fields_used:
+          [
+            "exam_session_status",
+            "exam_scan_count",
+            "last_exam_session_stopped_at",
+          ]
         data_stored_in: "exam_attendance table"
       independence_principle: "Regular and exam sessions operate completely independently. For LECTURE_WITH_PT slots, lecturers can start, stop, and rescan regular and exam sessions separately. Each session type maintains its own scan count, status, and attendance records."
       use_cases:
         lecture_only: "LECTURE slots use only regular session management for recording class attendance."
         lecture_with_pt: "LECTURE_WITH_PT slots use BOTH session types - regular sessions track lecture attendance, exam sessions track progress test attendance within the same slot."
         final_exam: "FINAL_EXAM slots use only exam session management for recording exam attendance."
+      scan_behavior_difference: "Regular and exam sessions have different scan processing logic (see 'face_recognition' section for details). In regular sessions, students scanned during rescan remain 'not_yet' and require manual approval. In exam sessions, students scanned during rescan are automatically promoted to 'present'. This reflects the different validation requirements between regular lecture attendance and exam attendance."
 
   technical_flows:
     evidence_cleanup_flow:
@@ -521,7 +766,7 @@ system_context:
           "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
         ]
 
-    face_identification_flow: "When a lecturer starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system processes the result based on the student's current state (see 'face_recognition.outcomes' logic): 1) A 'No Match' on a 'Present' student will revert their status to 'Not Yet'. 2) A 'Match' on a 'Not Yet' student will update their evidence image but keep their status as 'Not Yet'. The system adds relevant events to the student's history record. This process does not overwrite old data."
+    face_identification_flow: "When a lecturer/supervisor starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system processes the result based on the session type (regular vs exam), scan count (first scan vs rescan), and student's current attendance status (see 'attendance_system.face_recognition' section for complete logic). Key behaviors: 1) First scan: All scanned students become 'present' with evidence image. 2) Rescan in regular sessions: Scanned 'not_yet' students remain 'not_yet' with evidence captured (requiring manual approval); 'present' students not scanned revert to 'not_yet' with old evidence kept for review. 3) Rescan in exam sessions: Scanned 'not_yet' students are automatically promoted to 'present' with evidence captured; 'present' students not scanned remain 'present'. The system adds relevant events to the student's history record."
 
     data_export_flow: "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS."
 
@@ -545,21 +790,21 @@ system_context:
 
     bulk_identity_import_flow:
       title: "Bulk Identity Import Flow (Admin)"
-      description: "A background job flow triggered by Data Operator to import student identity data (base photo and vector) in bulk."
+      description: "A background job flow triggered by Data Operator to import identity data (base photo and face embedding vector) in bulk for students or staff."
       steps:
-        - "1. Trigger: Data Operator uploads a CSV (student_id list) and a ZIP (photos named by student_id) via 'SCR_ADMIN_BULK_IDENTITY_IMPORT' and starts the job."
+        - "1. Trigger: Data Operator uploads a CSV (user_id list) and a ZIP (photos named by user_id) via 'SCR_ADMIN_USER_MGMT' (Student tab for students, Staff tab for staff) and starts the job."
         - "2. Orchestration (Spring Boot): The main service receives the files, saves them temporarily, and starts an asynchronous job."
         - "3. Job Processing (Spring Boot):"
         - "  a. Unzip the ZIP file to a temporary directory."
-        - "  b. Read the CSV file row by row (e.g., 'HE180001')."
-        - "  c. For each student_id: Find the matching photo ('HE180001.jpg') in the temp directory."
+        - "  b. Read the CSV file row by row (e.g., 'HE180001' for student or 'EMP001' for staff)."
+        - "  c. For each user_id: Find the matching photo ('HE180001.jpg') in the temp directory."
         - "  d. Send the photo (binary) to the Python 'recognition_service' API."
         - "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot."
         - "  f. (Spring Boot): Uploads the original photo to cloud storage (e.g., S3) to get a URL."
-        - "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, is_active) VALUES (...)."
-        - "  h. Log success or failure for this student."
+        - "  g. Save results to Database: UPDATE 'student_profiles' or 'staff_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id or staff_user_id, embedding_vector, is_active) VALUES (...)."
+        - "  h. Log success or failure for this user."
         - "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk."
-        - "5. Reporting: The job status is updated on the admin screen, allowing DOP to see the results."
+        - "5. Reporting: The job status is updated on the admin screen (SCR_ADMIN_USER_MGMT), allowing DOP to see the import results and download error reports if any."
 
     bulk_catalog_import_flow:
       title: "Simple Bulk Import Flow (Admin)"
@@ -573,11 +818,11 @@ system_context:
 
   information_flows:
     - "Student ↔ System: view schedule/slots; view attendance status"
-    - "Lecturer ↔ System: open/close slots; start automated attendance session; review/edit attendance status"
-    - "Supervisor ↔ System: open/close exam slots; start automated attendance session; review/edit attendance status"
+    - "Lecturer ↔ System: view teaching schedule; update slot category (LECTURE ↔ LECTURE_WITH_PT); cancel/activate slots; start/stop/rescan attendance sessions; manually update attendance status; add attendance remarks; view and export attendance reports"
+    - "Supervisor ↔ System: view exam supervision schedule; cancel/activate exam slots; start/stop/rescan exam attendance sessions; manually update attendance status; add attendance remarks; view and export exam attendance reports"
     - "System → External systems (SIS/LMS): export academic data and attendance results on demand"
     - "System ↔ Python Recognition Service: send session start request; receive attendance results"
-    - "System ↔ Data Operations Staff: attendance reports, catalog management and data synchronization; approve identity registrations; manage user accounts; manage rooms and cameras"
+    - "System ↔ Data Operations Staff (DOP): manage academic catalogs (semesters, majors, subjects, classes, slots); manage infrastructure (rooms, cameras); manage users (students, staff); manage enrollments and exam participants; bulk import data via CSV; view and export attendance reports; manually update attendance for exception cases"
     - "System ↔ Google: login & basic profile"
 
   integrations:
@@ -601,155 +846,12 @@ system_context:
     integration_method: "The system operates independently and is the source of original data. Data is shared with other systems via export function; API integration is planned for the future."
 
   data_policies:
-    conflict_resolution:
-      strategy: "Last-Write-Wins"
-      granularity: "field-level"
-      description: "The later updated value (by import or in-system operation) wins for each field. Priority rules between FUACS data and external systems will be discussed in detail later."
-
-  data_model:
-    slot_entity_definition:
-      description: "Additional definition for the Slot entity to support business classification and session management."
-      fields:
-        slot_category:
-          type: "Varchar"
-          required: true
-          description: |
-            Classifies the type and purpose of a slot. Combines slot type and exam component into a single field.
-
-            Allowed Values:
-            - 'LECTURE': Regular lecture session (teaching only)
-            - 'LECTURE_WITH_PT': Lecture session with progress test (teaching + testing)
-            - 'FINAL_EXAM': Final exam session (testing only)
-
-            Lecturer Workflow:
-            - DOP creates slots with slot_category = 'LECTURE' or 'FINAL_EXAM'
-            - Lecturer can update slot_category: 'LECTURE' ↔ 'LECTURE_WITH_PT'
-            - Cannot change to/from 'FINAL_EXAM' (only DOP can manage final exams)
-
-            Validation enforced at application layer.
-          allowed_values: ["LECTURE", "LECTURE_WITH_PT", "FINAL_EXAM"]
-        room_id:
-          type: "Reference"
-          target_entity: "Room"
-          required: true
-          description: "ID of the room where this slot takes place. Used to determine which camera to use."
-        title:
-          type: Varchar
-          required: false
-          description:
-            The display name for the slot. Especially useful for exams to give them a specific title like
-            'Progress Test 1 - Chapter 1-3'.
-        description:
-          type: Text
-          required: false
-          description: Optional detailed information or instructions about the slot, visible to students and staff.
-        session_status:
-          type: "Varchar(20)"
-          required: true
-          default: "NOT_STARTED"
-          description: |
-            Tracks the regular attendance session status for LECTURE and LECTURE_WITH_PT slots.
-            Used to manage the attendance scanning workflow for regular class attendance.
-          allowed_values: ["NOT_STARTED", "RUNNING", "STOPPED"]
-        scan_count:
-          type: "Integer"
-          required: true
-          default: 0
-          description: "Number of regular attendance scans performed. Increments each time a scan session is started."
-        last_session_stopped_at:
-          type: "Timestamp"
-          required: false
-          description: "Timestamp when the regular attendance session was last stopped. NULL if never stopped."
-        exam_session_status:
-          type: "Varchar(20)"
-          required: true
-          default: "NOT_STARTED"
-          description: |
-            Tracks the exam attendance session status independently from regular sessions.
-            Used for LECTURE_WITH_PT (progress test attendance) and FINAL_EXAM slots.
-            Allows separate control of exam scanning independent of lecture attendance.
-          allowed_values: ["NOT_STARTED", "RUNNING", "STOPPED"]
-        exam_scan_count:
-          type: "Integer"
-          required: true
-          default: 0
-          description: "Number of exam scans performed. Increments each time an exam scan session is started. Tracks PT and Final Exam scans separately from regular attendance."
-        last_exam_session_stopped_at:
-          type: "Timestamp with Time Zone"
-          required: false
-          description: "Timestamp when the exam session was last stopped. NULL if never stopped. Used for both progress tests and final exams."
-      session_management_notes:
-        dual_session_support: "Slots can have two independent attendance sessions: regular (for lecture attendance) and exam (for test/exam attendance). LECTURE_WITH_PT slots may use both session types."
-        session_independence: "Regular and exam sessions are completely independent - they can be started, stopped, and rescanned separately without affecting each other."
-        slot_category_usage: |
-          - LECTURE slots: Use regular session fields only (session_status, scan_count, last_session_stopped_at)
-          - LECTURE_WITH_PT slots: Use BOTH regular and exam session fields independently
-          - FINAL_EXAM slots: Use exam session fields only (exam_session_status, exam_scan_count, last_exam_session_stopped_at)
-
-    enrollment_entity_definition:
-      description: "Definition of enrollment record."
-      fields:
-        is_enrolled:
-          type: "Boolean"
-          default: true
-          description: "Enrollment status. When a student withdraws from a course, this field is updated to 'false'. This hides the student from future slots but preserves all enrollment and attendance history data for reporting and audit purposes."
-
-  idempotency_policies:
-    unique_constraints:
-      - "enrollments: (class_id, student_user_id) is unique"
-      - "attendance_records: (student_user_id, slot_id) is unique"
-    notes:
-      - "enrollments.is_enrolled field controls roster visibility"
-
-    keys:
-      slot_enrollment: "class_id + student_user_id"
-      attendance: "student_user_id + slot_id"
-      slot_announcement: "id (bigint)"
-      pre_slot_message: "id (bigint)"
-
-  assumptions:
-    reconciliation_report: true
-    idempotency_key: "slot_id + student_id"
-    base_image_quality: "The system assumes that students will provide identity video/photos with sufficient quality for recognition. The system does not have input quality enforcement mechanisms."
-    single_slot_assignment: "In the current version, each slot is assigned to one and only one staff member (Lecturer or Supervisor)."
-
-  terminology_notes:
-    principles:
-      - "UI uses Vietnamese as primary; first occurrence in each screen/section may include English terminology in parentheses"
-      - "Permissions use UPPER_SNAKE_CASE; concepts use snake_case"
-
-    dictionary:
-      slot:
-        ui_label: "Slot"
-        concept_key: "slot"
-        description: "A unit of lecture or exam session in the schedule."
-
-      roster:
-        ui_label: "Roster"
-        concept_key: "roster"
-        description: "Student list of a slot used to monitor and review attendance status."
-
-      supervisor:
-        ui_label: "Supervisor"
-        concept_key: "supervisor"
-        description: "Person responsible for supervising and taking attendance for an exam slot."
-
-      system_notification:
-        ui_label: "System Notification"
-        concept_key: "system_notification"
-        description: "Notification issued by the system to target users."
-
-      automated_attendance:
-        ui_label: "Automated Attendance"
-        description: "System automatically takes attendance via IP cameras."
-
-      attendance_status_values:
-        ui_label: "Attendance Statuses"
-        values: ["not_yet", "present", "absent"]
-
-    mappings:
-      - ui_label: "System notification"
-        concept: "system_notification"
+    import_policies:
+      description: "The system supports two import modes for bulk data import via CSV"
+      add_only:
+        description: "Add new records only. Existing records are skipped and returned as errors."
+      add_and_update:
+        description: "Add new records and update existing records. Uses Last-Write-Wins strategy for conflicts."
 
   tech_stack:
     frontend:
@@ -757,10 +859,6 @@ system_context:
         description: "Web platform for Students, Lecturers, Supervisors, and Admin"
         technology: "Next.js"
         ui_library: "shadcn/ui"
-      # mobile_app is no longer used for Students
-      # mobile_app:
-      #   description: "(Deprecated) Mobile application"
-      #   technology: "React Native"
 
     backend:
       main_service:
@@ -796,11 +894,6 @@ system_context:
         reason: "No business requirement for class size limits"
         status: "SKIP - Do not suggest unless explicitly requested"
 
-      - item: "Identity Submission Retry Limit"
-        decision: "NOT implemented - unlimited submissions allowed"
-        reason: "Not needed in current version, can add later if spam becomes an issue"
-        status: "SKIP - Do not suggest unless explicitly requested"
-
       - item: "RTSP URL Encryption/Credential Separation"
         decision: "NOT implemented - store RTSP URLs as-is in database"
         reason: "Internal network only, security handled at network level, not application priority"
@@ -810,21 +903,6 @@ system_context:
         decision: "NOT specified - use framework defaults"
         reason: "Premature optimization, will tune based on actual load testing results"
         status: "SKIP - Do not suggest performance specs until load testing"
-
-      - item: "Link Password to Google Account"
-        decision: "NOT implemented - Google-only accounts remain Google-only"
-        reason: "Not a priority feature, users can use password reset if needed"
-        status: "SKIP - Do not suggest unless explicitly requested"
-
-      - item: "Attendance History Table"
-        decision: "NOT implemented - use operational_audit_logs for history"
-        reason: "Audit logs already provide complete history, no need for duplicate table"
-        status: "FINAL - Do not suggest separate history table"
-
-      - item: "System Admin Role/Permission Management Use Cases"
-        decision: "NOT documented as separate use cases"
-        reason: "Low-level admin functions, permissions exist but detailed UCs not needed"
-        status: "SKIP - Do not suggest adding these UCs"
 
       - item: "Student View Exam Eligibility Status Use Case"
         decision: "Feature exists but NOT documented as separate UC"
@@ -859,18 +937,15 @@ system_context:
         status: "SKIP - Do not suggest adding this index unless specific use case emerges"
 
     timezone_and_scheduling_clarifications:
-      - item: "Daily Absence Calculation Job Timezone"
-        decision: "NOT explicitly documented in requirements"
-        reason: "Implementation detail to be determined during development. All database timestamps are UTC. Job scheduling timezone will be configured in deployment environment."
-        status: "SKIP - Implementation detail, not a requirements concern"
+      - item: "System Timezone"
+        decision: "Vietnam timezone only (ICT/Asia/Ho_Chi_Minh, UTC+7)"
+        reason: "System is designed for Vietnam market only. All database timestamps are stored in UTC, but displayed and scheduled according to Vietnam timezone."
+        status: "FINAL - System operates in Vietnam timezone"
 
   to_be_discussed_or_backlog:
     - "Dashboard Design: Define KPIs displayed for each role"
-    - "Standardize reasons/forms: If upgrading 'Slot Announcement' to a standardized approval (request) flow in the future"
     - "API Integration: Define scope/security/throttling/response format for planned endpoints"
     - "Conflict resolution with external systems (SIS/LMS): Priority rules for data overwrite when importing"
-    - "Identity Re-registration details: Consider policy 'only 1 pending request per type' and related UX"
-    - "Mobile for Lecturers: Evaluate needs and scope if expanding"
     - "Upgrade Backend-Service communication mechanism: Research and transition communication mechanism from 'Direct API Call' to 'Message Queue' (e.g., RabbitMQ) to increase reliability and scalability of the system when deployed at large scale"
 
   notes:
