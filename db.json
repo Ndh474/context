@@ -1,0 +1,1998 @@
+{
+  "tables": {
+    "users": {
+      "primary_key": "id",
+      "description": "Core user accounts table",
+      "columns": {
+        "id": {
+          "type": "INT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique user identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "username": {
+          "type": "varchar(50)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Login username (Student ID or Employee ID)"
+        },
+        "email": {
+          "type": "varchar(128)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "User email address"
+        },
+        "full_name": {
+          "type": "varchar(150)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "User's full name"
+        },
+        "password_hash": {
+          "type": "varchar(255)",
+          "constraints": [
+            null
+          ],
+          "description": "Hashed password (nullable for Google-only accounts)"
+        }
+      }
+    },
+    "password_reset_tokens": {
+      "primary_key": "id",
+      "description": "Password reset tokens for account recovery",
+      "columns": {
+        "id": {
+          "type": "INT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique token identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Token creation timestamp"
+        },
+        "expires_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Token expiration timestamp"
+        },
+        "email": {
+          "type": "varchar(128)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Email address for password reset"
+        },
+        "token_hash": {
+          "type": "varchar(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Hashed reset token"
+        }
+      }
+    },
+    "roles": {
+      "primary_key": "id",
+      "description": "System roles definition",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique role identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "name": {
+          "type": "varchar(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Role name (e.g., STUDENT, LECTURER, SYSTEM_ADMIN)"
+        }
+      }
+    },
+    "permissions": {
+      "primary_key": "id",
+      "description": "System permissions catalog",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique permission identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "name": {
+          "type": "varchar(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Permission name (e.g., USER_CREATE, SLOT_READ)"
+        }
+      }
+    },
+    "user_roles": {
+      "primary_key": [
+        "user_id",
+        "role_id"
+      ],
+      "description": "Many-to-many relationship between users and roles",
+      "columns": {
+        "user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to user"
+        },
+        "role_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "roles",
+            "column": "id"
+          },
+          "description": "Reference to role"
+        }
+      }
+    },
+    "role_permissions": {
+      "primary_key": [
+        "role_id",
+        "permission_id"
+      ],
+      "description": "Many-to-many relationship between roles and permissions",
+      "columns": {
+        "role_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "roles",
+            "column": "id"
+          },
+          "description": "Reference to role"
+        },
+        "permission_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "permissions",
+            "column": "id"
+          },
+          "description": "Reference to permission"
+        }
+      }
+    },
+    "majors": {
+      "primary_key": "id",
+      "description": "Academic majors/programs",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique major identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "name": {
+          "type": "varchar(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Major name"
+        },
+        "code": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Major code"
+        }
+      }
+    },
+    "semesters": {
+      "primary_key": "id",
+      "description": "Academic semesters",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique semester identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "name": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Semester name"
+        },
+        "code": {
+          "type": "varchar(10)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Semester code"
+        },
+        "start_date": {
+          "type": "date",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Semester start date"
+        },
+        "end_date": {
+          "type": "date",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Semester end date"
+        }
+      }
+    },
+    "subjects": {
+      "primary_key": "id",
+      "description": "Academic subjects/courses",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique subject identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "name": {
+          "type": "varchar(150)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Subject name"
+        },
+        "code": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Subject code"
+        }
+      }
+    },
+    "subject_majors": {
+      "primary_key": [
+        "subject_id",
+        "major_id"
+      ],
+      "description": "Many-to-many relationship between subjects and majors",
+      "columns": {
+        "subject_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "subjects",
+            "column": "id"
+          },
+          "description": "Reference to subject"
+        },
+        "major_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "majors",
+            "column": "id"
+          },
+          "description": "Reference to major"
+        }
+      }
+    },
+    "classes": {
+      "primary_key": "id",
+      "description": "Class instances (subject + semester combination)",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique class identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "subject_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "subjects",
+            "column": "id"
+          },
+          "description": "Reference to subject"
+        },
+        "semester_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "semesters",
+            "column": "id"
+          },
+          "description": "Reference to semester"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag"
+        },
+        "code": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Class code"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_classes_subject_semester_code",
+          "columns": [
+            "subject_id",
+            "semester_id",
+            "code"
+          ],
+          "unique": true,
+          "description": "Unique constraint for class within subject and semester"
+        },
+        {
+          "name": "idx_classes_semester_id",
+          "columns": [
+            "semester_id"
+          ],
+          "description": "For queries: all classes in a semester"
+        },
+        {
+          "name": "idx_classes_subject_id",
+          "columns": [
+            "subject_id"
+          ],
+          "description": "For queries: all classes of a subject"
+        }
+      ]
+    },
+    "enrollments": {
+      "primary_key": [
+        "class_id",
+        "student_user_id"
+      ],
+      "description": "Student enrollment in classes",
+      "columns": {
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Enrollment creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Enrollment last update timestamp"
+        },
+        "class_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "classes",
+            "column": "id"
+          },
+          "description": "Reference to class"
+        },
+        "student_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to student user"
+        },
+        "is_enrolled": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Enrollment status. When false, student is withdrawn from the class but historical attendance is preserved."
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_enrollments_class_id_enrolled",
+          "columns": [
+            "class_id",
+            "is_enrolled"
+          ],
+          "description": "For roster queries (enrolled students only)"
+        },
+        {
+          "name": "idx_enrollments_student_user_id",
+          "columns": [
+            "student_user_id"
+          ],
+          "description": "For student's enrolled classes queries"
+        }
+      ],
+      "notes": [
+        "is_enrolled is NOT a soft delete flag. It represents enrollment/withdrawal status.",
+        "is_enrolled = true: Student is actively enrolled and appears in roster",
+        "is_enrolled = false: Student has withdrawn but historical attendance is preserved",
+        "To query active roster: WHERE is_enrolled = true",
+        "To query all enrollments (including withdrawn): No filter needed",
+        "Difference from soft delete: Withdrawn students can be re-enrolled by setting is_enrolled = true",
+        "When is_enrolled = false, student is withdrawn and hidden from roster but historical attendance is preserved (see BR-33)"
+      ]
+    },
+    "student_profiles": {
+      "primary_key": "user_id",
+      "description": "Extended profile information for student users",
+      "columns": {
+        "user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to user account"
+        },
+        "major_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "majors",
+            "column": "id"
+          },
+          "description": "Student's major/program"
+        },
+        "roll_number": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Student's unique roll number: two uppercase letters + 6 digits (e.g., HE180314, HS181259, BE170843)"
+        },
+        "base_photo_url": {
+          "type": "varchar(255)",
+          "constraints": [
+            null
+          ],
+          "description": "URL/path to the student's base photo (avatar) file, used for visual comparison during attendance verification."
+        }
+      }
+    },
+    "staff_profiles": {
+      "primary_key": "user_id",
+      "description": "Extended profile information for staff users (lecturers, supervisors, etc.)",
+      "columns": {
+        "user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to user account"
+        },
+        "staff_code": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Staff's unique employee code"
+        }
+      }
+    },
+    "rooms": {
+      "primary_key": "id",
+      "description": "Physical rooms/classrooms",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique room identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Room availability status"
+        },
+        "name": {
+          "type": "varchar(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Room name/identifier"
+        },
+        "location": {
+          "type": "varchar(255)",
+          "constraints": [
+            null
+          ],
+          "description": "Room location description"
+        }
+      }
+    },
+    "cameras": {
+      "primary_key": "id",
+      "description": "IP cameras installed in rooms for attendance monitoring",
+      "columns": {
+        "id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique camera identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "room_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "rooms",
+            "column": "id"
+          },
+          "description": "Room where camera is installed"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Camera operational status"
+        },
+        "name": {
+          "type": "varchar(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Camera name/identifier"
+        },
+        "rtsp_url": {
+          "type": "varchar(512)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "RTSP stream URL for video access"
+        }
+      }
+    },
+    "slots": {
+      "primary_key": "id",
+      "description": "Lecture or exam sessions",
+      "columns": {
+        "id": {
+          "type": "INT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique slot identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "start_time": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Slot start time"
+        },
+        "end_time": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Slot end time"
+        },
+        "class_id": {
+          "type": "smallint",
+          "constraints": [
+            null
+          ],
+          "foreign_key": {
+            "table": "classes",
+            "column": "id"
+          },
+          "description": "Reference to class. This is NULL for independent final exam slots (slot_category = 'FINAL_EXAM')."
+        },
+        "semester_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "semesters",
+            "column": "id"
+          },
+          "description": "Reference to semester. Required for all slots. Must be provided when creating any slot. For LECTURE/LECTURE_WITH_PT slots, this must match the semester of the specified class. For FINAL_EXAM slots (where class_id is NULL), this is the only link to a semester."
+        },
+        "room_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "rooms",
+            "column": "id"
+          },
+          "description": "Room where slot takes place"
+        },
+        "staff_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Lecturer or supervisor responsible for the slot"
+        },
+        "slot_category": {
+          "type": "ENUM('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM')",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Category of slot: 'LECTURE' (regular lecture), 'LECTURE_WITH_PT' (lecture with progress test), or 'FINAL_EXAM' (final exam)"
+        },
+        "title": {
+          "type": "varchar(255)",
+          "constraints": [
+            null
+          ],
+          "description": "The specific name of the slot, especially for an exam (e.g., 'Progress Test 1')."
+        },
+        "description": {
+          "type": "text",
+          "constraints": [
+            null
+          ],
+          "description": "General notes or instructions for the slot, visible to participants."
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Slot status (cancelled slots marked inactive)"
+        },
+        "session_status": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOT_STARTED",
+          "description": "Regular attendance session status: NOT_STARTED, RUNNING, STOPPED. Used for LECTURE and LECTURE_WITH_PT slots to track regular lecture attendance."
+        },
+        "scan_count": {
+          "type": "integer",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": 0,
+          "description": "Number of regular attendance scans performed. Increments on each session start."
+        },
+        "last_session_stopped_at": {
+          "type": "timestamp",
+          "constraints": [
+            null
+          ],
+          "description": "Timestamp when regular attendance session was last stopped. NULL if never stopped."
+        },
+        "exam_session_status": {
+          "type": "varchar(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOT_STARTED",
+          "description": "Exam attendance session status: NOT_STARTED, RUNNING, STOPPED. Used for LECTURE_WITH_PT (progress tests) and FINAL_EXAM slots to track exam attendance independently from regular attendance."
+        },
+        "exam_scan_count": {
+          "type": "integer",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": 0,
+          "description": "Number of exam scans performed. Increments on each exam session start. Tracks progress test and final exam scans separately from regular attendance."
+        },
+        "last_exam_session_stopped_at": {
+          "type": "timestamp with time zone",
+          "constraints": [
+            null
+          ],
+          "description": "Timestamp when exam session was last stopped. NULL if never stopped. Used for both progress tests and final exams."
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_slots_class_id",
+          "columns": [
+            "class_id"
+          ],
+          "description": "For queries: get all slots for a class"
+        },
+        {
+          "name": "idx_slots_semester_id",
+          "columns": [
+            "semester_id"
+          ],
+          "description": "For queries: get all slots in a semester, especially for independent exam slots."
+        },
+        {
+          "name": "idx_slots_staff_user_id",
+          "columns": [
+            "staff_user_id"
+          ],
+          "description": "For lecturer schedule queries"
+        },
+        {
+          "name": "idx_slots_room_id",
+          "columns": [
+            "room_id"
+          ],
+          "description": "For room utilization queries"
+        },
+        {
+          "name": "idx_slots_start_time",
+          "columns": [
+            "start_time"
+          ],
+          "description": "For date range queries and schedule display"
+        }
+      ],
+      "notes": [
+        "slot_category determines slot behavior and available functions.",
+        "LECTURE/LECTURE_WITH_PT slots must have a non-null class_id.",
+        "FINAL_EXAM slots must have a null class_id and a non-null semester_id.",
+        "Lecturers can update slot_category between LECTURE and LECTURE_WITH_PT.",
+        "Cannot change to/from FINAL_EXAM (only DOP can manage).",
+        "DUAL SESSION MANAGEMENT: Slots support two independent attendance sessions (regular and exam) with separate status tracking.",
+        "LECTURE slots: Use only regular session fields (session_status, scan_count, last_session_stopped_at).",
+        "LECTURE_WITH_PT slots: Use BOTH regular and exam session fields independently to track lecture attendance and progress test attendance separately.",
+        "FINAL_EXAM slots: Use only exam session fields (exam_session_status, exam_scan_count, last_exam_session_stopped_at).",
+        "Regular and exam sessions can be started, stopped, and rescanned independently without affecting each other."
+      ]
+    },
+    "attendance_records": {
+      "primary_key": "id",
+      "description": "Individual student attendance records for slots",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique attendance record identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "recorded_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "When attendance status was recorded"
+        },
+        "student_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to student"
+        },
+        "slot_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "slots",
+            "column": "id"
+          },
+          "description": "Reference to slot"
+        },
+        "status": {
+          "type": "ENUM('not_yet', 'present', 'absent')",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Attendance status: 'not_yet', 'present', 'absent'"
+        },
+        "method": {
+          "type": "ENUM('auto', 'manual', 'system_finalize')",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "How status was determined: 'auto', 'manual', 'system_finalize'"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_attendance_records_student_slot",
+          "columns": [
+            "student_user_id",
+            "slot_id"
+          ],
+          "unique": true,
+          "description": "One attendance record per student per slot (also serves as query index)"
+        },
+        {
+          "name": "idx_attendance_records_slot_id",
+          "columns": [
+            "slot_id"
+          ],
+          "description": "For queries: get all attendance records for a slot"
+        },
+        {
+          "name": "idx_attendance_records_status",
+          "columns": [
+            "status"
+          ],
+          "description": "For filtering by status (e.g., count not_yet students)"
+        }
+      ],
+      "notes": [
+        "Status 'not_yet' is initial state before any attendance check",
+        "Status 'present' indicates student was detected/marked present",
+        "Status 'absent' is final absent status",
+        "Method 'auto' for face recognition results",
+        "Method 'manual' for lecturer/supervisor manual updates",
+        "Method 'system_finalize' for batch status updates during finalization"
+      ]
+    },
+    "regular_attendance_remarks": {
+      "primary_key": "id",
+      "description": "Additional comments/notes on regular attendance records (LECTURE slots)",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique remark identifier"
+        },
+        "attendance_record_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "attendance_records",
+            "column": "id",
+            "on_delete": "CASCADE"
+          },
+          "description": "Reference to regular attendance record"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Remark creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Remark last update timestamp"
+        },
+        "created_by_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Staff member who created the remark"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Remark status (soft delete)"
+        },
+        "remark": {
+          "type": "text",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Remark content/explanation"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_regular_attendance_remarks_record_id",
+          "columns": [
+            "attendance_record_id"
+          ],
+          "description": "For querying all remarks for a specific attendance record"
+        },
+        {
+          "name": "idx_regular_attendance_remarks_created_by",
+          "columns": [
+            "created_by_user_id"
+          ],
+          "description": "For querying remarks created by a specific staff member"
+        },
+        {
+          "name": "idx_regular_attendance_remarks_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "description": "For chronological queries"
+        }
+      ],
+      "notes": [
+        "Used for explaining attendance status changes or special circumstances for regular lecture attendance.",
+        "Multiple remarks can be added to the same attendance record.",
+        "Remarks are required when manually changing attendance status.",
+        "CASCADE delete ensures remarks are removed when attendance record is deleted."
+      ]
+    },
+    "regular_attendance_evidences": {
+      "primary_key": "id",
+      "description": "Stores temporary evidence images for REGULAR attendance records (from 'attendance_records' table).",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique evidence identifier"
+        },
+        "attendance_record_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "foreign_key": {
+            "table": "attendance_records",
+            "column": "id"
+          },
+          "description": "Reference to the regular attendance record this image provides evidence for."
+        },
+        "image_url": {
+          "type": "varchar(255)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "URL/path to the stored evidence image file"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Timestamp when the evidence was captured"
+        }
+      },
+      "notes": [
+        "This table stores temporary data for LECTURE and LECTURE_WITH_PT slots.",
+        "A scheduled job should periodically clean up old records from this table."
+      ]
+    },
+    "exam_attendance_evidences": {
+      "primary_key": "id",
+      "description": "Stores temporary evidence images for EXAM attendance records (from 'exam_attendance' table).",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique evidence identifier"
+        },
+        "exam_attendance_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "foreign_key": {
+            "table": "exam_attendance",
+            "column": "id"
+          },
+          "description": "Reference to the exam attendance record this image provides evidence for."
+        },
+        "image_url": {
+          "type": "varchar(255)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "URL/path to the stored evidence image file"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Timestamp when the evidence was captured"
+        }
+      },
+      "notes": [
+        "This table stores temporary data for LECTURE_WITH_PT and FINAL_EXAM slots.",
+        "A scheduled job should periodically clean up old records from this table."
+      ]
+    },
+    "exam_attendance": {
+      "primary_key": "id",
+      "description": "Attendance records for exam component of slots (progress tests and final exams)",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique exam attendance identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        },
+        "recorded_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "When exam attendance status was recorded"
+        },
+        "student_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to student"
+        },
+        "slot_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "slots",
+            "column": "id"
+          },
+          "description": "Reference to slot"
+        },
+        "status": {
+          "type": "ENUM('not_yet', 'present', 'absent')",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Exam attendance status: 'not_yet', 'present', 'absent'"
+        },
+        "method": {
+          "type": "ENUM('auto', 'manual', 'system_finalize')",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "How status was determined: 'auto', 'manual', 'system_finalize'"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_exam_attendance_student_slot",
+          "columns": [
+            "student_user_id",
+            "slot_id"
+          ],
+          "unique": true,
+          "description": "One exam attendance record per student per slot"
+        },
+        {
+          "name": "idx_exam_attendance_slot_id",
+          "columns": [
+            "slot_id"
+          ],
+          "description": "For queries: get all exam attendance records for a slot"
+        },
+        {
+          "name": "idx_exam_attendance_status",
+          "columns": [
+            "status"
+          ],
+          "description": "For filtering by status"
+        }
+      ],
+      "notes": [
+        "Used for tracking attendance during exam component of slots",
+        "For LECTURE_WITH_PT slots: Both attendance_records and exam_attendance exist",
+        "For FINAL_EXAM slots: Only exam_attendance exists (no regular attendance_records)",
+        "Status 'not_yet' is initial state before any attendance check",
+        "Status 'present' indicates student was detected/marked present during exam",
+        "Status 'absent' is final absent status for exam",
+        "Method 'auto' for face recognition results",
+        "Method 'manual' for lecturer/supervisor manual updates",
+        "Method 'system_finalize' for batch status updates during finalization"
+      ]
+    },
+    "exam_slot_subjects": {
+      "primary_key": "id",
+      "description": "Stores the list of subjects allowed to be tested in a specific FINAL_EXAM slot. This is step 1 in the student assignment workflow. Supports soft delete to prevent data loss.",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique identifier for the slot-subject pair"
+        },
+        "slot_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "slots",
+            "column": "id"
+          },
+          "description": "Reference to the FINAL_EXAM slot"
+        },
+        "subject_id": {
+          "type": "smallint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "subjects",
+            "column": "id"
+          },
+          "description": "Reference to the subject being tested in this slot"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Timestamp when the subject was added to the slot"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Soft delete flag - false means logically deleted but data preserved for audit"
+        },
+        "deactivated_at": {
+          "type": "timestamp",
+          "constraints": [],
+          "description": "Timestamp when subject was removed from exam slot"
+        },
+        "deactivated_by_user_id": {
+          "type": "int",
+          "constraints": [],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "User ID who removed the subject (for audit trail)"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_exam_slot_subjects_slot_subject",
+          "columns": [
+            "slot_id",
+            "subject_id"
+          ],
+          "unique": true,
+          "description": "Ensures a subject can only be added once to a slot (allows re-adding after soft delete)"
+        },
+        {
+          "name": "idx_exam_slot_subjects_slot_id",
+          "columns": [
+            "slot_id"
+          ],
+          "description": "For fast queries of subjects within a slot"
+        },
+        {
+          "name": "idx_exam_slot_subjects_active",
+          "columns": [
+            "slot_id",
+            "is_active"
+          ],
+          "where": "is_active = true",
+          "description": "Partial index for performance when filtering active records"
+        }
+      ],
+      "notes": [
+        "This table is only used when slots.slot_category = 'FINAL_EXAM'.",
+        "Data Operator must define these records BEFORE adding students.",
+        "Soft delete (is_active=false) is used instead of hard delete to preserve audit trail and prevent accidental data loss.",
+        "When a subject is removed from a slot, is_active is set to false, deactivated_at is set to current timestamp, and deactivated_by_user_id tracks who performed the action.",
+        "All queries should filter by is_active = true to only show active assignments."
+      ]
+    },
+    "exam_slot_participants": {
+      "primary_key": "id",
+      "description": "Manages the assignment of students to a specific SUBJECT within a FINAL_EXAM slot. This is step 2, after subjects have been assigned to the slot via the 'exam_slot_subjects' table.",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique identifier for the student's exam participation"
+        },
+        "exam_slot_subject_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "exam_slot_subjects",
+            "column": "id"
+          },
+          "description": "Reference to the (slot + subject) pair that this student is assigned to"
+        },
+        "student_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Reference to the student taking the exam"
+        },
+        "is_enrolled": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Participation status. If false, the student is withdrawn from this exam."
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Record creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Record last update timestamp"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_exam_participants_slot_subject_student",
+          "columns": [
+            "exam_slot_subject_id",
+            "student_user_id"
+          ],
+          "unique": true,
+          "description": "Ensures a student can only take a subject once per slot"
+        },
+        {
+          "name": "idx_exam_participants_student_user_id",
+          "columns": [
+            "student_user_id"
+          ],
+          "description": "For querying all final exams a student is participating in"
+        }
+      ],
+      "notes": [
+        "This table is only used for FINAL_EXAM slots.",
+        "Student assignment must follow business logic (e.g., student must be enrolled in that subject during the semester)."
+      ]
+    },
+    "exam_attendance_remarks": {
+      "primary_key": "id",
+      "description": "Additional comments/notes on exam attendance records (LECTURE_WITH_PT and FINAL_EXAM slots)",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique remark identifier"
+        },
+        "exam_attendance_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "exam_attendance",
+            "column": "id",
+            "on_delete": "CASCADE"
+          },
+          "description": "Reference to exam attendance record"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Remark creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Remark last update timestamp"
+        },
+        "created_by_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Staff member who created the remark"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Remark status (soft delete)"
+        },
+        "remark": {
+          "type": "text",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Remark content/explanation"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_exam_attendance_remarks_exam_id",
+          "columns": [
+            "exam_attendance_id"
+          ],
+          "description": "For querying all remarks for a specific exam attendance record"
+        },
+        {
+          "name": "idx_exam_attendance_remarks_created_by",
+          "columns": [
+            "created_by_user_id"
+          ],
+          "description": "For querying remarks created by a specific staff member"
+        },
+        {
+          "name": "idx_exam_attendance_remarks_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "description": "For chronological queries"
+        }
+      ],
+      "notes": [
+        "Used for explaining exam attendance status changes or special circumstances.",
+        "Multiple remarks can be added to the same exam attendance record.",
+        "Remarks are required when manually changing exam attendance status.",
+        "CASCADE delete ensures remarks are removed when exam attendance record is deleted."
+      ]
+    },
+    "face_embeddings": {
+      "primary_key": "id",
+      "description": "Vector embeddings generated from approved face videos for recognition",
+      "columns": {
+        "id": {
+          "type": "INT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique embedding identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Embedding creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Embedding last update timestamp"
+        },
+        "student_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "Student this embedding belongs to"
+        },
+        "version": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Embedding version (incremented on updates)"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": false,
+          "description": "Whether this embedding is currently used for recognition"
+        },
+        "embedding_vector": {
+          "type": "vector(512)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "512-dimensional face embedding vector"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_face_embeddings_student_active",
+          "columns": [
+            "student_user_id"
+          ],
+          "where": "is_active = true",
+          "unique": true,
+          "description": "Ensure only one active embedding per student"
+        },
+        {
+          "name": "idx_face_embeddings_vector",
+          "type": "ivfflat",
+          "columns": [
+            "embedding_vector"
+          ],
+          "options": "lists = 100",
+          "description": "For fast vector similarity search using IVFFlat algorithm. Parameter 'lists' should be adjusted based on data size: lists ≈ sqrt(total_rows). Current value (100) is suitable for ~10,000 students."
+        }
+      ],
+      "notes": [
+        "Requires pgvector extension for vector operations",
+        "Only one embedding per student can be active at a time (enforced by unique index)",
+        "Version is incremented with each identity update (see BR-32)",
+        "Keep last 3 versions for audit and rollback purposes",
+        "Vector similarity search is used for face recognition",
+        "IVFFlat index performance tuning: Adjust 'lists' parameter as data grows. Rule of thumb: lists = sqrt(total_active_embeddings). Monitor query performance and rebuild index if needed."
+      ]
+    },
+    "system_notifications": {
+      "primary_key": "id",
+      "description": "System-generated notifications for users",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique notification identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Notification creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Notification last update timestamp"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Notification status"
+        },
+        "notification_type": {
+          "type": "varchar(50)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Type of notification (e.g., 'identity_rejected', 'slot_cancelled')"
+        },
+        "title": {
+          "type": "varchar(255)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Notification title"
+        },
+        "content": {
+          "type": "text",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Notification content/message"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_system_notifications_type",
+          "columns": [
+            "notification_type"
+          ],
+          "description": "For filtering by notification type"
+        }
+      ],
+      "notes": [
+        "Template-based notifications generated by system events",
+        "Delivered to specific users via notification_deliveries table"
+      ]
+    },
+    "notification_deliveries": {
+      "primary_key": "id",
+      "description": "Delivery records for system notifications to specific users",
+      "columns": {
+        "id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY",
+            "AUTO_INCREMENT"
+          ],
+          "description": "Unique delivery identifier"
+        },
+        "created_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "now()",
+          "description": "Delivery creation timestamp"
+        },
+        "updated_at": {
+          "type": "timestamp",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Delivery last update timestamp"
+        },
+        "read_at": {
+          "type": "timestamp",
+          "constraints": [
+            null
+          ],
+          "description": "When user read the notification (null if unread)"
+        },
+        "notification_id": {
+          "type": "bigint",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "system_notifications",
+            "column": "id"
+          },
+          "description": "Reference to system notification"
+        },
+        "recipient_user_id": {
+          "type": "int",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "table": "users",
+            "column": "id"
+          },
+          "description": "User who should receive this notification"
+        },
+        "is_active": {
+          "type": "boolean",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": true,
+          "description": "Delivery status"
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_notification_deliveries_recipient_unread",
+          "columns": [
+            "recipient_user_id",
+            "read_at"
+          ],
+          "description": "For unread notification queries (WHERE read_at IS NULL)"
+        },
+        {
+          "name": "idx_notification_deliveries_recipient_created",
+          "columns": [
+            "recipient_user_id",
+            "created_at"
+          ],
+          "description": "For notification inbox ordered by date"
+        }
+      ],
+      "notes": [
+        "One delivery record per notification per recipient",
+        "Tracks read status for each user individually",
+        "Used to show unread counts and notification history"
+      ]
+    }
+  }
+}
