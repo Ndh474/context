@@ -1,6 +1,3 @@
-# Infrastructure Tables
-# FUACS Database Schema - Version 1.0
-
 tables:
   rooms:
     primary_key: id

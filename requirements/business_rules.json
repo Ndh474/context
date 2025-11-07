@@ -1,0 +1,297 @@
+[
+    {
+        "id": "BR-01",
+        "rule_definition": "User accounts must have a unique login username (Student ID or Employee ID) across the system.",
+        "relate_use_case": "UC-01, UC-66, UC-72"
+    },
+    {
+        "id": "BR-02",
+        "rule_definition": "User accounts must have a unique email address across the system.",
+        "relate_use_case": "UC-02, UC-04, UC-66, UC-72"
+    },
+    {
+        "id": "BR-03",
+        "rule_definition": "User access is denied if the system cannot find a matching user account.",
+        "relate_use_case": "UC-01, UC-02"
+    },
+    {
+        "id": "BR-04",
+        "rule_definition": "User access is denied if the found account is set to inactive status.",
+        "relate_use_case": "UC-01, UC-02"
+    },
+    {
+        "id": "BR-05",
+        "rule_definition": "Password reset requests must generate a unique, time-limited token.",
+        "relate_use_case": "UC-04"
+    },
+    {
+        "id": "BR-06",
+        "rule_definition": "The system must use a hashing algorithm (e.g., bcrypt) to compare the entered password with the stored password hash during login.",
+        "relate_use_case": "UC-01"
+    },
+    {
+        "id": "BR-07",
+        "rule_definition": "A user assigned the STUDENT role must not also be assigned the LECTURER or SUPERVISOR roles.",
+        "relate_use_case": "UC-69, UC-75"
+    },
+    {
+        "id": "BR-08",
+        "rule_definition": "A user with the STUDENT role must have a corresponding student profile record.",
+        "relate_use_case": "UC-66"
+    },
+    {
+        "id": "BR-09",
+        "rule_definition": "A user with LECTURER or SUPERVISOR roles must have a corresponding staff profile record.",
+        "relate_use_case": "UC-72"
+    },
+    {
+        "id": "BR-10",
+        "rule_definition": "The Student's Roll Number must follow the format: two uppercase letters followed by six digits (e.g., HE180314).",
+        "relate_use_case": "UC-66, UC-69"
+    },
+    {
+        "id": "BR-11",
+        "rule_definition": "Semesters, Majors, and Subjects must each have a unique code and name.",
+        "relate_use_case": "UC-30, UC-36, UC-42"
+    },
+    {
+        "id": "BR-12",
+        "rule_definition": "A Class is uniquely identified by the combination of its Subject, Semester, and Class Code.",
+        "relate_use_case": "UC-48"
+    },
+    {
+        "id": "BR-13",
+        "rule_definition": "The deletion of a Semester will fail if related data (Classes, etc.) still exists.",
+        "relate_use_case": "UC-34"
+    },
+    {
+        "id": "BR-14",
+        "rule_definition": "The deletion of a Subject will fail if related data (Classes, etc.) still exists.",
+        "relate_use_case": "UC-46"
+    },
+    {
+        "id": "BR-15",
+        "rule_definition": "The deletion of a Class will fail if related data (Slots, Enrollments, etc.) still exists.",
+        "relate_use_case": "UC-52"
+    },
+    {
+        "id": "BR-16",
+        "rule_definition": "An active student enrollment means the student appears in the roster (is_enrolled = true).",
+        "relate_use_case": "UC-54"
+    },
+    {
+        "id": "BR-17",
+        "rule_definition": "Withdrawn students (is_enrolled = false) are hidden from the active roster but their historical attendance data must be preserved.",
+        "relate_use_case": "UC-55, UC-18"
+    },
+    {
+        "id": "BR-18",
+        "rule_definition": "The deletion of a Room will fail if related data (Cameras, Slots, etc.) still exists.",
+        "relate_use_case": "UC-82"
+    },
+    {
+        "id": "BR-19",
+        "rule_definition": "RTSP URLs for cameras must be unique to prevent video stream access conflicts.",
+        "relate_use_case": "UC-84"
+    },
+    {
+        "id": "BR-20",
+        "rule_definition": "All active cameras assigned to a Room are automatically used for attendance sessions in Slots held in that Room.",
+        "relate_use_case": "UC-15, UC-17"
+    },
+    {
+        "id": "BR-21",
+        "rule_definition": "LECTURE and LECTURE_WITH_PT slots must be associated with a Class (class_id is NOT NULL).",
+        "relate_use_case": "UC-57, UC-60"
+    },
+    {
+        "id": "BR-22",
+        "rule_definition": "FINAL_EXAM slots must be independent (class_id is NULL) but must be linked to a Semester (semester_id is NOT NULL).",
+        "relate_use_case": "UC-57, UC-60"
+    },
+    {
+        "id": "BR-23",
+        "rule_definition": "The Semester associated with a LECTURE or LECTURE_WITH_PT slot must match the Semester of the assigned Class.",
+        "relate_use_case": "UC-57"
+    },
+    {
+        "id": "BR-24",
+        "rule_definition": "LECTURE slots only utilize the regular attendance session tracking fields (session_status, scan_count, etc.).",
+        "relate_use_case": "UC-15, UC-16, UC-17"
+    },
+    {
+        "id": "BR-25",
+        "rule_definition": "FINAL_EXAM slots only utilize the exam attendance session tracking fields (exam_session_status, exam_scan_count, etc.).",
+        "relate_use_case": "UC-15, UC-16, UC-17"
+    },
+    {
+        "id": "BR-26",
+        "rule_definition": "LECTURE_WITH_PT slots utilize both regular and exam session tracking fields independently.",
+        "relate_use_case": "UC-15, UC-16, UC-17"
+    },
+    {
+        "id": "BR-27",
+        "rule_definition": "Lecturers can update a slot category between LECTURE and LECTURE_WITH_PT.",
+        "relate_use_case": "UC-14"
+    },
+    {
+        "id": "BR-28",
+        "rule_definition": "Changing a slot category to or from FINAL_EXAM is restricted to the Data Operator role.",
+        "relate_use_case": "UC-60"
+    },
+    {
+        "id": "BR-29",
+        "rule_definition": "The session status for both Regular and Exam sessions resets its scan count to 1 upon the first initiation of face scanning.",
+        "relate_use_case": "UC-15"
+    },
+    {
+        "id": "BR-30",
+        "rule_definition": "The system operates in the Vietnam timezone (ICT/Asia/Ho_Chi_Minh, UTC+7) for scheduling and display.",
+        "relate_use_case": "UC-09, UC-13, UC-26, UC-60"
+    },
+    {
+        "id": "BR-31",
+        "rule_definition": "Attendance records have three statuses: 'not_yet' (initial state), 'present', and 'absent'.",
+        "relate_use_case": "UC-15, UC-19"
+    },
+    {
+        "id": "BR-32",
+        "rule_definition": "During the first scan (scan count = 1), any student successfully scanned is automatically set to 'present' with an evidence image captured, regardless of session type.",
+        "relate_use_case": "UC-15"
+    },
+    {
+        "id": "BR-33",
+        "rule_definition": "During a rescan (scan count >= 2) for a Regular Session: a student currently 'not_yet' who is successfully scanned remains 'not_yet', but a new evidence image is captured for later manual approval.",
+        "relate_use_case": "UC-17"
+    },
+    {
+        "id": "BR-34",
+        "rule_definition": "During a rescan (scan count >= 2) for a Regular Session: a student currently 'present' who is NOT scanned has their status reverted to 'not_yet', but the old evidence image is kept for lecturer review.",
+        "relate_use_case": "UC-17"
+    },
+    {
+        "id": "BR-35",
+        "rule_definition": "During a rescan (scan count >= 2) for an Exam Session: a student currently 'not_yet' who is successfully scanned is **automatically promoted** to 'present' with an evidence image captured.",
+        "relate_use_case": "UC-17"
+    },
+    {
+        "id": "BR-36",
+        "rule_definition": "During a rescan (scan count >= 2) for an Exam Session: a student currently 'present' who is NOT scanned remains 'present', and their old evidence image is kept.",
+        "relate_use_case": "UC-17"
+    },
+    {
+        "id": "BR-37",
+        "rule_definition": "Only one face embedding vector per student can be actively used for recognition at any given time.",
+        "relate_use_case": "UC-69, UC-75"
+    },
+    {
+        "id": "BR-38",
+        "rule_definition": "Lecturers and Supervisors can manually update attendance results until 23:59:59 UTC of the slot date. After this time, manual updates are locked for them.",
+        "relate_use_case": "UC-19"
+    },
+    {
+        "id": "BR-39",
+        "rule_definition": "Manual updates to attendance status require a mandatory remark to be provided.",
+        "relate_use_case": "UC-19, UC-20"
+    },
+    {
+        "id": "BR-40",
+        "rule_definition": "A scheduled job must automatically delete all temporary attendance evidence images and corresponding database records older than the configured retention period (e.g., 30 days).",
+        "relate_use_case": "N/A (Background Flow)"
+    },
+    {
+        "id": "BR-41",
+        "rule_definition": "The Daily Absence Calculation Flow runs automatically after midnight to finalize attendance data from the previous day.",
+        "relate_use_case": "N/A (Background Flow)"
+    },
+    {
+        "id": "BR-42",
+        "rule_definition": "The system must generate a notification to a student if their recalculated absence percentage crosses configured thresholds (10%, 20%, max) for the first time.",
+        "relate_use_case": "N/A (Background Flow)"
+    },
+    {
+        "id": "BR-43",
+        "rule_definition": "Data Operators cannot create or manage other Data Operator accounts.",
+        "relate_use_case": "UC-72"
+    },
+    {
+        "id": "BR-44",
+        "rule_definition": "Data Operator is the only role authorized to delete any academic catalog entity (Semester, Major, Subject, Class, Slot) permanently.",
+        "relate_use_case": "UC-34, UC-40, UC-46, UC-52, UC-61"
+    },
+    {
+        "id": "BR-45",
+        "rule_definition": "Only the Data Operator role is authorized to perform bulk data imports via CSV.",
+        "relate_use_case": "UC-35, UC-41, UC-47, UC-53, UC-56, UC-62, UC-65, UC-71, UC-77, UC-83, UC-89"
+    },
+    {
+        "id": "BR-46",
+        "rule_definition": "In bulk import operations, invalid data rows must be skipped and reported as errors, while valid rows are processed (Partial Success principle).",
+        "relate_use_case": "UC-35, UC-41, UC-47, UC-53, UC-56, UC-62, UC-65, UC-71, UC-77, UC-83, UC-89"
+    },
+    {
+        "id": "BR-47",
+        "rule_definition": "Data Import supports two modes: Add Only (existing records skipped) and Add and Update (existing records updated using Last-Write-Wins).",
+        "relate_use_case": "UC-35, UC-41, UC-47, UC-53, UC-56, UC-62, UC-65, UC-71, UC-77, UC-83, UC-89"
+    },
+    {
+        "id": "BR-48",
+        "rule_definition": "Only the Data Operator role is authorized to manually update attendance status after the time lock for Lecturers/Supervisors (23:59:59 UTC of the slot date).",
+        "relate_use_case": "UC-19"
+    },
+    {
+        "id": "BR-49",
+        "rule_definition": "Students view their unified schedule, which must aggregate both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM).",
+        "relate_use_case": "UC-09"
+    },
+    {
+        "id": "BR-50",
+        "rule_definition": "When viewing the schedule, students must be able to see the specific subject(s) they are registered to take the exam for in any FINAL_EXAM slot.",
+        "relate_use_case": "UC-09"
+    },
+    {
+        "id": "BR-51",
+        "rule_definition": "The status of an exam subject assigned to a FINAL_EXAM slot (exam_slot_subjects) uses soft delete (is_active=false) to preserve the audit trail upon removal.",
+        "relate_use_case": "UC-63"
+    },
+    {
+        "id": "BR-52",
+        "rule_definition": "When a Slot is of category FINAL_EXAM, participants must be managed for specific subjects associated with that slot.",
+        "relate_use_case": "UC-64, UC-65"
+    },
+    {
+        "id": "BR-53",
+        "rule_definition": "The system does not distinguish between 'excused absence' and 'unexcused absence' at the status level, using only 'absent'. Context is provided via the remark function.",
+        "relate_use_case": "UC-19, UC-20"
+    },
+    {
+        "id": "BR-54",
+        "rule_definition": "Lecturers/Supervisors must have read-only access to room and camera details for the purpose of verifying session setup.",
+        "relate_use_case": "UC-18, UC-79, UC-85"
+    },
+    {
+        "id": "BR-55",
+        "rule_definition": "Only Data Operator can manage the active status of a Room (is_active=false for cancellation).",
+        "relate_use_case": "UC-81"
+    },
+    {
+        "id": "BR-56",
+        "rule_definition": "Only Data Operator can manage the active status of a Slot (is_active=false for cancellation).",
+        "relate_use_case": "UC-60"
+    },
+    {
+        "id": "BR-57",
+        "rule_definition": "The system must capture evidence images next to the student's base avatar for visual comparison on the attendance management screen.",
+        "relate_use_case": "UC-18"
+    },
+    {
+        "id": "BR-58",
+        "rule_definition": "Only one attendance record (or exam attendance record) can exist per student per slot.",
+        "relate_use_case": "UC-15, UC-19"
+    },
+    {
+        "id": "BR-59",
+        "rule_definition": "A student can only view their own attendance history (including status and statistics).",
+        "relate_use_case": "UC-10"
+    }
+]

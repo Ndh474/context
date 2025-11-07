@@ -1,6 +1,3 @@
-# Academic Catalog Tables
-# FUACS Database Schema - Version 1.0
-
 tables:
   majors:
     primary_key: id

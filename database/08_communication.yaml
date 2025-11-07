@@ -1,6 +1,3 @@
-# Communication Tables
-# FUACS Database Schema - Version 1.0
-
 tables:
   system_notifications:
     primary_key: id

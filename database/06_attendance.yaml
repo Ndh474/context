@@ -1,6 +1,3 @@
-# Attendance Tables
-# FUACS Database Schema - Version 1.0
-
 tables:
   slots:
     primary_key: id
