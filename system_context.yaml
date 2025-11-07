@@ -399,7 +399,7 @@ system_context:
           - "Manage Semesters, Majors, Subjects, and Classes (View list, Create, Edit, Update status)."
           - "On each respective management screen (e.g., Semester list, Class list), provide 'Import from CSV' and 'Export to CSV' buttons."
           - "The 'Import' button allows uploading a CSV file and shows a read-only list of error rows returned by the backend. No inline editing or iteration in UI."
-          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button implementing UC-86 (single upload; show error rows only)."
+          - "Manage Slots (Lecture/Exam Schedules) with conditional logic: LECTURE/LECTURE_WITH_PT slots require a Class. FINAL_EXAM slots require a Semester (class_id is NULL). This screen also has an 'Import Slots' button with single upload workflow showing error rows only."
           - "NEW: When creating/editing a FINAL_EXAM Slot, allow DOP to select and assign multiple Subjects to that slot (updates 'exam_slot_subjects' table)."
           - "Add/Remove students from a class (Roster Management for class-based slots only)."
 
@@ -408,8 +408,6 @@ system_context:
         features:
           - "Advanced search filters"
           - "View and export custom reports"
-
-      # REMOVED: SCR_ADMIN_AUDIT_LOGS (Audit Log Viewer) - out of scope
 
       SCR_ADMIN_USER_MGMT:
         title: "User & Role Management (Data Operator)"
@@ -429,10 +427,6 @@ system_context:
           - "HYPOTHESIS: Add 'Import Rooms from CSV' button (single upload; show error rows only)."
           - "HYPOTHESIS: Add 'Import Cameras from CSV' button (single upload; show error rows only)."
 
-      # REMOVED: SCR_SYSADMIN_CONFIG (System Admin Configuration) - out of scope
-
-      # REMOVED: SCR_SYSADMIN_LOGS (System Admin Logs Viewer) - out of scope
-
       SCR_ADMIN_BULK_ENROLLMENT:
         title: "Bulk Student Enrollment (Class-based) Screen"
         features:
@@ -450,7 +444,7 @@ system_context:
           - "Display a data table of students registered for the selected (Slot + Subject) pair (from 'exam_slot_participants' table)."
           - "Function to manually add a student (by student_id) to the selected (Slot + Subject) pair. System must validate business logic (e.g., is the student enrolled in this subject during the semester)."
           - "Function to remove a student from the list."
-          - "Interface to upload a CSV file to bulk-import participants (implements UC-60). The CSV file must contain (student_id, subject_code)."
+          - "Interface to upload a CSV file to bulk-import participants. The CSV file must contain (student_id, subject_code)."
           - "Button to download CSV template (new template with 2 columns)."
 
       SCR_ADMIN_BULK_IDENTITY_IMPORT:
@@ -495,6 +489,24 @@ system_context:
       real_time_update: "Attendance status is updated in real-time as soon as the recognition service sends successful results."
       bulk_update_feature: "The system provides bulk update functionality for efficiently processing multiple student attendance records at once, with validation for mandatory remarks."
 
+    session_management:
+      description: "The system supports dual-session management to handle different attendance scenarios within the same slot."
+      regular_sessions:
+        purpose: "Track regular lecture attendance"
+        applicable_to: ["LECTURE", "LECTURE_WITH_PT"]
+        fields_used: ["session_status", "scan_count", "last_session_stopped_at"]
+        data_stored_in: "attendance_records table"
+      exam_sessions:
+        purpose: "Track exam/test attendance independently from regular lectures"
+        applicable_to: ["LECTURE_WITH_PT", "FINAL_EXAM"]
+        fields_used: ["exam_session_status", "exam_scan_count", "last_exam_session_stopped_at"]
+        data_stored_in: "exam_attendance table"
+      independence_principle: "Regular and exam sessions operate completely independently. For LECTURE_WITH_PT slots, lecturers can start, stop, and rescan regular and exam sessions separately. Each session type maintains its own scan count, status, and attendance records."
+      use_cases:
+        lecture_only: "LECTURE slots use only regular session management for recording class attendance."
+        lecture_with_pt: "LECTURE_WITH_PT slots use BOTH session types - regular sessions track lecture attendance, exam sessions track progress test attendance within the same slot."
+        final_exam: "FINAL_EXAM slots use only exam session management for recording exam attendance."
+
   technical_flows:
     evidence_cleanup_flow:
       title: "Temporary Attendance Evidence Cleanup Flow"
@@ -502,7 +514,7 @@ system_context:
       steps:
         [
           "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
-          "2. Read Configuration: The job reads the value of 'attendance.evidence_retention_days' from system_configurations (e.g., 30 days).",
+          "2. Read Configuration: The job uses the configured retention period (e.g., 30 days) defined in application properties.",
           "3. Scan for Old Regular Evidence: The job queries the 'regular_attendance_evidences' table to find all records older than the retention period.",
           "4. Delete Regular Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
           "5. Scan for Old Exam Evidence: The job queries the 'exam_attendance_evidences' table to find all records older than the retention period.",
@@ -526,7 +538,7 @@ system_context:
       description: "A scheduled job that runs automatically every day after midnight to ensure data consistency and timely notifications based on attendance records from the previous day."
       steps:
         - "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time daily (e.g., 00:05 AM)."
-        - "2. Read Configuration: The job first reads the value of 'attendance.max_absence_percentage' from the system_configurations table to get the current threshold."
+        - "2. Read Configuration: The job uses the configured maximum absence percentage threshold defined in application properties."
         - "3. Scan for Completed Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that have ended within the previous calendar day (where end_time is between 00:00:00 and 23:59:59 of previous day)."
         - "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student."
         - "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
@@ -596,7 +608,7 @@ system_context:
 
   data_model:
     slot_entity_definition:
-      description: "Additional definition for the Slot entity to support business classification."
+      description: "Additional definition for the Slot entity to support business classification and session management."
       fields:
         slot_category:
           type: "Varchar"
@@ -631,6 +643,48 @@ system_context:
           type: Text
           required: false
           description: Optional detailed information or instructions about the slot, visible to students and staff.
+        session_status:
+          type: "Varchar(20)"
+          required: true
+          default: "NOT_STARTED"
+          description: |
+            Tracks the regular attendance session status for LECTURE and LECTURE_WITH_PT slots.
+            Used to manage the attendance scanning workflow for regular class attendance.
+          allowed_values: ["NOT_STARTED", "RUNNING", "STOPPED"]
+        scan_count:
+          type: "Integer"
+          required: true
+          default: 0
+          description: "Number of regular attendance scans performed. Increments each time a scan session is started."
+        last_session_stopped_at:
+          type: "Timestamp"
+          required: false
+          description: "Timestamp when the regular attendance session was last stopped. NULL if never stopped."
+        exam_session_status:
+          type: "Varchar(20)"
+          required: true
+          default: "NOT_STARTED"
+          description: |
+            Tracks the exam attendance session status independently from regular sessions.
+            Used for LECTURE_WITH_PT (progress test attendance) and FINAL_EXAM slots.
+            Allows separate control of exam scanning independent of lecture attendance.
+          allowed_values: ["NOT_STARTED", "RUNNING", "STOPPED"]
+        exam_scan_count:
+          type: "Integer"
+          required: true
+          default: 0
+          description: "Number of exam scans performed. Increments each time an exam scan session is started. Tracks PT and Final Exam scans separately from regular attendance."
+        last_exam_session_stopped_at:
+          type: "Timestamp with Time Zone"
+          required: false
+          description: "Timestamp when the exam session was last stopped. NULL if never stopped. Used for both progress tests and final exams."
+      session_management_notes:
+        dual_session_support: "Slots can have two independent attendance sessions: regular (for lecture attendance) and exam (for test/exam attendance). LECTURE_WITH_PT slots may use both session types."
+        session_independence: "Regular and exam sessions are completely independent - they can be started, stopped, and rescanned separately without affecting each other."
+        slot_category_usage: |
+          - LECTURE slots: Use regular session fields only (session_status, scan_count, last_session_stopped_at)
+          - LECTURE_WITH_PT slots: Use BOTH regular and exam session fields independently
+          - FINAL_EXAM slots: Use exam session fields only (exam_session_status, exam_scan_count, last_exam_session_stopped_at)
 
     enrollment_entity_definition:
       description: "Definition of enrollment record."
@@ -776,6 +830,11 @@ system_context:
         decision: "Feature exists but NOT documented as separate UC"
         reason: "Handled in backend logic, no dedicated UI screen needed"
         status: "SKIP - Do not suggest adding this UC"
+
+      - item: "Dual Session Fields for Slots"
+        decision: "IMPLEMENTED - Slots have separate regular and exam session tracking fields"
+        reason: "LECTURE_WITH_PT slots need independent control of lecture attendance and progress test attendance. FINAL_EXAM slots need separate tracking from regular lectures. Six session fields (3 regular + 3 exam) provide complete independence."
+        status: "FINAL - This architectural decision supports the dual-session attendance model"
 
     slot_management_clarifications:
       - item: "Slot Cancellation"
