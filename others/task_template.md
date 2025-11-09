@@ -9,7 +9,7 @@
 <!-- (Required) High / Medium / Low -->
 
 ### CHECKLIST
-<!-- (Required) Mark the checklist items that apply to this task. -->
+<!-- (Required) List all subtask of this tasks -->
 
 ---
 

@@ -92,7 +92,7 @@
         "ROOM_READ_DETAIL": "View detailed information of a specific room.",
         "ROOM_UPDATE": "Update room information, including deactivating or activating it.",
         "ROOM_DELETE": "Permanently delete a room. This action cannot be undone and will fail if related data (cameras, slots, etc.) still exists.",
-        "ROOM_IMPORT": "HYPOTHESIS: Bulk import Rooms via CSV.",
+        "ROOM_IMPORT": "Bulk import Rooms via CSV.",
         "CAMERA_CREATE": "Create a new camera and assign it to a room.",
         "CAMERA_READ_LIST": "View the list of all cameras.",
         "CAMERA_READ_DETAIL": "View detailed information of a specific camera.",

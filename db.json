@@ -99,8 +99,7 @@
         "email": {
           "type": "varchar(128)",
           "constraints": [
-            "NOT NULL",
-            "UNIQUE"
+            "NOT NULL"
           ],
           "description": "Email address for password reset"
         },
