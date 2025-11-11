@@ -393,7 +393,7 @@
           "title": "Attendance History",
           "features": [
             "View personal attendance history by semester/class",
-            "Display attendance status for each slot (Present/Absent/Late/Excused)",
+            "Display attendance status for each slot (Present/Absent)",
             "View attendance statistics (total present, absent, attendance rate)",
             "Filter by date range, class, or subject",
             "View exam eligibility status based on attendance rate"
@@ -617,7 +617,7 @@
           "title": "Slot Attendance Roster Management",
           "features": [
             "View attendance roster for selected slot",
-            "Display student list with attendance status (Present/Absent/Late/Excused)",
+            "Display student list with attendance status (Present/Absent)",
             "Manually update attendance status",
             "Add/Edit attendance remarks",
             "View attendance statistics for the slot",
@@ -660,7 +660,7 @@
           "features": [
             "View attendance roster for selected exam slot",
             "Subject filter dropdown (shows subjects assigned to this exam slot)",
-            "Display student list with attendance status (Present/Absent/Late/Excused)",
+            "Display student list with attendance status (Present/Absent)",
             "Manually update attendance status",
             "Add/Edit attendance remarks",
             "View attendance statistics for the exam slot",
@@ -1320,7 +1320,7 @@
         {
           "item": "System Timezone",
           "decision": "Vietnam timezone only (ICT/Asia/Ho_Chi_Minh, UTC+7)",
-          "reason": "System is designed for Vietnam market only. All database timestamps are stored in UTC, but displayed and scheduled according to Vietnam timezone.",
+          "reason": "System is designed for Vietnam market only. All database timestamps represent Vietnam local time (Asia/Ho_Chi_Minh). Application enforces Vietnam timezone via Hibernate configuration.",
           "status": "FINAL - System operates in Vietnam timezone"
         }
       ]
