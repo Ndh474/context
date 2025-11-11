@@ -1,7 +1,6 @@
 {
     "project": "FUACS - FU Attendance Checking Smart",
-    "version": "4.0",
-    "total_use_cases": 89,
+    "total_use_cases": 86,
     "use_cases": [
         {
             "id": "UC-01",
@@ -54,577 +53,556 @@
         },
         {
             "id": "UC-08",
-            "use_case": "View Student Dashboard",
-            "primary_actor": "Student",
-            "secondary_actor": "N/A",
-            "description": "Allows students to view their personalized dashboard with upcoming classes, attendance statistics, and quick access shortcuts."
-        },
-        {
-            "id": "UC-09",
-            "use_case": "View Student Timetable",
-            "primary_actor": "Student",
-            "secondary_actor": "N/A",
-            "description": "Allows students to view their class and exam schedule in calendar format, filtered by semester."
-        },
-        {
-            "id": "UC-10",
-            "use_case": "View Attendance History",
-            "primary_actor": "Student",
-            "secondary_actor": "N/A",
-            "description": "Allows students to view their personal attendance history with status details, statistics, and exam eligibility information."
-        },
-        {
-            "id": "UC-11",
-            "use_case": "View Own Slot Details (Student)",
-            "primary_actor": "Student",
-            "secondary_actor": "N/A",
-            "description": "Allows students to view detailed information about a specific slot including time, room, lecturer, and subject for their enrolled slots."
-        },
-        {
-            "id": "UC-12",
-            "use_case": "View Lecturer Dashboard",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to view their personalized dashboard with upcoming teaching slots, attendance summary, and quick access shortcuts."
-        },
-        {
-            "id": "UC-13",
-            "use_case": "View Teaching Schedule",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to view their teaching schedule in calendar or table format, filtered by semester and slot category (Regular/Exam)."
-        },
-        {
-            "id": "UC-14",
-            "use_case": "Update Slot Category",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to update slot category between LECTURE and LECTURE_WITH_PT for their assigned slots."
-        },
-        {
-            "id": "UC-15",
-            "use_case": "Start Attendance Session (Face Scanning)",
-            "primary_actor": "Lecturer, Supervisor",
-            "secondary_actor": "Face Recognition Service",
-            "description": "Allows lecturers and supervisors to initiate an automated attendance session (regular or exam) for a slot using face recognition."
-        },
-        {
-            "id": "UC-16",
-            "use_case": "Stop Attendance Session",
-            "primary_actor": "Lecturer, Supervisor",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers and supervisors to stop the currently running attendance session (regular or exam) for a slot."
-        },
-        {
-            "id": "UC-17",
-            "use_case": "Rescan Attendance Session",
-            "primary_actor": "Lecturer, Supervisor",
-            "secondary_actor": "Face Recognition Service",
-            "description": "Allows lecturers and supervisors to trigger a re-scan for attendance during an active session to capture late arrivals."
-        },
-        {
-            "id": "UC-18",
-            "use_case": "View Slot Roster",
-            "primary_actor": "Lecturer, Supervisor",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers and supervisors to view the student roster and real-time attendance status for a specific slot."
-        },
-        {
-            "id": "UC-19",
-            "use_case": "Manual Update Student Attendance Status",
-            "primary_actor": "Lecturer, Supervisor, Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows authorized users to manually update attendance status for students with mandatory remark (e.g., Late, Excused Absence)."
-        },
-        {
-            "id": "UC-20",
-            "use_case": "Add Attendance Remark (Manual)",
-            "primary_actor": "Lecturer, Supervisor, Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows authorized users to add explanatory notes to attendance records for documentation purposes."
-        },
-        {
-            "id": "UC-21",
-            "use_case": "Edit Attendance Remark (Manual)",
-            "primary_actor": "Lecturer, Supervisor, Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows authorized users to update existing attendance remarks for accuracy or additional context."
-        },
-        {
-            "id": "UC-22",
-            "use_case": "View Class Attendance Summary",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to view comprehensive attendance summary report for a class in matrix format with exam eligibility status."
-        },
-        {
-            "id": "UC-23",
-            "use_case": "Export Class Attendance Summary",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to export class attendance summary report to CSV or Excel format."
-        },
-        {
-            "id": "UC-24",
-            "use_case": "Export Class Slots Attendance Details",
-            "primary_actor": "Lecturer",
-            "secondary_actor": "N/A",
-            "description": "Allows lecturers to export detailed attendance records for all slots in a class."
-        },
-        {
-            "id": "UC-25",
-            "use_case": "View Supervisor Dashboard",
-            "primary_actor": "Supervisor",
-            "secondary_actor": "N/A",
-            "description": "Allows supervisors to view their personalized dashboard with upcoming exam supervision slots and attendance summary."
-        },
-        {
-            "id": "UC-26",
-            "use_case": "View Supervisor Schedule",
-            "primary_actor": "Supervisor",
-            "secondary_actor": "N/A",
-            "description": "Allows supervisors to view their exam supervision schedule in calendar or table format, filtered by semester."
-        },
-        {
-            "id": "UC-27",
-            "use_case": "View Exam Slot Attendance Summary",
-            "primary_actor": "Supervisor",
-            "secondary_actor": "N/A",
-            "description": "Allows supervisors to view attendance summary report for a FINAL_EXAM slot with subject filtering."
-        },
-        {
-            "id": "UC-28",
-            "use_case": "Export Exam Slot Attendance Report",
-            "primary_actor": "Supervisor, Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows supervisors and data operators to export exam slot attendance report to CSV or Excel format."
-        },
-        {
-            "id": "UC-29",
-            "use_case": "View Admin Dashboard",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view system overview with charts, statistics, and quick access to main functions."
-        },
-        {
-            "id": "UC-30",
             "use_case": "Create Semester",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new semester with code, name, start date, and end date."
+            "description": "Allows Data Operator to create a new semester with name, code, start date, and end date."
         },
         {
-            "id": "UC-31",
+            "id": "UC-09",
             "use_case": "View Semester List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all semesters with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of semesters with search and filtering capabilities."
         },
         {
-            "id": "UC-32",
-            "use_case": "View Semester Details",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific semester."
-        },
-        {
-            "id": "UC-33",
+            "id": "UC-10",
             "use_case": "Update Semester",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update semester information including activation/deactivation status."
+            "description": "Allows Data Operator to modify the details of an existing semester."
         },
         {
-            "id": "UC-34",
+            "id": "UC-11",
             "use_case": "Delete Semester",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a semester if no related data exists."
+            "description": "Allows Data Operator to remove a semester from the system if it has no dependencies."
         },
         {
-            "id": "UC-35",
+            "id": "UC-12",
+            "use_case": "View Semester Details",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to view detailed information about a specific semester."
+        },
+        {
+            "id": "UC-13",
             "use_case": "Import Semesters via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import semesters from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import semesters from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-36",
+            "id": "UC-14",
             "use_case": "Create Major",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new major with code and name."
+            "description": "Allows Data Operator to create a new academic major with name and code."
         },
         {
-            "id": "UC-37",
+            "id": "UC-15",
             "use_case": "View Major List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all majors with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of majors with search and filtering capabilities."
         },
         {
-            "id": "UC-38",
-            "use_case": "View Major Details",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific major."
-        },
-        {
-            "id": "UC-39",
+            "id": "UC-16",
             "use_case": "Update Major",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update major information including activation/deactivation status."
+            "description": "Allows Data Operator to modify the details of an existing major."
         },
         {
-            "id": "UC-40",
+            "id": "UC-17",
             "use_case": "Delete Major",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a major if no related data exists."
+            "description": "Allows Data Operator to remove a major from the system if it has no dependencies."
         },
         {
-            "id": "UC-41",
+            "id": "UC-18",
+            "use_case": "View Major Details",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to view detailed information about a specific major."
+        },
+        {
+            "id": "UC-19",
             "use_case": "Import Majors via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import majors from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import majors from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-42",
+            "id": "UC-20",
             "use_case": "Create Subject",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new subject with code, name, and associated majors."
+            "description": "Allows Data Operator to create a new subject with name, code, and associated majors."
         },
         {
-            "id": "UC-43",
+            "id": "UC-21",
             "use_case": "View Subject List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all subjects with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of subjects with search and filtering capabilities."
         },
         {
-            "id": "UC-44",
-            "use_case": "View Subject Details",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific subject including associated majors."
-        },
-        {
-            "id": "UC-45",
+            "id": "UC-22",
             "use_case": "Update Subject",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update subject information including activation/deactivation status."
+            "description": "Allows Data Operator to modify the details of an existing subject."
         },
         {
-            "id": "UC-46",
+            "id": "UC-23",
             "use_case": "Delete Subject",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a subject if no related data exists."
+            "description": "Allows Data Operator to remove a subject from the system if it has no dependencies."
         },
         {
-            "id": "UC-47",
+            "id": "UC-24",
+            "use_case": "View Subject Details",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to view detailed information about a specific subject."
+        },
+        {
+            "id": "UC-25",
             "use_case": "Import Subjects via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import subjects from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import subjects from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-48",
+            "id": "UC-26",
             "use_case": "Create Class",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new class with code, subject, and semester."
+            "description": "Allows Data Operator to create a new class by associating a subject with a semester and code."
         },
         {
-            "id": "UC-49",
+            "id": "UC-27",
             "use_case": "View Class List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all classes with search and filter by semester, subject, or major."
+            "description": "Allows Data Operator to view a paginated list of classes with search and filtering capabilities."
         },
         {
-            "id": "UC-50",
-            "use_case": "View Class Details",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific class including enrolled students."
-        },
-        {
-            "id": "UC-51",
+            "id": "UC-28",
             "use_case": "Update Class",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update class information including activation/deactivation status."
+            "description": "Allows Data Operator to modify the details of an existing class."
         },
         {
-            "id": "UC-52",
+            "id": "UC-29",
             "use_case": "Delete Class",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a class if no related data exists."
+            "description": "Allows Data Operator to remove a class from the system if it has no dependencies."
         },
         {
-            "id": "UC-53",
+            "id": "UC-30",
+            "use_case": "View Class Details",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to view detailed information about a specific class."
+        },
+        {
+            "id": "UC-31",
             "use_case": "Import Classes via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import classes from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import classes from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-54",
-            "use_case": "View Class Students",
+            "id": "UC-32",
+            "use_case": "View Class's Students",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of students enrolled in a specific class."
+            "description": "Allows Data Operator to view the list of students enrolled in a specific class."
         },
         {
-            "id": "UC-55",
-            "use_case": "Enroll/Unenroll Student from Class",
+            "id": "UC-33",
+            "use_case": "Enroll Student to Class",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to add or remove students from a class enrollment."
+            "description": "Allows Data Operator to enroll a student into a class."
         },
         {
-            "id": "UC-56",
-            "use_case": "Import Class Enrollments via CSV",
+            "id": "UC-34",
+            "use_case": "Unenroll Student from Class",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import student enrollments to a class from a CSV file."
+            "description": "Allows Data Operator to unenroll a student from a class while preserving historical attendance."
         },
         {
-            "id": "UC-57",
+            "id": "UC-35",
+            "use_case": "Import Student to Class via CSV",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to bulk enroll students to classes from a CSV file."
+        },
+        {
+            "id": "UC-36",
             "use_case": "Create Slot",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new slot with time, room, staff, category, and optional class assignment."
+            "description": "Allows Data Operator to create a new slot with time, room, staff, and category (LECTURE/LECTURE_WITH_PT/FINAL_EXAM)."
         },
         {
-            "id": "UC-58",
+            "id": "UC-37",
             "use_case": "View Slot List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all slots with search and filter by semester, class, date, or category."
+            "description": "Allows Data Operator to view a paginated list of slots with search and filtering capabilities."
         },
         {
-            "id": "UC-59",
-            "use_case": "View Slot Details (Admin)",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific slot including assigned subjects and participants."
-        },
-        {
-            "id": "UC-60",
+            "id": "UC-38",
             "use_case": "Update Slot",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update slot information including time, room, staff, and description."
+            "description": "Allows Data Operator to modify the details of an existing slot."
         },
         {
-            "id": "UC-61",
+            "id": "UC-39",
             "use_case": "Delete Slot",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a slot if no related attendance data exists."
+            "description": "Allows Data Operator to remove a slot from the system within the allowed deletion window."
         },
         {
-            "id": "UC-62",
-            "use_case": "Import Slots via CSV",
+            "id": "UC-40",
+            "use_case": "View Slot Roster",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to view the attendance roster for a specific slot with real-time updates."
+        },
+        {
+            "id": "UC-41",
+            "use_case": "Update Student Attendance Status",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to manually update a student's attendance status and add remarks."
+        },
+        {
+            "id": "UC-42",
+            "use_case": "Import Slot via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import slots from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import slots from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-63",
-            "use_case": "Assign/Remove Subjects to Exam Slot",
+            "id": "UC-43",
+            "use_case": "Add Participant to Exam Slot",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to assign or remove subjects that can be tested in a FINAL_EXAM slot."
+            "description": "Allows Data Operator to assign a student to a specific subject within an exam slot."
         },
         {
-            "id": "UC-64",
-            "use_case": "Add/Remove Exam Slot Participants",
+            "id": "UC-44",
+            "use_case": "Remove Participant from Exam Slot",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to add or remove students as participants for a specific subject in a FINAL_EXAM slot."
+            "description": "Allows Data Operator to remove a student from a specific subject within an exam slot."
         },
         {
-            "id": "UC-65",
-            "use_case": "Import Exam Slot Participants via CSV",
+            "id": "UC-45",
+            "use_case": "Import Participants to Exam Slot via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import exam slot participants from a CSV file with student ID and subject code."
+            "description": "Allows Data Operator to bulk import exam participants from a CSV file."
         },
         {
-            "id": "UC-66",
+            "id": "UC-46",
             "use_case": "Create Student",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new student account with profile information and major assignment."
+            "description": "Allows Data Operator to create a new student account with personal and academic information."
         },
         {
-            "id": "UC-67",
+            "id": "UC-47",
             "use_case": "View Student List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all student accounts with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of students with search and filtering capabilities."
         },
         {
-            "id": "UC-68",
+            "id": "UC-48",
             "use_case": "View Student Details",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific student account and profile."
+            "description": "Allows Data Operator to view detailed information about a specific student."
         },
         {
-            "id": "UC-69",
+            "id": "UC-49",
             "use_case": "Update Student",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update student information including personal details and account activation status."
+            "description": "Allows Data Operator to modify the details of an existing student account."
         },
         {
-            "id": "UC-70",
+            "id": "UC-50",
             "use_case": "Delete Student",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a student account and profile."
+            "description": "Allows Data Operator to remove a student account from the system if it has no dependencies."
         },
         {
-            "id": "UC-71",
+            "id": "UC-51",
             "use_case": "Import Students via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import student accounts from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import students from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-72",
+            "id": "UC-52",
+            "use_case": "Import student images",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Data Operator to bulk import student face images for generating embeddings used in face recognition."
+        },
+        {
+            "id": "UC-53",
             "use_case": "Create Staff (Lecturer/Supervisor)",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new staff account with profile information and role assignment."
+            "description": "Allows Data Operator to create a new staff account with role assignment (Lecturer/Supervisor/Data Operator)."
         },
         {
-            "id": "UC-73",
+            "id": "UC-54",
             "use_case": "View Staff List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all staff accounts with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of staff with search and filtering capabilities."
         },
         {
-            "id": "UC-74",
+            "id": "UC-55",
             "use_case": "View Staff Details",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific staff account and profile."
+            "description": "Allows Data Operator to view detailed information about a specific staff member."
         },
         {
-            "id": "UC-75",
+            "id": "UC-56",
             "use_case": "Update Staff",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update staff information including personal details, role assignment, and account activation status."
+            "description": "Allows Data Operator to modify the details of an existing staff account."
         },
         {
-            "id": "UC-76",
+            "id": "UC-57",
             "use_case": "Delete Staff",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a staff account and profile."
+            "description": "Allows Data Operator to remove a staff account from the system if it has no dependencies."
         },
         {
-            "id": "UC-77",
-            "use_case": "Import Staff via CSV",
+            "id": "UC-58",
+            "use_case": "Import Staffs via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import staff accounts from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import staff members from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-78",
+            "id": "UC-59",
+            "use_case": "View Dashboard",
+            "primary_actor": "All Users",
+            "secondary_actor": "N/A",
+            "description": "Allows users to view role-specific dashboard with statistics, upcoming classes, and pending tasks."
+        },
+        {
+            "id": "UC-60",
             "use_case": "Create Room",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new room with name and location information."
+            "description": "Allows Data Operator to create a new room with name and location."
         },
         {
-            "id": "UC-79",
+            "id": "UC-61",
             "use_case": "View Room List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all rooms with search and filter capabilities."
+            "description": "Allows Data Operator to view a paginated list of rooms with search and filtering capabilities."
         },
         {
-            "id": "UC-80",
+            "id": "UC-62",
             "use_case": "View Room Details",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific room including assigned cameras."
+            "description": "Allows Data Operator to view detailed information about a specific room including assigned cameras."
         },
         {
-            "id": "UC-81",
+            "id": "UC-63",
             "use_case": "Update Room",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update room information including activation/deactivation status."
+            "description": "Allows Data Operator to modify the details of an existing room."
         },
         {
-            "id": "UC-82",
+            "id": "UC-64",
             "use_case": "Delete Room",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a room if no related data exists."
+            "description": "Allows Data Operator to remove a room from the system if it has no dependencies."
         },
         {
-            "id": "UC-83",
+            "id": "UC-65",
             "use_case": "Import Rooms via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import rooms from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import rooms from a CSV file with validation and error reporting."
         },
         {
-            "id": "UC-84",
+            "id": "UC-66",
             "use_case": "Create Camera",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to create a new camera with name, RTSP URL, and room assignment."
+            "description": "Allows Data Operator to create a new camera with name, RTSP URL, and room assignment."
         },
         {
-            "id": "UC-85",
+            "id": "UC-67",
             "use_case": "View Camera List",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to view the list of all cameras with search, filter, and connection status."
+            "description": "Allows Data Operator to view a paginated list of cameras with search and filtering capabilities."
         },
         {
-            "id": "UC-86",
-            "use_case": "View Camera Details",
-            "primary_actor": "Data Operator",
-            "secondary_actor": "N/A",
-            "description": "Allows data operators to view detailed information of a specific camera including configuration and status."
-        },
-        {
-            "id": "UC-87",
+            "id": "UC-68",
             "use_case": "Update Camera",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to update camera information including RTSP URL, room assignment, and activation status."
+            "description": "Allows Data Operator to modify the details of an existing camera."
         },
         {
-            "id": "UC-88",
+            "id": "UC-69",
             "use_case": "Delete Camera",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to permanently delete a camera."
+            "description": "Allows Data Operator to remove a camera from the system if it has no dependencies."
         },
         {
-            "id": "UC-89",
+            "id": "UC-70",
+            "use_case": "View Camera Details",
+            "primary_actor": "Data Operator",
+            "secondary_actor": "N/A",
+            "description": "Allows Data Operator to view detailed information about a specific camera."
+        },
+        {
+            "id": "UC-71",
             "use_case": "Import Cameras via CSV",
             "primary_actor": "Data Operator",
             "secondary_actor": "N/A",
-            "description": "Allows data operators to bulk import cameras from a CSV file with validation and error reporting."
+            "description": "Allows Data Operator to bulk import cameras from a CSV file with validation and error reporting."
+        },
+        {
+            "id": "UC-72",
+            "use_case": "View Teaching Schedule",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to view their assigned teaching schedule in calendar or list format."
+        },
+        {
+            "id": "UC-73",
+            "use_case": "View Exam Schedule",
+            "primary_actor": "Supervisor",
+            "secondary_actor": "N/A",
+            "description": "Allows Supervisor to view their assigned exam supervision schedule."
+        },
+        {
+            "id": "UC-74",
+            "use_case": "Update Slot Category",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to change slot category between LECTURE and LECTURE_WITH_PT."
+        },
+        {
+            "id": "UC-75",
+            "use_case": "Start Class Attendance Scanning",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Lecturer to start face recognition scanning for regular class attendance."
+        },
+        {
+            "id": "UC-76",
+            "use_case": "Rescan Student for Class",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Lecturer to trigger a rescan operation to reset all students to NOT_YET status during active session."
+        },
+        {
+            "id": "UC-77",
+            "use_case": "Start Exam Verification Scanning",
+            "primary_actor": "Supervisor",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Supervisor to start face recognition scanning for exam attendance verification."
+        },
+        {
+            "id": "UC-78",
+            "use_case": "Rescan Candidate for Exam",
+            "primary_actor": "Supervisor",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Supervisor to trigger a rescan operation to reset all candidates to NOT_YET status during active exam session."
+        },
+        {
+            "id": "UC-79",
+            "use_case": "Stop Scanning Session",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "Recognition Service",
+            "description": "Allows Lecturer or Supervisor to stop the active face recognition scanning session."
+        },
+        {
+            "id": "UC-80",
+            "use_case": "View Class Summary",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to view attendance summary statistics for a specific class."
+        },
+        {
+            "id": "UC-81",
+            "use_case": "Export Class Summary",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to export class attendance summary data in downloadable format."
+        },
+        {
+            "id": "UC-82",
+            "use_case": "View Slot Details",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to view detailed information about a specific slot including time, room, and roster."
+        },
+        {
+            "id": "UC-83",
+            "use_case": "Export Class's Slots Attendance",
+            "primary_actor": "Lecturer",
+            "secondary_actor": "N/A",
+            "description": "Allows Lecturer to export attendance records for all slots of a specific class."
+        },
+        {
+            "id": "UC-84",
+            "use_case": "View Student Profile",
+            "primary_actor": "Student",
+            "secondary_actor": "N/A",
+            "description": "Allows Student to view their personal profile information including roll number, major, and contact details."
+        },
+        {
+            "id": "UC-85",
+            "use_case": "View Attendance History",
+            "primary_actor": "Student",
+            "secondary_actor": "N/A",
+            "description": "Allows Student to view their attendance history across all enrolled classes and exams."
+        },
+        {
+            "id": "UC-86",
+            "use_case": "View Student TimeTable",
+            "primary_actor": "Student",
+            "secondary_actor": "N/A",
+            "description": "Allows Student to view their weekly timetable showing all scheduled classes and exams."
         }
     ]
 }

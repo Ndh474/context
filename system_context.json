@@ -727,6 +727,19 @@
       },
       "face_recognition": {
         "description": "Face scan results are processed differently based on the session type (regular vs exam) and scan count (first scan vs rescan).",
+        "embedding_quality_validation": {
+          "description": "When generating face embeddings from photos (during registration or bulk import), the system validates photo quality to ensure reliable recognition.",
+          "validation_performed": "Recognition service checks multiple quality factors including face detection confidence, image clarity, lighting conditions, and face positioning.",
+          "rejection_behavior": "Photos that fail quality validation are rejected, and the user/admin must re-submit a higher quality photo.",
+          "purpose": "Ensures that only high-quality embeddings are stored in the system, improving recognition accuracy during attendance sessions."
+        },
+        "embedding_versioning": {
+          "description": "The system maintains versioned face embeddings to support updates and audit trails.",
+          "strategy": "When new embeddings are imported for a student, the system deactivates old embeddings and creates new ones with incremented version number.",
+          "active_embedding": "Only one embedding per student is marked as active (is_active = true) and used for recognition.",
+          "retention": "System retains last 3 versions of embeddings for each student for audit purposes. Older versions are automatically purged.",
+          "use_case": "Allows updating student photos (e.g., after significant appearance change) while preserving history."
+        },
         "start_session_logic": {
           "description": "First scan (scan_count = 1) - Same logic for both regular and exam sessions",
           "outcomes": {
@@ -811,6 +824,7 @@
     "technical_flows": {
       "evidence_cleanup_flow": {
         "title": "Temporary Attendance Evidence Cleanup Flow",
+        "status": "PLANNED - Not yet implemented",
         "description": "A scheduled job that runs periodically (e.g., daily) to delete old attendance evidence images and their corresponding database records from both regular and exam attendance tables to save storage space.",
         "steps": [
           "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
@@ -829,6 +843,7 @@
       "password_reset_flow": "User enters email. System creates a unique, time-limited reset token, saves it to the database, and sends an email containing the reset link. When the user accesses the link, the system validates the token, allows them to enter a new password, hashes and updates the password_hash, then invalidates the used token.",
       "daily_absence_calculation_flow": {
         "title": "Daily Absence Calculation and Notification Flow",
+        "status": "PLANNED - Not yet implemented",
         "description": "A scheduled job that runs automatically every day after midnight to ensure data consistency and timely notifications based on attendance records from the previous day.",
         "steps": [
           "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time daily (e.g., 00:05 AM).",
@@ -836,6 +851,26 @@
           "3. Scan for Completed Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that have ended within the previous calendar day (where end_time is between 00:00:00 and 23:59:59 of previous day).",
           "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student.",
           "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
+        ]
+      },
+      "real_time_attendance_update_flow": {
+        "title": "Real-time Attendance Update via SSE",
+        "status": "IMPLEMENTED",
+        "description": "Server-Sent Events (SSE) flow enabling real-time attendance roster updates during face recognition sessions without polling.",
+        "steps": [
+          "1. Client establishes SSE connection: When lecturer/supervisor opens attendance roster page, frontend creates EventSource connection to GET /api/v1/attendance/slots/{slotId}/stream endpoint.",
+          "2. Backend accepts connection: Server validates authentication, adds client to in-memory subscriber list for the slot, sends 'connected' event.",
+          "3. Recognition callback triggers update: When Python recognition service detects a student, it calls backend callback API with recognition result.",
+          "4. Backend processes and broadcasts: Backend updates attendance_records or exam_attendance table, then broadcasts 'attendance.update' event to all SSE subscribers of that slot.",
+          "5. Frontend receives and updates UI: Client receives SSE event, optimistically patches TanStack Query cache, updates roster table immediately without refetching.",
+          "6. Heartbeat maintenance: Backend sends periodic 'heartbeat' events (every 25 seconds) to keep connection alive and detect disconnections.",
+          "7. Connection cleanup: When session stops or client navigates away, connection is closed and subscriber removed from list."
+        ],
+        "benefits": [
+          "Zero-latency UI updates (no polling delay)",
+          "Reduced server load (no repeated polling requests)",
+          "Multiple concurrent viewers see updates in sync",
+          "Automatic reconnection on network failure"
         ]
       },
       "bulk_identity_import_flow": {
@@ -925,19 +960,25 @@
       "frontend": {
         "web": {
           "description": "Web platform for Students, Lecturers, Supervisors, and Admin",
-          "technology": "Next.js",
-          "ui_library": "shadcn/ui"
+          "technology": "Next.js 15.5.4",
+          "framework": "React 19",
+          "ui_library": "shadcn/ui",
+          "state_management": "TanStack Query 5",
+          "styling": "Tailwind CSS 4"
         }
       },
       "backend": {
         "main_service": {
           "description": "Main service handling business logic",
-          "technology": "Java (Spring Boot)",
-          "runtime": "JDK 21+"
+          "technology": "Spring Boot 3.x",
+          "runtime": "JDK 21+",
+          "database": "PostgreSQL with pgvector extension"
         },
         "recognition_service": {
           "description": "Service handling face recognition",
-          "technology": "Python (FastAPI)"
+          "technology": "Python FastAPI",
+          "runtime": "Python 3.10+",
+          "face_recognition_model": "InsightFace buffalo_l"
         }
       },
       "database": {
@@ -949,7 +990,258 @@
         }
       }
     },
-    "implementation_decisions": {
+    "recognition_service": {
+      "overview": "Python FastAPI microservice responsible for face detection, embedding generation, and real-time face recognition during attendance sessions. Processes video streams from IP cameras and sends recognition results to the main backend.",
+      "core_capabilities": {
+        "embedding_generation": {
+          "description": "Generate face embeddings from student/staff photos for identity registration",
+          "input": "Photo file (JPG/PNG)",
+          "output": "512-dimensional embedding vector",
+          "features": [
+            "Face detection and alignment",
+            "Quality validation (ensures photo meets minimum quality standards)",
+            "Single face verification"
+          ]
+        },
+        "face_recognition": {
+          "description": "Real-time face identification during attendance sessions",
+          "algorithm": "Cosine similarity matching",
+          "features": [
+            "Multi-camera parallel processing",
+            "Configurable similarity threshold",
+            "Automatic evidence capture",
+            "Deduplication per session (each student recognized once)"
+          ]
+        },
+        "session_management": {
+          "description": "Manage attendance recognition sessions",
+          "features": [
+            "Start/stop sessions with RTSP camera integration",
+            "Support INITIAL and RESCAN modes",
+            "Separate handling for regular vs exam attendance",
+            "Asynchronous callback to backend with results"
+          ]
+        }
+      },
+      "integration_with_backend": {
+        "backend_to_python": [
+          {
+            "endpoint": "POST /api/v1/embeddings/generate",
+            "purpose": "Generate embedding for new identity submission",
+            "when": "Student/staff photo uploaded during registration or identity import"
+          },
+          {
+            "endpoint": "POST /api/v1/recognition/process-session",
+            "purpose": "Start attendance recognition session",
+            "when": "Lecturer/Supervisor starts attendance on a slot"
+          },
+          {
+            "endpoint": "POST /api/v1/recognition/stop-session",
+            "purpose": "Stop active recognition session",
+            "when": "Lecturer/Supervisor stops attendance session"
+          }
+        ],
+        "python_to_backend": [
+          {
+            "endpoint": "POST /api/internal/recognition/callback",
+            "purpose": "Send recognition results as students are detected",
+            "payload_includes": [
+              "Student IDs detected",
+              "Confidence scores",
+              "Evidence image URLs",
+              "Timestamp and camera info"
+            ],
+            "frequency": "Real-time as faces are recognized"
+          }
+        ]
+      },
+      "technical_notes": [
+        "Uses InsightFace buffalo_l model (ArcFace ResNet100) for high-accuracy face recognition",
+        "Embeddings are 512-dimensional float32 vectors stored in PostgreSQL with pgvector extension",
+        "Supports GPU acceleration when available, falls back to CPU",
+        "Evidence images saved locally and served via static file endpoint",
+        "Session state managed in-memory (not suitable for multi-instance deployment without external state store)"
+      ]
+    },
+    "internationalization": {
+      "description": "The system supports multiple languages to accommodate diverse user bases",
+      "supported_languages": [
+        "English (en)",
+        "Vietnamese (vi)"
+      ],
+      "implementation": {
+        "method": "Cookie-based locale detection",
+        "library": "next-intl",
+        "locale_storage": "NEXT_LOCALE cookie",
+        "url_strategy": "No locale prefix in URLs (localePrefix: 'never')"
+      },
+      "translation_scope": {
+        "translated": [
+          "UI labels and buttons",
+          "Form placeholders and validations",
+          "Table headers and column names",
+          "Error messages",
+          "Page titles and breadcrumbs",
+          "Menu items",
+          "Notifications"
+        ],
+        "not_translated": [
+          "Database content (names, descriptions from backend)",
+          "User-generated content (remarks, notes)",
+          "Status badges (kept in English per design decision)"
+        ]
+      },
+      "language_switching": "Users can switch languages via a dropdown in the header. Preference is saved in cookie and persists across sessions."
+    },
+    "real_time_features": {
+      "description": "The system uses Server-Sent Events (SSE) for real-time updates during attendance sessions, eliminating the need for polling",
+      "technology": "Server-Sent Events (SSE / EventSource API)",
+      "primary_use_case": "Real-time attendance roster updates during face recognition sessions",
+      "how_it_works": [
+        "Client (lecturer/supervisor) opens attendance roster page and establishes SSE connection to backend",
+        "Backend maintains connection and broadcasts events when recognition service sends callbacks",
+        "Frontend receives events and updates UI optimistically (patches TanStack Query cache)",
+        "Connection includes heartbeat mechanism to detect and recover from disconnections",
+        "Connection closed when session stops or user navigates away"
+      ],
+      "event_types": {
+        "connected": "Initial handshake confirming connection established",
+        "attendance.update": "Student attendance status changed (auto-recognized or manually edited)",
+        "slot.closed": "Session ended, client should disconnect",
+        "heartbeat": "Keep-alive ping to maintain connection"
+      },
+      "benefits": [
+        "Immediate UI updates without page refresh",
+        "No polling overhead (reduced server load)",
+        "Multiple users can view same roster and see updates in real-time",
+        "Better UX during attendance sessions"
+      ]
+    },
+    "api_catalog": {
+      "description": "Overview of main API endpoints grouped by domain. All endpoints return JSON with standard Response<T> wrapper.",
+      "authentication": {
+        "login": "POST /api/v1/auth/login - Username/password authentication",
+        "google_login": "POST /api/v1/auth/google-login - Google OAuth authentication",
+        "forgot_password": "POST /api/v1/auth/forgot-password - Request password reset email",
+        "reset_password": "POST /api/v1/auth/reset-password - Reset password with token",
+        "refresh_token": "POST /api/v1/auth/refresh - Refresh access token"
+      },
+      "slots": {
+        "list": "GET /api/v1/slots - Search and filter slots",
+        "detail": "GET /api/v1/slots/{id} - Get slot details",
+        "create": "POST /api/v1/slots - Create new slot (LECTURE/LECTURE_WITH_PT/FINAL_EXAM)",
+        "update": "PUT /api/v1/slots/{id} - Update slot information",
+        "update_category": "PUT /api/v1/slots/{id}/category - Change slot category (LECTURE ↔ LECTURE_WITH_PT)",
+        "delete": "DELETE /api/v1/slots/{id} - Hard delete slot (DATA_OPERATOR only)",
+        "import": "POST /api/v1/slots/import - Bulk import slots from CSV"
+      },
+      "attendance_sessions": {
+        "start_regular": "POST /api/v1/slots/{id}/start-session - Start regular attendance session",
+        "stop_regular": "POST /api/v1/slots/{id}/stop-session - Stop regular session",
+        "rescan_regular": "POST /api/v1/slots/{id}/rescan - Trigger rescan for regular session",
+        "start_exam": "POST /api/v1/slots/{id}/start-exam-session - Start exam attendance session",
+        "stop_exam": "POST /api/v1/slots/{id}/stop-exam-session - Stop exam session",
+        "rescan_exam": "POST /api/v1/slots/{id}/rescan-exam - Trigger rescan for exam session",
+        "sse_stream": "GET /api/v1/attendance/slots/{slotId}/stream - Subscribe to real-time updates (SSE)",
+        "roster": "GET /api/v1/slots/{id}/roster - Get attendance roster for slot",
+        "update_status": "PUT /api/v1/attendance/{recordId} - Manually update student attendance status",
+        "submit": "POST /api/v1/slots/{id}/submit-attendance - Finalize attendance with bulk NOT_YET resolution"
+      },
+      "academic_catalog": {
+        "semesters": "GET/POST/PUT/DELETE /api/v1/semesters - CRUD operations for semesters",
+        "majors": "GET/POST/PUT/DELETE /api/v1/majors - CRUD operations for majors",
+        "subjects": "GET/POST/PUT/DELETE /api/v1/subjects - CRUD operations for subjects",
+        "classes": "GET/POST/PUT/DELETE /api/v1/classes - CRUD operations for classes",
+        "enrollments": "GET/POST/PUT/DELETE /api/v1/enrollments - Manage class enrollments",
+        "import_endpoints": "POST /api/v1/{entity}/import - Bulk import for semesters, majors, subjects, classes, enrollments"
+      },
+      "users": {
+        "students": "GET/POST/PUT /api/v1/students - Manage student accounts and profiles",
+        "staff": "GET/POST/PUT /api/v1/staff - Manage staff accounts and profiles",
+        "roles": "POST/DELETE /api/v1/users/{id}/roles - Assign/revoke roles",
+        "import": "POST /api/v1/users/import - Bulk import user accounts",
+        "bulk_identity": "POST /api/v1/identities/bulk-import - Bulk import photos and embeddings (CSV + ZIP)"
+      },
+      "infrastructure": {
+        "rooms": "GET/POST/PUT/DELETE /api/v1/rooms - CRUD operations for rooms",
+        "cameras": "GET/POST/PUT/DELETE /api/v1/cameras - CRUD operations for cameras"
+      },
+      "exam_management": {
+        "exam_slot_subjects": "POST/DELETE /api/v1/exam-slots/{slotId}/subjects - Assign subjects to FINAL_EXAM slot",
+        "exam_participants": "GET/POST/DELETE /api/v1/exam-slots/{slotId}/participants - Manage exam participants"
+      },
+      "reports": {
+        "attendance_history": "GET /api/v1/students/{id}/attendance-history - Student attendance history",
+        "class_summary": "GET /api/v1/reports/classes/{classId}/attendance-summary - Class attendance summary",
+        "export": "POST /api/v1/reports/export - Export reports (CSV/Excel)"
+      }
+    },
+    "implementation_status": {
+      "description": "Current implementation status of major features and components. Legend: ✅ Fully Implemented | 🟡 Partially Implemented | 📋 Planned/Not Implemented",
+      "authentication_and_authorization": {
+        "username_password_login": "✅ Implemented",
+        "google_oauth_login": "✅ Implemented",
+        "forgot_password": "✅ Implemented",
+        "reset_password": "✅ Implemented",
+        "rbac_system": "✅ Implemented (4 roles, 50+ permissions)",
+        "jwt_tokens": "✅ Implemented (access + refresh tokens)"
+      },
+      "face_recognition": {
+        "embedding_generation": "✅ Implemented (InsightFace buffalo_l, quality validation)",
+        "real_time_recognition": "✅ Implemented (multi-camera, RTSP streams)",
+        "session_management": "✅ Implemented (start/stop/rescan for regular and exam)",
+        "evidence_capture": "✅ Implemented (automatic image capture and serving)",
+        "embedding_versioning": "✅ Implemented (version tracking, last 3 retained)"
+      },
+      "attendance_management": {
+        "dual_session_tracking": "✅ Implemented (separate regular and exam sessions)",
+        "real_time_updates_sse": "✅ Implemented (Server-Sent Events)",
+        "manual_attendance_edit": "✅ Implemented (with time-based permissions)",
+        "bulk_attendance_update": "✅ Implemented (submit with NOT_YET resolution)",
+        "attendance_roster_view": "✅ Implemented (lecturer and supervisor)",
+        "evidence_viewer": "✅ Implemented (side-by-side comparison)",
+        "time_based_edit_window": "✅ Implemented (until 23:59:59 Vietnam time)"
+      },
+      "academic_data_management": {
+        "semester_crud": "✅ Implemented",
+        "major_crud": "✅ Implemented",
+        "subject_crud": "✅ Implemented",
+        "class_crud": "✅ Implemented",
+        "slot_crud": "✅ Implemented (all 3 categories)",
+        "enrollment_management": "✅ Implemented",
+        "exam_participant_management": "✅ Implemented",
+        "csv_bulk_import": "✅ Implemented (partial success pattern)",
+        "csv_export": "🟡 Partially Implemented (some entities)"
+      },
+      "user_management": {
+        "student_crud": "✅ Implemented",
+        "staff_crud": "✅ Implemented",
+        "role_assignment": "✅ Implemented (with constraints)",
+        "bulk_identity_import": "✅ Implemented (CSV + ZIP photos)"
+      },
+      "infrastructure_management": {
+        "room_crud": "✅ Implemented",
+        "camera_crud": "✅ Implemented (RTSP configuration)"
+      },
+      "reporting": {
+        "student_attendance_history": "✅ Implemented",
+        "class_attendance_summary": "✅ Implemented",
+        "report_export": "🟡 Partially Implemented"
+      },
+      "background_jobs": {
+        "evidence_cleanup": "📋 Planned (retention: 30 days)",
+        "daily_absence_calculation": "📋 Planned (threshold notifications)",
+        "auto_session_finalization": "📋 Planned"
+      },
+      "internationalization": {
+        "multi_language_support": "✅ Implemented (English, Vietnamese)",
+        "language_switcher": "✅ Implemented (cookie-based)"
+      },
+      "notifications": {
+        "system_notifications": "🟡 Partially Implemented (infrastructure exists, limited usage)"
+      }
+    },
+    "architectural_decisions": {
       "description": "Documented decisions about implementation approaches and what NOT to implement. These decisions are final for current and near-future versions.",
       "backend_validation_only": [
         {
@@ -1034,12 +1326,82 @@
         }
       ]
     },
-    "to_be_discussed_or_backlog": [
-      "Dashboard Design: Define KPIs displayed for each role",
-      "API Integration: Define scope/security/throttling/response format for planned endpoints",
-      "Conflict resolution with external systems (SIS/LMS): Priority rules for data overwrite when importing",
-      "Upgrade Backend-Service communication mechanism: Research and transition communication mechanism from 'Direct API Call' to 'Message Queue' (e.g., RabbitMQ) to increase reliability and scalability of the system when deployed at large scale"
-    ],
+    "planned_features": {
+      "description": "Features and enhancements planned for future implementation or requiring further discussion",
+      "background_jobs": {
+        "evidence_cleanup_job": {
+          "description": "Scheduled job to automatically delete old attendance evidence images after retention period",
+          "retention_period": "30 days",
+          "schedule": "Daily at 03:00 AM",
+          "status": "Not yet implemented",
+          "priority": "Medium"
+        },
+        "daily_absence_calculation_job": {
+          "description": "Scheduled job to calculate absence rates and send threshold notifications to students",
+          "thresholds": "10%, 20%, and maximum configured threshold",
+          "schedule": "Daily at 00:05 AM",
+          "status": "Not yet implemented",
+          "priority": "Medium"
+        },
+        "auto_session_finalization": {
+          "description": "Automatically finalize attendance sessions after grace period expires",
+          "grace_period": "To be defined (e.g., 2 hours after slot ends)",
+          "status": "Not yet implemented",
+          "priority": "Low"
+        }
+      },
+      "export_features": {
+        "comprehensive_export": {
+          "description": "Complete CSV/Excel export functionality for all entities",
+          "entities": "All academic catalogs, attendance reports, user lists",
+          "status": "Partially implemented - need to complete remaining entities",
+          "priority": "Medium"
+        },
+        "template_downloads": {
+          "description": "Downloadable CSV templates for bulk import operations",
+          "status": "Not yet implemented",
+          "priority": "Low"
+        }
+      },
+      "external_integration": {
+        "api_endpoints_for_sis_lms": {
+          "description": "RESTful API endpoints for external systems (SIS/LMS) to consume FUACS data",
+          "scope": "Define endpoints, authentication, throttling, response formats",
+          "conflict_resolution": "Define priority rules for data overwrite when importing from external systems",
+          "status": "Planned - currently using manual export only",
+          "priority": "High"
+        },
+        "message_queue_integration": {
+          "description": "Replace direct API calls with message queue (e.g., RabbitMQ) for backend-recognition service communication",
+          "benefits": "Increased reliability, scalability, fault tolerance",
+          "status": "Under research",
+          "priority": "Low (for large-scale deployment)"
+        }
+      },
+      "ui_enhancements": {
+        "dashboard_kpi_definition": {
+          "description": "Define and implement KPIs displayed on dashboards for each role",
+          "roles": "Student, Lecturer, Supervisor, Data Operator",
+          "examples": "Attendance trends, slot completion rates, absence alerts",
+          "status": "To be discussed",
+          "priority": "Medium"
+        },
+        "mobile_app_consideration": {
+          "description": "Mobile application for Lecturers and Supervisors to manage attendance on-the-go",
+          "platform": "iOS and Android",
+          "status": "Being considered",
+          "priority": "Medium (to optimize user experience)"
+        }
+      },
+      "notification_enhancements": {
+        "expanded_notification_system": {
+          "description": "Expand notification system for more business events",
+          "events": "Class schedule changes, exam reminders, attendance threshold alerts",
+          "status": "Infrastructure exists but limited usage",
+          "priority": "Medium"
+        }
+      }
+    },
     "notes": [
       "All data is managed and filtered by Semester",
       "The primary platform for Lecturers & Supervisors is Web. Mobile app development for these roles is being considered to optimize experience",

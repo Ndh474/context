@@ -1,0 +1,86 @@
+UC-01: Login with Username Password
+UC-02: Login with Google
+UC-03: Logout
+UC-04: Request Password Reset
+UC-05: Reset Password using Token
+UC-06: Change Own Password
+UC-07: Create Semester
+UC-08: View Semester List
+UC-09: Update Semester
+UC-10: Delete Semester
+UC-11: View Semester Details
+UC-12: Import Semesters via CSV
+UC-13: Create Major
+UC-14: View Major List
+UC-15: Update Major
+UC-16: Delete Major
+UC-17: View Major Details
+UC-18: Import Majors via CSV
+UC-19: Create Subject
+UC-20: View Subject List
+UC-21: Update Subject
+UC-22: Delete Subject
+UC-23: View Subject Details
+UC-24: Import Subjects via CSV
+UC-25: Create Class
+UC-26: View Class List
+UC-27: Update Class
+UC-28: Delete Class
+UC-29: View Class Details
+UC-30: Import Classes via CSV
+UC-31: View Class’s Students
+UC-32: Enroll Student to Class
+UC-33: Unenroll Student from Class
+UC-34: Import Student to Class via CSV
+UC-35: Create Slot
+UC-36: View Slot List
+UC-37: Update Slot
+UC-38: Delete Slot
+UC-39: View Slot Roster
+UC-40: Update Student Attendance Status
+UC-41: Import Slot via CSV
+UC-42: Add Participant to Exam Slot
+UC-43: Remove Participant from Exam Slot
+UC-44: Import Participants to Exam Slot via CSV
+UC-45: Create Student
+UC-46: View Student List
+UC-47: View Student Details
+UC-48: Update Student
+UC-49: Delete Student
+UC-50: Import Students via CSV
+UC-51: Import student images
+UC-52: Create Staff (Lecturer/Supervisor)
+UC-53: View Staff List
+UC-54: View Staff Details
+UC-55: Update Staff
+UC-56: Delete Staff
+UC-57: Import Staffs via CSV
+UC-58: View Dashboard
+UC-59: Create Room
+UC-60: View Room List
+UC-61: View Room Details
+UC-62: Update Room
+UC-63: Delete Room
+UC-64: Import Rooms via CSV
+UC-65: Create Camera
+UC-66: View Camera List
+UC-67: Update Camera
+UC-68: Delete Camera
+UC-69: View Camera Details
+UC-70: Import Cameras via CSV
+UC-71: View Teaching Schedule
+UC-72: View Exam Schedule
+UC-73: Update Slot Category
+UC-74: Start Class Attendance Scanning
+UC-75: Rescan Student for Class
+UC-76: Start Exam Verification Scanning
+UC-77: Rescan Candidate for Exam
+UC-78: Stop Scanning Session
+UC-79: View Class Summary
+UC-80: Export Class Summary
+UC-81: View Slot Details
+UC-82: Export Class’s Slots Attendance
+UC-83: View Student Profile
+UC-84: View Attendance History
+UC-85: View Student TimeTable
+

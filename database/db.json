@@ -1,0 +1,1682 @@
+{
+  "project": "FUACS - FU Attendance Checking Smart",
+  "database": "PostgreSQL with pgvector extension",
+  "total_tables": 29,
+  "timezone_strategy": "All TIMESTAMP columns represent Vietnam local time (Asia/Ho_Chi_Minh). Application enforces Vietnam timezone via spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Ho_Chi_Minh",
+  "special_features": [
+    "pgvector extension for face embeddings (CREATE EXTENSION IF NOT EXISTS vector)",
+    "Soft delete pattern via is_active BOOLEAN",
+    "Audit fields pattern (created_at, updated_at)",
+    "Partial indexes for performance optimization",
+    "IVFFlat indexes for vector similarity search"
+  ],
+  "table_groups": {
+    "user_management": {
+      "description": "Core user accounts and authentication",
+      "tables": [
+        "users",
+        "password_reset_tokens"
+      ]
+    },
+    "rbac": {
+      "description": "Role-Based Access Control system",
+      "tables": [
+        "roles",
+        "permissions",
+        "user_roles",
+        "role_permissions"
+      ]
+    },
+    "user_profiles": {
+      "description": "Extended profiles for students and staff",
+      "tables": [
+        "student_profiles",
+        "staff_profiles"
+      ]
+    },
+    "academic_structure": {
+      "description": "Academic catalog and class management",
+      "tables": [
+        "majors",
+        "semesters",
+        "subjects",
+        "subject_majors",
+        "classes",
+        "enrollments"
+      ]
+    },
+    "infrastructure": {
+      "description": "Physical infrastructure (rooms and cameras)",
+      "tables": [
+        "rooms",
+        "cameras"
+      ]
+    },
+    "scheduling": {
+      "description": "Slot scheduling and session management",
+      "tables": [
+        "slots"
+      ]
+    },
+    "attendance_tracking": {
+      "description": "Dual attendance system (regular and exam)",
+      "tables": [
+        "attendance_records",
+        "regular_attendance_evidences",
+        "exam_attendance",
+        "exam_attendance_evidences",
+        "exam_slot_subjects",
+        "exam_slot_participants"
+      ]
+    },
+    "face_recognition": {
+      "description": "Face embedding storage with versioning",
+      "tables": [
+        "face_embeddings"
+      ]
+    },
+    "notifications": {
+      "description": "System notification delivery",
+      "tables": [
+        "system_notifications",
+        "notification_deliveries"
+      ]
+    }
+  },
+  "tables": {
+    "users": {
+      "category": "user_management",
+      "primary_key": "id",
+      "description": "Central authentication table containing all user accounts (students, lecturers, supervisors, data operators)",
+      "columns": {
+        "id": {
+          "type": "SERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "description": "Unique user identifier"
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()",
+          "description": "Record creation timestamp (Vietnam time)"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()",
+          "description": "Record last update timestamp (Vietnam time)"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE",
+          "description": "Soft delete flag"
+        },
+        "username": {
+          "type": "VARCHAR(50)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Login username (Student ID or Employee ID)"
+        },
+        "email": {
+          "type": "VARCHAR(128)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "User email address"
+        },
+        "full_name": {
+          "type": "VARCHAR(150)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "User's full name"
+        },
+        "password_hash": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Hashed password (nullable for Google-only accounts)"
+        }
+      },
+      "indexes": [
+        "UNIQUE (username)",
+        "UNIQUE (email)"
+      ]
+    },
+    "password_reset_tokens": {
+      "category": "user_management",
+      "primary_key": "id",
+      "description": "Password reset tokens for account recovery (15-minute expiry)",
+      "columns": {
+        "id": {
+          "type": "SERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "expires_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Token expiration timestamp"
+        },
+        "email": {
+          "type": "VARCHAR(128)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "token_hash": {
+          "type": "VARCHAR(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Hashed reset token"
+        }
+      },
+      "indexes": [
+        "UNIQUE (token_hash)"
+      ]
+    },
+    "roles": {
+      "category": "rbac",
+      "primary_key": "id",
+      "description": "System roles definition (STUDENT, LECTURER, SUPERVISOR, DATA_OPERATOR)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Role name (e.g., STUDENT, LECTURER, SUPERVISOR, DATA_OPERATOR)"
+        }
+      },
+      "indexes": [
+        "UNIQUE (name)"
+      ]
+    },
+    "permissions": {
+      "category": "rbac",
+      "primary_key": "id",
+      "description": "System permissions catalog (~100+ granular permissions)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(100)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Permission name (e.g., USER_CREATE, SEMESTER_READ)"
+        }
+      },
+      "indexes": [
+        "UNIQUE (name)"
+      ]
+    },
+    "user_roles": {
+      "category": "rbac",
+      "primary_key": [
+        "user_id",
+        "role_id"
+      ],
+      "description": "Many-to-many junction table between users and roles",
+      "columns": {
+        "user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "role_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "roles(id)",
+            "on_delete": "CASCADE"
+          }
+        }
+      },
+      "indexes": [
+        "PRIMARY KEY (user_id, role_id)"
+      ]
+    },
+    "role_permissions": {
+      "category": "rbac",
+      "primary_key": [
+        "role_id",
+        "permission_id"
+      ],
+      "description": "Many-to-many junction table between roles and permissions",
+      "columns": {
+        "role_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "roles(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "permission_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "permissions(id)",
+            "on_delete": "CASCADE"
+          }
+        }
+      },
+      "indexes": [
+        "PRIMARY KEY (role_id, permission_id)"
+      ]
+    },
+    "student_profiles": {
+      "category": "user_profiles",
+      "primary_key": "user_id",
+      "description": "Extended profile for students with major and roll number",
+      "columns": {
+        "user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "major_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "majors(id)"
+          }
+        },
+        "roll_number": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Student roll number (format: 2 uppercase letters + 6 digits, e.g., HE180314)"
+        },
+        "base_photo_url": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Avatar photo URL for visual comparison"
+        }
+      },
+      "indexes": [
+        "UNIQUE (roll_number)"
+      ]
+    },
+    "staff_profiles": {
+      "category": "user_profiles",
+      "primary_key": "user_id",
+      "description": "Extended profile for staff (lecturers, supervisors, data operators)",
+      "columns": {
+        "user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "staff_code": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "Staff employee code"
+        }
+      },
+      "indexes": [
+        "UNIQUE (staff_code)"
+      ]
+    },
+    "majors": {
+      "category": "academic_structure",
+      "primary_key": "id",
+      "description": "Academic majors/programs (e.g., Software Engineering, AI)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        },
+        "code": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        }
+      },
+      "indexes": [
+        "UNIQUE (code)",
+        "UNIQUE (name)"
+      ]
+    },
+    "semesters": {
+      "category": "academic_structure",
+      "primary_key": "id",
+      "description": "Academic semesters (e.g., Fall2024, Spring2025)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        },
+        "code": {
+          "type": "VARCHAR(10)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        },
+        "start_date": {
+          "type": "DATE",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "end_date": {
+          "type": "DATE",
+          "constraints": [
+            "NOT NULL"
+          ]
+        }
+      },
+      "indexes": [
+        "UNIQUE (code)",
+        "UNIQUE (name)"
+      ]
+    },
+    "subjects": {
+      "category": "academic_structure",
+      "primary_key": "id",
+      "description": "Courses/subjects (e.g., Database Systems, Web Development)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(150)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "code": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        }
+      },
+      "indexes": [
+        "UNIQUE (code)"
+      ]
+    },
+    "subject_majors": {
+      "category": "academic_structure",
+      "primary_key": [
+        "subject_id",
+        "major_id"
+      ],
+      "description": "Many-to-many relationship between subjects and majors",
+      "columns": {
+        "subject_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "subjects(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "major_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "majors(id)",
+            "on_delete": "CASCADE"
+          }
+        }
+      },
+      "indexes": [
+        "PRIMARY KEY (subject_id, major_id)"
+      ]
+    },
+    "classes": {
+      "category": "academic_structure",
+      "primary_key": "id",
+      "description": "Class instances (Subject + Semester combination)",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "subject_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "subjects(id)"
+          }
+        },
+        "semester_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "semesters(id)"
+          }
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "code": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        }
+      },
+      "unique_constraints": [
+        "UNIQUE (subject_id, semester_id, code)"
+      ],
+      "indexes": [
+        "idx_classes_subject_semester_code: UNIQUE (subject_id, semester_id, code)",
+        "idx_classes_semester_id: (semester_id)",
+        "idx_classes_subject_id: (subject_id)"
+      ]
+    },
+    "enrollments": {
+      "category": "academic_structure",
+      "primary_key": [
+        "class_id",
+        "student_user_id"
+      ],
+      "description": "Student enrollment in classes. is_enrolled=FALSE is withdrawal (not soft delete)",
+      "columns": {
+        "class_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "classes(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "student_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "is_enrolled": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE",
+          "description": "Enrollment status (NOT soft delete - withdrawn students preserve historical attendance)"
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        }
+      },
+      "indexes": [
+        "PRIMARY KEY (class_id, student_user_id)",
+        "idx_enrollments_class_id_enrolled: (class_id, is_enrolled)",
+        "idx_enrollments_student_user_id: (student_user_id)"
+      ]
+    },
+    "rooms": {
+      "category": "infrastructure",
+      "primary_key": "id",
+      "description": "Physical rooms/classrooms",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        },
+        "location": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NULL"
+          ]
+        }
+      },
+      "indexes": [
+        "UNIQUE (name)"
+      ]
+    },
+    "cameras": {
+      "category": "infrastructure",
+      "primary_key": "id",
+      "description": "IP cameras installed in rooms for attendance monitoring",
+      "columns": {
+        "id": {
+          "type": "SMALLSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "room_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "rooms(id)"
+          }
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "name": {
+          "type": "VARCHAR(150)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ]
+        },
+        "rtsp_url": {
+          "type": "VARCHAR(512)",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "description": "RTSP stream URL for recognition service"
+        }
+      },
+      "indexes": [
+        "UNIQUE (name)",
+        "UNIQUE (rtsp_url)"
+      ]
+    },
+    "slots": {
+      "category": "scheduling",
+      "primary_key": "id",
+      "description": "Central slot scheduling table supporting 3 categories: LECTURE, LECTURE_WITH_PT, FINAL_EXAM. Each category has independent session management.",
+      "business_logic": "LECTURE: class_id NOT NULL, uses regular session fields only. LECTURE_WITH_PT: class_id NOT NULL, uses BOTH regular and exam session fields INDEPENDENTLY. FINAL_EXAM: class_id NULL + semester_id NOT NULL, uses exam session fields only.",
+      "columns": {
+        "id": {
+          "type": "SERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "start_time": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Vietnam local time (no timezone offset)"
+        },
+        "end_time": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Vietnam local time (no timezone offset)"
+        },
+        "class_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NULL"
+          ],
+          "foreign_key": {
+            "references": "classes(id)"
+          },
+          "description": "NULL for FINAL_EXAM, NOT NULL for LECTURE/LECTURE_WITH_PT"
+        },
+        "semester_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "semesters(id)"
+          }
+        },
+        "room_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "rooms(id)"
+          }
+        },
+        "staff_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)"
+          },
+          "description": "Assigned lecturer or supervisor"
+        },
+        "slot_category": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "check": "IN ('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM')"
+        },
+        "title": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NULL"
+          ]
+        },
+        "description": {
+          "type": "TEXT",
+          "constraints": [
+            "NULL"
+          ]
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "session_status": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "'NOT_STARTED'",
+          "check": "IN ('NOT_STARTED', 'RUNNING', 'STOPPED')",
+          "description": "Regular lecture session status"
+        },
+        "scan_count": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "0",
+          "description": "Regular session scan counter"
+        },
+        "last_session_stopped_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Regular session last stop timestamp"
+        },
+        "exam_session_status": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "'NOT_STARTED'",
+          "check": "IN ('NOT_STARTED', 'RUNNING', 'STOPPED')",
+          "description": "Exam/PT session status"
+        },
+        "exam_scan_count": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "0",
+          "description": "Exam session scan counter"
+        },
+        "last_exam_session_stopped_at": {
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Exam session last stop timestamp"
+        }
+      },
+      "indexes": [
+        "idx_slots_class_id: (class_id)",
+        "idx_slots_semester_id: (semester_id)",
+        "idx_slots_staff_user_id: (staff_user_id)",
+        "idx_slots_room_id: (room_id)",
+        "idx_slots_start_time: (start_time)",
+        "idx_slots_session_status: (session_status)"
+      ]
+    },
+    "attendance_records": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Regular lecture attendance records (for LECTURE and LECTURE_WITH_PT slots)",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "recorded_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "student_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "slot_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "slots(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "status": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "check": "IN ('not_yet', 'present', 'absent')"
+        },
+        "method": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "check": "IN ('auto', 'manual', 'system_finalize')",
+          "description": "auto=face recognition, manual=lecturer override, system_finalize=bulk rules"
+        },
+        "remark": {
+          "type": "TEXT",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Optional remark for attendance notes"
+        },
+        "needs_review": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "FALSE",
+          "description": "Flag for records needing lecturer review"
+        }
+      },
+      "unique_constraints": [
+        "uk_attendance_slot_student: UNIQUE (slot_id, student_user_id)"
+      ],
+      "indexes": [
+        "idx_attendance_records_student_slot: UNIQUE (student_user_id, slot_id)",
+        "idx_attendance_records_slot_id: (slot_id)",
+        "idx_attendance_records_status: (status)",
+        "idx_attendance_records_needs_review: (slot_id, needs_review) WHERE needs_review=TRUE (partial)"
+      ]
+    },
+    "regular_attendance_evidences": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Temporary evidence images for regular attendance (scheduled for 30-day cleanup)",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "attendance_record_id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "foreign_key": {
+            "references": "attendance_records(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "image_url": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        }
+      },
+      "indexes": [
+        "UNIQUE (attendance_record_id)"
+      ]
+    },
+    "exam_attendance": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Exam/PT attendance records (for LECTURE_WITH_PT and FINAL_EXAM slots)",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "recorded_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "student_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "slot_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "slots(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "status": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "check": "IN ('not_yet', 'present', 'absent')"
+        },
+        "method": {
+          "type": "VARCHAR(20)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "check": "IN ('auto', 'manual', 'system_finalize')"
+        },
+        "remark": {
+          "type": "TEXT",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "Optional remark for attendance notes"
+        },
+        "needs_review": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "FALSE",
+          "description": "Flag for records needing supervisor review"
+        }
+      },
+      "unique_constraints": [
+        "uk_exam_attendance_slot_student: UNIQUE (slot_id, student_user_id)"
+      ],
+      "indexes": [
+        "idx_exam_attendance_student_slot: UNIQUE (student_user_id, slot_id)",
+        "idx_exam_attendance_slot_id: (slot_id)",
+        "idx_exam_attendance_status: (status)",
+        "idx_exam_attendance_needs_review: (slot_id, needs_review) WHERE needs_review=TRUE (partial)"
+      ]
+    },
+    "exam_attendance_evidences": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Temporary evidence images for exam attendance (scheduled for 30-day cleanup)",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "exam_attendance_id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL",
+            "UNIQUE"
+          ],
+          "foreign_key": {
+            "references": "exam_attendance(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "image_url": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        }
+      },
+      "indexes": [
+        "UNIQUE (exam_attendance_id)"
+      ]
+    },
+    "exam_slot_subjects": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Step 1 in FINAL_EXAM workflow: Define which subjects are tested in which exam slots. Soft delete via is_active.",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "slot_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "slots(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "subject_id": {
+          "type": "SMALLINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "subjects(id)"
+          }
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE",
+          "description": "Soft delete to preserve audit trail"
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "deactivated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NULL"
+          ]
+        },
+        "deactivated_by_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)"
+          }
+        }
+      },
+      "unique_constraints": [
+        "UNIQUE (slot_id, subject_id)"
+      ],
+      "indexes": [
+        "idx_exam_slot_subjects_slot_subject: UNIQUE (slot_id, subject_id)",
+        "idx_exam_slot_subjects_slot_id: (slot_id)",
+        "idx_exam_slot_subjects_active: (slot_id, is_active) WHERE is_active=TRUE (partial)"
+      ]
+    },
+    "exam_slot_participants": {
+      "category": "attendance_tracking",
+      "primary_key": "id",
+      "description": "Step 2 in FINAL_EXAM workflow: Assign students to specific subjects within exam slots",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "exam_slot_subject_id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "exam_slot_subjects(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "student_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "is_enrolled": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE",
+          "description": "Enrollment status for this exam"
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        }
+      },
+      "unique_constraints": [
+        "UNIQUE (exam_slot_subject_id, student_user_id)"
+      ],
+      "indexes": [
+        "idx_exam_participants_slot_subject_student: UNIQUE (exam_slot_subject_id, student_user_id)",
+        "idx_exam_participants_student_user_id: (student_user_id)"
+      ]
+    },
+    "face_embeddings": {
+      "category": "face_recognition",
+      "primary_key": "id",
+      "description": "Face embedding vectors (512-dim) for face recognition. Versioned with retention of last 3 versions.",
+      "columns": {
+        "id": {
+          "type": "SERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "student_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "version": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "Version number (incremented on each import, keep last 3)"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "FALSE",
+          "description": "Only one embedding per student is active"
+        },
+        "embedding_vector": {
+          "type": "vector(512)",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "description": "512-dimensional face embedding (pgvector type)"
+        }
+      },
+      "indexes": [
+        "idx_face_embeddings_student_active: UNIQUE (student_user_id) WHERE is_active=TRUE (partial)",
+        "idx_face_embeddings_vector: USING ivfflat (embedding_vector vector_cosine_ops) WITH (lists=100)"
+      ],
+      "special_notes": "IVFFlat index optimized for ~10,000 students. Quality validation performed during embedding generation."
+    },
+    "system_notifications": {
+      "category": "notifications",
+      "primary_key": "id",
+      "description": "System-generated notifications (templates)",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        },
+        "notification_type": {
+          "type": "VARCHAR(50)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "title": {
+          "type": "VARCHAR(255)",
+          "constraints": [
+            "NOT NULL"
+          ]
+        },
+        "content": {
+          "type": "TEXT",
+          "constraints": [
+            "NOT NULL"
+          ]
+        }
+      },
+      "indexes": [
+        "idx_system_notifications_type: (notification_type)"
+      ]
+    },
+    "notification_deliveries": {
+      "category": "notifications",
+      "primary_key": "id",
+      "description": "Notification delivery records to specific users with read tracking",
+      "columns": {
+        "id": {
+          "type": "BIGSERIAL",
+          "constraints": [
+            "NOT NULL",
+            "PRIMARY KEY"
+          ]
+        },
+        "created_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "updated_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "NOW()"
+        },
+        "read_at": {
+          "type": "TIMESTAMP",
+          "constraints": [
+            "NULL"
+          ],
+          "description": "NULL means unread"
+        },
+        "notification_id": {
+          "type": "BIGINT",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "system_notifications(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "recipient_user_id": {
+          "type": "INTEGER",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "foreign_key": {
+            "references": "users(id)",
+            "on_delete": "CASCADE"
+          }
+        },
+        "is_active": {
+          "type": "BOOLEAN",
+          "constraints": [
+            "NOT NULL"
+          ],
+          "default": "TRUE"
+        }
+      },
+      "indexes": [
+        "idx_notification_deliveries_recipient_unread: (recipient_user_id, read_at)",
+        "idx_notification_deliveries_recipient_created: (recipient_user_id, created_at)"
+      ]
+    }
+  },
+  "foreign_keys_summary": {
+    "total": 32,
+    "user_management_rbac": [
+      "user_roles.user_id → users(id) CASCADE",
+      "user_roles.role_id → roles(id) CASCADE",
+      "role_permissions.role_id → roles(id) CASCADE",
+      "role_permissions.permission_id → permissions(id) CASCADE",
+      "student_profiles.user_id → users(id) CASCADE"
+    ],
+    "profiles_academic": [
+      "student_profiles.major_id → majors(id)",
+      "staff_profiles.user_id → users(id) CASCADE",
+      "subject_majors.subject_id → subjects(id) CASCADE",
+      "subject_majors.major_id → majors(id) CASCADE",
+      "classes.subject_id → subjects(id)",
+      "classes.semester_id → semesters(id)"
+    ],
+    "enrollments_infrastructure": [
+      "enrollments.class_id → classes(id) CASCADE",
+      "enrollments.student_user_id → users(id) CASCADE",
+      "cameras.room_id → rooms(id)"
+    ],
+    "slots": [
+      "slots.class_id → classes(id) (nullable)",
+      "slots.semester_id → semesters(id)",
+      "slots.room_id → rooms(id)",
+      "slots.staff_user_id → users(id)"
+    ],
+    "regular_attendance": [
+      "attendance_records.student_user_id → users(id) CASCADE",
+      "attendance_records.slot_id → slots(id) CASCADE",
+      "regular_attendance_evidences.attendance_record_id → attendance_records(id) CASCADE"
+    ],
+    "exam_attendance": [
+      "exam_attendance.student_user_id → users(id) CASCADE",
+      "exam_attendance.slot_id → slots(id) CASCADE",
+      "exam_attendance_evidences.exam_attendance_id → exam_attendance(id) CASCADE"
+    ],
+    "exam_slots_participants": [
+      "exam_slot_subjects.slot_id → slots(id) CASCADE",
+      "exam_slot_subjects.subject_id → subjects(id)",
+      "exam_slot_subjects.deactivated_by_user_id → users(id)",
+      "exam_slot_participants.exam_slot_subject_id → exam_slot_subjects(id) CASCADE",
+      "exam_slot_participants.student_user_id → users(id) CASCADE"
+    ],
+    "face_recognition_notifications": [
+      "face_embeddings.student_user_id → users(id) CASCADE",
+      "notification_deliveries.notification_id → system_notifications(id) CASCADE",
+      "notification_deliveries.recipient_user_id → users(id) CASCADE"
+    ]
+  }
+}

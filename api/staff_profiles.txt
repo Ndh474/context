@@ -21,7 +21,7 @@ Query Parameters:
 | sortBy 	    | string 	      | No		    | fullName | fullName, staffCode, email
 | search 	    | string 	      | No 		    | "" 		  | Search in fullName, staffCode, email
 | roleIds 	    | array[short] 	| No 		    | null 		| Include only staff having at least one of these role IDs (comma-separated or multi-param). Example: roleIds=4,3
-| excludeRoles | array[string] | No       | null    | Exclude staff who have any of these role names. Example: excludeRoles=DATA_OPERATOR,SYSTEM_ADMIN
+| excludeRoles | array[string] | No       | null    | Exclude staff who have any of these role names. Example: excludeRoles=DATA_OPERATOR
 | isActive    | boolean      | No        | null    | Filter by active status
 
 200-Success Response
@@ -116,7 +116,7 @@ Request Body Schema:
 | staffCode | string        | Yes 		| Not blank, max 20 chars, unique
 |           |              |         | Pattern: ^[A-Za-z0-9]+$ (letters and digits, case-insensitive)
 | password 	| string        | No 		  | Min 8 chars, if not provided system generates default
-| roles 	  | array[string] | Yes 		| Valid roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN
+| roles 	  | array[string] | Yes 		| Valid roles: LECTURER, SUPERVISOR, DATA_OPERATOR
 
 201-Success Response:
 {
@@ -136,7 +136,7 @@ Request Body Schema:
 
 Examples:
 - Only show LECTURER and SUPERVISOR by excluding others used on staff screens:
-  GET /api/v1/staff-profiles?excludeRoles=DATA_OPERATOR,SYSTEM_ADMIN
+  GET /api/v1/staff-profiles?excludeRoles=DATA_OPERATOR
   (Assumes staff profiles are for staff only; students are managed via student-profiles.)
 
 409 - Role assignment conflict:
@@ -323,7 +323,7 @@ Business Rules:
     {
       "rowNumber": 6,
       "errorCode": "INVALID_ROLE",
-      "message": "Invalid role specified: 'MANAGER'. Allowed roles: LECTURER, SUPERVISOR, DATA_OPERATOR, SYSTEM_ADMIN."
+      "message": "Invalid role specified: 'MANAGER'. Allowed roles: LECTURER, SUPERVISOR, DATA_OPERATOR."
     },
     {
       "rowNumber": 9,
@@ -839,7 +839,6 @@ Available Staff Roles:
 - LECTURER: Can manage lecture sessions and attendance
 - SUPERVISOR: Can supervise exam sessions
 - DATA_OPERATOR: Can manage system data and user accounts
-- SYSTEM_ADMIN: Can configure system settings and permissions
 
 Common Status Codes:
 - 200: Success

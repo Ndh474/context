@@ -16,7 +16,7 @@ Query Parameters:
 | sortBy     | string     | No       | name    | name 
 | search     | string     | No       | ""      | Search in role name (LIKE) 
 | isActive   | boolean    | No       | null    | Filter by active status
-| exclude    | array[string] | No    | null    | Exclude roles by name (comma-separated or multi-param). Example: exclude=STUDENT,SYSTEM_ADMIN,DATA_OPERATOR
+| exclude    | array[string] | No    | null    | Exclude roles by name (comma-separated or multi-param). Example: exclude=STUDENT,DATA_OPERATOR
 
 200-Success Response
 {
@@ -39,7 +39,7 @@ Query Parameters:
 }
 
 Example (exclude all but LECTURER and SUPERVISOR):
-GET /api/v1/roles?exclude=STUDENT,SYSTEM_ADMIN,DATA_OPERATOR
+GET /api/v1/roles?exclude=STUDENT,DATA_OPERATOR
 Response returns only roles not in the exclude list.
 
 400-Invalid query parameters:
@@ -188,5 +188,5 @@ Path Parameters:
 Notes:
 - Schema is based on docs/database/02_roles_and_permissions.yaml (roles table) and service/controller behavior.
 - Some default sorting/paging may be ignored by implementation but are kept consistent with API style.
- - The optional `exclude` filter lets clients omit certain role names (e.g., hide STUDENT, SYSTEM_ADMIN, DATA_OPERATOR on a staff screen to focus on LECTURER and SUPERVISOR).
+ - The optional `exclude` filter lets clients omit certain role names (e.g., hide STUDENT, DATA_OPERATOR on a staff screen to focus on LECTURER and SUPERVISOR).
 

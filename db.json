@@ -155,7 +155,7 @@
             "NOT NULL",
             "UNIQUE"
           ],
-          "description": "Role name (e.g., STUDENT, LECTURER, SYSTEM_ADMIN)"
+          "description": "Role name (e.g., STUDENT, LECTURER, SUPERVISOR, DATA_OPERATOR)"
         }
       }
     },
