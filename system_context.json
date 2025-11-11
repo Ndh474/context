@@ -744,27 +744,37 @@
           "outcomes": {
             "match": "Student is scanned successfully → status: 'present' + capture evidence image",
             "no_match": "Student is not scanned → status: 'not_yet' (no evidence image)"
-          }
+          },
+          "auto_finalize_on_stop": "When staff stops the initial session, all remaining 'not_yet' students are automatically changed to 'absent' with method 'SYSTEM_FINALIZE'. This ensures that students who were not detected during the first scan are marked as absent."
         },
         "rescan_logic_regular": {
           "description": "Rescan (scan_count >= 2) for regular attendance sessions (LECTURE, LECTURE_WITH_PT regular session)",
+          "behavior": "RESCAN mode does NOT automatically change attendance status. It only updates evidence images and sets needsReview flags for staff to review later.",
           "outcomes": {
-            "not_yet_no_match": "Current: 'not_yet' + Not scanned → Remain 'not_yet' (no evidence image)",
-            "not_yet_match": "Current: 'not_yet' + Scanned successfully → Remain 'not_yet' + capture/update evidence image (lecturer must manually approve to change to 'present')",
-            "present_no_match": "Current: 'present' + Not scanned → Change to 'not_yet' + keep old evidence image (for lecturer review)",
-            "present_match": "Current: 'present' + Scanned successfully → Remain 'present' + keep old evidence image"
-          }
+            "any_status_match": "Student detected → Update/capture evidence image + set needsReview based on current status",
+            "any_status_no_match": "Student not detected → Keep existing status and evidence (if any)"
+          },
+          "needsReview_flags": {
+            "present_not_detected": "Status is 'present' but student was NOT detected in rescan → needsReview = true (suspect early leave)",
+            "absent_detected": "Status is 'absent' but student WAS detected in rescan → needsReview = true (suspect late arrival)",
+            "present_detected": "Status is 'present' and student WAS detected in rescan → needsReview = false (confirmed presence)",
+            "not_yet_any": "Status is 'not_yet' → needsReview not set (awaiting manual decision)"
+          },
+          "manual_edit_required": "Staff must manually edit the attendance status after reviewing the needsReview flags and evidence images. The system does NOT auto-promote or auto-demote statuses during rescan."
         },
         "rescan_logic_exam": {
           "description": "Rescan (scan_count >= 2) for exam attendance sessions (LECTURE_WITH_PT exam session, FINAL_EXAM)",
+          "behavior": "RESCAN EXAM has LENIENT logic to handle late arrivals and early departures. Students detected are automatically promoted to PRESENT. Students not detected but already PRESENT are trusted (no review needed).",
           "outcomes": {
-            "not_yet_no_match": "Current: 'not_yet' + Not scanned → Remain 'not_yet' (no evidence image)",
-            "not_yet_match": "Current: 'not_yet' + Scanned successfully → Automatically change to 'present' + capture evidence image",
-            "present_no_match": "Current: 'present' + Not scanned → Remain 'present' + keep old evidence image",
-            "present_match": "Current: 'present' + Scanned successfully → Remain 'present' + keep old evidence image"
-          }
+            "any_status_detected": "Student detected → AUTO change to 'present' + capture/update evidence image (handles late arrival case)",
+            "present_not_detected": "Status 'present' + NOT detected → Keep 'present', NO needsReview flag (trust early departure - student finished exam and left)",
+            "absent_not_detected": "Status 'absent' + NOT detected → Keep 'absent' (truly absent)"
+          },
+          "no_needsReview_for_exam": "Unlike regular attendance, exam attendance does NOT set needsReview flags during rescan for PRESENT students who are not detected. The system trusts that PRESENT students may finish exam early and leave before rescan.",
+          "rationale": "Exam context allows early departure after completion. Setting needsReview would create unnecessary manual work for supervisors when students legitimately finish early.",
+          "detected_confirmed": "PRESENT students who ARE detected in rescan have their needsReview flag cleared (if it was set) to confirm their continued presence."
         },
-        "key_difference": "The main difference between regular and exam sessions is how 'not_yet' students are handled when scanned during rescan: Regular sessions keep them as 'not_yet' (requiring manual approval), while exam sessions automatically promote them to 'present'.",
+        "key_difference": "CRITICAL DIFFERENCE in RESCAN behavior: (1) REGULAR sessions do NOT auto-change status, only set needsReview flags for manual review. PRESENT students not detected get needsReview=true. (2) EXAM sessions AUTO-PROMOTE detected students to PRESENT and TRUST PRESENT students who are not detected (no needsReview). This reflects different validation requirements: lectures need strict attendance tracking with manual review, exams allow lenient handling for late arrivals and early departures.",
         "future_consideration": "Evidence image update policy for 'present' students who are scanned again may change in the future (currently keeps old image, may update to new image). This needs further discussion."
       },
       "attendance_statuses": [
@@ -775,7 +785,7 @@
       "status_notes": "The system does not distinguish between 'excused absence' and 'unexcused absence' at the status level. All absences are recorded as 'absent'. Lecturers or Supervisors can use the remark function to provide context when necessary.",
       "slot_control": {
         "open_by": "Lecturer/Supervisor",
-        "editability_rules": "Lecturer/Supervisor can edit attendance results until 23:59:59 UTC of the slot date. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator with ATTENDANCE_STATUS_UPDATE_MANUAL permission.",
+        "editability_rules": "Lecturer/Supervisor can edit attendance results until 23:59:59 Vietnam time (Asia/Ho_Chi_Minh) of the slot date. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator with ATTENDANCE_STATUS_UPDATE_MANUAL permission.",
         "bulk_update_logic": "Lecturers can use the bulk update feature to process multiple student attendance statuses at once. This is especially useful for handling students with 'not_yet' status after the attendance session."
       },
       "lecturer_ui_rules": {
@@ -817,7 +827,7 @@
           "lecture_with_pt": "LECTURE_WITH_PT slots use BOTH session types - regular sessions track lecture attendance, exam sessions track progress test attendance within the same slot.",
           "final_exam": "FINAL_EXAM slots use only exam session management for recording exam attendance."
         },
-        "scan_behavior_difference": "Regular and exam sessions have different scan processing logic (see 'face_recognition' section for details). In regular sessions, students scanned during rescan remain 'not_yet' and require manual approval. In exam sessions, students scanned during rescan are automatically promoted to 'present'. This reflects the different validation requirements between regular lecture attendance and exam attendance."
+        "scan_behavior_difference": "RESCAN logic DIFFERS SIGNIFICANTLY between regular and exam sessions (see 'face_recognition' section for details): (1) REGULAR RESCAN - Does NOT auto-change status, only sets needsReview flags for manual review by lecturer. Strict tracking for lecture attendance. (2) EXAM RESCAN - AUTO-PROMOTES detected students to PRESENT (handles late arrivals), trusts PRESENT students not detected (no needsReview for early departures). Lenient handling for exam context. Additional operational differences: session state isolation (mutual exclusion), separate database tables (attendance_records vs exam_attendance), and applicable slot categories."
       }
     },
     "technical_flows": {
@@ -834,7 +844,7 @@
           "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record."
         ]
       },
-      "face_identification_flow": "When a lecturer/supervisor starts a scan session, the system retrieves the student list and assigned cameras. The Python service processes video streams and calls the Backend API to record results. For each scan, the system processes the result based on the session type (regular vs exam), scan count (first scan vs rescan), and student's current attendance status (see 'attendance_system.face_recognition' section for complete logic). Key behaviors: 1) First scan: All scanned students become 'present' with evidence image. 2) Rescan in regular sessions: Scanned 'not_yet' students remain 'not_yet' with evidence captured (requiring manual approval); 'present' students not scanned revert to 'not_yet' with old evidence kept for review. 3) Rescan in exam sessions: Scanned 'not_yet' students are automatically promoted to 'present' with evidence captured; 'present' students not scanned remain 'present'. The system adds relevant events to the student's history record.",
+      "face_identification_flow": "When lecturer/supervisor starts a scan session, the system retrieves student roster and assigned cameras. Python service processes video streams and calls Backend API with recognition results. Processing logic depends on session type (regular vs exam), scan mode (INITIAL vs RESCAN), and current attendance status. Key behaviors: 1) INITIAL scan: Detected students override to 'present' (AUTO method) with evidence image. Skip duplicate if already 'present' (AUTO). When session stops, all remaining 'not_yet' auto-finalize to 'absent' (SYSTEM_FINALIZE). 2) RESCAN in regular sessions: Status FROZEN - no auto status changes. Detected students get evidence updated only. After stop: 'present' not detected get needsReview=true (suspect early leave), 'absent' detected get needsReview=true (marking conflict). Lecturer must manually review flagged records. 3) RESCAN in exam sessions: AUTO-PROMOTE detected 'absent' students to 'present' (handles late arrivals). 'present' not detected remain 'present' with no needsReview flag (trust early exam completion). Minimal manual review needed. See 'attendance_system.face_recognition' section for complete logic matrix.",
       "data_export_flow": "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS.",
       "authentication_flow": "Users on all platforms (Web, Mobile) can log in with Google. Upon successful authentication, Google provides an email address. The FUACS system uses this email address to directly look up the corresponding user account that already exists in the system. If an active account with a matching email is found, the system grants a session token with the permissions assigned to that user. This flow is entirely based on email matching.",
       "system_notification_flow": "When a business event occurs (e.g., identity rejection), the system generates notification content (hardcoded in backend), creates a notification record and delivery record for the target user, and sends a push notification.",
