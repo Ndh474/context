@@ -887,15 +887,15 @@
         "description": "A background job flow triggered by Data Operator to import identity data (base photo and face embedding vector) in bulk for students only.",
         "steps": [
           "1. Trigger: Data Operator uploads a CSV (user_id list) and a ZIP (photos named by user_id) via 'SCR_ADMIN_USER_MGMT' Student tab and starts the job.",
-          "2. Orchestration (Spring Boot): The main service receives the files, saves them temporarily, and starts an asynchronous job.",
+          "2. Orchestration (Spring Boot): The main service receives the files, extracts ZIP to temporary directory, and processes students in parallel using a thread pool (10 concurrent tasks). The request is synchronous - frontend waits for completion.",
           "3. Job Processing (Spring Boot):",
           "  a. Unzip the ZIP file to a temporary directory.",
           "  b. Read the CSV file row by row (e.g., 'HE180001' for student).",
           "  c. For each user_id: Find the matching photo ('HE180001.jpg') in the temp directory.",
           "  d. Send the photo (binary) to the Python 'recognition_service' API.",
           "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot.",
-          "  f. (Spring Boot): Uploads the original photo to cloud storage (e.g., S3) to get a URL.",
-          "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, is_active) VALUES (...).",
+          "  f. (Spring Boot): Saves the original photo to local filesystem (./uploads/student-photos/{userId}/{rollNumber}_profile.ext).",
+          "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_url' = [FILENAME] (e.g., 'HE180001_profile.jpg') AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, version, is_active) VALUES (...).",
           "  h. Log success or failure for this user.",
           "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk.",
           "5. Reporting: The job status is updated on the admin screen (SCR_ADMIN_USER_MGMT), allowing DOP to see the import results and download error reports if any."
@@ -908,7 +908,7 @@
           "1. (FE) Upload CSV: DOP uploads a CSV file via the import dialog.",
           "2. (FE -> BE) Submit: FE sends the file (multipart/form-data) to the import API.",
           "3. (BE) Process & Partial Success: BE saves valid rows; invalid rows are skipped and collected as errors.",
-          "4. (BE -> FE) Return Errors: Response contains ONLY error rows (e.g., [ { rowNumber: 5, error: '...' } ]). Empty array [] means full success.",
+          "4. (BE -> FE) Return Results: Response contains success/failure counts and error details: { \"successCount\": 45, \"failureCount\": 5, \"errors\": [{ \"rowNumber\": 3, \"errorCode\": \"MAJOR_CODE_EXISTS\", \"message\": \"...\" }] }. Empty errors array [] means full success.",
           "5. (FE) Display: FE displays the error rows read-only for user review/download."
         ]
       }
