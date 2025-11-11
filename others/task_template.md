@@ -167,3 +167,6 @@ Authorization: Bearer ...
 ```json
 /* (Paste expected JSON response) */
 ```
+
+## 7. CLEAR STRATEGY
+<!-- (Optional) Provide clear instructions on what is not going to use anymore (code, configurations, old comments, etc.) -->
