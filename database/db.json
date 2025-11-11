@@ -1,7 +1,7 @@
 {
   "project": "FUACS - FU Attendance Checking Smart",
   "database": "PostgreSQL with pgvector extension",
-  "total_tables": 29,
+  "total_tables": 26,
   "timezone_strategy": "All TIMESTAMP columns represent Vietnam local time (Asia/Ho_Chi_Minh). Application enforces Vietnam timezone via spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Ho_Chi_Minh",
   "special_features": [
     "pgvector extension for face embeddings (CREATE EXTENSION IF NOT EXISTS vector)",
@@ -1021,7 +1021,7 @@
           "description": "Exam session scan counter"
         },
         "last_exam_session_stopped_at": {
-          "type": "TIMESTAMP WITH TIME ZONE",
+          "type": "TIMESTAMP",
           "constraints": [
             "NULL"
           ],
