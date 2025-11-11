@@ -709,7 +709,6 @@
             "  - Assign roles (LECTURER, SUPERVISOR) to staff",
             "  - Manage staff profile information",
             "  - Import staff from CSV / Export to CSV",
-            "  - Bulk import staff identity data (photos and face embeddings via CSV + ZIP upload)",
             "  - View import job status and history",
             "  - Download error report for failed imports",
             "  - Search and filter staff"
@@ -875,18 +874,18 @@
       },
       "bulk_identity_import_flow": {
         "title": "Bulk Identity Import Flow (Admin)",
-        "description": "A background job flow triggered by Data Operator to import identity data (base photo and face embedding vector) in bulk for students or staff.",
+        "description": "A background job flow triggered by Data Operator to import identity data (base photo and face embedding vector) in bulk for students only.",
         "steps": [
-          "1. Trigger: Data Operator uploads a CSV (user_id list) and a ZIP (photos named by user_id) via 'SCR_ADMIN_USER_MGMT' (Student tab for students, Staff tab for staff) and starts the job.",
+          "1. Trigger: Data Operator uploads a CSV (user_id list) and a ZIP (photos named by user_id) via 'SCR_ADMIN_USER_MGMT' Student tab and starts the job.",
           "2. Orchestration (Spring Boot): The main service receives the files, saves them temporarily, and starts an asynchronous job.",
           "3. Job Processing (Spring Boot):",
           "  a. Unzip the ZIP file to a temporary directory.",
-          "  b. Read the CSV file row by row (e.g., 'HE180001' for student or 'EMP001' for staff).",
+          "  b. Read the CSV file row by row (e.g., 'HE180001' for student).",
           "  c. For each user_id: Find the matching photo ('HE180001.jpg') in the temp directory.",
           "  d. Send the photo (binary) to the Python 'recognition_service' API.",
           "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot.",
           "  f. (Spring Boot): Uploads the original photo to cloud storage (e.g., S3) to get a URL.",
-          "  g. Save results to Database: UPDATE 'student_profiles' or 'staff_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id or staff_user_id, embedding_vector, is_active) VALUES (...).",
+          "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_photo_url' = [URL] AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, is_active) VALUES (...).",
           "  h. Log success or failure for this user.",
           "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk.",
           "5. Reporting: The job status is updated on the admin screen (SCR_ADMIN_USER_MGMT), allowing DOP to see the import results and download error reports if any."
@@ -994,7 +993,7 @@
       "overview": "Python FastAPI microservice responsible for face detection, embedding generation, and real-time face recognition during attendance sessions. Processes video streams from IP cameras and sends recognition results to the main backend.",
       "core_capabilities": {
         "embedding_generation": {
-          "description": "Generate face embeddings from student/staff photos for identity registration",
+          "description": "Generate face embeddings from student photos for identity registration",
           "input": "Photo file (JPG/PNG)",
           "output": "512-dimensional embedding vector",
           "features": [
