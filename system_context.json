@@ -367,6 +367,35 @@
             "Lecturer Web",
             "Admin Portal"
           ]
+        },
+        "SCR_HOME": {
+          "title": "Home/Landing Screen",
+          "features": [
+            "Smart routing based on authentication status",
+            "Redirect to role-appropriate dashboard if logged in",
+            "Redirect to login page if not authenticated",
+            "Loading spinner during route determination"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Supervisor Web",
+            "Admin Portal"
+          ]
+        },
+        "SCR_NOT_FOUND": {
+          "title": "404 Not Found Screen",
+          "features": [
+            "Display '404 - Page Not Found' message",
+            "Standard error page for invalid routes",
+            "User-friendly error message"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Supervisor Web",
+            "Admin Portal"
+          ]
         }
       },
       "web_student_screens": {
@@ -382,29 +411,36 @@
           "title": "Schedule (Calendar)",
           "features": [
             "Semester selector",
-            "Filter Lecture/Exam schedule",
-            "View schedule in week/month format",
+            "Filter Lecture/Exam schedule by subject",
+            "View schedule in week format (calendar grid Monday-Sunday)",
+            "Week navigation with Previous/Next/Today buttons",
             "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM).",
             "For FINAL_EXAM slots, the API queries through 'exam_slot_participants' and 'exam_slot_subjects' to display the exact Subject name(s) that the student must take the exam for in that slot.",
-            "Click on slot to view details (time, room, lecturer, etc.)"
+            "Click on slot to view details (time, room, lecturer, etc.)",
+            "URL parameters for date, semester, and subject filters"
           ]
         },
         "SCR_STUDENT_ATTENDANCE_HISTORY": {
           "title": "Attendance History",
           "features": [
             "View personal attendance history by semester/class",
-            "Display attendance status for each slot (Present/Absent)",
+            "Display attendance status for each slot (Present/Absent/Not Yet)",
             "View attendance statistics (total present, absent, attendance rate)",
-            "Filter by date range, class, or subject",
-            "View exam eligibility status based on attendance rate"
+            "Filter by semester, slot category (LECTURE/LECTURE_WITH_PT/FINAL_EXAM), and attendance status",
+            "View exam eligibility status based on attendance rate",
+            "Pagination support for large attendance record lists",
+            "URL parameters for page, semester, category, and status filters",
+            "Display detailed information for each record: subject, class, slot details, room, lecturer, attendance method, and remarks"
           ]
         },
         "SCR_STUDENT_PROFILE": {
           "title": "Profile Management",
           "features": [
             "View personal information (Name, Student ID, Email, Major, etc.)",
-            "View avatar/profile photo",
-            "Change password"
+            "View avatar/profile photo with fallback to initials",
+            "Tabbed interface: Personal Info tab and Security tab",
+            "All personal information fields are read-only (managed by Data Operator)",
+            "Change password via Security tab"
           ]
         }
       },
