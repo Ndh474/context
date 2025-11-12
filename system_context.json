@@ -448,68 +448,79 @@
         "SCR_LECTURER_DASHBOARD": {
           "title": "Dashboard",
           "features": [
-            "View upcoming lecture slots",
-            "Quick statistics (total slots this week, attendance summary)",
-            "Shortcuts to main functions"
+            "Semester filter dropdown with 'All Semesters' option and auto-select current semester",
+            "Statistics cards: Total Classes, Total Slots, Finalized Slots (with completion %), Average Attendance Rate, Pending Actions",
+            "My Classes section showing list of classes with: Class code and semester, Subject information, Stats (total/finalized/pending slots, student count), Progress bars for attendance rate and completion rate",
+            "Real-time data updates when changing semester filter"
           ]
         },
         "SCR_LECTURER_SCHEDULE_CALENDAR": {
           "title": "Schedule (Calendar View)",
           "features": [
-            "View teaching schedule by semester",
-            "Display slots in calendar format (week/month view)",
+            "Display teaching schedule in week format calendar grid (Monday-Sunday, week view only)",
+            "Week navigation with Previous/Next/Today buttons and date range display",
             "Filter by slot category (LECTURE, LECTURE_WITH_PT)",
-            "Click on a slot to navigate to attendance management screen",
+            "Click on a slot to open detail dialog",
             "Color-coded by slot type and status"
           ]
         },
         "SCR_LECTURER_SCHEDULE_TABLE": {
           "title": "Schedule (Table View)",
           "features": [
-            "View teaching schedule by semester in table format",
-            "Advanced filters (by date range, class, subject, slot category)",
-            "Update slot category (switch between LECTURE <-> LECTURE_WITH_PT)",
-            "Cancel/Activate slot",
-            "Click on a slot to navigate to attendance management screen",
-            "Sort and search slots"
+            "View teaching schedule in paginated table format",
+            "Date range filter (start/end date with calendar picker)",
+            "Semester filter (auto-select current semester, with 'All Semesters' option)",
+            "Class and Subject filters (filtered by selected semester)",
+            "Advanced filters: Room filter, Sort controls (by start/end time, asc/desc order)",
+            "Cascading filters: Reset dependent filters when semester changes",
+            "Table columns: Time, Slot Category, Class code, Subject, Room, Actions",
+            "Row actions: Edit slot category (LECTURE ↔ LECTURE_WITH_PT only - lecturer cannot edit other slot properties), View Roster (navigate to attendance page)",
+            "Pagination controls with state preservation when navigating between pages"
           ]
         },
         "SCR_LECTURER_ATTENDANCE": {
           "title": "Attendance Management",
           "features": [
-            "Display student roster for selected slot (loaded from class enrollments)",
-            "Display camera names and connection status of all cameras in the assigned room",
-            "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions",
-            "Interface updates attendance status in real-time based on scan results",
-            "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for visual comparison",
-            "Visually distinguish between students with/without evidence images",
-            "Manually update attendance status (requires mandatory remark)",
-            "Add/Edit attendance remarks for each student",
-            "Bulk update dialog for processing multiple student statuses at once"
+            "Tabbed interface for slots with both Regular and Exam attendance (LECTURE_WITH_PT, FINAL_EXAM slots have 2 tabs: Regular tab and Exam tab)",
+            "Single view (no tabs) for LECTURE-only slots",
+            "Tab mutual exclusion: Disable opposite tab when a session is running",
+            "Session controls: Start Session (trigger face recognition), Stop Session, Rescan (reset and restart recognition), Submit Attendance (finalize with bulk resolution for NOT_YET students)",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Display student roster with camera connection status",
+            "Roster table shows: Student avatar and info, Attendance status badges (color-coded: Present/Absent/Not Yet), Recognition method indicator, Evidence images (click to view side-by-side comparison), Remarks, Edit actions",
+            "Inline editing with pending changes tracking (independent for Regular and Exam)",
+            "Edit window: Can edit during session or until end of slot date (Vietnam timezone), expired after that",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Bulk update dialog for processing multiple students at once"
           ],
           "notes": [
             "This screen is accessed from Schedule Calendar or Schedule Table screens",
-            "Used during the slot session to conduct attendance"
+            "Used during the slot session to conduct attendance",
+            "Regular and Exam attendance are completely independent with separate controls and data"
           ]
         },
         "SCR_LECTURER_CLASS_SUMMARY": {
           "title": "Class Attendance Summary Report",
           "features": [
-            "Filter to select Semester and Class",
-            "Display summary report in table (matrix) format: students by rows, slots by columns",
-            "Display attendance status (Present/Absent) in table cells",
-            "Display calculated absence rate (%) for each student (based on LECTURE slots only)",
-            "Display exam eligibility status (e.g., 'Eligible', 'Ineligible') based on the system-configured rule",
-            "Visually highlight students who are ineligible for the exam",
-            "Function to export summary report to file (CSV, Excel)"
+            "Two-stage filter: Semester dropdown (auto-select current), then Class dropdown (filtered by semester)",
+            "Overview cards showing: Total Students, Enrolled Students, Total Slots, Overall Attendance Rate",
+            "Attendance Matrix: Grid view with students (rows) × slots (columns), color-coded cells (green=Present, red=Absent, gray=Not Yet), click slot column to view slot details, heatmap visualization",
+            "Attendance Overview section with slot-by-slot statistics and trend charts",
+            "Student Attendance Table with sortable columns: Roll Number, Name, Email, Major, Attendance summary (present/absent/not yet counts, attendance rate %)",
+            "Search functionality to filter students",
+            "Slot Detail Modal (triggered by clicking matrix column): Shows slot info, attendance breakdown, student list for that slot",
+            "Display calculated absence rate and exam eligibility status for each student (based on LECTURE slots only)",
+            "Visually highlight students ineligible for exam"
           ]
         },
         "SCR_LECTURER_PROFILE": {
           "title": "Profile Management",
           "features": [
-            "View personal information (Name, Employee ID, Email, Department, etc.)",
-            "View avatar/profile photo",
-            "Change password"
+            "Profile header with avatar (fallback to initials), name, staff code, and role badges",
+            "Note: 'Staff profile managed by admin' (camera button for avatar upload currently disabled)",
+            "Tabbed interface: Personal Information tab and Security Settings tab",
+            "Personal Information tab (read-only): Full Name, Staff Code, Username, Email, Account Created, Last Updated - all managed by Data Operator",
+            "Security Settings tab: Change Password functionality with validation"
           ]
         }
       },
@@ -517,47 +528,57 @@
         "SCR_SUPERVISOR_DASHBOARD": {
           "title": "Dashboard",
           "features": [
-            "View upcoming exam supervision slots",
-            "Quick statistics (total exam slots this week, attendance summary)",
-            "Shortcuts to main functions"
+            "Semester filter dropdown with 'All Semesters' option and auto-select current semester",
+            "My Supervision Stats section (7 cards): Total Slots Supervised, Completed Slots (with % completion), Upcoming Slots, Total Exam Slots, Total Students Supervised, My Average Attendance Rate, System Wide Attendance Rate",
+            "System Insights section (6 cards): Active Lecturers, Active Classes, System Attendance Rate, Upcoming Exam Slots, Pending Remarks, Low Attendance Classes",
+            "Real-time data updates when changing semester filter"
           ]
         },
         "SCR_SUPERVISOR_SCHEDULE_CALENDAR": {
           "title": "Schedule (Calendar View)",
           "features": [
-            "View exam supervision schedule by semester",
-            "Display exam slots (FINAL_EXAM) in calendar format (week/month view)",
-            "Click on a slot to navigate to attendance management screen",
-            "Color-coded by slot status"
+            "Display exam supervision schedule in week format calendar grid (Monday-Sunday, week view only)",
+            "Week navigation with Previous/Next/Today buttons and date range display",
+            "Responsive design: Desktop grid layout + Mobile vertical list view",
+            "Filter by FINAL_EXAM category only (supervisor only supervises exams)",
+            "Click on a slot to open detail dialog",
+            "Color-coded by slot status with 'Today' indicator"
           ]
         },
         "SCR_SUPERVISOR_SCHEDULE_TABLE": {
           "title": "Schedule (Table View)",
           "features": [
-            "View exam supervision schedule by semester in table format",
-            "Advanced filters (by date range, room, subject)",
-            "Cancel/Activate exam slot",
-            "Click on a slot to navigate to attendance management screen",
-            "Sort and search exam slots"
+            "View exam supervision schedule in paginated table format",
+            "Date range filter (start/end date with calendar picker)",
+            "Semester filter (auto-select current semester, with 'All Semesters' option)",
+            "Advanced filters: Room filter, Sort controls (by start/end time, asc/desc order)",
+            "Cascading filters: Reset room when semester changes",
+            "Table columns: Room (with location tooltip), Semester, Subjects (badge with count), Category, Time, Attendance stats (color-coded), Actions",
+            "Actions dropdown per row: View Detail (opens dialog), Manage Attendance (navigate to attendance page), View Report",
+            "Auto-open detail dialog if slotId in URL",
+            "Pagination controls with state preservation",
+            "Filter by FINAL_EXAM category only (supervisor only handles exam slots)"
           ]
         },
         "SCR_SUPERVISOR_ATTENDANCE": {
-          "title": "Attendance Management",
+          "title": "Exam Attendance Management",
           "features": [
+            "Single view interface (NO TABS - only Exam attendance, unlike lecturer attendance which has tabs)",
             "Display student roster for selected exam slot (loaded from exam_slot_participants)",
-            "Subject filter dropdown (shows subjects assigned to this exam slot)",
             "Display camera names and connection status of all cameras in the assigned room",
-            "Multi-state 'Start Attendance / Re-scan' button to trigger scan sessions",
-            "Interface updates attendance status in real-time based on scan results",
-            "For each student marked 'present' automatically, display the captured evidence image next to their base avatar for visual comparison",
-            "Visually distinguish between students with/without evidence images",
-            "Manually update attendance status (requires mandatory remark)",
-            "Add/Edit attendance remarks for each student",
-            "Bulk update dialog for processing multiple student statuses at once"
+            "Session controls: Start Session (trigger face recognition), Stop Session, Rescan (reset and restart recognition), Submit Attendance (finalize with bulk resolution for NOT_YET students)",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Roster table shows: Student avatar and info, Attendance status badges (color-coded: Present/Absent/Not Yet), Recognition method indicator, Evidence images (click to view side-by-side comparison), Remarks, Edit actions",
+            "Inline editing with pending changes tracking (Exam attendance only)",
+            "Edit window: Can edit during session or until end of slot date (Vietnam timezone), expired after that",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Bulk update dialog for processing multiple students at once",
+            "Note: Exam attendance behavior differs from regular attendance - PRESENT students remain PRESENT on rescan (no downgrade, trusts early exam completion)"
           ],
           "notes": [
             "This screen is accessed from Schedule Calendar or Schedule Table screens",
-            "Used during the exam slot session to conduct attendance"
+            "Used during the exam slot session to conduct attendance",
+            "Supervisor handles ONLY exam attendance (FINAL_EXAM slots), not regular lecture attendance"
           ]
         },
         "SCR_SUPERVISOR_EXAM_SUMMARY": {
@@ -574,9 +595,20 @@
         "SCR_SUPERVISOR_PROFILE": {
           "title": "Profile Management",
           "features": [
-            "View personal information (Name, Employee ID, Email, Department, etc.)",
-            "View avatar/profile photo",
-            "Change password"
+            "Profile header with avatar (fallback to initials), name, staff code, and role badges",
+            "Note: 'Staff profile managed by admin' (camera button for avatar upload currently disabled)",
+            "Tabbed interface: Personal Information tab and Security Settings tab",
+            "Personal Information tab (read-only): Full Name, Staff Code, Username, Email, Account Created, Last Updated - all managed by Data Operator",
+            "Security Settings tab: Change Password functionality with validation"
+          ]
+        },
+        "SCR_SUPERVISOR_REPORTS": {
+          "title": "Reports Dashboard",
+          "features": [
+            "Navigation hub for accessing different report types",
+            "Three report categories with cards: Exam Slots Reports (view and manage exam slot reports), Student Reports (access student attendance reports), Analytics (view comprehensive analytics)",
+            "Quick stats display (demo data): Total Slots, Completed, Students, Attendance Rate",
+            "Click card to navigate to respective report section"
           ]
         }
       },
@@ -584,174 +616,331 @@
         "SCR_ADMIN_DASHBOARD": {
           "title": "Dashboard",
           "features": [
-            "Overview charts and statistics",
-            "Semester filter",
-            "Quick access to main functions"
+            "Semester filter dropdown with search functionality and auto-select current semester (based on date range)",
+            "URL state management (semesterId in query params)",
+            "Statistics cards filtered by selected semester: Total Classes (with active count), Total Students (with active count), Total Subjects, Total Lecturers, Total Slots, Completion Rate %, Average Students Per Class, Completed Classes",
+            "Real-time data updates when changing semester filter",
+            "Loading states with spinner during data fetching"
           ]
         },
         "SCR_ADMIN_SEMESTER_MGMT": {
           "title": "Semester Management",
           "features": [
-            "View list of all semesters",
-            "Create/Edit/Deactivate semester",
-            "Import from CSV / Export to CSV",
-            "Search and filter semesters"
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Sort controls (by Name, Code, Start Date, End Date) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Start Date, End Date, Status badge",
+            "Row actions: Edit, View Classes (navigate to classes page with semester filter pre-applied)",
+            "Create semester dialog (name, code, start date, end date)",
+            "Edit semester dialog (update all fields, toggle active/inactive status)",
+            "Delete semester with confirmation dialog (may fail if dependencies exist: classes, slots)",
+            "Import from CSV (columns: code, name, start_date, end_date, status)",
+            "Export to CSV (all semesters data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name (1-20 characters), Code (1-10 characters), End date must be after Start date, Check duplicate code/name before create/update"
           ]
         },
         "SCR_ADMIN_MAJOR_MGMT": {
           "title": "Major Management",
           "features": [
-            "View list of all majors",
-            "Create/Edit/Deactivate major",
-            "Import from CSV / Export to CSV",
-            "Search and filter majors"
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Sort controls (by Name, Code) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Status badge",
+            "Row actions: Edit, View Subjects (navigate to subjects page with major filter pre-applied)",
+            "Create major dialog (name, code)",
+            "Edit major dialog (update name, code, toggle active/inactive status)",
+            "Delete major with confirmation dialog (may fail if dependencies exist: subjects, students)",
+            "Import from CSV (columns: code, name, status)",
+            "Export to CSV (all majors data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required with max length, Code required and unique with max length, Check duplicate code/name before create/update"
           ]
         },
         "SCR_ADMIN_SUBJECT_MGMT": {
           "title": "Subject Management",
           "features": [
-            "View list of all subjects",
-            "Create/Edit/Deactivate subject",
-            "Import from CSV / Export to CSV",
-            "Search and filter subjects"
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Major filter (searchable popover showing all majors)",
+            "Sort controls (by Name, Code) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Majors (displayed as clickable chips), Status badge",
+            "Click major code chip to navigate to majors page",
+            "Row actions: Edit",
+            "Create subject dialog (name, code, select multiple majors via checkbox list)",
+            "Edit subject dialog (update name, code, majors, toggle active/inactive status)",
+            "Delete subject with confirmation dialog (may fail if dependencies exist: classes, exam slots)",
+            "Import from CSV (columns: code, name, major_codes [comma-separated or single value], status)",
+            "Export to CSV (all subjects data with major codes)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name and Code required and unique, At least 1 major must be selected, major_codes in CSV accepts comma-separated values"
+          ],
+          "notes": [
+            "Subject has many-to-many relationship with majors - one subject can belong to multiple majors"
           ]
         },
         "SCR_ADMIN_CLASS_MGMT": {
           "title": "Class Management",
           "features": [
-            "View list of all classes",
-            "Create/Edit/Deactivate class",
-            "Import from CSV / Export to CSV",
-            "Search and filter classes (by semester, major, subject)",
-            "Click on a class to navigate to class enrollment management screen"
+            "Text search filter (class code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Semester filter (required, searchable popover with all semesters)",
+            "Subject filter (searchable popover, filtered by selected semester)",
+            "Sort controls (by Code) with order selector (Ascending/Descending)",
+            "Cascading filters: Reset subject filter when semester changes",
+            "Table display with columns: Code, Subject (clickable link), Semester (clickable link), Status badge",
+            "Click subject to navigate to subjects page, click semester to navigate to semesters page",
+            "Row actions: Edit, View Slots (navigate to slots page with semester and class filters pre-applied), View Students (navigate to class students nested screen)",
+            "Create class dialog (code, select semester, select subject)",
+            "Edit class dialog (update code, semester, subject, toggle active/inactive status)",
+            "Delete class with confirmation dialog (may fail if dependencies exist: slots, enrollments)",
+            "Import dialog with 2 options: (1) Import Classes CSV (columns: code, subject_code, semester_code, status), (2) Import Enrollments CSV (columns: roll_number, class_code, semester_code)",
+            "Export to CSV (all classes data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Code unique within same semester and subject combination, Semester and Subject required and must be active"
           ]
         },
-        "SCR_ADMIN_CLASS_ENROLLMENT": {
-          "title": "Class Enrollment Management",
+        "SCR_ADMIN_CLASS_STUDENTS": {
+          "title": "Class Students Management",
           "features": [
-            "View list of students enrolled in selected class",
-            "Add student to class",
-            "Remove student from class",
-            "Import enrollments from CSV",
-            "Export enrollments to CSV"
+            "Display stats: Total Enrolled count, Total Withdrawn count, Total Active Slots of the class",
+            "Text search filter (name, roll number, email, debounced 500ms)",
+            "Status filter dropdown (Active/Withdrawn/All checkboxes)",
+            "Sort controls (by Name, Roll Number, Enrolled Date) with order selector",
+            "Table display with columns: Roll Number, Full Name, Email, Major, Enrolled Date, Status badge",
+            "Row actions: View (opens dialog with full student details), Withdraw/Re-enroll (conditional based on current status)",
+            "Add student to class dialog (select from list of students in same semester, auto-filters out already-added students)",
+            "Withdraw student (sets isEnrolled = false, preserves attendance history, does not delete record)",
+            "Re-enroll student (sets isEnrolled = true, restores enrollment)",
+            "View student details dialog (shows full profile information)",
+            "Server-side pagination (10 items per page)",
+            "Enrollment modification disabled after semester ends",
+            "Validation rules: Cannot add duplicate enrollments, Can only add students if class is active and semester has not ended, Withdraw preserves all attendance history"
           ],
           "notes": [
-            "This is a sub-screen accessed from Class Management"
+            "This is a nested screen accessed from Class Management via 'View Students' action",
+            "Route: /admin/classes/{id}/students",
+            "Breadcrumbs: Dashboard > Classes > {ClassCode}",
+            "Back navigation returns to /admin/classes with filter state restored"
           ]
         },
-        "SCR_ADMIN_CLASS_SLOT_MGMT": {
-          "title": "Class Slot Management (Lecture Slots)",
+        "SCR_ADMIN_SLOT_MGMT": {
+          "title": "Slot Management (Lecture Slots)",
           "features": [
-            "View list of all class slots (LECTURE/LECTURE_WITH_PT)",
-            "Create/Edit/Cancel slot",
-            "Filter by semester, class, date range",
-            "Import slots from CSV / Export to CSV",
-            "Click on a slot to navigate to attendance roster management screen"
+            "Required semester filter (searchable popover, must select to see data)",
+            "Date range filter (start date - end date with calendar pickers, defaults to current week Monday-Sunday)",
+            "Class filter (filtered by selected semester, searchable popover)",
+            "Subject filter (searchable popover)",
+            "Advanced filters in popover: Room filter, Staff filter (lecturers only), Status filter, Sort controls (by Start Time, End Time, Category) with order selector",
+            "Table display with columns: Time range, Title, Class (clickable), Subject (clickable), Room (clickable), Staff name, Category badge (LECTURE in blue, LECTURE_WITH_PT in purple)",
+            "Click class/subject/room to navigate to respective management pages",
+            "Row actions: Edit, View Roster (navigate to slot roster nested screen), Delete (conditional - only within 30-minute window after creation)",
+            "Create slot dialog (title, description, start time, end time, category, select class, select room, select staff)",
+            "Edit slot dialog (update all fields except category cannot be changed for FINAL_EXAM slots)",
+            "Delete slot with confirmation (only allowed within 30 minutes after creation, otherwise blocked)",
+            "Import from CSV (columns: title, start_time, end_time, slot_category, class_code, semester_code, room_name, staff_username)",
+            "Export to CSV (all slots data)",
+            "Server-side pagination (10 items per page)",
+            "State preservation: Filter state saved to sessionStorage when navigating to roster, restored when returning",
+            "Validation rules: Start time must be before End time, Slot duration must be reasonable (15 min - 6 hours), No time conflicts for room/staff/class, Staff must have LECTURER role, Category cannot be FINAL_EXAM (managed in Exam screen)"
+          ],
+          "notes": [
+            "This is a top-level screen, route: /admin/slots",
+            "Only manages LECTURE and LECTURE_WITH_PT slots (excludes FINAL_EXAM)",
+            "Semester filter is required - no semester selection means no slots loaded",
+            "Default date range is current week (Monday-Sunday)"
           ]
         },
-        "SCR_ADMIN_SLOT_ATTENDANCE_ROSTER": {
+        "SCR_ADMIN_SLOT_ROSTER": {
           "title": "Slot Attendance Roster Management",
           "features": [
-            "View attendance roster for selected slot",
-            "Display student list with attendance status (Present/Absent)",
-            "Manually update attendance status",
-            "Add/Edit attendance remarks",
-            "View attendance statistics for the slot",
-            "Export attendance data to CSV"
+            "For LECTURE slots: Single attendance table (Regular attendance only, no tabs)",
+            "For LECTURE_WITH_PT slots: Tabbed interface with 2 tabs - Regular Attendance tab and Exam Attendance tab, each tab has independent session controls and data",
+            "Session mutual exclusion: Cannot run both Regular and Exam sessions simultaneously (disable opposite tab when a session is running)",
+            "Session controls per tab: Start Session (triggers face recognition), Stop Session (stops cameras), Rescan (resets all PRESENT to NOT_YET and restarts recognition), Submit Attendance (finalizes all NOT_YET students with resolution options)",
+            "Bulk finalization dialog: Mark all NOT_YET students as Absent or Mark all as Present",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Auto-refresh roster when students are detected by recognition service",
+            "Roster table columns: Student avatar and info (name, roll number, email), Attendance status badges (NOT_YET/PRESENT/ABSENT with color coding), Detection method indicator (Auto/Manual/System Finalize), Evidence image thumbnail (click to view), Remark field, Edit actions",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo from recognition",
+            "Inline editing: Change attendance status, add/edit remarks for individual students",
+            "Pending changes tracker: Saves multiple inline edits at once (batch update)",
+            "Edit window enforcement: Can edit until 23:59:59 Vietnam time of slot date, after that read-only mode",
+            "Manual edits preserve detection method as 'Manual'",
+            "Export attendance data to CSV",
+            "View attendance statistics for the slot (total, present count, absent count, not yet count, attendance rate %)"
           ],
           "notes": [
-            "This is a sub-screen accessed from Class Slot Management"
+            "This is a nested screen accessed from Slot Management via 'View Roster' action",
+            "Route: /admin/slots/{id}/roster",
+            "Breadcrumbs: Dashboard > Slots > {SlotTitle}",
+            "Back navigation returns to /admin/slots with filter state restored from sessionStorage",
+            "Face recognition only works when session is running",
+            "Evidence images are stored and can be reviewed later",
+            "Role-based permissions: DATA_OPERATOR has full access, LECTURER can access own slots, SUPERVISOR can access assigned exam slots"
           ]
         },
-        "SCR_ADMIN_EXAM_SLOT_MGMT": {
-          "title": "Exam Slot Management (Final Exam Slots)",
+        "SCR_ADMIN_EXAM_MGMT": {
+          "title": "Exam Management (Final Exam Slots)",
           "features": [
-            "View list of all exam slots (FINAL_EXAM)",
-            "Create/Edit/Cancel exam slot",
-            "Assign multiple subjects to exam slot (updates exam_slot_subjects table)",
-            "Filter by semester, date range",
-            "Import exam slots from CSV / Export to CSV",
-            "Click on a slot to navigate to exam participant management or attendance roster management"
+            "Required semester filter (searchable popover, must select to see data)",
+            "Date range filter (start date - end date with calendar pickers)",
+            "Subject filter (searchable popover, shows subjects assigned to semester)",
+            "Advanced filters in popover: Room filter, Staff filter (supervisors only), Status filter, Sort controls (by Start Time, End Time) with order selector",
+            "Table display with columns: Time range, Title, Subjects (displayed as multiple chips with count badge), Room (clickable), Supervisor name, Status badge",
+            "Click room to navigate to room management page",
+            "Row actions: Edit, Manage Participants (navigate to exam participants nested screen), View Roster (navigate to exam roster nested screen), Delete (with confirmation, may fail if dependencies exist)",
+            "Create exam dialog (title, description, start time, end time, select room, select supervisor, select multiple subjects via checkbox list)",
+            "Edit exam dialog (update all fields including subjects list)",
+            "Delete exam with confirmation dialog (may fail if participants or attendance data exists)",
+            "Import dialog with 2 options: (1) Import Exam Slots CSV (columns: title, start_time, end_time, room_name, supervisor_username, subject_codes [comma-separated]), (2) Import Exam Participants CSV (bulk add students to exams)",
+            "Export to CSV (all exam slots data with subject codes)",
+            "Server-side pagination (10 items per page, filters by slotCategory = FINAL_EXAM)",
+            "State preservation: Filter state saved to sessionStorage when navigating to participants/roster, restored when returning",
+            "Validation rules: Start time before End time, Slot duration reasonable, At least 1 subject required, No time conflicts for room/supervisor, Staff must have SUPERVISOR role, No class assignment (classId = null for FINAL_EXAM slots)"
+          ],
+          "notes": [
+            "This is a top-level screen, route: /admin/exams",
+            "Only manages FINAL_EXAM slots (independent from classes)",
+            "Exam slots are not tied to specific classes - students are added through participants screen",
+            "Multiple subjects can be assigned to one exam slot (many-to-many via exam_slot_subjects table)"
           ]
         },
-        "SCR_ADMIN_EXAM_SLOT_PARTICIPANTS": {
-          "title": "Exam Slot Participants Management",
+        "SCR_ADMIN_EXAM_PARTICIPANTS": {
+          "title": "Exam Participants Management",
           "features": [
-            "View list of students registered for selected exam slot",
-            "Subject filter dropdown (shows subjects assigned to this exam slot from exam_slot_subjects table)",
-            "Add student to exam slot (for specific subject)",
-            "Remove student from exam slot",
+            "Display stats: Total Enrolled count, Total Withdrawn count, Total count",
+            "Text search filter (name, roll number, email, debounced 500ms)",
+            "Status filter dropdown (Enrolled/Withdrawn checkboxes)",
+            "Table display with columns: Roll Number, Full Name, Email, Subject, Status badge, Enrolled Date",
+            "Row actions: Withdraw/Re-enroll (conditional based on status), Remove (permanent delete with warning)",
+            "Smart bulk add dialog: Select exam subject from dropdown (shows subjects assigned to this exam slot from exam_slot_subjects table), Auto-load students enrolled in that subject from semester, Filter out already-added students, Multi-select students via checkbox list, Batch create participants",
+            "Withdraw participant (sets isEnrolled = false, preserves attendance history)",
+            "Re-enroll participant (sets isEnrolled = true, restores enrollment)",
+            "Remove participant (permanent delete with confirmation dialog)",
             "Import exam participants from CSV (columns: student_id, subject_code)",
             "Export participant list to CSV",
             "Download CSV template",
-            "Search and filter students"
+            "No pagination (loads all participants for the exam slot)"
           ],
           "notes": [
-            "This is a sub-screen accessed from Exam Slot Management",
-            "This screen manages WHO is taking the exam in this slot, similar to class enrollment management"
+            "This is a nested screen accessed from Exam Management via 'Manage Participants' action",
+            "Route: /admin/exams/{id}/participants",
+            "Breadcrumbs: Dashboard > Exams > {ExamTitle}",
+            "Back navigation returns to /admin/exams with filter state restored from sessionStorage",
+            "This screen manages WHO is taking the exam in this slot - similar to class enrollment but for independent exams",
+            "Smart bulk add automatically filters eligible students by subject enrollment to simplify participant management"
           ]
         },
-        "SCR_ADMIN_EXAM_SLOT_ATTENDANCE_ROSTER": {
-          "title": "Exam Slot Attendance Roster Management",
+        "SCR_ADMIN_EXAM_ROSTER": {
+          "title": "Exam Attendance Roster Management",
           "features": [
-            "View attendance roster for selected exam slot",
-            "Subject filter dropdown (shows subjects assigned to this exam slot)",
-            "Display student list with attendance status (Present/Absent)",
-            "Manually update attendance status",
-            "Add/Edit attendance remarks",
-            "View attendance statistics for the exam slot",
-            "Export attendance data to CSV"
+            "Single view interface (NO TABS - only Exam attendance, no Regular tab like LECTURE_WITH_PT slots)",
+            "Display student roster loaded from exam_slot_participants table",
+            "Session controls: Start Session (triggers face recognition), Stop Session, Rescan, Submit Attendance (finalizes all NOT_YET students)",
+            "Bulk finalization dialog: Mark all NOT_YET students as Absent or Mark all as Present",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Auto-refresh roster when students are detected by recognition service",
+            "Roster table columns: Student avatar and info (name, roll number, email), Attendance status badges (NOT_YET/PRESENT/ABSENT with color coding), Detection method indicator (Auto/Manual/System Finalize), Evidence image thumbnail (click to view), Remark field, Edit actions",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Inline editing: Change attendance status, add/edit remarks",
+            "Pending changes tracker: Batch update for multiple inline edits",
+            "Edit window enforcement: Can edit until 23:59:59 Vietnam time of slot date, after that read-only mode",
+            "Export attendance data to CSV",
+            "View attendance statistics (total, present count, absent count, not yet count, attendance rate %)"
           ],
           "notes": [
-            "This is a sub-screen accessed from Exam Slot Management",
-            "This screen manages attendance tracking for exam slots, separate from participant management"
+            "This is a nested screen accessed from Exam Management via 'View Roster' action",
+            "Route: /admin/exams/{id}/roster",
+            "Breadcrumbs: Dashboard > Exams > {ExamTitle}",
+            "Back navigation returns to /admin/exams with filter state restored",
+            "Reuses SlotRosterTable component with attendanceType='EXAM' parameter",
+            "Exam attendance behavior differs from regular attendance - PRESENT students remain PRESENT on rescan (trusts early exam completion)"
           ]
         },
         "SCR_ADMIN_ROOM_MGMT": {
           "title": "Room Management",
           "features": [
-            "View list of all rooms",
-            "Create/Edit/Deactivate room",
-            "Import from CSV / Export to CSV",
-            "Search and filter rooms"
+            "Text search filter (name or location, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Camera filter dropdown (Has Camera/No Camera/All) to filter rooms by camera availability",
+            "Sort controls (by Name, Location) with order selector (Ascending/Descending)",
+            "Table display with columns: Name, Location, Camera Count (number of cameras assigned to room), Status badge",
+            "Row actions: Edit, View Cameras (navigate to cameras page with room filter pre-applied)",
+            "Create room dialog (name, location)",
+            "Edit room dialog (update name, location, toggle active/inactive status)",
+            "Delete room with confirmation dialog (may fail if dependencies exist: cameras, slots assigned to this room)",
+            "Import from CSV (columns: name, location, status)",
+            "Export to CSV (all rooms data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required and unique, Location optional"
+          ],
+          "notes": [
+            "Rooms with cameras are prioritized for slots requiring face recognition",
+            "Camera count is displayed to help admins identify which rooms have camera coverage"
           ]
         },
         "SCR_ADMIN_CAMERA_MGMT": {
           "title": "Camera Management",
           "features": [
-            "View list of all cameras",
-            "Create/Edit/Deactivate camera",
-            "Configure camera settings (RTSP URL, room assignment)",
-            "Import from CSV / Export to CSV",
-            "Search and filter cameras",
-            "View camera connection status"
+            "Text search filter (camera name, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Room filter (searchable popover showing all rooms)",
+            "Sort controls (by Name) with order selector (Ascending/Descending)",
+            "Table display with columns: Camera Name, RTSP URL, Room (clickable link to room page), Status badge",
+            "Click room name to navigate to room management page",
+            "Row actions: Edit",
+            "Create camera dialog (name, RTSP URL, select room from dropdown)",
+            "Edit camera dialog (update name, RTSP URL, change room assignment, toggle active/inactive status)",
+            "Delete camera with confirmation dialog (may fail if camera is currently being used in active attendance session)",
+            "Import from CSV (columns: name, rtspUrl, room_name, status)",
+            "Export to CSV (all cameras data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required, RTSP URL required and must be valid format (rtsp://...), Room assignment required and room must exist"
+          ],
+          "notes": [
+            "Cameras are used by recognition service for real-time face detection during attendance sessions",
+            "RTSP URLs should point to valid camera streams accessible from the recognition service",
+            "Delete is blocked if camera is actively used in a running attendance session"
           ]
         },
         "SCR_ADMIN_USER_MGMT": {
           "title": "User Management",
           "features": [
-            "Tab 1: Student Management",
-            "  - View list of all students",
-            "  - Create/Edit/Deactivate student account",
-            "  - Manage student profile information",
-            "  - Import students from CSV / Export to CSV",
-            "  - Bulk import student identity data (photos and face embeddings via CSV + ZIP upload)",
-            "  - View import job status and history",
-            "  - Download error report for failed imports",
-            "  - Search and filter students",
-            "Tab 2: Staff Management",
-            "  - View list of all staff (Lecturers, Supervisors)",
-            "  - Create/Edit/Deactivate staff account",
-            "  - Assign roles (LECTURER, SUPERVISOR) to staff",
-            "  - Manage staff profile information",
-            "  - Import staff from CSV / Export to CSV",
-            "  - View import job status and history",
-            "  - Download error report for failed imports",
-            "  - Search and filter staff"
+            "Tabbed interface: Students Tab | Staffs Tab (switching tabs clears all filters)",
+            "**STUDENTS TAB:**",
+            "Text search filter (name, email, roll number, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Major filter (searchable popover showing all majors)",
+            "Sort controls (by Full Name, Roll Number, Email, Major) with order selector",
+            "Table display: Roll Number, Full Name, Email, Major (clickable link to major page), Status badge, Last Active timestamp",
+            "Row actions: Edit, View Attendance History (opens dialog showing all attendance records with status and evidence images)",
+            "Create student dialog (full name, email, username, roll number, select major, optional password)",
+            "Edit student dialog (update all fields, toggle active/inactive status)",
+            "Import student profiles from CSV (columns: full_name, email, username, roll_number, major_code, status, password)",
+            "Import photos and embeddings (CSV metadata + ZIP file containing student photos, bulk identity import for face recognition)",
+            "Export to CSV (all students data)",
+            "Server-side pagination (10 items per page)",
+            "**STAFFS TAB:**",
+            "Text search filter (name, email, staff code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Role filter (multi-select checkboxes: LECTURER, SUPERVISOR, stored as comma-separated roleIds in URL e.g., roleIds=1,2)",
+            "Sort controls (by Full Name, Staff Code, Email) with order selector",
+            "Table display: Staff Code, Full Name, Email, Roles (multiple role badges displayed), Status badge",
+            "Row actions: Edit",
+            "Create staff dialog (full name, email, staff code, select multiple roles via checkbox list, optional password)",
+            "Edit staff dialog (update all fields including roles, toggle active/inactive status)",
+            "Import staff profiles from CSV (columns: full_name, email, staff_code, roles [comma-separated], status, password)",
+            "Export to CSV (all staff data with roles)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Email unique and valid format, Username/Staff Code unique and valid format, Roll Number unique for students, At least 1 role required for staff (excludes STUDENT and DATA_OPERATOR roles from staff tab)"
           ],
           "notes": [
-            "Cannot assign LECTURER/SUPERVISOR roles to users with STUDENT role",
-            "DOP cannot create other DOP accounts"
+            "Cannot assign LECTURER/SUPERVISOR roles to users with STUDENT role (cross-role constraint)",
+            "DATA_OPERATOR cannot create other DATA_OPERATOR accounts",
+            "Attendance history dialog (Students tab) shows comprehensive record: all slots with attendance status, evidence images, remarks, slot details",
+            "Tab switching behavior: All filters and pagination are reset when switching between Students and Staffs tabs",
+            "Import photos & embeddings: CSV contains student metadata (user_id), ZIP contains photos named by user_id (e.g., HE180001.jpg), system generates face embeddings via recognition service"
           ]
         }
       }
