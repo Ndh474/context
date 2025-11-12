@@ -1,0 +1,3866 @@
+{
+  "metadata": {
+    "generated_at": "2025-11-12T18:28:50.236355",
+    "description": "Comprehensive FUACS system context combining project overview, database schema, and use cases",
+    "version": "1.0.0",
+    "source_files": [
+      "system_context.json",
+      "db.json",
+      "use_cases.json"
+    ]
+  },
+  "project_overview": {
+    "project_info": {
+      "project_code": "FUACS",
+      "project_name": "FU Attendance Checking Smart"
+    },
+    "project_overview": {
+      "background": "An independent attendance and academic management system. FUACS serves as the Single Source of Record for all data related to classes, students, lecturers, and attendance results.",
+      "goal": "Support login via Google and system accounts (username/password), class schedules, exam schedules, and smart attendance to assist lecturers."
+    },
+    "platform_definitions": {
+      "platform_types": {
+        "GENERAL_WEB": "Web platform",
+        "ADMIN_PORTAL": "Web platform (Admin Portal)"
+      },
+      "role_platform_mapping": {
+        "Student": "GENERAL_WEB",
+        "Lecturer": "GENERAL_WEB",
+        "Supervisor": "GENERAL_WEB",
+        "Data_Operator": "ADMIN_PORTAL"
+      }
+    },
+    "tech_stack": {
+      "frontend": {
+        "web": {
+          "description": "Web platform for Students, Lecturers, Supervisors, and Admin",
+          "technology": "Next.js 15.5.4",
+          "framework": "React 19",
+          "ui_library": "shadcn/ui",
+          "state_management": "TanStack Query 5",
+          "styling": "Tailwind CSS 4"
+        }
+      },
+      "backend": {
+        "main_service": {
+          "description": "Main service handling business logic",
+          "technology": "Spring Boot 3.x",
+          "runtime": "JDK 21+",
+          "database": "PostgreSQL with pgvector extension"
+        },
+        "recognition_service": {
+          "description": "Service handling face recognition",
+          "technology": "Python FastAPI",
+          "runtime": "Python 3.10+",
+          "face_recognition_model": "InsightFace buffalo_l"
+        }
+      },
+      "database": {
+        "primary_database": {
+          "technology": "PostgreSQL",
+          "extensions": [
+            "pgvector"
+          ]
+        }
+      }
+    },
+    "internationalization": {
+      "description": "The system supports multiple languages to accommodate diverse user bases",
+      "supported_languages": [
+        "English (en)",
+        "Vietnamese (vi)"
+      ],
+      "implementation": {
+        "method": "Cookie-based locale detection",
+        "library": "next-intl",
+        "locale_storage": "NEXT_LOCALE cookie",
+        "url_strategy": "No locale prefix in URLs (localePrefix: 'never')"
+      },
+      "translation_scope": {
+        "translated": [
+          "UI labels and buttons",
+          "Form placeholders and validations",
+          "Table headers and column names",
+          "Error messages",
+          "Page titles and breadcrumbs",
+          "Menu items",
+          "Notifications"
+        ],
+        "not_translated": [
+          "Database content (names, descriptions from backend)",
+          "User-generated content (remarks, notes)",
+          "Status badges (kept in English per design decision)"
+        ]
+      },
+      "language_switching": "Users can switch languages via a dropdown in the header. Preference is saved in cookie and persists across sessions."
+    }
+  },
+  "authentication_and_authorization": {
+    "authentication_and_role_mapping": {
+      "mapping_method": "System Native",
+      "description": "Users are created and role-managed directly in the system by Data Operators. The system supports Google login (for email-based authentication) and direct login using username/password. The system uses specialized profiles (student_profiles, staff_profiles) to manage specific attributes. Data Operators cannot create other Data Operator accounts or create new roles - they can only assign existing roles to user accounts.",
+      "role_assignment_rules": "SUPERVISOR or LECTURER roles cannot be assigned to users with the STUDENT role.",
+      "access_control": {
+        "on_missing_user": "deny_access_403",
+        "on_inactive_status": "deny_access_403"
+      }
+    },
+    "master_permission_catalog": {
+      "USER_MANAGEMENT": {
+        "STUDENT_CREATE": "Create a new student account and profile.",
+        "STUDENT_READ_LIST": "View the list of all student accounts.",
+        "STUDENT_READ_DETAIL": "View detailed information of a student account and profile.",
+        "STUDENT_UPDATE": "Update student information (personal details, activate/deactivate account, assign/revoke roles).",
+        "STUDENT_DELETE": "Permanently delete a student account and profile (hard delete).",
+        "STUDENT_IMPORT": "Bulk import student accounts via CSV.",
+        "STAFF_CREATE": "Create a new staff account and profile.",
+        "STAFF_READ_LIST": "View the list of all staff accounts.",
+        "STAFF_READ_DETAIL": "View detailed information of a staff account and profile.",
+        "STAFF_UPDATE": "Update staff information (personal details, activate/deactivate account, assign/revoke roles).",
+        "STAFF_DELETE": "Permanently delete a staff account and profile (hard delete).",
+        "STAFF_IMPORT": "Bulk import staff accounts via CSV.",
+        "STAFF_SLOTS": "View the list of slots assigned to a specific staff member (accessible by Data Operator and the staff member themselves).",
+        "STAFF_CLASSES": "View the list of classes assigned to a specific staff member (accessible by Data Operator and the staff member themselves).",
+        "STAFF_SUBJECTS": "View the list of subjects assigned to a specific staff member (accessible by Data Operator and the staff member themselves)."
+      },
+      "ACADEMIC_CATALOG_MANAGEMENT": {
+        "SEMESTER_CREATE": "Create a new semester.",
+        "SEMESTER_READ_LIST": "View the list of all semesters.",
+        "SEMESTER_READ_DETAIL": "View detailed information of a specific semester.",
+        "SEMESTER_UPDATE": "Update semester information, including deactivating or activating it.",
+        "SEMESTER_DELETE": "Permanently delete a semester. This action cannot be undone and will fail if related data (classes, etc.) still exists.",
+        "SEMESTER_IMPORT": "Bulk import Semesters via CSV.",
+        "MAJOR_CREATE": "Create a new major.",
+        "MAJOR_READ_LIST": "View the list of all majors.",
+        "MAJOR_READ_DETAIL": "View detailed information of a specific major.",
+        "MAJOR_UPDATE": "Update major information, including deactivating or activating it.",
+        "MAJOR_DELETE": "Permanently delete a major. This action cannot be undone and will fail if related data (subjects, etc.) still exists.",
+        "MAJOR_IMPORT": "Bulk import Majors via CSV.",
+        "SUBJECT_CREATE": "Create a new subject.",
+        "SUBJECT_READ_LIST": "View the list of all subjects.",
+        "SUBJECT_READ_DETAIL": "View detailed information of a specific subject.",
+        "SUBJECT_UPDATE": "Update subject information, including deactivating or activating it.",
+        "SUBJECT_DELETE": "Permanently delete a subject. This action cannot be undone and will fail if related data (classes, etc.) still exists.",
+        "SUBJECT_IMPORT": "Bulk import Subjects via CSV.",
+        "CLASS_CREATE": "Create a new class.",
+        "CLASS_READ_LIST": "View the list of all classes.",
+        "CLASS_READ_DETAIL": "View detailed information of a specific class.",
+        "CLASS_UPDATE": "Update class information, including deactivating or activating it.",
+        "CLASS_DELETE": "Permanently delete a class. This action cannot be undone and will fail if related data (slots, enrollments, etc.) still exists.",
+        "CLASS_IMPORT": "Bulk import Classes via CSV.",
+        "SLOT_CREATE": "Create a new lecture/exam slot (includes LECTURE, LECTURE_WITH_PT, and FINAL_EXAM).",
+        "SLOT_READ_LIST": "View the list of all lecture/exam slots.",
+        "SLOT_READ_DETAIL": "View detailed information of a specific slot.",
+        "SLOT_UPDATE": "Update lecture/exam slot information, including cancelling (deactivating) it. Includes updates to all slot categories (LECTURE, LECTURE_WITH_PT, FINAL_EXAM).",
+        "SLOT_DELETE": "Permanently delete a lecture/exam slot. This action is dangerous and cannot be undone. Applies to all slot categories.",
+        "SLOT_IMPORT": "Bulk import Slots via CSV.",
+        "SLOT_UPDATE_CATEGORY": "Update slot category (Lecturer can change LECTURE ↔ LECTURE_WITH_PT).",
+        "ENROLLMENT_CREATE": "Add a student to a class (enroll student).",
+        "ENROLLMENT_READ_LIST": "View the list of all enrollments.",
+        "ENROLLMENT_READ_DETAIL": "View detailed information of a specific enrollment.",
+        "ENROLLMENT_UPDATE": "Update enrollment information (change enrollment status).",
+        "ENROLLMENT_DELETE": "Remove a student from a class (unenroll student).",
+        "ENROLLMENT_IMPORT": "Bulk import enrollments via CSV."
+      },
+      "INFRASTRUCTURE_MANAGEMENT": {
+        "ROOM_CREATE": "Create a new room.",
+        "ROOM_READ_LIST": "View the list of all rooms.",
+        "ROOM_READ_DETAIL": "View detailed information of a specific room.",
+        "ROOM_UPDATE": "Update room information, including deactivating or activating it.",
+        "ROOM_DELETE": "Permanently delete a room. This action cannot be undone and will fail if related data (cameras, slots, etc.) still exists.",
+        "ROOM_IMPORT": "Bulk import Rooms via CSV.",
+        "CAMERA_CREATE": "Create a new camera and assign it to a room.",
+        "CAMERA_READ_LIST": "View the list of all cameras.",
+        "CAMERA_READ_DETAIL": "View detailed information of a specific camera.",
+        "CAMERA_UPDATE": "Update camera information, including deactivating or activating it.",
+        "CAMERA_DELETE": "Permanently delete a camera. This action cannot be undone.",
+        "CAMERA_IMPORT": "Bulk import Cameras via CSV."
+      },
+      "ATTENDANCE_MANAGEMENT": {
+        "OWN_SCHEDULE_READ": "View personal schedule (teaching/exam/learning).",
+        "SLOT_SESSION_START": "Start an automated attendance session (regular or exam) for a slot.",
+        "SLOT_SESSION_STOP": "Stop the currently running attendance session (regular or exam) for a slot.",
+        "SLOT_SESSION_RESCAN": "Trigger a re-scan for attendance during an active session.",
+        "ATTENDANCE_ROSTER_READ": "View the roster and real-time attendance status of a slot.",
+        "ATTENDANCE_STATUS_UPDATE_MANUAL": "Manually update attendance status for students.",
+        "ATTENDANCE_REMARK_MANAGE": "Add, edit, delete attendance remarks."
+      },
+      "REPORTING_AND_DATA": {
+        "REPORT_READ_OWN_SLOT": "View attendance reports for slots under own responsibility.",
+        "REPORT_EXPORT_OWN_SLOT": "Export report files for slots under own responsibility.",
+        "REPORT_READ_CLASS_SUMMARY": "View comprehensive attendance summary report for a class.",
+        "REPORT_EXPORT_ACADEMIC_DATA": "Export academic data (class lists, attendance results, etc.)."
+      },
+      "STUDENT_PERMISSIONS": {
+        "OWN_ATTENDANCE_HISTORY_READ": "View own attendance history."
+      },
+      "GENERAL_PERMISSIONS": {
+        "OWN_PROFILE_READ": "View own personal profile information.",
+        "OWN_PASSWORD_UPDATE": "Change own password."
+      }
+    },
+    "role_definitions": {
+      "DATA_OPERATOR": {
+        "role_name": "Data Operations Staff",
+        "description": "The main operational role, responsible for all academic data and user account lifecycle management.",
+        "platform": "ADMIN_PORTAL",
+        "permissions": [
+          "STUDENT_CREATE",
+          "STUDENT_READ_LIST",
+          "STUDENT_READ_DETAIL",
+          "STUDENT_UPDATE",
+          "STUDENT_IMPORT",
+          "STAFF_CREATE",
+          "STAFF_READ_LIST",
+          "STAFF_READ_DETAIL",
+          "STAFF_UPDATE",
+          "STAFF_IMPORT",
+          "STAFF_SLOTS",
+          "STAFF_CLASSES",
+          "STAFF_SUBJECTS",
+          "SEMESTER_CREATE",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "SEMESTER_UPDATE",
+          "SEMESTER_IMPORT",
+          "MAJOR_CREATE",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "MAJOR_UPDATE",
+          "MAJOR_IMPORT",
+          "SUBJECT_CREATE",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
+          "SUBJECT_UPDATE",
+          "SUBJECT_IMPORT",
+          "CLASS_CREATE",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "CLASS_UPDATE",
+          "CLASS_IMPORT",
+          "SLOT_CREATE",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SLOT_UPDATE",
+          "SLOT_IMPORT",
+          "ENROLLMENT_CREATE",
+          "ENROLLMENT_READ_LIST",
+          "ENROLLMENT_READ_DETAIL",
+          "ENROLLMENT_UPDATE",
+          "ENROLLMENT_IMPORT",
+          "ATTENDANCE_ROSTER_READ",
+          "ATTENDANCE_STATUS_UPDATE_MANUAL",
+          "ATTENDANCE_REMARK_MANAGE",
+          "ROOM_CREATE",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "ROOM_UPDATE",
+          "ROOM_IMPORT",
+          "CAMERA_CREATE",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
+          "CAMERA_UPDATE",
+          "CAMERA_IMPORT",
+          "REPORT_EXPORT_ACADEMIC_DATA",
+          "OWN_PROFILE_READ",
+          "OWN_PASSWORD_UPDATE"
+        ]
+      },
+      "LECTURER": {
+        "role_name": "Lecturer",
+        "description": "Responsible for managing lecture sessions, monitoring class rosters, and managing attendance results.",
+        "platform": "GENERAL_WEB",
+        "permissions": [
+          "OWN_SCHEDULE_READ",
+          "SLOT_SESSION_START",
+          "SLOT_SESSION_STOP",
+          "SLOT_SESSION_RESCAN",
+          "ATTENDANCE_ROSTER_READ",
+          "ATTENDANCE_STATUS_UPDATE_MANUAL",
+          "ATTENDANCE_REMARK_MANAGE",
+          "REPORT_READ_OWN_SLOT",
+          "REPORT_EXPORT_OWN_SLOT",
+          "REPORT_READ_CLASS_SUMMARY",
+          "OWN_PROFILE_READ",
+          "OWN_PASSWORD_UPDATE",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL",
+          "SLOT_UPDATE_CATEGORY"
+        ]
+      },
+      "SUPERVISOR": {
+        "role_name": "Exam Supervisor",
+        "description": "Responsible for supervising exam sessions, initiating and managing attendance results for exams.",
+        "platform": "GENERAL_WEB",
+        "permissions": [
+          "OWN_SCHEDULE_READ",
+          "SLOT_SESSION_START",
+          "SLOT_SESSION_STOP",
+          "SLOT_SESSION_RESCAN",
+          "ATTENDANCE_ROSTER_READ",
+          "ATTENDANCE_STATUS_UPDATE_MANUAL",
+          "ATTENDANCE_REMARK_MANAGE",
+          "REPORT_READ_OWN_SLOT",
+          "REPORT_EXPORT_OWN_SLOT",
+          "OWN_PROFILE_READ",
+          "OWN_PASSWORD_UPDATE",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "CAMERA_READ_LIST",
+          "CAMERA_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL"
+        ]
+      },
+      "STUDENT": {
+        "role_name": "Student",
+        "description": "Uses the system to track schedules, view attendance history, and send notifications.",
+        "platform": "GENERAL_WEB",
+        "permissions": [
+          "OWN_SCHEDULE_READ",
+          "OWN_ATTENDANCE_HISTORY_READ",
+          "OWN_PROFILE_READ",
+          "OWN_PASSWORD_UPDATE",
+          "ROOM_READ_LIST",
+          "ROOM_READ_DETAIL",
+          "SEMESTER_READ_LIST",
+          "SEMESTER_READ_DETAIL",
+          "CLASS_READ_LIST",
+          "CLASS_READ_DETAIL",
+          "MAJOR_READ_LIST",
+          "MAJOR_READ_DETAIL",
+          "SLOT_READ_LIST",
+          "SLOT_READ_DETAIL",
+          "SUBJECT_READ_LIST",
+          "SUBJECT_READ_DETAIL"
+        ]
+      }
+    }
+  },
+  "database_schema": {
+    "database": "PostgreSQL with pgvector extension",
+    "total_tables": 26,
+    "timezone_strategy": "All TIMESTAMP columns represent Vietnam local time (Asia/Ho_Chi_Minh). Application enforces Vietnam timezone via spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Ho_Chi_Minh",
+    "special_features": [
+      "pgvector extension for face embeddings (CREATE EXTENSION IF NOT EXISTS vector)",
+      "Soft delete pattern via is_active BOOLEAN",
+      "Audit fields pattern (created_at, updated_at)",
+      "Partial indexes for performance optimization",
+      "IVFFlat indexes for vector similarity search"
+    ],
+    "table_groups": {
+      "user_management": {
+        "description": "Core user accounts and authentication",
+        "tables": [
+          "users",
+          "password_reset_tokens"
+        ]
+      },
+      "rbac": {
+        "description": "Role-Based Access Control system",
+        "tables": [
+          "roles",
+          "permissions",
+          "user_roles",
+          "role_permissions"
+        ]
+      },
+      "user_profiles": {
+        "description": "Extended profiles for students and staff",
+        "tables": [
+          "student_profiles",
+          "staff_profiles"
+        ]
+      },
+      "academic_structure": {
+        "description": "Academic catalog and class management",
+        "tables": [
+          "majors",
+          "semesters",
+          "subjects",
+          "subject_majors",
+          "classes",
+          "enrollments"
+        ]
+      },
+      "infrastructure": {
+        "description": "Physical infrastructure (rooms and cameras)",
+        "tables": [
+          "rooms",
+          "cameras"
+        ]
+      },
+      "scheduling": {
+        "description": "Slot scheduling and session management",
+        "tables": [
+          "slots"
+        ]
+      },
+      "attendance_tracking": {
+        "description": "Dual attendance system (regular and exam)",
+        "tables": [
+          "attendance_records",
+          "regular_attendance_evidences",
+          "exam_attendance",
+          "exam_attendance_evidences",
+          "exam_slot_subjects",
+          "exam_slot_participants"
+        ]
+      },
+      "face_recognition": {
+        "description": "Face embedding storage with versioning",
+        "tables": [
+          "face_embeddings"
+        ]
+      },
+      "notifications": {
+        "description": "System notification delivery",
+        "tables": [
+          "system_notifications",
+          "notification_deliveries"
+        ]
+      }
+    },
+    "tables": {
+      "users": {
+        "category": "user_management",
+        "primary_key": "id",
+        "description": "Central authentication table containing all user accounts (students, lecturers, supervisors, data operators)",
+        "columns": {
+          "id": {
+            "type": "SERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ],
+            "description": "Unique user identifier"
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()",
+            "description": "Record creation timestamp (Vietnam time)"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()",
+            "description": "Record last update timestamp (Vietnam time)"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE",
+            "description": "Soft delete flag"
+          },
+          "username": {
+            "type": "VARCHAR(50)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Login username (Student ID or Employee ID)"
+          },
+          "email": {
+            "type": "VARCHAR(128)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "User email address"
+          },
+          "full_name": {
+            "type": "VARCHAR(150)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "User's full name"
+          },
+          "password_hash": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Hashed password (nullable for Google-only accounts)"
+          }
+        },
+        "indexes": [
+          "UNIQUE (username)",
+          "UNIQUE (email)"
+        ]
+      },
+      "password_reset_tokens": {
+        "category": "user_management",
+        "primary_key": "id",
+        "description": "Password reset tokens for account recovery (15-minute expiry)",
+        "columns": {
+          "id": {
+            "type": "SERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "expires_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "Token expiration timestamp"
+          },
+          "email": {
+            "type": "VARCHAR(128)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "token_hash": {
+            "type": "VARCHAR(100)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Hashed reset token"
+          }
+        },
+        "indexes": [
+          "UNIQUE (token_hash)"
+        ]
+      },
+      "roles": {
+        "category": "rbac",
+        "primary_key": "id",
+        "description": "System roles definition (STUDENT, LECTURER, SUPERVISOR, DATA_OPERATOR)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(100)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Role name (e.g., STUDENT, LECTURER, SUPERVISOR, DATA_OPERATOR)"
+          }
+        },
+        "indexes": [
+          "UNIQUE (name)"
+        ]
+      },
+      "permissions": {
+        "category": "rbac",
+        "primary_key": "id",
+        "description": "System permissions catalog (~100+ granular permissions)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(100)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Permission name (e.g., USER_CREATE, SEMESTER_READ)"
+          }
+        },
+        "indexes": [
+          "UNIQUE (name)"
+        ]
+      },
+      "user_roles": {
+        "category": "rbac",
+        "primary_key": [
+          "user_id",
+          "role_id"
+        ],
+        "description": "Many-to-many junction table between users and roles",
+        "columns": {
+          "user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "role_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "roles(id)",
+              "on_delete": "CASCADE"
+            }
+          }
+        },
+        "indexes": [
+          "PRIMARY KEY (user_id, role_id)"
+        ]
+      },
+      "role_permissions": {
+        "category": "rbac",
+        "primary_key": [
+          "role_id",
+          "permission_id"
+        ],
+        "description": "Many-to-many junction table between roles and permissions",
+        "columns": {
+          "role_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "roles(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "permission_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "permissions(id)",
+              "on_delete": "CASCADE"
+            }
+          }
+        },
+        "indexes": [
+          "PRIMARY KEY (role_id, permission_id)"
+        ]
+      },
+      "student_profiles": {
+        "category": "user_profiles",
+        "primary_key": "user_id",
+        "description": "Extended profile for students with major and roll number",
+        "columns": {
+          "user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "major_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "majors(id)"
+            }
+          },
+          "roll_number": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Student roll number (format: 2 uppercase letters + 6 digits, e.g., HE180314)"
+          },
+          "base_photo_url": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Avatar photo URL for visual comparison"
+          }
+        },
+        "indexes": [
+          "UNIQUE (roll_number)"
+        ]
+      },
+      "staff_profiles": {
+        "category": "user_profiles",
+        "primary_key": "user_id",
+        "description": "Extended profile for staff (lecturers, supervisors, data operators)",
+        "columns": {
+          "user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "staff_code": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "Staff employee code"
+          }
+        },
+        "indexes": [
+          "UNIQUE (staff_code)"
+        ]
+      },
+      "majors": {
+        "category": "academic_structure",
+        "primary_key": "id",
+        "description": "Academic majors/programs (e.g., Software Engineering, AI)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(150)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          },
+          "code": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          }
+        },
+        "indexes": [
+          "UNIQUE (code)",
+          "UNIQUE (name)"
+        ]
+      },
+      "semesters": {
+        "category": "academic_structure",
+        "primary_key": "id",
+        "description": "Academic semesters (e.g., Fall2024, Spring2025)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          },
+          "code": {
+            "type": "VARCHAR(10)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          },
+          "start_date": {
+            "type": "DATE",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "end_date": {
+            "type": "DATE",
+            "constraints": [
+              "NOT NULL"
+            ]
+          }
+        },
+        "indexes": [
+          "UNIQUE (code)",
+          "UNIQUE (name)"
+        ]
+      },
+      "subjects": {
+        "category": "academic_structure",
+        "primary_key": "id",
+        "description": "Courses/subjects (e.g., Database Systems, Web Development)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(150)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "code": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          }
+        },
+        "indexes": [
+          "UNIQUE (code)"
+        ]
+      },
+      "subject_majors": {
+        "category": "academic_structure",
+        "primary_key": [
+          "subject_id",
+          "major_id"
+        ],
+        "description": "Many-to-many relationship between subjects and majors",
+        "columns": {
+          "subject_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "subjects(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "major_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "majors(id)",
+              "on_delete": "CASCADE"
+            }
+          }
+        },
+        "indexes": [
+          "PRIMARY KEY (subject_id, major_id)"
+        ]
+      },
+      "classes": {
+        "category": "academic_structure",
+        "primary_key": "id",
+        "description": "Class instances (Subject + Semester combination)",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "subject_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "subjects(id)"
+            }
+          },
+          "semester_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "semesters(id)"
+            }
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "code": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          }
+        },
+        "unique_constraints": [
+          "UNIQUE (subject_id, semester_id, code)"
+        ],
+        "indexes": [
+          "idx_classes_subject_semester_code: UNIQUE (subject_id, semester_id, code)",
+          "idx_classes_semester_id: (semester_id)",
+          "idx_classes_subject_id: (subject_id)"
+        ]
+      },
+      "enrollments": {
+        "category": "academic_structure",
+        "primary_key": [
+          "class_id",
+          "student_user_id"
+        ],
+        "description": "Student enrollment in classes. is_enrolled=FALSE is withdrawal (not soft delete)",
+        "columns": {
+          "class_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "classes(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "student_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "is_enrolled": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE",
+            "description": "Enrollment status (NOT soft delete - withdrawn students preserve historical attendance)"
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          }
+        },
+        "indexes": [
+          "PRIMARY KEY (class_id, student_user_id)",
+          "idx_enrollments_class_id_enrolled: (class_id, is_enrolled)",
+          "idx_enrollments_student_user_id: (student_user_id)"
+        ]
+      },
+      "rooms": {
+        "category": "infrastructure",
+        "primary_key": "id",
+        "description": "Physical rooms/classrooms",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(150)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          },
+          "location": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NULL"
+            ]
+          }
+        },
+        "indexes": [
+          "UNIQUE (name)"
+        ]
+      },
+      "cameras": {
+        "category": "infrastructure",
+        "primary_key": "id",
+        "description": "IP cameras installed in rooms for attendance monitoring",
+        "columns": {
+          "id": {
+            "type": "SMALLSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "room_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "rooms(id)"
+            }
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "name": {
+            "type": "VARCHAR(150)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ]
+          },
+          "rtsp_url": {
+            "type": "VARCHAR(512)",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "description": "RTSP stream URL for recognition service"
+          }
+        },
+        "indexes": [
+          "UNIQUE (name)",
+          "UNIQUE (rtsp_url)"
+        ]
+      },
+      "slots": {
+        "category": "scheduling",
+        "primary_key": "id",
+        "description": "Central slot scheduling table supporting 3 categories: LECTURE, LECTURE_WITH_PT, FINAL_EXAM. Each category has independent session management.",
+        "business_logic": "LECTURE: class_id NOT NULL, uses regular session fields only. LECTURE_WITH_PT: class_id NOT NULL, uses BOTH regular and exam session fields INDEPENDENTLY. FINAL_EXAM: class_id NULL + semester_id NOT NULL, uses exam session fields only.",
+        "columns": {
+          "id": {
+            "type": "SERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "start_time": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "Vietnam local time (no timezone offset)"
+          },
+          "end_time": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "Vietnam local time (no timezone offset)"
+          },
+          "class_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NULL"
+            ],
+            "foreign_key": {
+              "references": "classes(id)"
+            },
+            "description": "NULL for FINAL_EXAM, NOT NULL for LECTURE/LECTURE_WITH_PT"
+          },
+          "semester_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "semesters(id)"
+            }
+          },
+          "room_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "rooms(id)"
+            }
+          },
+          "staff_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)"
+            },
+            "description": "Assigned lecturer or supervisor"
+          },
+          "slot_category": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "check": "IN ('LECTURE', 'LECTURE_WITH_PT', 'FINAL_EXAM')"
+          },
+          "title": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NULL"
+            ]
+          },
+          "description": {
+            "type": "TEXT",
+            "constraints": [
+              "NULL"
+            ]
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "session_status": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "'NOT_STARTED'",
+            "check": "IN ('NOT_STARTED', 'RUNNING', 'STOPPED')",
+            "description": "Regular lecture session status"
+          },
+          "scan_count": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "0",
+            "description": "Regular session scan counter"
+          },
+          "last_session_stopped_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Regular session last stop timestamp"
+          },
+          "exam_session_status": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "'NOT_STARTED'",
+            "check": "IN ('NOT_STARTED', 'RUNNING', 'STOPPED')",
+            "description": "Exam/PT session status"
+          },
+          "exam_scan_count": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "0",
+            "description": "Exam session scan counter"
+          },
+          "last_exam_session_stopped_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Exam session last stop timestamp"
+          }
+        },
+        "indexes": [
+          "idx_slots_class_id: (class_id)",
+          "idx_slots_semester_id: (semester_id)",
+          "idx_slots_staff_user_id: (staff_user_id)",
+          "idx_slots_room_id: (room_id)",
+          "idx_slots_start_time: (start_time)",
+          "idx_slots_session_status: (session_status)"
+        ]
+      },
+      "attendance_records": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Regular lecture attendance records (for LECTURE and LECTURE_WITH_PT slots)",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "recorded_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "student_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "slot_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "slots(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "status": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "check": "IN ('not_yet', 'present', 'absent')"
+          },
+          "method": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "check": "IN ('auto', 'manual', 'system_finalize')",
+            "description": "auto=face recognition, manual=lecturer override, system_finalize=bulk rules"
+          },
+          "remark": {
+            "type": "TEXT",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Optional remark for attendance notes"
+          },
+          "needs_review": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "FALSE",
+            "description": "Flag for records needing lecturer review"
+          }
+        },
+        "unique_constraints": [
+          "uk_attendance_slot_student: UNIQUE (slot_id, student_user_id)"
+        ],
+        "indexes": [
+          "idx_attendance_records_student_slot: UNIQUE (student_user_id, slot_id)",
+          "idx_attendance_records_slot_id: (slot_id)",
+          "idx_attendance_records_status: (status)",
+          "idx_attendance_records_needs_review: (slot_id, needs_review) WHERE needs_review=TRUE (partial)"
+        ]
+      },
+      "regular_attendance_evidences": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Temporary evidence images for regular attendance (scheduled for 30-day cleanup)",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "attendance_record_id": {
+            "type": "BIGINT",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "foreign_key": {
+              "references": "attendance_records(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "image_url": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          }
+        },
+        "indexes": [
+          "UNIQUE (attendance_record_id)"
+        ]
+      },
+      "exam_attendance": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Exam/PT attendance records (for LECTURE_WITH_PT and FINAL_EXAM slots)",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "recorded_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "student_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "slot_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "slots(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "status": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "check": "IN ('not_yet', 'present', 'absent')"
+          },
+          "method": {
+            "type": "VARCHAR(20)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "check": "IN ('auto', 'manual', 'system_finalize')"
+          },
+          "remark": {
+            "type": "TEXT",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "Optional remark for attendance notes"
+          },
+          "needs_review": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "FALSE",
+            "description": "Flag for records needing supervisor review"
+          }
+        },
+        "unique_constraints": [
+          "uk_exam_attendance_slot_student: UNIQUE (slot_id, student_user_id)"
+        ],
+        "indexes": [
+          "idx_exam_attendance_student_slot: UNIQUE (student_user_id, slot_id)",
+          "idx_exam_attendance_slot_id: (slot_id)",
+          "idx_exam_attendance_status: (status)",
+          "idx_exam_attendance_needs_review: (slot_id, needs_review) WHERE needs_review=TRUE (partial)"
+        ]
+      },
+      "exam_attendance_evidences": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Temporary evidence images for exam attendance (scheduled for 30-day cleanup)",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "exam_attendance_id": {
+            "type": "BIGINT",
+            "constraints": [
+              "NOT NULL",
+              "UNIQUE"
+            ],
+            "foreign_key": {
+              "references": "exam_attendance(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "image_url": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          }
+        },
+        "indexes": [
+          "UNIQUE (exam_attendance_id)"
+        ]
+      },
+      "exam_slot_subjects": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Step 1 in FINAL_EXAM workflow: Define which subjects are tested in which exam slots. Soft delete via is_active.",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "slot_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "slots(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "subject_id": {
+            "type": "SMALLINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "subjects(id)"
+            }
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE",
+            "description": "Soft delete to preserve audit trail"
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "deactivated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NULL"
+            ]
+          },
+          "deactivated_by_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)"
+            }
+          }
+        },
+        "unique_constraints": [
+          "UNIQUE (slot_id, subject_id)"
+        ],
+        "indexes": [
+          "idx_exam_slot_subjects_slot_subject: UNIQUE (slot_id, subject_id)",
+          "idx_exam_slot_subjects_slot_id: (slot_id)",
+          "idx_exam_slot_subjects_active: (slot_id, is_active) WHERE is_active=TRUE (partial)"
+        ]
+      },
+      "exam_slot_participants": {
+        "category": "attendance_tracking",
+        "primary_key": "id",
+        "description": "Step 2 in FINAL_EXAM workflow: Assign students to specific subjects within exam slots",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "exam_slot_subject_id": {
+            "type": "BIGINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "exam_slot_subjects(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "student_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "is_enrolled": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE",
+            "description": "Enrollment status for this exam"
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          }
+        },
+        "unique_constraints": [
+          "UNIQUE (exam_slot_subject_id, student_user_id)"
+        ],
+        "indexes": [
+          "idx_exam_participants_slot_subject_student: UNIQUE (exam_slot_subject_id, student_user_id)",
+          "idx_exam_participants_student_user_id: (student_user_id)"
+        ]
+      },
+      "face_embeddings": {
+        "category": "face_recognition",
+        "primary_key": "id",
+        "description": "Face embedding vectors (512-dim) for face recognition. Versioned with retention of last 3 versions.",
+        "columns": {
+          "id": {
+            "type": "SERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "student_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "version": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "Version number (incremented on each import, keep last 3)"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "FALSE",
+            "description": "Only one embedding per student is active"
+          },
+          "embedding_vector": {
+            "type": "vector(512)",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "description": "512-dimensional face embedding (pgvector type)"
+          }
+        },
+        "indexes": [
+          "idx_face_embeddings_student_active: UNIQUE (student_user_id) WHERE is_active=TRUE (partial)",
+          "idx_face_embeddings_vector: USING ivfflat (embedding_vector vector_cosine_ops) WITH (lists=100)"
+        ],
+        "special_notes": "IVFFlat index optimized for ~10,000 students. Quality validation performed during embedding generation."
+      },
+      "system_notifications": {
+        "category": "notifications",
+        "primary_key": "id",
+        "description": "System-generated notifications (templates)",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          },
+          "notification_type": {
+            "type": "VARCHAR(50)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "title": {
+            "type": "VARCHAR(255)",
+            "constraints": [
+              "NOT NULL"
+            ]
+          },
+          "content": {
+            "type": "TEXT",
+            "constraints": [
+              "NOT NULL"
+            ]
+          }
+        },
+        "indexes": [
+          "idx_system_notifications_type: (notification_type)"
+        ]
+      },
+      "notification_deliveries": {
+        "category": "notifications",
+        "primary_key": "id",
+        "description": "Notification delivery records to specific users with read tracking",
+        "columns": {
+          "id": {
+            "type": "BIGSERIAL",
+            "constraints": [
+              "NOT NULL",
+              "PRIMARY KEY"
+            ]
+          },
+          "created_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "updated_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "NOW()"
+          },
+          "read_at": {
+            "type": "TIMESTAMP",
+            "constraints": [
+              "NULL"
+            ],
+            "description": "NULL means unread"
+          },
+          "notification_id": {
+            "type": "BIGINT",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "system_notifications(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "recipient_user_id": {
+            "type": "INTEGER",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "foreign_key": {
+              "references": "users(id)",
+              "on_delete": "CASCADE"
+            }
+          },
+          "is_active": {
+            "type": "BOOLEAN",
+            "constraints": [
+              "NOT NULL"
+            ],
+            "default": "TRUE"
+          }
+        },
+        "indexes": [
+          "idx_notification_deliveries_recipient_unread: (recipient_user_id, read_at)",
+          "idx_notification_deliveries_recipient_created: (recipient_user_id, created_at)"
+        ]
+      }
+    },
+    "foreign_keys_summary": {
+      "total": 32,
+      "user_management_rbac": [
+        "user_roles.user_id → users(id) CASCADE",
+        "user_roles.role_id → roles(id) CASCADE",
+        "role_permissions.role_id → roles(id) CASCADE",
+        "role_permissions.permission_id → permissions(id) CASCADE",
+        "student_profiles.user_id → users(id) CASCADE"
+      ],
+      "profiles_academic": [
+        "student_profiles.major_id → majors(id)",
+        "staff_profiles.user_id → users(id) CASCADE",
+        "subject_majors.subject_id → subjects(id) CASCADE",
+        "subject_majors.major_id → majors(id) CASCADE",
+        "classes.subject_id → subjects(id)",
+        "classes.semester_id → semesters(id)"
+      ],
+      "enrollments_infrastructure": [
+        "enrollments.class_id → classes(id) CASCADE",
+        "enrollments.student_user_id → users(id) CASCADE",
+        "cameras.room_id → rooms(id)"
+      ],
+      "slots": [
+        "slots.class_id → classes(id) (nullable)",
+        "slots.semester_id → semesters(id)",
+        "slots.room_id → rooms(id)",
+        "slots.staff_user_id → users(id)"
+      ],
+      "regular_attendance": [
+        "attendance_records.student_user_id → users(id) CASCADE",
+        "attendance_records.slot_id → slots(id) CASCADE",
+        "regular_attendance_evidences.attendance_record_id → attendance_records(id) CASCADE"
+      ],
+      "exam_attendance": [
+        "exam_attendance.student_user_id → users(id) CASCADE",
+        "exam_attendance.slot_id → slots(id) CASCADE",
+        "exam_attendance_evidences.exam_attendance_id → exam_attendance(id) CASCADE"
+      ],
+      "exam_slots_participants": [
+        "exam_slot_subjects.slot_id → slots(id) CASCADE",
+        "exam_slot_subjects.subject_id → subjects(id)",
+        "exam_slot_subjects.deactivated_by_user_id → users(id)",
+        "exam_slot_participants.exam_slot_subject_id → exam_slot_subjects(id) CASCADE",
+        "exam_slot_participants.student_user_id → users(id) CASCADE"
+      ],
+      "face_recognition_notifications": [
+        "face_embeddings.student_user_id → users(id) CASCADE",
+        "notification_deliveries.notification_id → system_notifications(id) CASCADE",
+        "notification_deliveries.recipient_user_id → users(id) CASCADE"
+      ]
+    }
+  },
+  "functional_catalog": {
+    "function_catalog": {
+      "common_functions": [
+        "Role-based access control",
+        "Import/Export data",
+        "System notifications",
+        "Search & filter",
+        "Role-based dashboard",
+        "Reports & file export"
+      ],
+      "student_functions": [
+        "View personal schedule (class schedule, exam schedule)",
+        "View own attendance history",
+        "View slot details and information",
+        "Receive system notifications"
+      ],
+      "lecturer_functions": [
+        "View personal teaching schedule",
+        "Manage attendance sessions (start/stop/rescan)",
+        "Manually update attendance status",
+        "Add and manage attendance remarks",
+        "View attendance reports for own slots",
+        "View comprehensive attendance reports by class/semester",
+        "Export attendance reports"
+      ],
+      "supervisor_functions": [
+        "View personal exam supervision schedule",
+        "Manage exam attendance sessions (start/stop/rescan)",
+        "Manually update exam attendance status",
+        "Add and manage exam attendance remarks",
+        "View attendance reports for own exam slots",
+        "Export exam attendance reports"
+      ],
+      "data_operator_functions": [
+        "Manage Semesters (create, update, deactivate, import via CSV)",
+        "Manage Majors (create, update, deactivate, import via CSV)",
+        "Manage Subjects (create, update, deactivate, import via CSV)",
+        "Manage Classes (create, update, deactivate, import via CSV)",
+        "Manage Slots (create, update, deactivate, import via CSV)",
+        "Manage Rooms (create, update, deactivate, import via CSV)",
+        "Manage Cameras (create, update, deactivate, import via CSV)",
+        "Manage Students (create, update, deactivate, import via CSV)",
+        "Manage Staff (create, update, deactivate, import via CSV)",
+        "Manage class enrollments (add/remove students, import via CSV)",
+        "Manage final exam participants (assign students to exam slots)",
+        "Bulk import student identity data (photos and face embeddings)",
+        "View and export attendance reports",
+        "Query and reconcile data"
+      ]
+    },
+    "screen_catalog": {
+      "common_screens": {
+        "SCR_LOGIN": {
+          "title": "Login Screen",
+          "features": [
+            "Google login",
+            "Username and Password login form",
+            "'Forgot Password?' link"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Admin Portal"
+          ]
+        },
+        "SCR_FORGOT_PASSWORD": {
+          "title": "Forgot Password Screen",
+          "features": [
+            "Email input form to receive reset link",
+            "'Send Request' button"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Admin Portal"
+          ]
+        },
+        "SCR_RESET_PASSWORD": {
+          "title": "Reset Password Screen",
+          "features": [
+            "New password and confirm password input form",
+            "'Reset Password' button"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Admin Portal"
+          ]
+        },
+        "SCR_HOME": {
+          "title": "Home/Landing Screen",
+          "features": [
+            "Smart routing based on authentication status",
+            "Redirect to role-appropriate dashboard if logged in",
+            "Redirect to login page if not authenticated",
+            "Loading spinner during route determination"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Supervisor Web",
+            "Admin Portal"
+          ]
+        },
+        "SCR_NOT_FOUND": {
+          "title": "404 Not Found Screen",
+          "features": [
+            "Display '404 - Page Not Found' message",
+            "Standard error page for invalid routes",
+            "User-friendly error message"
+          ],
+          "applies_to": [
+            "Student Web",
+            "Lecturer Web",
+            "Supervisor Web",
+            "Admin Portal"
+          ]
+        }
+      },
+      "web_student_screens": {
+        "SCR_STUDENT_DASHBOARD": {
+          "title": "Dashboard",
+          "features": [
+            "View upcoming lecture/exam slots",
+            "Quick statistics (attendance rate, next class, etc.)",
+            "Shortcuts to main functions"
+          ]
+        },
+        "SCR_STUDENT_SCHEDULE": {
+          "title": "Schedule (Calendar)",
+          "features": [
+            "Semester selector",
+            "Filter Lecture/Exam schedule by subject",
+            "View schedule in week format (calendar grid Monday-Sunday)",
+            "Week navigation with Previous/Next/Today buttons",
+            "Aggregates and displays a unified schedule from both class enrollments (LECTURE/LECTURE_WITH_PT) and independent exam registrations (FINAL_EXAM).",
+            "For FINAL_EXAM slots, the API queries through 'exam_slot_participants' and 'exam_slot_subjects' to display the exact Subject name(s) that the student must take the exam for in that slot.",
+            "Click on slot to view details (time, room, lecturer, etc.)",
+            "URL parameters for date, semester, and subject filters"
+          ]
+        },
+        "SCR_STUDENT_ATTENDANCE_HISTORY": {
+          "title": "Attendance History",
+          "features": [
+            "View personal attendance history by semester/class",
+            "Display attendance status for each slot (Present/Absent/Not Yet)",
+            "View attendance statistics (total present, absent, attendance rate)",
+            "Filter by semester, slot category (LECTURE/LECTURE_WITH_PT/FINAL_EXAM), and attendance status",
+            "View exam eligibility status based on attendance rate",
+            "Pagination support for large attendance record lists",
+            "URL parameters for page, semester, category, and status filters",
+            "Display detailed information for each record: subject, class, slot details, room, lecturer, attendance method, and remarks"
+          ]
+        },
+        "SCR_STUDENT_PROFILE": {
+          "title": "Profile Management",
+          "features": [
+            "View personal information (Name, Student ID, Email, Major, etc.)",
+            "View avatar/profile photo with fallback to initials",
+            "Tabbed interface: Personal Info tab and Security tab",
+            "All personal information fields are read-only (managed by Data Operator)",
+            "Change password via Security tab"
+          ]
+        }
+      },
+      "web_lecturer_screens": {
+        "SCR_LECTURER_DASHBOARD": {
+          "title": "Dashboard",
+          "features": [
+            "Semester filter dropdown with 'All Semesters' option and auto-select current semester",
+            "Statistics cards: Total Classes, Total Slots, Finalized Slots (with completion %), Average Attendance Rate, Pending Actions",
+            "My Classes section showing list of classes with: Class code and semester, Subject information, Stats (total/finalized/pending slots, student count), Progress bars for attendance rate and completion rate",
+            "Real-time data updates when changing semester filter"
+          ]
+        },
+        "SCR_LECTURER_SCHEDULE_CALENDAR": {
+          "title": "Schedule (Calendar View)",
+          "features": [
+            "Display teaching schedule in week format calendar grid (Monday-Sunday, week view only)",
+            "Week navigation with Previous/Next/Today buttons and date range display",
+            "Filter by slot category (LECTURE, LECTURE_WITH_PT)",
+            "Click on a slot to open detail dialog",
+            "Color-coded by slot type and status"
+          ]
+        },
+        "SCR_LECTURER_SCHEDULE_TABLE": {
+          "title": "Schedule (Table View)",
+          "features": [
+            "View teaching schedule in paginated table format",
+            "Date range filter (start/end date with calendar picker)",
+            "Semester filter (auto-select current semester, with 'All Semesters' option)",
+            "Class and Subject filters (filtered by selected semester)",
+            "Advanced filters: Room filter, Sort controls (by start/end time, asc/desc order)",
+            "Cascading filters: Reset dependent filters when semester changes",
+            "Table columns: Time, Slot Category, Class code, Subject, Room, Actions",
+            "Row actions: Edit slot category (LECTURE ↔ LECTURE_WITH_PT only - lecturer cannot edit other slot properties), View Roster (navigate to attendance page)",
+            "Pagination controls with state preservation when navigating between pages"
+          ]
+        },
+        "SCR_LECTURER_ATTENDANCE": {
+          "title": "Attendance Management",
+          "features": [
+            "Tabbed interface for slots with both Regular and Exam attendance (LECTURE_WITH_PT, FINAL_EXAM slots have 2 tabs: Regular tab and Exam tab)",
+            "Single view (no tabs) for LECTURE-only slots",
+            "Tab mutual exclusion: Disable opposite tab when a session is running",
+            "Session controls: Start Session (trigger face recognition), Stop Session, Rescan (reset and restart recognition), Submit Attendance (finalize with bulk resolution for NOT_YET students)",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Display student roster with camera connection status",
+            "Roster table shows: Student avatar and info, Attendance status badges (color-coded: Present/Absent/Not Yet), Recognition method indicator, Evidence images (click to view side-by-side comparison), Remarks, Edit actions",
+            "Inline editing with pending changes tracking (independent for Regular and Exam)",
+            "Edit window: Can edit during session or until end of slot date (Vietnam timezone), expired after that",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Bulk update dialog for processing multiple students at once"
+          ],
+          "notes": [
+            "This screen is accessed from Schedule Calendar or Schedule Table screens",
+            "Used during the slot session to conduct attendance",
+            "Regular and Exam attendance are completely independent with separate controls and data"
+          ]
+        },
+        "SCR_LECTURER_CLASS_SUMMARY": {
+          "title": "Class Attendance Summary Report",
+          "features": [
+            "Two-stage filter: Semester dropdown (auto-select current), then Class dropdown (filtered by semester)",
+            "Overview cards showing: Total Students, Enrolled Students, Total Slots, Overall Attendance Rate",
+            "Attendance Matrix: Grid view with students (rows) × slots (columns), color-coded cells (green=Present, red=Absent, gray=Not Yet), click slot column to view slot details, heatmap visualization",
+            "Attendance Overview section with slot-by-slot statistics and trend charts",
+            "Student Attendance Table with sortable columns: Roll Number, Name, Email, Major, Attendance summary (present/absent/not yet counts, attendance rate %)",
+            "Search functionality to filter students",
+            "Slot Detail Modal (triggered by clicking matrix column): Shows slot info, attendance breakdown, student list for that slot",
+            "Display calculated absence rate and exam eligibility status for each student (based on LECTURE slots only)",
+            "Visually highlight students ineligible for exam"
+          ]
+        },
+        "SCR_LECTURER_PROFILE": {
+          "title": "Profile Management",
+          "features": [
+            "Profile header with avatar (fallback to initials), name, staff code, and role badges",
+            "Note: 'Staff profile managed by admin' (camera button for avatar upload currently disabled)",
+            "Tabbed interface: Personal Information tab and Security Settings tab",
+            "Personal Information tab (read-only): Full Name, Staff Code, Username, Email, Account Created, Last Updated - all managed by Data Operator",
+            "Security Settings tab: Change Password functionality with validation"
+          ]
+        }
+      },
+      "web_supervisor_screens": {
+        "SCR_SUPERVISOR_DASHBOARD": {
+          "title": "Dashboard",
+          "features": [
+            "Semester filter dropdown with 'All Semesters' option and auto-select current semester",
+            "My Supervision Stats section (7 cards): Total Slots Supervised, Completed Slots (with % completion), Upcoming Slots, Total Exam Slots, Total Students Supervised, My Average Attendance Rate, System Wide Attendance Rate",
+            "System Insights section (6 cards): Active Lecturers, Active Classes, System Attendance Rate, Upcoming Exam Slots, Pending Remarks, Low Attendance Classes",
+            "Real-time data updates when changing semester filter"
+          ]
+        },
+        "SCR_SUPERVISOR_SCHEDULE_CALENDAR": {
+          "title": "Schedule (Calendar View)",
+          "features": [
+            "Display exam supervision schedule in week format calendar grid (Monday-Sunday, week view only)",
+            "Week navigation with Previous/Next/Today buttons and date range display",
+            "Responsive design: Desktop grid layout + Mobile vertical list view",
+            "Filter by FINAL_EXAM category only (supervisor only supervises exams)",
+            "Click on a slot to open detail dialog",
+            "Color-coded by slot status with 'Today' indicator"
+          ]
+        },
+        "SCR_SUPERVISOR_SCHEDULE_TABLE": {
+          "title": "Schedule (Table View)",
+          "features": [
+            "View exam supervision schedule in paginated table format",
+            "Date range filter (start/end date with calendar picker)",
+            "Semester filter (auto-select current semester, with 'All Semesters' option)",
+            "Advanced filters: Room filter, Sort controls (by start/end time, asc/desc order)",
+            "Cascading filters: Reset room when semester changes",
+            "Table columns: Room (with location tooltip), Semester, Subjects (badge with count), Category, Time, Attendance stats (color-coded), Actions",
+            "Actions dropdown per row: View Detail (opens dialog), Manage Attendance (navigate to attendance page), View Report",
+            "Auto-open detail dialog if slotId in URL",
+            "Pagination controls with state preservation",
+            "Filter by FINAL_EXAM category only (supervisor only handles exam slots)"
+          ]
+        },
+        "SCR_SUPERVISOR_ATTENDANCE": {
+          "title": "Exam Attendance Management",
+          "features": [
+            "Single view interface (NO TABS - only Exam attendance, unlike lecturer attendance which has tabs)",
+            "Display student roster for selected exam slot (loaded from exam_slot_participants)",
+            "Display camera names and connection status of all cameras in the assigned room",
+            "Session controls: Start Session (trigger face recognition), Stop Session, Rescan (reset and restart recognition), Submit Attendance (finalize with bulk resolution for NOT_YET students)",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Roster table shows: Student avatar and info, Attendance status badges (color-coded: Present/Absent/Not Yet), Recognition method indicator, Evidence images (click to view side-by-side comparison), Remarks, Edit actions",
+            "Inline editing with pending changes tracking (Exam attendance only)",
+            "Edit window: Can edit during session or until end of slot date (Vietnam timezone), expired after that",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Bulk update dialog for processing multiple students at once",
+            "Note: Exam attendance behavior differs from regular attendance - PRESENT students remain PRESENT on rescan (no downgrade, trusts early exam completion)"
+          ],
+          "notes": [
+            "This screen is accessed from Schedule Calendar or Schedule Table screens",
+            "Used during the exam slot session to conduct attendance",
+            "Supervisor handles ONLY exam attendance (FINAL_EXAM slots), not regular lecture attendance"
+          ]
+        },
+        "SCR_SUPERVISOR_EXAM_SUMMARY": {
+          "title": "Exam Slot Attendance Summary Report",
+          "features": [
+            "Filter to select Semester and Exam Slot",
+            "Subject filter dropdown (shows subjects assigned to the exam slot)",
+            "Display summary report in table format: students by rows, attendance status by columns",
+            "Display attendance status (Present/Absent) for the selected exam slot",
+            "View attendance statistics for the exam slot",
+            "Function to export summary report to file (CSV, Excel)"
+          ]
+        },
+        "SCR_SUPERVISOR_PROFILE": {
+          "title": "Profile Management",
+          "features": [
+            "Profile header with avatar (fallback to initials), name, staff code, and role badges",
+            "Note: 'Staff profile managed by admin' (camera button for avatar upload currently disabled)",
+            "Tabbed interface: Personal Information tab and Security Settings tab",
+            "Personal Information tab (read-only): Full Name, Staff Code, Username, Email, Account Created, Last Updated - all managed by Data Operator",
+            "Security Settings tab: Change Password functionality with validation"
+          ]
+        },
+        "SCR_SUPERVISOR_REPORTS": {
+          "title": "Reports Dashboard",
+          "features": [
+            "Navigation hub for accessing different report types",
+            "Three report categories with cards: Exam Slots Reports (view and manage exam slot reports), Student Reports (access student attendance reports), Analytics (view comprehensive analytics)",
+            "Quick stats display (demo data): Total Slots, Completed, Students, Attendance Rate",
+            "Click card to navigate to respective report section"
+          ]
+        }
+      },
+      "web_admin_portal_screens": {
+        "SCR_ADMIN_DASHBOARD": {
+          "title": "Dashboard",
+          "features": [
+            "Semester filter dropdown with search functionality and auto-select current semester (based on date range)",
+            "URL state management (semesterId in query params)",
+            "Statistics cards filtered by selected semester: Total Classes (with active count), Total Students (with active count), Total Subjects, Total Lecturers, Total Slots, Completion Rate %, Average Students Per Class, Completed Classes",
+            "Real-time data updates when changing semester filter",
+            "Loading states with spinner during data fetching"
+          ]
+        },
+        "SCR_ADMIN_SEMESTER_MGMT": {
+          "title": "Semester Management",
+          "features": [
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Sort controls (by Name, Code, Start Date, End Date) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Start Date, End Date, Status badge",
+            "Row actions: Edit, View Classes (navigate to classes page with semester filter pre-applied)",
+            "Create semester dialog (name, code, start date, end date)",
+            "Edit semester dialog (update all fields, toggle active/inactive status)",
+            "Delete semester with confirmation dialog (may fail if dependencies exist: classes, slots)",
+            "Import from CSV (columns: code, name, start_date, end_date, status)",
+            "Export to CSV (all semesters data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name (1-20 characters), Code (1-10 characters), End date must be after Start date, Check duplicate code/name before create/update"
+          ]
+        },
+        "SCR_ADMIN_MAJOR_MGMT": {
+          "title": "Major Management",
+          "features": [
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Sort controls (by Name, Code) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Status badge",
+            "Row actions: Edit, View Subjects (navigate to subjects page with major filter pre-applied)",
+            "Create major dialog (name, code)",
+            "Edit major dialog (update name, code, toggle active/inactive status)",
+            "Delete major with confirmation dialog (may fail if dependencies exist: subjects, students)",
+            "Import from CSV (columns: code, name, status)",
+            "Export to CSV (all majors data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required with max length, Code required and unique with max length, Check duplicate code/name before create/update"
+          ]
+        },
+        "SCR_ADMIN_SUBJECT_MGMT": {
+          "title": "Subject Management",
+          "features": [
+            "Text search filter (name or code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Major filter (searchable popover showing all majors)",
+            "Sort controls (by Name, Code) with order selector (Ascending/Descending)",
+            "Table display with columns: Code, Name, Majors (displayed as clickable chips), Status badge",
+            "Click major code chip to navigate to majors page",
+            "Row actions: Edit",
+            "Create subject dialog (name, code, select multiple majors via checkbox list)",
+            "Edit subject dialog (update name, code, majors, toggle active/inactive status)",
+            "Delete subject with confirmation dialog (may fail if dependencies exist: classes, exam slots)",
+            "Import from CSV (columns: code, name, major_codes [comma-separated or single value], status)",
+            "Export to CSV (all subjects data with major codes)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name and Code required and unique, At least 1 major must be selected, major_codes in CSV accepts comma-separated values"
+          ],
+          "notes": [
+            "Subject has many-to-many relationship with majors - one subject can belong to multiple majors"
+          ]
+        },
+        "SCR_ADMIN_CLASS_MGMT": {
+          "title": "Class Management",
+          "features": [
+            "Text search filter (class code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Semester filter (required, searchable popover with all semesters)",
+            "Subject filter (searchable popover, filtered by selected semester)",
+            "Sort controls (by Code) with order selector (Ascending/Descending)",
+            "Cascading filters: Reset subject filter when semester changes",
+            "Table display with columns: Code, Subject (clickable link), Semester (clickable link), Status badge",
+            "Click subject to navigate to subjects page, click semester to navigate to semesters page",
+            "Row actions: Edit, View Slots (navigate to slots page with semester and class filters pre-applied), View Students (navigate to class students nested screen)",
+            "Create class dialog (code, select semester, select subject)",
+            "Edit class dialog (update code, semester, subject, toggle active/inactive status)",
+            "Delete class with confirmation dialog (may fail if dependencies exist: slots, enrollments)",
+            "Import dialog with 2 options: (1) Import Classes CSV (columns: code, subject_code, semester_code, status), (2) Import Enrollments CSV (columns: roll_number, class_code, semester_code)",
+            "Export to CSV (all classes data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Code unique within same semester and subject combination, Semester and Subject required and must be active"
+          ]
+        },
+        "SCR_ADMIN_CLASS_STUDENTS": {
+          "title": "Class Students Management",
+          "features": [
+            "Display stats: Total Enrolled count, Total Withdrawn count, Total Active Slots of the class",
+            "Text search filter (name, roll number, email, debounced 500ms)",
+            "Status filter dropdown (Active/Withdrawn/All checkboxes)",
+            "Sort controls (by Name, Roll Number, Enrolled Date) with order selector",
+            "Table display with columns: Roll Number, Full Name, Email, Major, Enrolled Date, Status badge",
+            "Row actions: View (opens dialog with full student details), Withdraw/Re-enroll (conditional based on current status)",
+            "Add student to class dialog (select from list of students in same semester, auto-filters out already-added students)",
+            "Withdraw student (sets isEnrolled = false, preserves attendance history, does not delete record)",
+            "Re-enroll student (sets isEnrolled = true, restores enrollment)",
+            "View student details dialog (shows full profile information)",
+            "Server-side pagination (10 items per page)",
+            "Enrollment modification disabled after semester ends",
+            "Validation rules: Cannot add duplicate enrollments, Can only add students if class is active and semester has not ended, Withdraw preserves all attendance history"
+          ],
+          "notes": [
+            "This is a nested screen accessed from Class Management via 'View Students' action",
+            "Route: /admin/classes/{id}/students",
+            "Breadcrumbs: Dashboard > Classes > {ClassCode}",
+            "Back navigation returns to /admin/classes with filter state restored"
+          ]
+        },
+        "SCR_ADMIN_SLOT_MGMT": {
+          "title": "Slot Management (Lecture Slots)",
+          "features": [
+            "Required semester filter (searchable popover, must select to see data)",
+            "Date range filter (start date - end date with calendar pickers, defaults to current week Monday-Sunday)",
+            "Class filter (filtered by selected semester, searchable popover)",
+            "Subject filter (searchable popover)",
+            "Advanced filters in popover: Room filter, Staff filter (lecturers only), Status filter, Sort controls (by Start Time, End Time, Category) with order selector",
+            "Table display with columns: Time range, Title, Class (clickable), Subject (clickable), Room (clickable), Staff name, Category badge (LECTURE in blue, LECTURE_WITH_PT in purple)",
+            "Click class/subject/room to navigate to respective management pages",
+            "Row actions: Edit, View Roster (navigate to slot roster nested screen), Delete (conditional - only within 30-minute window after creation)",
+            "Create slot dialog (title, description, start time, end time, category, select class, select room, select staff)",
+            "Edit slot dialog (update all fields except category cannot be changed for FINAL_EXAM slots)",
+            "Delete slot with confirmation (only allowed within 30 minutes after creation, otherwise blocked)",
+            "Import from CSV (columns: title, start_time, end_time, slot_category, class_code, semester_code, room_name, staff_username)",
+            "Export to CSV (all slots data)",
+            "Server-side pagination (10 items per page)",
+            "State preservation: Filter state saved to sessionStorage when navigating to roster, restored when returning",
+            "Validation rules: Start time must be before End time, Slot duration must be reasonable (15 min - 6 hours), No time conflicts for room/staff/class, Staff must have LECTURER role, Category cannot be FINAL_EXAM (managed in Exam screen)"
+          ],
+          "notes": [
+            "This is a top-level screen, route: /admin/slots",
+            "Only manages LECTURE and LECTURE_WITH_PT slots (excludes FINAL_EXAM)",
+            "Semester filter is required - no semester selection means no slots loaded",
+            "Default date range is current week (Monday-Sunday)"
+          ]
+        },
+        "SCR_ADMIN_SLOT_ROSTER": {
+          "title": "Slot Attendance Roster Management",
+          "features": [
+            "For LECTURE slots: Single attendance table (Regular attendance only, no tabs)",
+            "For LECTURE_WITH_PT slots: Tabbed interface with 2 tabs - Regular Attendance tab and Exam Attendance tab, each tab has independent session controls and data",
+            "Session mutual exclusion: Cannot run both Regular and Exam sessions simultaneously (disable opposite tab when a session is running)",
+            "Session controls per tab: Start Session (triggers face recognition), Stop Session (stops cameras), Rescan (resets all PRESENT to NOT_YET and restarts recognition), Submit Attendance (finalizes all NOT_YET students with resolution options)",
+            "Bulk finalization dialog: Mark all NOT_YET students as Absent or Mark all as Present",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Auto-refresh roster when students are detected by recognition service",
+            "Roster table columns: Student avatar and info (name, roll number, email), Attendance status badges (NOT_YET/PRESENT/ABSENT with color coding), Detection method indicator (Auto/Manual/System Finalize), Evidence image thumbnail (click to view), Remark field, Edit actions",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo from recognition",
+            "Inline editing: Change attendance status, add/edit remarks for individual students",
+            "Pending changes tracker: Saves multiple inline edits at once (batch update)",
+            "Edit window enforcement: Can edit until 23:59:59 Vietnam time of slot date, after that read-only mode",
+            "Manual edits preserve detection method as 'Manual'",
+            "Export attendance data to CSV",
+            "View attendance statistics for the slot (total, present count, absent count, not yet count, attendance rate %)"
+          ],
+          "notes": [
+            "This is a nested screen accessed from Slot Management via 'View Roster' action",
+            "Route: /admin/slots/{id}/roster",
+            "Breadcrumbs: Dashboard > Slots > {SlotTitle}",
+            "Back navigation returns to /admin/slots with filter state restored from sessionStorage",
+            "Face recognition only works when session is running",
+            "Evidence images are stored and can be reviewed later",
+            "Role-based permissions: DATA_OPERATOR has full access, LECTURER can access own slots, SUPERVISOR can access assigned exam slots"
+          ]
+        },
+        "SCR_ADMIN_EXAM_MGMT": {
+          "title": "Exam Management (Final Exam Slots)",
+          "features": [
+            "Required semester filter (searchable popover, must select to see data)",
+            "Date range filter (start date - end date with calendar pickers)",
+            "Subject filter (searchable popover, shows subjects assigned to semester)",
+            "Advanced filters in popover: Room filter, Staff filter (supervisors only), Status filter, Sort controls (by Start Time, End Time) with order selector",
+            "Table display with columns: Time range, Title, Subjects (displayed as multiple chips with count badge), Room (clickable), Supervisor name, Status badge",
+            "Click room to navigate to room management page",
+            "Row actions: Edit, Manage Participants (navigate to exam participants nested screen), View Roster (navigate to exam roster nested screen), Delete (with confirmation, may fail if dependencies exist)",
+            "Create exam dialog (title, description, start time, end time, select room, select supervisor, select multiple subjects via checkbox list)",
+            "Edit exam dialog (update all fields including subjects list)",
+            "Delete exam with confirmation dialog (may fail if participants or attendance data exists)",
+            "Import dialog with 2 options: (1) Import Exam Slots CSV (columns: title, start_time, end_time, room_name, supervisor_username, subject_codes [comma-separated]), (2) Import Exam Participants CSV (bulk add students to exams)",
+            "Export to CSV (all exam slots data with subject codes)",
+            "Server-side pagination (10 items per page, filters by slotCategory = FINAL_EXAM)",
+            "State preservation: Filter state saved to sessionStorage when navigating to participants/roster, restored when returning",
+            "Validation rules: Start time before End time, Slot duration reasonable, At least 1 subject required, No time conflicts for room/supervisor, Staff must have SUPERVISOR role, No class assignment (classId = null for FINAL_EXAM slots)"
+          ],
+          "notes": [
+            "This is a top-level screen, route: /admin/exams",
+            "Only manages FINAL_EXAM slots (independent from classes)",
+            "Exam slots are not tied to specific classes - students are added through participants screen",
+            "Multiple subjects can be assigned to one exam slot (many-to-many via exam_slot_subjects table)"
+          ]
+        },
+        "SCR_ADMIN_EXAM_PARTICIPANTS": {
+          "title": "Exam Participants Management",
+          "features": [
+            "Display stats: Total Enrolled count, Total Withdrawn count, Total count",
+            "Text search filter (name, roll number, email, debounced 500ms)",
+            "Status filter dropdown (Enrolled/Withdrawn checkboxes)",
+            "Table display with columns: Roll Number, Full Name, Email, Subject, Status badge, Enrolled Date",
+            "Row actions: Withdraw/Re-enroll (conditional based on status), Remove (permanent delete with warning)",
+            "Smart bulk add dialog: Select exam subject from dropdown (shows subjects assigned to this exam slot from exam_slot_subjects table), Auto-load students enrolled in that subject from semester, Filter out already-added students, Multi-select students via checkbox list, Batch create participants",
+            "Withdraw participant (sets isEnrolled = false, preserves attendance history)",
+            "Re-enroll participant (sets isEnrolled = true, restores enrollment)",
+            "Remove participant (permanent delete with confirmation dialog)",
+            "Import exam participants from CSV (columns: student_id, subject_code)",
+            "Export participant list to CSV",
+            "Download CSV template",
+            "No pagination (loads all participants for the exam slot)"
+          ],
+          "notes": [
+            "This is a nested screen accessed from Exam Management via 'Manage Participants' action",
+            "Route: /admin/exams/{id}/participants",
+            "Breadcrumbs: Dashboard > Exams > {ExamTitle}",
+            "Back navigation returns to /admin/exams with filter state restored from sessionStorage",
+            "This screen manages WHO is taking the exam in this slot - similar to class enrollment but for independent exams",
+            "Smart bulk add automatically filters eligible students by subject enrollment to simplify participant management"
+          ]
+        },
+        "SCR_ADMIN_EXAM_ROSTER": {
+          "title": "Exam Attendance Roster Management",
+          "features": [
+            "Single view interface (NO TABS - only Exam attendance, no Regular tab like LECTURE_WITH_PT slots)",
+            "Display student roster loaded from exam_slot_participants table",
+            "Session controls: Start Session (triggers face recognition), Stop Session, Rescan, Submit Attendance (finalizes all NOT_YET students)",
+            "Bulk finalization dialog: Mark all NOT_YET students as Absent or Mark all as Present",
+            "Real-time attendance updates via Server-Sent Events (SSE) with connection status indicator",
+            "Auto-refresh roster when students are detected by recognition service",
+            "Roster table columns: Student avatar and info (name, roll number, email), Attendance status badges (NOT_YET/PRESENT/ABSENT with color coding), Detection method indicator (Auto/Manual/System Finalize), Evidence image thumbnail (click to view), Remark field, Edit actions",
+            "Evidence viewer dialog: Side-by-side comparison of student avatar vs captured photo",
+            "Inline editing: Change attendance status, add/edit remarks",
+            "Pending changes tracker: Batch update for multiple inline edits",
+            "Edit window enforcement: Can edit until 23:59:59 Vietnam time of slot date, after that read-only mode",
+            "Export attendance data to CSV",
+            "View attendance statistics (total, present count, absent count, not yet count, attendance rate %)"
+          ],
+          "notes": [
+            "This is a nested screen accessed from Exam Management via 'View Roster' action",
+            "Route: /admin/exams/{id}/roster",
+            "Breadcrumbs: Dashboard > Exams > {ExamTitle}",
+            "Back navigation returns to /admin/exams with filter state restored",
+            "Reuses SlotRosterTable component with attendanceType='EXAM' parameter",
+            "Exam attendance behavior differs from regular attendance - PRESENT students remain PRESENT on rescan (trusts early exam completion)"
+          ]
+        },
+        "SCR_ADMIN_ROOM_MGMT": {
+          "title": "Room Management",
+          "features": [
+            "Text search filter (name or location, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Camera filter dropdown (Has Camera/No Camera/All) to filter rooms by camera availability",
+            "Sort controls (by Name, Location) with order selector (Ascending/Descending)",
+            "Table display with columns: Name, Location, Camera Count (number of cameras assigned to room), Status badge",
+            "Row actions: Edit, View Cameras (navigate to cameras page with room filter pre-applied)",
+            "Create room dialog (name, location)",
+            "Edit room dialog (update name, location, toggle active/inactive status)",
+            "Delete room with confirmation dialog (may fail if dependencies exist: cameras, slots assigned to this room)",
+            "Import from CSV (columns: name, location, status)",
+            "Export to CSV (all rooms data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required and unique, Location optional"
+          ],
+          "notes": [
+            "Rooms with cameras are prioritized for slots requiring face recognition",
+            "Camera count is displayed to help admins identify which rooms have camera coverage"
+          ]
+        },
+        "SCR_ADMIN_CAMERA_MGMT": {
+          "title": "Camera Management",
+          "features": [
+            "Text search filter (camera name, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Room filter (searchable popover showing all rooms)",
+            "Sort controls (by Name) with order selector (Ascending/Descending)",
+            "Table display with columns: Camera Name, RTSP URL, Room (clickable link to room page), Status badge",
+            "Click room name to navigate to room management page",
+            "Row actions: Edit",
+            "Create camera dialog (name, RTSP URL, select room from dropdown)",
+            "Edit camera dialog (update name, RTSP URL, change room assignment, toggle active/inactive status)",
+            "Delete camera with confirmation dialog (may fail if camera is currently being used in active attendance session)",
+            "Import from CSV (columns: name, rtspUrl, room_name, status)",
+            "Export to CSV (all cameras data)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Name required, RTSP URL required and must be valid format (rtsp://...), Room assignment required and room must exist"
+          ],
+          "notes": [
+            "Cameras are used by recognition service for real-time face detection during attendance sessions",
+            "RTSP URLs should point to valid camera streams accessible from the recognition service",
+            "Delete is blocked if camera is actively used in a running attendance session"
+          ]
+        },
+        "SCR_ADMIN_USER_MGMT": {
+          "title": "User Management",
+          "features": [
+            "Tabbed interface: Students Tab | Staffs Tab (switching tabs clears all filters)",
+            "**STUDENTS TAB:**",
+            "Text search filter (name, email, roll number, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Major filter (searchable popover showing all majors)",
+            "Sort controls (by Full Name, Roll Number, Email, Major) with order selector",
+            "Table display: Roll Number, Full Name, Email, Major (clickable link to major page), Status badge, Last Active timestamp",
+            "Row actions: Edit, View Attendance History (opens dialog showing all attendance records with status and evidence images)",
+            "Create student dialog (full name, email, username, roll number, select major, optional password)",
+            "Edit student dialog (update all fields, toggle active/inactive status)",
+            "Import student profiles from CSV (columns: full_name, email, username, roll_number, major_code, status, password)",
+            "Import photos and embeddings (CSV metadata + ZIP file containing student photos, bulk identity import for face recognition)",
+            "Export to CSV (all students data)",
+            "Server-side pagination (10 items per page)",
+            "**STAFFS TAB:**",
+            "Text search filter (name, email, staff code, debounced 500ms) with URL state management",
+            "Status filter dropdown (Active/Inactive/All)",
+            "Role filter (multi-select checkboxes: LECTURER, SUPERVISOR, stored as comma-separated roleIds in URL e.g., roleIds=1,2)",
+            "Sort controls (by Full Name, Staff Code, Email) with order selector",
+            "Table display: Staff Code, Full Name, Email, Roles (multiple role badges displayed), Status badge",
+            "Row actions: Edit",
+            "Create staff dialog (full name, email, staff code, select multiple roles via checkbox list, optional password)",
+            "Edit staff dialog (update all fields including roles, toggle active/inactive status)",
+            "Import staff profiles from CSV (columns: full_name, email, staff_code, roles [comma-separated], status, password)",
+            "Export to CSV (all staff data with roles)",
+            "Server-side pagination (10 items per page)",
+            "Validation rules: Email unique and valid format, Username/Staff Code unique and valid format, Roll Number unique for students, At least 1 role required for staff (excludes STUDENT and DATA_OPERATOR roles from staff tab)"
+          ],
+          "notes": [
+            "Cannot assign LECTURER/SUPERVISOR roles to users with STUDENT role (cross-role constraint)",
+            "DATA_OPERATOR cannot create other DATA_OPERATOR accounts",
+            "Attendance history dialog (Students tab) shows comprehensive record: all slots with attendance status, evidence images, remarks, slot details",
+            "Tab switching behavior: All filters and pagination are reset when switching between Students and Staffs tabs",
+            "Import photos & embeddings: CSV contains student metadata (user_id), ZIP contains photos named by user_id (e.g., HE180001.jpg), system generates face embeddings via recognition service"
+          ]
+        }
+      }
+    },
+    "api_catalog": {
+      "description": "Overview of main API endpoints grouped by domain. All endpoints return JSON with standard Response<T> wrapper.",
+      "authentication": {
+        "login": "POST /api/v1/auth/login - Username/password authentication",
+        "google_login": "POST /api/v1/auth/google-login - Google OAuth authentication",
+        "forgot_password": "POST /api/v1/auth/forgot-password - Request password reset email",
+        "reset_password": "POST /api/v1/auth/reset-password - Reset password with token",
+        "refresh_token": "POST /api/v1/auth/refresh - Refresh access token"
+      },
+      "slots": {
+        "list": "GET /api/v1/slots - Search and filter slots",
+        "detail": "GET /api/v1/slots/{id} - Get slot details",
+        "create": "POST /api/v1/slots - Create new slot (LECTURE/LECTURE_WITH_PT/FINAL_EXAM)",
+        "update": "PUT /api/v1/slots/{id} - Update slot information",
+        "update_category": "PUT /api/v1/slots/{id}/category - Change slot category (LECTURE ↔ LECTURE_WITH_PT)",
+        "delete": "DELETE /api/v1/slots/{id} - Hard delete slot (DATA_OPERATOR only)",
+        "import": "POST /api/v1/slots/import - Bulk import slots from CSV"
+      },
+      "attendance_sessions": {
+        "start_regular": "POST /api/v1/slots/{id}/start-session - Start regular attendance session",
+        "stop_regular": "POST /api/v1/slots/{id}/stop-session - Stop regular session",
+        "rescan_regular": "POST /api/v1/slots/{id}/rescan - Trigger rescan for regular session",
+        "start_exam": "POST /api/v1/slots/{id}/start-exam-session - Start exam attendance session",
+        "stop_exam": "POST /api/v1/slots/{id}/stop-exam-session - Stop exam session",
+        "rescan_exam": "POST /api/v1/slots/{id}/rescan-exam - Trigger rescan for exam session",
+        "sse_stream": "GET /api/v1/attendance/slots/{slotId}/stream - Subscribe to real-time updates (SSE)",
+        "roster": "GET /api/v1/slots/{id}/roster - Get attendance roster for slot",
+        "update_status": "PUT /api/v1/attendance/{recordId} - Manually update student attendance status",
+        "submit": "POST /api/v1/slots/{id}/submit-attendance - Finalize attendance with bulk NOT_YET resolution"
+      },
+      "academic_catalog": {
+        "semesters": "GET/POST/PUT/DELETE /api/v1/semesters - CRUD operations for semesters",
+        "majors": "GET/POST/PUT/DELETE /api/v1/majors - CRUD operations for majors",
+        "subjects": "GET/POST/PUT/DELETE /api/v1/subjects - CRUD operations for subjects",
+        "classes": "GET/POST/PUT/DELETE /api/v1/classes - CRUD operations for classes",
+        "enrollments": "GET/POST/PUT/DELETE /api/v1/enrollments - Manage class enrollments",
+        "import_endpoints": "POST /api/v1/{entity}/import - Bulk import for semesters, majors, subjects, classes, enrollments"
+      },
+      "users": {
+        "students": "GET/POST/PUT /api/v1/students - Manage student accounts and profiles",
+        "staff": "GET/POST/PUT /api/v1/staff - Manage staff accounts and profiles",
+        "roles": "POST/DELETE /api/v1/users/{id}/roles - Assign/revoke roles",
+        "import": "POST /api/v1/users/import - Bulk import user accounts",
+        "bulk_identity": "POST /api/v1/identities/bulk-import - Bulk import photos and embeddings (CSV + ZIP)"
+      },
+      "infrastructure": {
+        "rooms": "GET/POST/PUT/DELETE /api/v1/rooms - CRUD operations for rooms",
+        "cameras": "GET/POST/PUT/DELETE /api/v1/cameras - CRUD operations for cameras"
+      },
+      "exam_management": {
+        "exam_slot_subjects": "POST/DELETE /api/v1/exam-slots/{slotId}/subjects - Assign subjects to FINAL_EXAM slot",
+        "exam_participants": "GET/POST/DELETE /api/v1/exam-slots/{slotId}/participants - Manage exam participants"
+      },
+      "reports": {
+        "attendance_history": "GET /api/v1/students/{id}/attendance-history - Student attendance history",
+        "class_summary": "GET /api/v1/reports/classes/{classId}/attendance-summary - Class attendance summary",
+        "export": "POST /api/v1/reports/export - Export reports (CSV/Excel)"
+      }
+    }
+  },
+  "use_cases": {
+    "total_use_cases": 86,
+    "use_cases": [
+      {
+        "id": "UC-01",
+        "use_case": "Login with Username Password",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to authenticate using their username and password to access the system."
+      },
+      {
+        "id": "UC-02",
+        "use_case": "Login with Google",
+        "primary_actor": "All Users",
+        "secondary_actor": "Google OAuth Service",
+        "description": "Allows users to authenticate using their Google account for quick access to the system."
+      },
+      {
+        "id": "UC-03",
+        "use_case": "Logout",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to securely end their session and log out of the system."
+      },
+      {
+        "id": "UC-04",
+        "use_case": "Request Password Reset",
+        "primary_actor": "All Users",
+        "secondary_actor": "Email Service",
+        "description": "Allows users to request a password reset link via email when they forget their password."
+      },
+      {
+        "id": "UC-05",
+        "use_case": "Reset Password using Token",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to set a new password using a valid reset token received via email."
+      },
+      {
+        "id": "UC-06",
+        "use_case": "Change Own Password",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to change their current password while logged in to the system."
+      },
+      {
+        "id": "UC-07",
+        "use_case": "View Own Profile",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to view their personal profile information including name, email, avatar, and role-specific details."
+      },
+      {
+        "id": "UC-08",
+        "use_case": "Create Semester",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new semester with name, code, start date, and end date."
+      },
+      {
+        "id": "UC-09",
+        "use_case": "View Semester List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of semesters with search and filtering capabilities."
+      },
+      {
+        "id": "UC-10",
+        "use_case": "Update Semester",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing semester."
+      },
+      {
+        "id": "UC-11",
+        "use_case": "Delete Semester",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a semester from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-12",
+        "use_case": "View Semester Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific semester."
+      },
+      {
+        "id": "UC-13",
+        "use_case": "Import Semesters via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import semesters from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-14",
+        "use_case": "Create Major",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new academic major with name and code."
+      },
+      {
+        "id": "UC-15",
+        "use_case": "View Major List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of majors with search and filtering capabilities."
+      },
+      {
+        "id": "UC-16",
+        "use_case": "Update Major",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing major."
+      },
+      {
+        "id": "UC-17",
+        "use_case": "Delete Major",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a major from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-18",
+        "use_case": "View Major Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific major."
+      },
+      {
+        "id": "UC-19",
+        "use_case": "Import Majors via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import majors from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-20",
+        "use_case": "Create Subject",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new subject with name, code, and associated majors."
+      },
+      {
+        "id": "UC-21",
+        "use_case": "View Subject List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of subjects with search and filtering capabilities."
+      },
+      {
+        "id": "UC-22",
+        "use_case": "Update Subject",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing subject."
+      },
+      {
+        "id": "UC-23",
+        "use_case": "Delete Subject",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a subject from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-24",
+        "use_case": "View Subject Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific subject."
+      },
+      {
+        "id": "UC-25",
+        "use_case": "Import Subjects via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import subjects from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-26",
+        "use_case": "Create Class",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new class by associating a subject with a semester and code."
+      },
+      {
+        "id": "UC-27",
+        "use_case": "View Class List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of classes with search and filtering capabilities."
+      },
+      {
+        "id": "UC-28",
+        "use_case": "Update Class",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing class."
+      },
+      {
+        "id": "UC-29",
+        "use_case": "Delete Class",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a class from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-30",
+        "use_case": "View Class Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific class."
+      },
+      {
+        "id": "UC-31",
+        "use_case": "Import Classes via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import classes from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-32",
+        "use_case": "View Class's Students",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view the list of students enrolled in a specific class."
+      },
+      {
+        "id": "UC-33",
+        "use_case": "Enroll Student to Class",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to enroll a student into a class."
+      },
+      {
+        "id": "UC-34",
+        "use_case": "Unenroll Student from Class",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to unenroll a student from a class while preserving historical attendance."
+      },
+      {
+        "id": "UC-35",
+        "use_case": "Import Student to Class via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk enroll students to classes from a CSV file."
+      },
+      {
+        "id": "UC-36",
+        "use_case": "Create Slot",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new slot with time, room, staff, and category (LECTURE/LECTURE_WITH_PT/FINAL_EXAM)."
+      },
+      {
+        "id": "UC-37",
+        "use_case": "View Slot List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of slots with search and filtering capabilities."
+      },
+      {
+        "id": "UC-38",
+        "use_case": "Update Slot",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing slot."
+      },
+      {
+        "id": "UC-39",
+        "use_case": "Delete Slot",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a slot from the system within the allowed deletion window."
+      },
+      {
+        "id": "UC-40",
+        "use_case": "View Slot Roster",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to view the attendance roster for a specific slot with real-time updates."
+      },
+      {
+        "id": "UC-41",
+        "use_case": "Update Student Attendance Status",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to manually update a student's attendance status and add remarks."
+      },
+      {
+        "id": "UC-42",
+        "use_case": "Import Slot via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import slots from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-43",
+        "use_case": "Add Participant to Exam Slot",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to assign a student to a specific subject within an exam slot."
+      },
+      {
+        "id": "UC-44",
+        "use_case": "Remove Participant from Exam Slot",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a student from a specific subject within an exam slot."
+      },
+      {
+        "id": "UC-45",
+        "use_case": "Import Participants to Exam Slot via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import exam participants from a CSV file."
+      },
+      {
+        "id": "UC-46",
+        "use_case": "Create Student",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new student account with personal and academic information."
+      },
+      {
+        "id": "UC-47",
+        "use_case": "View Student List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of students with search and filtering capabilities."
+      },
+      {
+        "id": "UC-48",
+        "use_case": "View Student Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific student."
+      },
+      {
+        "id": "UC-49",
+        "use_case": "Update Student",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing student account."
+      },
+      {
+        "id": "UC-50",
+        "use_case": "Delete Student",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a student account from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-51",
+        "use_case": "Import Students via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import students from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-52",
+        "use_case": "Import student images",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Data Operator to bulk import student face images for generating embeddings used in face recognition."
+      },
+      {
+        "id": "UC-53",
+        "use_case": "Create Staff (Lecturer/Supervisor)",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new staff account with role assignment (Lecturer/Supervisor/Data Operator)."
+      },
+      {
+        "id": "UC-54",
+        "use_case": "View Staff List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of staff with search and filtering capabilities."
+      },
+      {
+        "id": "UC-55",
+        "use_case": "View Staff Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific staff member."
+      },
+      {
+        "id": "UC-56",
+        "use_case": "Update Staff",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing staff account."
+      },
+      {
+        "id": "UC-57",
+        "use_case": "Delete Staff",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a staff account from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-58",
+        "use_case": "Import Staffs via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import staff members from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-59",
+        "use_case": "View Dashboard",
+        "primary_actor": "All Users",
+        "secondary_actor": "N/A",
+        "description": "Allows users to view role-specific dashboard with statistics, upcoming classes, and pending tasks."
+      },
+      {
+        "id": "UC-60",
+        "use_case": "Create Room",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new room with name and location."
+      },
+      {
+        "id": "UC-61",
+        "use_case": "View Room List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of rooms with search and filtering capabilities."
+      },
+      {
+        "id": "UC-62",
+        "use_case": "View Room Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific room including assigned cameras."
+      },
+      {
+        "id": "UC-63",
+        "use_case": "Update Room",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing room."
+      },
+      {
+        "id": "UC-64",
+        "use_case": "Delete Room",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a room from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-65",
+        "use_case": "Import Rooms via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import rooms from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-66",
+        "use_case": "Create Camera",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to create a new camera with name, RTSP URL, and room assignment."
+      },
+      {
+        "id": "UC-67",
+        "use_case": "View Camera List",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view a paginated list of cameras with search and filtering capabilities."
+      },
+      {
+        "id": "UC-68",
+        "use_case": "Update Camera",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to modify the details of an existing camera."
+      },
+      {
+        "id": "UC-69",
+        "use_case": "Delete Camera",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to remove a camera from the system if it has no dependencies."
+      },
+      {
+        "id": "UC-70",
+        "use_case": "View Camera Details",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to view detailed information about a specific camera."
+      },
+      {
+        "id": "UC-71",
+        "use_case": "Import Cameras via CSV",
+        "primary_actor": "Data Operator",
+        "secondary_actor": "N/A",
+        "description": "Allows Data Operator to bulk import cameras from a CSV file with validation and error reporting."
+      },
+      {
+        "id": "UC-72",
+        "use_case": "View Teaching Schedule",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to view their assigned teaching schedule in calendar or list format."
+      },
+      {
+        "id": "UC-73",
+        "use_case": "View Exam Schedule",
+        "primary_actor": "Supervisor",
+        "secondary_actor": "N/A",
+        "description": "Allows Supervisor to view their assigned exam supervision schedule."
+      },
+      {
+        "id": "UC-74",
+        "use_case": "Update Slot Category",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to change slot category between LECTURE and LECTURE_WITH_PT."
+      },
+      {
+        "id": "UC-75",
+        "use_case": "Start Class Attendance Scanning",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Lecturer to start face recognition scanning for regular class attendance."
+      },
+      {
+        "id": "UC-76",
+        "use_case": "Rescan Student for Class",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Lecturer to trigger a rescan operation to reset all students to NOT_YET status during active session."
+      },
+      {
+        "id": "UC-77",
+        "use_case": "Start Exam Verification Scanning",
+        "primary_actor": "Supervisor",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Supervisor to start face recognition scanning for exam attendance verification."
+      },
+      {
+        "id": "UC-78",
+        "use_case": "Rescan Candidate for Exam",
+        "primary_actor": "Supervisor",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Supervisor to trigger a rescan operation to reset all candidates to NOT_YET status during active exam session."
+      },
+      {
+        "id": "UC-79",
+        "use_case": "Stop Scanning Session",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "Recognition Service",
+        "description": "Allows Lecturer or Supervisor to stop the active face recognition scanning session."
+      },
+      {
+        "id": "UC-80",
+        "use_case": "View Class Summary",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to view attendance summary statistics for a specific class."
+      },
+      {
+        "id": "UC-81",
+        "use_case": "Export Class Summary",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to export class attendance summary data in downloadable format."
+      },
+      {
+        "id": "UC-82",
+        "use_case": "View Slot Details",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to view detailed information about a specific slot including time, room, and roster."
+      },
+      {
+        "id": "UC-83",
+        "use_case": "Export Class's Slots Attendance",
+        "primary_actor": "Lecturer",
+        "secondary_actor": "N/A",
+        "description": "Allows Lecturer to export attendance records for all slots of a specific class."
+      },
+      {
+        "id": "UC-84",
+        "use_case": "View Student Profile",
+        "primary_actor": "Student",
+        "secondary_actor": "N/A",
+        "description": "Allows Student to view their personal profile information including roll number, major, and contact details."
+      },
+      {
+        "id": "UC-85",
+        "use_case": "View Attendance History",
+        "primary_actor": "Student",
+        "secondary_actor": "N/A",
+        "description": "Allows Student to view their attendance history across all enrolled classes and exams."
+      },
+      {
+        "id": "UC-86",
+        "use_case": "View Student TimeTable",
+        "primary_actor": "Student",
+        "secondary_actor": "N/A",
+        "description": "Allows Student to view their weekly timetable showing all scheduled classes and exams."
+      }
+    ]
+  },
+  "attendance_system": {
+    "attendance_mode": {
+      "description": "The only attendance mode, activated by Lecturer (for lecture slots) or Supervisor (for exam slots). The system uses IP cameras pre-installed in classrooms to automatically recognize and record student presence. A Python middleware service processes video streams and sends results back to the system."
+    },
+    "face_recognition": {
+      "description": "Face scan results are processed differently based on the session type (regular vs exam) and scan count (first scan vs rescan).",
+      "embedding_quality_validation": {
+        "description": "When generating face embeddings from photos (during registration or bulk import), the system validates photo quality to ensure reliable recognition.",
+        "validation_performed": "Recognition service checks multiple quality factors including face detection confidence, image clarity, lighting conditions, and face positioning.",
+        "rejection_behavior": "Photos that fail quality validation are rejected, and the user/admin must re-submit a higher quality photo.",
+        "purpose": "Ensures that only high-quality embeddings are stored in the system, improving recognition accuracy during attendance sessions."
+      },
+      "embedding_versioning": {
+        "description": "The system maintains versioned face embeddings to support updates and audit trails.",
+        "strategy": "When new embeddings are imported for a student, the system deactivates old embeddings and creates new ones with incremented version number.",
+        "active_embedding": "Only one embedding per student is marked as active (is_active = true) and used for recognition.",
+        "retention": "System retains last 3 versions of embeddings for each student for audit purposes. Older versions are automatically purged.",
+        "use_case": "Allows updating student photos (e.g., after significant appearance change) while preserving history."
+      },
+      "start_session_logic": {
+        "description": "First scan (scan_count = 1) - Same logic for both regular and exam sessions",
+        "outcomes": {
+          "match": "Student is scanned successfully → status: 'present' + capture evidence image",
+          "no_match": "Student is not scanned → status: 'not_yet' (no evidence image)"
+        },
+        "auto_finalize_on_stop": "When staff stops the initial session, all remaining 'not_yet' students are automatically changed to 'absent' with method 'SYSTEM_FINALIZE'. This ensures that students who were not detected during the first scan are marked as absent."
+      },
+      "rescan_logic_regular": {
+        "description": "Rescan (scan_count >= 2) for regular attendance sessions (LECTURE, LECTURE_WITH_PT regular session)",
+        "behavior": "RESCAN mode does NOT automatically change attendance status. It only updates evidence images and sets needsReview flags for staff to review later.",
+        "outcomes": {
+          "any_status_match": "Student detected → Update/capture evidence image + set needsReview based on current status",
+          "any_status_no_match": "Student not detected → Keep existing status and evidence (if any)"
+        },
+        "needsReview_flags": {
+          "present_not_detected": "Status is 'present' but student was NOT detected in rescan → needsReview = true (suspect early leave)",
+          "absent_detected": "Status is 'absent' but student WAS detected in rescan → needsReview = true (suspect late arrival)",
+          "present_detected": "Status is 'present' and student WAS detected in rescan → needsReview = false (confirmed presence)",
+          "not_yet_any": "Status is 'not_yet' → needsReview not set (awaiting manual decision)"
+        },
+        "manual_edit_required": "Staff must manually edit the attendance status after reviewing the needsReview flags and evidence images. The system does NOT auto-promote or auto-demote statuses during rescan."
+      },
+      "rescan_logic_exam": {
+        "description": "Rescan (scan_count >= 2) for exam attendance sessions (LECTURE_WITH_PT exam session, FINAL_EXAM)",
+        "behavior": "RESCAN EXAM has LENIENT logic to handle late arrivals and early departures. Students detected are automatically promoted to PRESENT. Students not detected but already PRESENT are trusted (no review needed).",
+        "outcomes": {
+          "any_status_detected": "Student detected → AUTO change to 'present' + capture/update evidence image (handles late arrival case)",
+          "present_not_detected": "Status 'present' + NOT detected → Keep 'present', NO needsReview flag (trust early departure - student finished exam and left)",
+          "absent_not_detected": "Status 'absent' + NOT detected → Keep 'absent' (truly absent)"
+        },
+        "no_needsReview_for_exam": "Unlike regular attendance, exam attendance does NOT set needsReview flags during rescan for PRESENT students who are not detected. The system trusts that PRESENT students may finish exam early and leave before rescan.",
+        "rationale": "Exam context allows early departure after completion. Setting needsReview would create unnecessary manual work for supervisors when students legitimately finish early.",
+        "detected_confirmed": "PRESENT students who ARE detected in rescan have their needsReview flag cleared (if it was set) to confirm their continued presence."
+      },
+      "key_difference": "CRITICAL DIFFERENCE in RESCAN behavior: (1) REGULAR sessions do NOT auto-change status, only set needsReview flags for manual review. PRESENT students not detected get needsReview=true. (2) EXAM sessions AUTO-PROMOTE detected students to PRESENT and TRUST PRESENT students who are not detected (no needsReview). This reflects different validation requirements: lectures need strict attendance tracking with manual review, exams allow lenient handling for late arrivals and early departures.",
+      "future_consideration": "Evidence image update policy for 'present' students who are scanned again may change in the future (currently keeps old image, may update to new image). This needs further discussion."
+    },
+    "attendance_statuses": [
+      "not_yet",
+      "present",
+      "absent"
+    ],
+    "status_notes": "The system does not distinguish between 'excused absence' and 'unexcused absence' at the status level. All absences are recorded as 'absent'. Lecturers or Supervisors can use the remark function to provide context when necessary.",
+    "slot_control": {
+      "open_by": "Lecturer/Supervisor",
+      "editability_rules": "Lecturer/Supervisor can edit attendance results until 23:59:59 Vietnam time (Asia/Ho_Chi_Minh) of the slot date. After this time, the data will be locked for them. Exception cases need to be handled by Data Operator with ATTENDANCE_STATUS_UPDATE_MANUAL permission.",
+      "bulk_update_logic": "Lecturers can use the bulk update feature to process multiple student attendance statuses at once. This is especially useful for handling students with 'not_yet' status after the attendance session."
+    },
+    "lecturer_ui_rules": {
+      "description": "Rules on the lecturer/supervisor attendance screen.",
+      "real_time_update": "Attendance status is updated in real-time as soon as the recognition service sends successful results.",
+      "bulk_update_feature": "The system provides bulk update functionality for efficiently processing multiple student attendance records at once, with validation for mandatory remarks."
+    },
+    "session_management": {
+      "description": "The system supports dual-session management to handle different attendance scenarios within the same slot.",
+      "regular_sessions": {
+        "purpose": "Track regular lecture attendance",
+        "applicable_to": [
+          "LECTURE",
+          "LECTURE_WITH_PT"
+        ],
+        "fields_used": [
+          "session_status",
+          "scan_count",
+          "last_session_stopped_at"
+        ],
+        "data_stored_in": "attendance_records table"
+      },
+      "exam_sessions": {
+        "purpose": "Track exam/test attendance independently from regular lectures",
+        "applicable_to": [
+          "LECTURE_WITH_PT",
+          "FINAL_EXAM"
+        ],
+        "fields_used": [
+          "exam_session_status",
+          "exam_scan_count",
+          "last_exam_session_stopped_at"
+        ],
+        "data_stored_in": "exam_attendance table"
+      },
+      "independence_principle": "Regular and exam sessions operate completely independently. For LECTURE_WITH_PT slots, lecturers can start, stop, and rescan regular and exam sessions separately. Each session type maintains its own scan count, status, and attendance records.",
+      "use_cases": {
+        "lecture_only": "LECTURE slots use only regular session management for recording class attendance.",
+        "lecture_with_pt": "LECTURE_WITH_PT slots use BOTH session types - regular sessions track lecture attendance, exam sessions track progress test attendance within the same slot.",
+        "final_exam": "FINAL_EXAM slots use only exam session management for recording exam attendance."
+      },
+      "scan_behavior_difference": "RESCAN logic DIFFERS SIGNIFICANTLY between regular and exam sessions (see 'face_recognition' section for details): (1) REGULAR RESCAN - Does NOT auto-change status, only sets needsReview flags for manual review by lecturer. Strict tracking for lecture attendance. (2) EXAM RESCAN - AUTO-PROMOTES detected students to PRESENT (handles late arrivals), trusts PRESENT students not detected (no needsReview for early departures). Lenient handling for exam context. Additional operational differences: session state isolation (mutual exclusion), separate database tables (attendance_records vs exam_attendance), and applicable slot categories."
+    }
+  },
+  "recognition_service": {
+    "overview": "Python FastAPI microservice responsible for face detection, embedding generation, and real-time face recognition during attendance sessions. Processes video streams from IP cameras and sends recognition results to the main backend.",
+    "core_capabilities": {
+      "embedding_generation": {
+        "description": "Generate face embeddings from student photos for identity registration",
+        "input": "Photo file (JPG/PNG)",
+        "output": "512-dimensional embedding vector",
+        "features": [
+          "Face detection and alignment",
+          "Quality validation (ensures photo meets minimum quality standards)",
+          "Single face verification"
+        ]
+      },
+      "face_recognition": {
+        "description": "Real-time face identification during attendance sessions",
+        "algorithm": "Cosine similarity matching",
+        "features": [
+          "Multi-camera parallel processing",
+          "Configurable similarity threshold",
+          "Automatic evidence capture",
+          "Deduplication per session (each student recognized once)"
+        ]
+      },
+      "session_management": {
+        "description": "Manage attendance recognition sessions",
+        "features": [
+          "Start/stop sessions with RTSP camera integration",
+          "Support INITIAL and RESCAN modes",
+          "Separate handling for regular vs exam attendance",
+          "Asynchronous callback to backend with results"
+        ]
+      }
+    },
+    "integration_with_backend": {
+      "backend_to_python": [
+        {
+          "endpoint": "POST /api/v1/embeddings/generate",
+          "purpose": "Generate embedding for new identity submission",
+          "when": "Student/staff photo uploaded during registration or identity import"
+        },
+        {
+          "endpoint": "POST /api/v1/recognition/process-session",
+          "purpose": "Start attendance recognition session",
+          "when": "Lecturer/Supervisor starts attendance on a slot"
+        },
+        {
+          "endpoint": "POST /api/v1/recognition/stop-session",
+          "purpose": "Stop active recognition session",
+          "when": "Lecturer/Supervisor stops attendance session"
+        }
+      ],
+      "python_to_backend": [
+        {
+          "endpoint": "POST /api/internal/recognition/callback",
+          "purpose": "Send recognition results as students are detected",
+          "payload_includes": [
+            "Student IDs detected",
+            "Confidence scores",
+            "Evidence image URLs",
+            "Timestamp and camera info"
+          ],
+          "frequency": "Real-time as faces are recognized"
+        }
+      ]
+    },
+    "technical_notes": [
+      "Uses InsightFace buffalo_l model (ArcFace ResNet100) for high-accuracy face recognition",
+      "Embeddings are 512-dimensional float32 vectors stored in PostgreSQL with pgvector extension",
+      "Supports GPU acceleration when available, falls back to CPU",
+      "Evidence images saved locally and served via static file endpoint",
+      "Session state managed in-memory (not suitable for multi-instance deployment without external state store)"
+    ]
+  },
+  "real_time_features": {
+    "description": "The system uses Server-Sent Events (SSE) for real-time updates during attendance sessions, eliminating the need for polling",
+    "technology": "Server-Sent Events (SSE / EventSource API)",
+    "primary_use_case": "Real-time attendance roster updates during face recognition sessions",
+    "how_it_works": [
+      "Client (lecturer/supervisor) opens attendance roster page and establishes SSE connection to backend",
+      "Backend maintains connection and broadcasts events when recognition service sends callbacks",
+      "Frontend receives events and updates UI optimistically (patches TanStack Query cache)",
+      "Connection includes heartbeat mechanism to detect and recover from disconnections",
+      "Connection closed when session stops or user navigates away"
+    ],
+    "event_types": {
+      "connected": "Initial handshake confirming connection established",
+      "attendance.update": "Student attendance status changed (auto-recognized or manually edited)",
+      "slot.closed": "Session ended, client should disconnect",
+      "heartbeat": "Keep-alive ping to maintain connection"
+    },
+    "benefits": [
+      "Immediate UI updates without page refresh",
+      "No polling overhead (reduced server load)",
+      "Multiple users can view same roster and see updates in real-time",
+      "Better UX during attendance sessions"
+    ]
+  },
+  "technical_flows": {
+    "evidence_cleanup_flow": {
+      "title": "Temporary Attendance Evidence Cleanup Flow",
+      "status": "PLANNED - Not yet implemented",
+      "description": "A scheduled job that runs periodically (e.g., daily) to delete old attendance evidence images and their corresponding database records from both regular and exam attendance tables to save storage space.",
+      "steps": [
+        "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time (e.g., 03:00 AM daily).",
+        "2. Read Configuration: The job uses the configured retention period (e.g., 30 days) defined in application properties.",
+        "3. Scan for Old Regular Evidence: The job queries the 'regular_attendance_evidences' table to find all records older than the retention period.",
+        "4. Delete Regular Evidence: For each old record found, the job deletes the corresponding image file and then the database record.",
+        "5. Scan for Old Exam Evidence: The job queries the 'exam_attendance_evidences' table to find all records older than the retention period.",
+        "6. Delete Exam Evidence: For each old record found, the job deletes the corresponding image file and then the database record."
+      ]
+    },
+    "face_identification_flow": "When lecturer/supervisor starts a scan session, the system retrieves student roster and assigned cameras. Python service processes video streams and calls Backend API with recognition results. Processing logic depends on session type (regular vs exam), scan mode (INITIAL vs RESCAN), and current attendance status. Key behaviors: 1) INITIAL scan: Detected students override to 'present' (AUTO method) with evidence image. Skip duplicate if already 'present' (AUTO). When session stops, all remaining 'not_yet' auto-finalize to 'absent' (SYSTEM_FINALIZE). 2) RESCAN in regular sessions: Status FROZEN - no auto status changes. Detected students get evidence updated only. After stop: 'present' not detected get needsReview=true (suspect early leave), 'absent' detected get needsReview=true (marking conflict). Lecturer must manually review flagged records. 3) RESCAN in exam sessions: AUTO-PROMOTE detected 'absent' students to 'present' (handles late arrivals). 'present' not detected remain 'present' with no needsReview flag (trust early exam completion). Minimal manual review needed. See 'attendance_system.face_recognition' section for complete logic matrix.",
+    "data_export_flow": "This is a manual flow performed by Data Operator. The user accesses the 'Data Export' screen on the Admin Portal, selects data type (e.g., attendance results), file format (CSV, JSON), and necessary filters. The system then generates the file and allows the user to download it for import into external systems like SIS/LMS.",
+    "authentication_flow": "Users on all platforms (Web, Mobile) can log in with Google. Upon successful authentication, Google provides an email address. The FUACS system uses this email address to directly look up the corresponding user account that already exists in the system. If an active account with a matching email is found, the system grants a session token with the permissions assigned to that user. This flow is entirely based on email matching.",
+    "system_notification_flow": "When a business event occurs (e.g., identity rejection), the system generates notification content (hardcoded in backend), creates a notification record and delivery record for the target user, and sends a push notification.",
+    "username_password_auth_flow": "User enters username and password. Backend finds user by username, then uses a hashing algorithm (e.g., bcrypt) to compare the entered password with the password_hash stored in the database. If matched, grants session token.",
+    "password_reset_flow": "User enters email. System creates a unique, time-limited reset token, saves it to the database, and sends an email containing the reset link. When the user accesses the link, the system validates the token, allows them to enter a new password, hashes and updates the password_hash, then invalidates the used token.",
+    "daily_absence_calculation_flow": {
+      "title": "Daily Absence Calculation and Notification Flow",
+      "status": "PLANNED - Not yet implemented",
+      "description": "A scheduled job that runs automatically every day after midnight to ensure data consistency and timely notifications based on attendance records from the previous day.",
+      "steps": [
+        "1. Trigger: The job is automatically triggered by a scheduler (e.g., cron) at a fixed time daily (e.g., 00:05 AM).",
+        "2. Read Configuration: The job uses the configured maximum absence percentage threshold defined in application properties.",
+        "3. Scan for Completed Slots: The job queries the database to find all lecture slots (slot_category IN ('LECTURE', 'LECTURE_WITH_PT')) that have ended within the previous calendar day (where end_time is between 00:00:00 and 23:59:59 of previous day).",
+        "4. Recalculate Absence Rates: For each class associated with the found slots, the job recalculates the current absence percentage for every enrolled student.",
+        "5. Check Thresholds and Notify: The job checks if any student has crossed the 10%, 20%, or the configured maximum absence thresholds for the first time. If so, it generates and delivers a system notification to that student."
+      ]
+    },
+    "real_time_attendance_update_flow": {
+      "title": "Real-time Attendance Update via SSE",
+      "status": "IMPLEMENTED",
+      "description": "Server-Sent Events (SSE) flow enabling real-time attendance roster updates during face recognition sessions without polling.",
+      "steps": [
+        "1. Client establishes SSE connection: When lecturer/supervisor opens attendance roster page, frontend creates EventSource connection to GET /api/v1/attendance/slots/{slotId}/stream endpoint.",
+        "2. Backend accepts connection: Server validates authentication, adds client to in-memory subscriber list for the slot, sends 'connected' event.",
+        "3. Recognition callback triggers update: When Python recognition service detects a student, it calls backend callback API with recognition result.",
+        "4. Backend processes and broadcasts: Backend updates attendance_records or exam_attendance table, then broadcasts 'attendance.update' event to all SSE subscribers of that slot.",
+        "5. Frontend receives and updates UI: Client receives SSE event, optimistically patches TanStack Query cache, updates roster table immediately without refetching.",
+        "6. Heartbeat maintenance: Backend sends periodic 'heartbeat' events (every 25 seconds) to keep connection alive and detect disconnections.",
+        "7. Connection cleanup: When session stops or client navigates away, connection is closed and subscriber removed from list."
+      ],
+      "benefits": [
+        "Zero-latency UI updates (no polling delay)",
+        "Reduced server load (no repeated polling requests)",
+        "Multiple concurrent viewers see updates in sync",
+        "Automatic reconnection on network failure"
+      ]
+    },
+    "bulk_identity_import_flow": {
+      "title": "Bulk Identity Import Flow (Admin)",
+      "description": "A background job flow triggered by Data Operator to import identity data (base photo and face embedding vector) in bulk for students only.",
+      "steps": [
+        "1. Trigger: Data Operator uploads a CSV (user_id list) and a ZIP (photos named by user_id) via 'SCR_ADMIN_USER_MGMT' Student tab and starts the job.",
+        "2. Orchestration (Spring Boot): The main service receives the files, extracts ZIP to temporary directory, and processes students in parallel using a thread pool (10 concurrent tasks). The request is synchronous - frontend waits for completion.",
+        "3. Job Processing (Spring Boot):",
+        "  a. Unzip the ZIP file to a temporary directory.",
+        "  b. Read the CSV file row by row (e.g., 'HE180001' for student).",
+        "  c. For each user_id: Find the matching photo ('HE180001.jpg') in the temp directory.",
+        "  d. Send the photo (binary) to the Python 'recognition_service' API.",
+        "  e. (Python Service): Receives the photo, generates the embedding vector, and returns the vector to Spring Boot.",
+        "  f. (Spring Boot): Saves the original photo to local filesystem (./uploads/student-photos/{userId}/{rollNumber}_profile.ext).",
+        "  g. Save results to Database: UPDATE 'student_profiles' SET 'base_url' = [FILENAME] (e.g., 'HE180001_profile.jpg') AND INSERT INTO 'face_embeddings' (student_user_id, embedding_vector, version, is_active) VALUES (...).",
+        "  h. Log success or failure for this user.",
+        "4. Cleanup (Spring Boot): After processing all rows, the job deletes the temporary CSV, ZIP, and the unzipped photo directory from the server's disk.",
+        "5. Reporting: The job status is updated on the admin screen (SCR_ADMIN_USER_MGMT), allowing DOP to see the import results and download error reports if any."
+      ]
+    },
+    "bulk_catalog_import_flow": {
+      "title": "Simple Bulk Import Flow (Admin)",
+      "description": "Single-step CSV upload for catalog data (Majors, Subjects, Semesters, Classes, Slots, Rooms, Cameras). No inline editing or iteration in UI.",
+      "steps": [
+        "1. (FE) Upload CSV: DOP uploads a CSV file via the import dialog.",
+        "2. (FE -> BE) Submit: FE sends the file (multipart/form-data) to the import API.",
+        "3. (BE) Process & Partial Success: BE saves valid rows; invalid rows are skipped and collected as errors.",
+        "4. (BE -> FE) Return Results: Response contains success/failure counts and error details: { \"successCount\": 45, \"failureCount\": 5, \"errors\": [{ \"rowNumber\": 3, \"errorCode\": \"MAJOR_CODE_EXISTS\", \"message\": \"...\" }] }. Empty errors array [] means full success.",
+        "5. (FE) Display: FE displays the error rows read-only for user review/download."
+      ]
+    }
+  },
+  "information_flows": [
+    "Student ↔ System: view schedule/slots; view attendance status",
+    "Lecturer ↔ System: view teaching schedule; update slot category (LECTURE ↔ LECTURE_WITH_PT); cancel/activate slots; start/stop/rescan attendance sessions; manually update attendance status; add attendance remarks; view and export attendance reports",
+    "Supervisor ↔ System: view exam supervision schedule; cancel/activate exam slots; start/stop/rescan exam attendance sessions; manually update attendance status; add attendance remarks; view and export exam attendance reports",
+    "System → External systems (SIS/LMS): export academic data and attendance results on demand",
+    "System ↔ Python Recognition Service: send session start request; receive attendance results",
+    "System ↔ Data Operations Staff (DOP): manage academic catalogs (semesters, majors, subjects, classes, slots); manage infrastructure (rooms, cameras); manage users (students, staff); manage enrollments and exam participants; bulk import data via CSV; view and export attendance reports; manually update attendance for exception cases",
+    "System ↔ Google: login & basic profile"
+  ],
+  "integrations": {
+    "outbound_integrations": {
+      "description": "FUACS shares data with external systems via manual export. API integration is a planned item for the future.",
+      "methods": {
+        "manual_export": {
+          "formats": [
+            "CSV",
+            "JSON"
+          ],
+          "data_scopes": [
+            "attendance_summary",
+            "full_roster",
+            "academic_catalogs"
+          ]
+        },
+        "api": {
+          "status": "planned",
+          "endpoints": [
+            "get_roster",
+            "get_attendance_by_class"
+          ]
+        }
+      }
+    },
+    "integration_points": [
+      "Dedicated IP camera system in classrooms (receive video stream via RTSP)",
+      "Python recognition service (communicate via API)",
+      "Google: login and basic profile",
+      "External systems (if any): Receive data from FUACS (currently export; API planned)"
+    ],
+    "integration_method": "The system operates independently and is the source of original data. Data is shared with other systems via export function; API integration is planned for the future."
+  },
+  "data_policies": {
+    "import_policies": {
+      "description": "The system supports two import modes for bulk data import via CSV",
+      "add_only": {
+        "description": "Add new records only. Existing records are skipped and returned as errors."
+      },
+      "add_and_update": {
+        "description": "Add new records and update existing records. Uses Last-Write-Wins strategy for conflicts."
+      }
+    }
+  },
+  "implementation_status": {
+    "description": "Current implementation status of major features and components. Legend: ✅ Fully Implemented | 🟡 Partially Implemented | 📋 Planned/Not Implemented",
+    "authentication_and_authorization": {
+      "username_password_login": "✅ Implemented",
+      "google_oauth_login": "✅ Implemented",
+      "forgot_password": "✅ Implemented",
+      "reset_password": "✅ Implemented",
+      "rbac_system": "✅ Implemented (4 roles, 50+ permissions)",
+      "jwt_tokens": "✅ Implemented (access + refresh tokens)"
+    },
+    "face_recognition": {
+      "embedding_generation": "✅ Implemented (InsightFace buffalo_l, quality validation)",
+      "real_time_recognition": "✅ Implemented (multi-camera, RTSP streams)",
+      "session_management": "✅ Implemented (start/stop/rescan for regular and exam)",
+      "evidence_capture": "✅ Implemented (automatic image capture and serving)",
+      "embedding_versioning": "✅ Implemented (version tracking, last 3 retained)"
+    },
+    "attendance_management": {
+      "dual_session_tracking": "✅ Implemented (separate regular and exam sessions)",
+      "real_time_updates_sse": "✅ Implemented (Server-Sent Events)",
+      "manual_attendance_edit": "✅ Implemented (with time-based permissions)",
+      "bulk_attendance_update": "✅ Implemented (submit with NOT_YET resolution)",
+      "attendance_roster_view": "✅ Implemented (lecturer and supervisor)",
+      "evidence_viewer": "✅ Implemented (side-by-side comparison)",
+      "time_based_edit_window": "✅ Implemented (until 23:59:59 Vietnam time)"
+    },
+    "academic_data_management": {
+      "semester_crud": "✅ Implemented",
+      "major_crud": "✅ Implemented",
+      "subject_crud": "✅ Implemented",
+      "class_crud": "✅ Implemented",
+      "slot_crud": "✅ Implemented (all 3 categories)",
+      "enrollment_management": "✅ Implemented",
+      "exam_participant_management": "✅ Implemented",
+      "csv_bulk_import": "✅ Implemented (partial success pattern)",
+      "csv_export": "🟡 Partially Implemented (some entities)"
+    },
+    "user_management": {
+      "student_crud": "✅ Implemented",
+      "staff_crud": "✅ Implemented",
+      "role_assignment": "✅ Implemented (with constraints)",
+      "bulk_identity_import": "✅ Implemented (CSV + ZIP photos)"
+    },
+    "infrastructure_management": {
+      "room_crud": "✅ Implemented",
+      "camera_crud": "✅ Implemented (RTSP configuration)"
+    },
+    "reporting": {
+      "student_attendance_history": "✅ Implemented",
+      "class_attendance_summary": "✅ Implemented",
+      "report_export": "🟡 Partially Implemented"
+    },
+    "background_jobs": {
+      "evidence_cleanup": "📋 Planned (retention: 30 days)",
+      "daily_absence_calculation": "📋 Planned (threshold notifications)",
+      "auto_session_finalization": "📋 Planned"
+    },
+    "internationalization": {
+      "multi_language_support": "✅ Implemented (English, Vietnamese)",
+      "language_switcher": "✅ Implemented (cookie-based)"
+    },
+    "notifications": {
+      "system_notifications": "🟡 Partially Implemented (infrastructure exists, limited usage)"
+    }
+  },
+  "architectural_decisions": {
+    "description": "Documented decisions about implementation approaches and what NOT to implement. These decisions are final for current and near-future versions.",
+    "backend_validation_only": [
+      {
+        "item": "Role Assignment Constraint (STUDENT cannot have LECTURER/SUPERVISOR)",
+        "decision": "Validate in Spring Boot application layer, NOT database constraint",
+        "reason": "More flexible, better error messages, easier to customize business logic",
+        "status": "FINAL - Do not suggest database triggers or constraints"
+      },
+      {
+        "item": "Slot Type vs Exam Subcategory Validation",
+        "decision": "Check in backend service, NOT database CHECK constraint",
+        "reason": "Business logic may evolve, application-level validation is more maintainable",
+        "status": "FINAL - Do not suggest database constraints"
+      }
+    ],
+    "explicitly_not_implemented": [
+      {
+        "item": "Maximum Students Per Class",
+        "decision": "NOT implemented - no capacity limits",
+        "reason": "No business requirement for class size limits",
+        "status": "SKIP - Do not suggest unless explicitly requested"
+      },
+      {
+        "item": "RTSP URL Encryption/Credential Separation",
+        "decision": "NOT implemented - store RTSP URLs as-is in database",
+        "reason": "Internal network only, security handled at network level, not application priority",
+        "status": "SKIP for current and near-future versions - Do not suggest security improvements"
+      },
+      {
+        "item": "Real-time Performance Specifications",
+        "decision": "NOT specified - use framework defaults",
+        "reason": "Premature optimization, will tune based on actual load testing results",
+        "status": "SKIP - Do not suggest performance specs until load testing"
+      },
+      {
+        "item": "Student View Exam Eligibility Status Use Case",
+        "decision": "Feature exists but NOT documented as separate UC",
+        "reason": "Handled in backend logic, no dedicated UI screen needed",
+        "status": "SKIP - Do not suggest adding this UC"
+      },
+      {
+        "item": "Dual Session Fields for Slots",
+        "decision": "IMPLEMENTED - Slots have separate regular and exam session tracking fields",
+        "reason": "LECTURE_WITH_PT slots need independent control of lecture attendance and progress test attendance. FINAL_EXAM slots need separate tracking from regular lectures. Six session fields (3 regular + 3 exam) provide complete independence.",
+        "status": "FINAL - This architectural decision supports the dual-session attendance model"
+      }
+    ],
+    "slot_management_clarifications": [
+      {
+        "item": "Slot Cancellation",
+        "decision": "Only Data Operator can cancel slots (set is_active = false)",
+        "reason": "Slots are academic data managed by DOP, not by Lecturers",
+        "status": "FINAL - Lecturers cannot cancel slots, do not suggest this feature"
+      }
+    ],
+    "validation_and_constraints_clarifications": [
+      {
+        "item": "Password Reset Token Status Tracking",
+        "decision": "NOT implemented - rely on expires_at only",
+        "reason": "Token expiration is sufficient for security. No need for additional is_used or used_at fields. Tokens are single-use by design and expire quickly.",
+        "status": "SKIP - Do not suggest adding status tracking fields"
+      },
+      {
+        "item": "Camera Availability Validation on Slot Creation",
+        "decision": "NOT implemented - no validation for room having cameras",
+        "reason": "Cameras can be added after slot creation. Validation would be too restrictive for scheduling flexibility. System will handle missing cameras gracefully at runtime.",
+        "status": "SKIP - Do not suggest adding camera availability validation"
+      },
+      {
+        "item": "attendance_records.recorded_at Index",
+        "decision": "NOT implemented - no index on recorded_at field",
+        "reason": "No current use case requires querying by recorded_at. Existing indexes on slot_id and student_user_id are sufficient for current requirements.",
+        "status": "SKIP - Do not suggest adding this index unless specific use case emerges"
+      }
+    ],
+    "timezone_and_scheduling_clarifications": [
+      {
+        "item": "System Timezone",
+        "decision": "Vietnam timezone only (ICT/Asia/Ho_Chi_Minh, UTC+7)",
+        "reason": "System is designed for Vietnam market only. All database timestamps represent Vietnam local time (Asia/Ho_Chi_Minh). Application enforces Vietnam timezone via Hibernate configuration.",
+        "status": "FINAL - System operates in Vietnam timezone"
+      }
+    ]
+  }
+}
