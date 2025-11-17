@@ -1,0 +1,105 @@
+@startuml Create Semester
+!theme plain
+hide footbox
+
+actor Client
+participant ":SemesterController" as Controller
+participant ":SemesterService" as Service
+participant ":SemesterRepository" as Repository
+participant ":SemesterMapper" as Mapper
+participant "Database" as DB
+
+Client -> Controller: POST /api/v1/semesters\n{name, code, startDate, endDate}
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' === Validation 1: Date Range ===
+alt startDate >= endDate
+    Service -->> Controller: <<throw>> InvalidDateException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Start date must be before end date",\ncode: "SEMESTER_INVALID_DATE_RANGE"}
+end
+
+' === Validation 2: Code Uniqueness ===
+Service -> Repository: existsByCode(code)
+activate Repository
+
+Repository -> DB: SELECT COUNT(*) > 0 FROM semesters\nWHERE code = ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: exists:boolean
+deactivate Repository
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Semester code exists: {code}",\ncode: "SEMESTER_CODE_EXISTS"}
+end
+
+' === Validation 3: Name Uniqueness ===
+Service -> Repository: existsByName(name)
+activate Repository
+
+Repository -> DB: SELECT COUNT(*) > 0 FROM semesters\nWHERE name = ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: exists:boolean
+deactivate Repository
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Semester name exists: {name}",\ncode: "SEMESTER_NAME_EXISTS"}
+end
+
+' === Validation 4: Date Range Overlap ===
+Service -> Repository: existsByDateRangeOverlap(startDate, endDate)
+activate Repository
+
+Repository -> DB: SELECT COUNT(s) > 0 FROM semesters s\nWHERE s.start_date < ? AND s.end_date > ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: exists:boolean
+deactivate Repository
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "A semester with overlapping date range already exists",\ncode: "SEMESTER_DATE_RANGE_EXISTS"}
+end
+
+' === Map DTO to Entity ===
+Service -> Mapper: toEntity(request)
+activate Mapper
+Mapper --> Service: semester:Semester
+deactivate Mapper
+
+' === Save to Database ===
+Service -> Repository: save(semester)
+activate Repository
+
+Repository -> DB: INSERT INTO semesters\n(name, code, start_date, end_date, is_active, created_at, updated_at)\nVALUES (?, ?, ?, ?, true, NOW(), NOW())\nRETURNING *
+activate DB
+DB --> Repository: savedRecord
+deactivate DB
+
+Repository --> Service: saved:Semester
+deactivate Repository
+
+' === Map Entity to DTO ===
+Service -> Mapper: toDTO(saved)
+activate Mapper
+Mapper --> Service: dto:SemesterDTO
+deactivate Mapper
+
+Service --> Controller: SemesterDTO
+deactivate Service
+
+Controller --> Client: HTTP 201 CREATED\n{status: 201,\ndata: {\n  id: 1,\n  name: "Fall 2024",\n  code: "FA2024",\n  startDate: "2024-09-01",\n  endDate: "2024-12-31",\n  totalClass: 0,\n  isActive: true,\n  createdAt: "2024-11-17T10:30:00Z"\n}}
+deactivate Controller
+
+@enduml
