@@ -1,0 +1,112 @@
+@startuml Import CSV Semester - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SemesterController {
+  - semesterService : SemesterService
+  + importSemesters(file : MultipartFile, mode : String) : Response<ImportResultDTO>
+}
+
+class SemesterService {
+  - semesterRepository : SemesterRepository
+  - csvParserService : CsvParserService
+  - semesterMapper : SemesterMapper
+  + importFromCsv(file : MultipartFile, modeStr : String) : ImportResultDTO
+  # processOneSemesterRow(row : SemesterCsvRow, mode : ImportMode) : void
+}
+
+class CsvParserService {
+  + parseSemesterCsv(file : MultipartFile) : List<SemesterCsvRow>
+}
+
+interface SemesterRepository <<interface>> {
+  + findByCode(code : String) : Optional<Semester>
+  + existsByCode(code : String) : boolean
+  + existsByName(name : String) : boolean
+  + existsByNameAndIdNot(name : String, id : Short) : boolean
+  + existsByDateRangeOverlap(startDate : LocalDate, endDate : LocalDate) : boolean
+  + existsByDateRangeOverlapAndIdNot(startDate : LocalDate, endDate : LocalDate, id : Short) : boolean
+  + save(entity : Semester) : Semester
+}
+
+interface SemesterMapper <<interface>> {
+  + toEntity(row : SemesterCsvRow) : Semester
+  + toDTO(entity : Semester) : SemesterDTO
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - academicClasses : Set<AcademicClass>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class SemesterCsvRow {
+  - rowNumber : int
+  - code : String
+  - name : String
+  - startDateStr : String
+  - endDateStr : String
+  - statusStr : String
+  + isValid() : boolean
+  + getStartDate() : LocalDate
+  + getEndDate() : LocalDate
+  + getActive() : Boolean
+}
+
+class ImportResultDTO {
+  - successCount : int
+  - failureCount : int
+  - errors : List<ImportErrorDTO>
+}
+
+class ImportErrorDTO {
+  - rowNumber : int
+  - errorCode : String
+  - message : String
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ImportMode <<enumeration>> {
+  ADD_ONLY
+  ADD_AND_UPDATE
+  + fromString(mode : String) : ImportMode
+}
+
+SemesterController --> SemesterService
+SemesterService --> SemesterRepository
+SemesterService --> CsvParserService
+SemesterService --> SemesterMapper
+
+SemesterController ..> Response : <<use>>
+SemesterController ..> ImportResultDTO : <<use>>
+SemesterService ..> ImportResultDTO : <<use>>
+SemesterService ..> SemesterCsvRow : <<use>>
+SemesterService ..> ImportMode : <<use>>
+SemesterService ..> Semester : <<use>>
+CsvParserService ..> SemesterCsvRow : <<use>>
+SemesterRepository ..> Semester : <<use>>
+SemesterMapper ..> Semester : <<use>>
+SemesterMapper ..> SemesterCsvRow : <<use>>
+
+ImportResultDTO *-- ImportErrorDTO
+
+Semester --|> BaseEntity
+
+@enduml

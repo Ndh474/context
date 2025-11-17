@@ -1,0 +1,81 @@
+@startuml Delete Semester - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SemesterController {
+  - semesterService : SemesterService
+  + delete(id : Short) : Response<Void>
+}
+
+class SemesterService {
+  - semesterRepository : SemesterRepository
+  + delete(id : Short) : void
+}
+
+interface SemesterRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countActiveClassesBySemesterId(semesterId : Short) : long
+  + deleteById(id : Short) : void
+  + flush() : void
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - academicClasses : Set<AcademicClass>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ResourceNotFoundException {
+  - errorCode : String
+  + ResourceNotFoundException(message : String, errorCode : String)
+}
+
+class OperationNotAllowedException {
+  - errorCode : String
+  + OperationNotAllowedException(message : String, errorCode : String)
+}
+
+class DataIntegrityViolationException {
+  + DataIntegrityViolationException(message : String)
+}
+
+class ErrorCode {
+  + SEMESTER_NOT_FOUND : String
+  + SEMESTER_HAS_ACTIVE_CLASSES : String
+  + FOREIGN_KEY_CONSTRAINT_VIOLATION : String
+}
+
+SemesterController --> SemesterService
+SemesterService --> SemesterRepository
+
+SemesterController ..> Response : <<use>>
+SemesterService ..> Semester : <<use>>
+SemesterService ..> ResourceNotFoundException : <<throws>>
+SemesterService ..> OperationNotAllowedException : <<throws>>
+SemesterRepository ..> Semester : <<use>>
+SemesterRepository ..> DataIntegrityViolationException : <<throws>>
+
+ResourceNotFoundException ..> ErrorCode : <<use>>
+OperationNotAllowedException ..> ErrorCode : <<use>>
+
+Semester --|> BaseEntity
+
+@enduml
