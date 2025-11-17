@@ -1,0 +1,75 @@
+@startuml Sign In with Username and Password
+!theme plain
+hide footbox
+
+actor Client
+participant ":AuthenticationController" as Controller
+participant ":AuthenticationService" as Service
+participant ":UserRepository" as Repository
+participant ":PasswordEncoder" as Encoder
+participant ":TokenProviderUtil" as TokenProvider
+participant "Database" as DB
+
+Client -> Controller: POST /api/v1/auth/login\n{username, password}
+activate Controller
+
+Controller -> Controller: validate @Valid LoginRequest
+Controller -> Service: login(request)
+activate Service
+
+Service -> Repository: findByUsername(username)
+activate Repository
+
+Repository -> DB: SELECT * FROM users\nWHERE username = ?
+activate DB
+DB --> Repository: userRecord
+deactivate DB
+
+Repository --> Service: userOpt:Optional<User>
+deactivate Repository
+
+alt userOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status, message, code}
+end
+
+opt !user.isActive
+    Service -->> Controller: <<throw>> AccessDeniedException
+    Controller --> Client: HTTP 403\n{status, message, code}
+end
+
+Service -> Encoder: matches(password, passwordHash)
+activate Encoder
+Encoder --> Service: isPasswordValid:boolean
+deactivate Encoder
+
+alt !isPasswordValid
+    Service -->> Controller: <<throw>> BadCredentialsException
+    Controller --> Client: HTTP 401\n{status, message, code}
+end
+
+Service -> Service: buildTokenResponse(user)
+activate Service
+
+Service -> Service: extract roles and permissions
+
+Service -> TokenProvider: createAccessToken(user, permissions)
+activate TokenProvider
+TokenProvider --> Service: accessToken:String
+deactivate TokenProvider
+
+Service -> TokenProvider: createRefreshToken(userId)
+activate TokenProvider
+TokenProvider --> Service: refreshToken:String
+deactivate TokenProvider
+
+Service -> Service: new TokenResponse(...)
+deactivate Service
+
+Service --> Controller: TokenResponse
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{accessToken, refreshToken,\ntokenType, fullName, username,\nroles, userId}
+deactivate Controller
+
+@enduml
