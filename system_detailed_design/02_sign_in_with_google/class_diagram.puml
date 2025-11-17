@@ -1,0 +1,82 @@
+@startuml Sign In with Google - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class AuthenticationController {
+  - authenticationService : AuthenticationService
+  + googleLogin(request : LoginGoogleRequest) : ResponseEntity<TokenResponse>
+}
+
+class AuthenticationService {
+  - userRepository : UserRepository
+  - tokenProvider : TokenProviderUtil
+  - googleClientId : String
+  + googleLogin(request : LoginGoogleRequest) : TokenResponse
+  - buildTokenResponse(user : User) : TokenResponse
+  - validateUserActive(user : User) : void
+}
+
+interface UserRepository <<interface>> {
+  + findByEmail(email : String) : Optional<User>
+}
+
+class TokenProviderUtil {
+  + createAccessToken(user : User, permissions : Set<Permission>) : String
+  + createRefreshToken(userId : Integer) : String
+}
+
+class LoginGoogleRequest {
+  - token : String
+}
+
+class TokenResponse {
+  - accessToken : String
+  - refreshToken : String
+  - tokenType : String
+  - fullName : String
+  - username : String
+  - roles : Set<String>
+  - userId : Integer
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - isActive : Boolean
+  - roles : Set<Role>
+}
+
+class Role {
+  - id : Short
+  - name : String
+  - permissions : Set<Permission>
+}
+
+class Permission {
+  - id : Short
+  - name : String
+}
+
+AuthenticationController --> AuthenticationService
+AuthenticationService --> UserRepository
+AuthenticationService --> TokenProviderUtil
+
+AuthenticationController ..> LoginGoogleRequest : <<use>>
+AuthenticationController ..> TokenResponse : <<use>>
+AuthenticationService ..> LoginGoogleRequest : <<use>>
+AuthenticationService ..> TokenResponse : <<use>>
+AuthenticationService ..> User : <<use>>
+TokenProviderUtil ..> User : <<use>>
+TokenProviderUtil ..> Permission : <<use>>
+
+UserRepository ..> User : <<use>>
+
+User *-- Role
+Role *-- Permission
+
+@enduml
