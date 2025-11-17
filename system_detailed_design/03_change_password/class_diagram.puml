@@ -1,0 +1,85 @@
+@startuml Change Password - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class AuthenticationController {
+  - authenticationService : AuthenticationService
+  + updatePassword(id : Integer, request : PasswordUpdateRequest) : ResponseEntity<Response<String>>
+}
+
+class AuthenticationService {
+  - userRepository : UserRepository
+  - passwordEncoder : PasswordEncoder
+  + updatePassword(id : Integer, request : PasswordUpdateRequest) : String
+  - validateUserActive(user : User) : void
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+  + save(user : User) : User
+}
+
+interface PasswordEncoder <<interface>> {
+  + encode(rawPassword : String) : String
+  + matches(rawPassword : String, encodedPassword : String) : boolean
+}
+
+class PasswordUpdateRequest {
+  - oldPassword : String
+  - newPassword : String
+  - confirmPassword : String
+  + newPasswordsMatch() : boolean
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+  + ok(data : T) : Response<T>
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - roles : Set<Role>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Role {
+  - id : Short
+  - name : String
+  - permissions : Set<Permission>
+}
+
+class Permission {
+  - id : Short
+  - name : String
+}
+
+AuthenticationController --> AuthenticationService
+AuthenticationService --> UserRepository
+AuthenticationService --> PasswordEncoder
+
+AuthenticationController ..> PasswordUpdateRequest : <<use>>
+AuthenticationController ..> Response : <<use>>
+AuthenticationService ..> PasswordUpdateRequest : <<use>>
+AuthenticationService ..> User : <<use>>
+UserRepository ..> User : <<use>>
+
+User --|> BaseEntity
+
+User *-- Role
+Role *-- Permission
+
+@enduml
