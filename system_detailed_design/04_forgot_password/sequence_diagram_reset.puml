@@ -1,0 +1,102 @@
+@startuml Reset Password
+!theme plain
+hide footbox
+
+actor Client
+participant ":AuthenticationController" as Controller
+participant ":AuthenticationService" as Service
+participant ":PasswordResetRequest" as Request
+participant ":PasswordResetTokenRepository" as TokenRepo
+participant ":UserRepository" as UserRepo
+participant ":PasswordEncoder" as Encoder
+participant ":Database" as DB
+
+Client -> Controller: POST /api/v1/auth/reset-password\n{token, newPassword, confirmPassword}
+activate Controller
+
+Controller -> Controller: validate @Valid PasswordResetRequest
+Controller -> Service: resetPassword(request)
+activate Service
+
+Service -> Request: newPasswordsMatch()
+activate Request
+Request --> Service: isMatch:boolean
+deactivate Request
+
+alt !isMatch
+    Service -->> Controller: <<throw>> IllegalArgumentException
+    Controller --> Client: HTTP 400\n{status, message:\n"New password and confirm password do not match"}
+end
+
+Service -> TokenRepo: findByTokenHash(token)
+activate TokenRepo
+
+TokenRepo -> DB: SELECT * FROM password_reset_tokens\nWHERE token_hash = ?
+activate DB
+DB --> TokenRepo: tokenRecord
+deactivate DB
+
+TokenRepo --> Service: tokenOpt:Optional<PasswordResetToken>
+deactivate TokenRepo
+
+alt tokenOpt.isEmpty()
+    Service -->> Controller: <<throw>> IllegalArgumentException
+    Controller --> Client: HTTP 400\n{status, message:\n"Invalid or expired reset token"}
+end
+
+Service -> UserRepo: findByEmail(email)
+activate UserRepo
+
+UserRepo -> DB: SELECT * FROM users\nWHERE email = ?
+activate DB
+DB --> UserRepo: userRecord
+deactivate DB
+
+UserRepo --> Service: userOpt:Optional<User>
+deactivate UserRepo
+
+alt userOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status, message, code:\nEMAIL_NOT_FOUND}
+end
+
+opt !user.isActive
+    Service -->> Controller: <<throw>> AccessDeniedException
+    Controller --> Client: HTTP 403\n{status, message, code}
+end
+
+Service -> Encoder: encode(newPassword)
+activate Encoder
+Encoder --> Service: newPasswordHash:String
+deactivate Encoder
+
+Service -> UserRepo: save(user)
+activate UserRepo
+
+UserRepo -> DB: UPDATE users\nSET password_hash = ?, updated_at = ?\nWHERE id = ?
+activate DB
+DB --> UserRepo: updatedUser
+deactivate DB
+
+UserRepo --> Service: user:User
+deactivate UserRepo
+
+Service -> TokenRepo: delete(resetToken)
+activate TokenRepo
+
+TokenRepo -> DB: DELETE FROM password_reset_tokens\nWHERE id = ?
+activate DB
+DB --> TokenRepo: void
+deactivate DB
+
+TokenRepo --> Service: void
+deactivate TokenRepo
+
+Service --> Controller: "Reset password successfully."
+deactivate Service
+
+Controller -> Controller: Response.ok(message)
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: "Reset password successfully."}
+deactivate Controller
+
+@enduml

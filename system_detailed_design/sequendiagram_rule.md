@@ -619,7 +619,7 @@ end
 
 ### Completed Example
 
-Xem file: [01_sign_in_with_username_and_password/sequence_diagram.puml](01_sign_in_with_username_and_password/sequence_diagram.puml)
+Xem file: [01_sign_in_with_username_and_password/sequence_diagram_sign_in_with_username_and_password.puml](01_sign_in_with_username_and_password/sequence_diagram_sign_in_with_username_and_password.puml)
 
 ### UML Specification
 

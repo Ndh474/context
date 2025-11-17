@@ -504,7 +504,7 @@ AuthenticationController ..> LoginRequest : <<use>>
 ## Ví Dụ Hoàn Chỉnh
 
 Xem diagram tham khảo:
-[01_sign_in_with_username_and_password/class_diagram.puml](01_sign_in_with_username_and_password/class_diagram.puml)
+[01_sign_in_with_username_and_password/class_diagram_sign_in_with_username_and_password.puml](01_sign_in_with_username_and_password/class_diagram_sign_in_with_username_and_password.puml)
 
 ### Các Điểm Quan Trọng
 

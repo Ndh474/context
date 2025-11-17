@@ -1,0 +1,81 @@
+@startuml Forgot Password
+!theme plain
+hide footbox
+
+actor Client
+participant ":AuthenticationController" as Controller
+participant ":AuthenticationService" as Service
+participant ":UserRepository" as UserRepo
+participant ":TokenProviderUtil" as TokenUtil
+participant ":PasswordResetTokenRepository" as TokenRepo
+participant ":EmailService" as EmailService
+participant "Database" as DB
+
+Client -> Controller: POST /api/v1/auth/forgot-password\n{email}
+activate Controller
+
+Controller -> Controller: validate @Valid PasswordForgotRequest
+Controller -> Service: forgotPassword(request)
+activate Service
+
+Service -> UserRepo: findByEmail(email)
+activate UserRepo
+
+UserRepo -> DB: SELECT * FROM users\nWHERE email = ?
+activate DB
+DB --> UserRepo: userRecord
+deactivate DB
+
+UserRepo --> Service: userOpt:Optional<User>
+deactivate UserRepo
+
+alt userOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status, message, code:\nEMAIL_NOT_FOUND}
+end
+
+opt !user.isActive
+    Service -->> Controller: <<throw>> AccessDeniedException
+    Controller --> Client: HTTP 403\n{status, message, code}
+end
+
+Service -> TokenUtil: createResetPasswordToken(email)
+activate TokenUtil
+
+TokenUtil -> TokenRepo: updateToken(email, token, now, expiry)
+activate TokenRepo
+
+TokenRepo -> DB: UPDATE password_reset_tokens\nSET token_hash = ?, created_at = ?, expires_at = ?\nWHERE email = ?
+activate DB
+DB --> TokenRepo: affectedRows:int
+deactivate DB
+
+TokenRepo --> TokenUtil: affectedRows:int
+deactivate TokenRepo
+
+alt affectedRows == 0
+    TokenUtil -> TokenRepo: save(resetToken)
+    activate TokenRepo
+
+    TokenRepo -> DB: INSERT INTO password_reset_tokens\n(email, token_hash, created_at, expires_at)\nVALUES (?, ?, ?, ?)
+    activate DB
+    DB --> TokenRepo: insertedToken
+    deactivate DB
+
+    TokenRepo --> TokenUtil: resetToken:PasswordResetToken
+    deactivate TokenRepo
+end
+
+TokenUtil --> Service: token:String
+deactivate TokenUtil
+
+Service -> EmailService: sendPasswordResetEmail(email, token)
+
+Service --> Controller: "If the email exists, a password reset link has been sent."
+deactivate Service
+
+Controller -> Controller: Response.ok(message)
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: "If the email exists, a password reset link has been sent."}
+deactivate Controller
+
+@enduml

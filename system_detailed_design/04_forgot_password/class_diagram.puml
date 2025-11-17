@@ -1,0 +1,117 @@
+@startuml Forgot Password - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class AuthenticationController {
+  - authenticationService : AuthenticationService
+  + forgotPassword(request : PasswordForgotRequest) : ResponseEntity<Response<String>>
+  + resetPassword(request : PasswordResetRequest) : ResponseEntity<Response<String>>
+}
+
+class AuthenticationService {
+  - userRepository : UserRepository
+  - passwordResetTokenRepository : PasswordResetTokenRepository
+  - tokenProvider : TokenProviderUtil
+  - emailService : EmailService
+  - passwordEncoder : PasswordEncoder
+  + forgotPassword(request : PasswordForgotRequest) : String
+  + resetPassword(request : PasswordResetRequest) : String
+  - validateUserActive(user : User) : void
+}
+
+class TokenProviderUtil {
+  - tokenRepository : PasswordResetTokenRepository
+  + createResetPasswordToken(email : String) : String
+}
+
+class EmailService {
+  - mailSender : JavaMailSender
+  + sendPasswordResetEmail(to : String, token : String) : void
+}
+
+interface UserRepository <<interface>> {
+  + findByEmail(email : String) : Optional<User>
+  + save(user : User) : User
+}
+
+interface PasswordResetTokenRepository <<interface>> {
+  + updateToken(email : String, token : String, createdAt : Instant, expiresAt : Instant) : int
+  + findByTokenHash(tokenHash : String) : Optional<PasswordResetToken>
+  + save(token : PasswordResetToken) : PasswordResetToken
+  + delete(token : PasswordResetToken) : void
+}
+
+interface PasswordEncoder <<interface>> {
+  + encode(rawPassword : String) : String
+}
+
+class PasswordForgotRequest {
+  - email : String
+  + getEmail() : String
+}
+
+class PasswordResetRequest {
+  - token : String
+  - newPassword : String
+  - confirmPassword : String
+  + getToken() : String
+  + getNewPassword() : String
+  + getConfirmPassword() : String
+  + newPasswordsMatch() : boolean
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+  + ok(data : T) : Response<T>
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - roles : Set<Role>
+}
+
+class PasswordResetToken {
+  - id : Integer
+  - email : String
+  - tokenHash : String
+  - createdAt : Instant
+  - expiresAt : Instant
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+AuthenticationController --> AuthenticationService
+AuthenticationService --> UserRepository
+AuthenticationService --> PasswordResetTokenRepository
+AuthenticationService --> TokenProviderUtil
+AuthenticationService --> EmailService
+AuthenticationService --> PasswordEncoder
+TokenProviderUtil --> PasswordResetTokenRepository
+
+AuthenticationController ..> PasswordForgotRequest : <<use>>
+AuthenticationController ..> PasswordResetRequest : <<use>>
+AuthenticationController ..> Response : <<use>>
+AuthenticationService ..> PasswordForgotRequest : <<use>>
+AuthenticationService ..> PasswordResetRequest : <<use>>
+AuthenticationService ..> User : <<use>>
+AuthenticationService ..> PasswordResetToken : <<use>>
+UserRepository ..> User : <<use>>
+PasswordResetTokenRepository ..> PasswordResetToken : <<use>>
+TokenProviderUtil ..> PasswordResetToken : <<use>>
+
+User --|> BaseEntity
+
+@enduml
