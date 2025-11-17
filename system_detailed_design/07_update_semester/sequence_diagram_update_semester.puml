@@ -1,0 +1,151 @@
+@startuml Update Semester
+!theme plain
+hide footbox
+
+actor Client
+participant ":SemesterController" as Controller
+participant ":SemesterService" as Service
+participant ":SemesterRepository" as Repository
+participant ":SemesterMapper" as Mapper
+participant "Database" as DB
+
+Client -> Controller: PUT /api/v1/semesters/1\n{name, code, startDate, endDate, isActive}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' === Validation 1: Find Existing Semester ===
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: SELECT * FROM semesters\nWHERE id = ?
+activate DB
+DB --> Repository: semesterRecord
+deactivate DB
+
+Repository --> Service: semesterOpt:Optional<Semester>
+deactivate Repository
+
+alt semesterOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404, message: "Semester not found: 1",\ncode: "SEMESTER_NOT_FOUND"}
+end
+
+' === Validation 2: Date Range ===
+alt startDate >= endDate
+    Service -->> Controller: <<throw>> InvalidDateException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Start date must be before end date",\ncode: "SEMESTER_INVALID_DATE_RANGE"}
+end
+
+' === Validation 3: Code Uniqueness (conditional) ===
+opt code changed
+    Service -> Repository: existsByCodeAndIdNot(code, id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(*) FROM semesters\nWHERE code = ? AND id != ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: exists:boolean
+    deactivate Repository
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Semester code exists: FA2024",\ncode: "SEMESTER_CODE_EXISTS"}
+    end
+end
+
+' === Validation 4: Name Uniqueness (conditional) ===
+opt name changed
+    Service -> Repository: existsByNameAndIdNot(name, id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(*) FROM semesters\nWHERE name = ? AND id != ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: exists:boolean
+    deactivate Repository
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Semester name already exists: Fall 2024",\ncode: "SEMESTER_NAME_EXISTS"}
+    end
+end
+
+' === Validation 5: Date Range Overlap (conditional) ===
+opt dates changed
+    Service -> Repository: existsByDateRangeOverlapAndIdNot(startDate, endDate, id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(*) FROM semesters\nWHERE id != ? AND start_date < ? AND end_date > ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: exists:boolean
+    deactivate Repository
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 409\n{status: 409,\nmessage: "A semester with overlapping date range already exists",\ncode: "SEMESTER_DATE_RANGE_EXISTS"}
+    end
+end
+
+' === Validation 6: Ongoing Semester Protection ===
+alt semester is ongoing AND (dates or active changed)
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 403\n{status: 403,\nmessage: "Cannot modify dates or active status of an ongoing semester...",\ncode: "SEMESTER_ONGOING_CANNOT_BE_MODIFIED"}
+end
+
+' === Validation 7: Deactivation Guard (conditional) ===
+opt deactivating (active: true -> false)
+    Service -> Repository: countActiveClassesBySemesterId(id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE semester_id = ? AND is_active = true
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: activeCount:long
+    deactivate Repository
+
+    alt activeCount > 0
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: HTTP 403\n{status: 403,\nmessage: "Cannot deactivate semester with X active classes...",\ncode: "SEMESTER_HAS_ACTIVE_CLASSES"}
+    end
+end
+
+' === Apply Updates ===
+Service -> Mapper: updateSemesterFromRequest(request, semester)
+activate Mapper
+Mapper --> Service
+deactivate Mapper
+
+Service -> Repository: save(semester)
+activate Repository
+
+Repository -> DB: UPDATE semesters\nSET name=?, code=?, start_date=?, end_date=?, is_active=?, updated_at=NOW()\nWHERE id=?
+activate DB
+DB --> Repository: updatedRecord
+deactivate DB
+
+Repository --> Service: saved:Semester
+deactivate Repository
+
+Service -> Mapper: toDTO(saved)
+activate Mapper
+Mapper --> Service: dto:SemesterDTO
+deactivate Mapper
+
+Service --> Controller: SemesterDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  name: "Fall 2024 Updated",\n  code: "FA2024U",\n  startDate: "2024-09-01",\n  endDate: "2024-12-31",\n  totalClass: 5,\n  isActive: true,\n  updatedAt: "2024-11-17T15:00:00Z"\n}}
+deactivate Controller
+
+@enduml
