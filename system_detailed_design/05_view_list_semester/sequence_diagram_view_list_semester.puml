@@ -1,0 +1,53 @@
+@startuml View List Semester
+!theme plain
+hide footbox
+
+actor Client
+participant ":SemesterController" as Controller
+participant ":SemesterService" as Service
+participant ":SemesterRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: GET /api/v1/semesters?page=1&pageSize=10&search=Fall&isActive=true
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: SELECT NEW com.fuacs.backend.dto.response.SemesterDTO(\n    s.id, s.name, s.code, s.startDate, s.endDate,\n    COUNT(ac.id), s.isActive, s.createdAt, s.updatedAt)\nFROM Semester s LEFT JOIN s.academicClasses ac\nWHERE (LOWER(s.name) LIKE :search OR LOWER(s.code) LIKE :search)\n  AND s.isActive = :isActive\nGROUP BY s.id, s.name, s.code, s.startDate, s.endDate\nORDER BY s.id ASC\nLIMIT :pageSize OFFSET :offset
+activate DB
+DB --> Repository: resultList
+deactivate DB
+
+Repository --> Service: semesters:List<SemesterDTO>
+deactivate Repository
+
+Service --> Controller: semesters:List<SemesterDTO>
+deactivate Service
+
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: SELECT COUNT(s.id) FROM Semester s\nWHERE (LOWER(s.name) LIKE :search OR LOWER(s.code) LIKE :search)\n  AND s.isActive = :isActive
+activate DB
+DB --> Repository: total
+deactivate DB
+
+Repository --> Service: total:Long
+deactivate Repository
+
+Service --> Controller: total:Long
+deactivate Service
+
+Controller -> Controller: PagingResponse.of(semesters, total, request)
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  items: [SemesterDTO...],\n  currentPage: 1,\n  pageSize: 10,\n  totalItems: 50,\n  totalPages: 5\n}}
+deactivate Controller
+
+@enduml

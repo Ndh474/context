@@ -13,7 +13,6 @@ participant "Database" as DB
 Client -> Controller: POST /api/v1/auth/google/login\n{token: "<Google_ID_Token>"}
 activate Controller
 
-Controller -> Controller: validate @Valid LoginGoogleRequest
 Controller -> Service: googleLogin(request)
 activate Service
 

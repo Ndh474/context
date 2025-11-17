@@ -466,7 +466,7 @@ deactivate Ctrl
 
 ### 1. ❌ Leak Implementation Details
 
-#### SAI
+#### SAI - Ví dụ 1: Internal Logic
 
 ```plantuml
 Service -> TokenProvider: createAccessToken(user, permissions)
@@ -479,6 +479,17 @@ deactivate TokenProvider
 
 **Vấn đề:** Self-messages `build JWT claims` và `sign with HS256` là internal logic của TokenProvider, không phải interactions.
 
+#### SAI - Ví dụ 2: Validation Logic
+
+```plantuml
+Client -> Controller: GET /api/v1/semesters?page=1
+activate Controller
+Controller -> Controller: validate @Valid SemesterSearchRequest
+Controller -> Service: search(request)
+```
+
+**Vấn đề:** Validation (`@Valid`) là internal implementation detail được Spring tự động xử lý, không phải interaction giữa các components.
+
 #### ĐÚNG
 
 ```plantuml
@@ -487,6 +498,14 @@ activate TokenProvider
 TokenProvider --> Service: accessToken:String
 deactivate TokenProvider
 ```
+
+```plantuml
+Client -> Controller: GET /api/v1/semesters?page=1
+activate Controller
+Controller -> Service: search(request)
+```
+
+**Giải thích:** Chỉ vẽ interactions giữa các components, không vẽ internal logic hay framework mechanisms.
 
 ### 2. ❌ Redundancy: Method Call + Alt Fragment
 
@@ -612,6 +631,50 @@ end
 - [ ] Không có redundancy (method call + fragment làm cùng một việc)
 - [ ] Exception flows được handle đúng cách
 - [ ] Return values có tên biến cụ thể
+
+---
+
+## File Naming Convention
+
+### Quy Tắc Đặt Tên File
+
+**Format Chuẩn**: `sequence_diagram_[feature_name].puml`
+
+### Nguyên Tắc
+
+1. **Prefix cố định**: Luôn bắt đầu bằng `sequence_diagram_`
+2. **Feature name**: Tên chức năng phải match với use case, sử dụng snake_case (lowercase with underscores)
+3. **Extension**: Kết thúc bằng `.puml`
+
+### Ví Dụ
+
+#### ✅ ĐÚNG
+
+```
+sequence_diagram_sign_in_with_username_and_password.puml
+sequence_diagram_sign_in_with_google.puml
+sequence_diagram_change_password.puml
+sequence_diagram_forgot_password.puml
+sequence_diagram_reset_password.puml
+sequence_diagram_view_list_semester.puml
+```
+
+#### ❌ SAI
+
+```
+sequence_diagram.puml                    // Thiếu feature name
+seq_diagram_login.puml                   // Sai prefix
+SequenceDiagramLogin.puml                // Sai naming style (PascalCase)
+login_sequence_diagram.puml              // Sai thứ tự
+sequence-diagram-login.puml              // Sai delimiter (dùng - thay vì _)
+```
+
+### Lợi Ích
+
+- **Dễ tìm kiếm**: Tất cả sequence diagrams được group lại khi sort alphabetically
+- **Consistency**: Format thống nhất trong toàn bộ dự án
+- **Self-documenting**: Tên file đã mô tả rõ nội dung
+- **Tool-friendly**: Dễ dàng cho automation scripts và build tools
 
 ---
 

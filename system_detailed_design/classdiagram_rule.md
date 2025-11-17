@@ -557,6 +557,50 @@ Xem diagram tham khảo:
 
 ---
 
+## File Naming Convention
+
+### Quy Tắc Đặt Tên File
+
+**Format Chuẩn**: `class_diagram_[feature_name].puml`
+
+### Nguyên Tắc
+
+1. **Prefix cố định**: Luôn bắt đầu bằng `class_diagram_`
+2. **Feature name**: Tên chức năng phải match với use case, sử dụng snake_case (lowercase with underscores)
+3. **Extension**: Kết thúc bằng `.puml`
+
+### Ví Dụ
+
+#### ✅ ĐÚNG
+
+```
+class_diagram_sign_in_with_username_and_password.puml
+class_diagram_sign_in_with_google.puml
+class_diagram_change_password.puml
+class_diagram_forgot_password.puml
+class_diagram_view_list_semester.puml
+```
+
+#### ❌ SAI
+
+```
+class_diagram.puml                       // Thiếu feature name
+cls_diagram_login.puml                   // Sai prefix
+ClassDiagramLogin.puml                   // Sai naming style (PascalCase)
+login_class_diagram.puml                 // Sai thứ tự
+class-diagram-login.puml                 // Sai delimiter (dùng - thay vì _)
+class_diagram_login.puml.puml            // Double extension
+```
+
+### Lợi Ích
+
+- **Dễ tìm kiếm**: Tất cả class diagrams được group lại khi sort alphabetically
+- **Consistency**: Format thống nhất trong toàn bộ dự án
+- **Self-documenting**: Tên file đã mô tả rõ nội dung
+- **Pair với Sequence Diagram**: Dễ dàng tìm cặp class/sequence diagram của cùng một feature
+
+---
+
 ## References
 
 ### UML Specification
