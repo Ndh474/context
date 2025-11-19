@@ -1,0 +1,78 @@
+@startuml Delete Subject - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SubjectController {
+  - subjectService : SubjectService
+  + delete(id : Short) : Response<Void>
+}
+
+class SubjectService {
+  - subjectRepository : SubjectRepository
+  + delete(id : Short) : void
+}
+
+interface SubjectRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countAllClassesBySubjectId(subjectId : Short) : long
+  + deleteById(id : Short) : void
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - majors : Set<Major>
+  - academicClasses : Set<AcademicClass>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ResourceNotFoundException {
+  - errorCode : String
+  + ResourceNotFoundException(message : String, errorCode : String)
+}
+
+class OperationNotAllowedException {
+  - errorCode : String
+  + OperationNotAllowedException(message : String, errorCode : String)
+}
+
+class DataIntegrityViolationException {
+  + DataIntegrityViolationException(message : String)
+}
+
+class ErrorCode {
+  + SUBJECT_NOT_FOUND : String
+  + SUBJECT_HAS_DEPENDENCIES : String
+}
+
+SubjectController --> SubjectService
+SubjectService --> SubjectRepository
+
+SubjectController ..> Response : <<use>>
+SubjectService ..> Subject : <<use>>
+SubjectService ..> ResourceNotFoundException : <<throws>>
+SubjectService ..> OperationNotAllowedException : <<throws>>
+SubjectRepository ..> Subject : <<use>>
+SubjectRepository ..> DataIntegrityViolationException : <<throws>>
+
+ResourceNotFoundException ..> ErrorCode : <<use>>
+OperationNotAllowedException ..> ErrorCode : <<use>>
+
+Subject --|> BaseEntity
+
+@enduml
