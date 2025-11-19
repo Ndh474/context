@@ -1,0 +1,210 @@
+@startuml Import CSV Major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":MajorRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: POST /api/v1/majors/import\nMultipartFile file, String mode
+activate Controller
+
+' === Validation 1: File Required ===
+alt file is null or empty
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "CSV file is required",\ncode: "FILE_REQUIRED"}
+end
+
+Controller -> Service: importFromCsv(file, modeStr)
+activate Service
+
+' === Validation 2: Import Mode ===
+alt invalid mode (not AddOnly or AddAndUpdate)
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid import mode: {mode}. Valid values are: AddOnly, AddAndUpdate",\ncode: "INVALID_IMPORT_MODE"}
+end
+
+' === CSV Parsing ===
+Service -> CsvParser: parseMajorCsv(file)
+activate CsvParser
+
+' === File Validation ===
+alt file size > 5MB
+    CsvParser -->> Service: <<throw>> BadRequestException
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "File size exceeds 5MB limit",\ncode: "FILE_TOO_LARGE"}
+end
+
+alt invalid file type (not CSV)
+    CsvParser -->> Service: <<throw>> BadRequestException
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid file type",\ncode: "INVALID_FILE_TYPE"}
+end
+
+alt invalid CSV header
+    CsvParser -->> Service: <<throw>> BadRequestException
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid CSV format. Expected header: code,name[,status]",\ncode: "INVALID_CSV_FORMAT"}
+end
+
+alt row count > 10,000
+    CsvParser -->> Service: <<throw>> BadRequestException
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Too many rows (max 10,000)",\ncode: "TOO_MANY_ROWS"}
+end
+
+CsvParser --> Service: rows:List<MajorCsvRow>
+deactivate CsvParser
+
+note right of Service
+Perform in-memory deduplication
+by code (keep first occurrence)
+end note
+
+' === Batch Processing Loop ===
+loop for each unique row
+    note right of Service
+    Each row processed in
+    REQUIRES_NEW transaction
+    (independent commit/rollback)
+    end note
+
+    Service -> Service: processOneMajorRow(row, mode)
+    activate Service
+
+    ' === Row Validation ===
+    alt !row.isValid()
+        note right of Service
+        Collect error:
+        INVALID_FIELD_FORMAT
+        Continue to next row
+        end note
+        Service --> Service
+        deactivate Service
+    else row is valid
+
+        ' === Check Existence ===
+        Service -> Repository: findByCode(code)
+        activate Repository
+
+        Repository -> DB: SELECT * FROM majors\nWHERE code = ?
+        activate DB
+        DB --> Repository: majorRecord
+        deactivate DB
+
+        Repository --> Service: existing:Major
+        deactivate Repository
+
+        ' === Mode Branching ===
+        alt mode = AddOnly
+            alt existing != null
+                note right of Service
+                Collect error:
+                MAJOR_CODE_EXISTS
+                Continue to next row
+                end note
+                Service --> Service
+                deactivate Service
+            else existing == null
+                ' Validate name uniqueness
+                Service -> Repository: existsByName(name)
+                activate Repository
+                Repository -> DB: SELECT COUNT(*) > 0 FROM majors\nWHERE name = ?
+                activate DB
+                DB --> Repository: count
+                deactivate DB
+                Repository --> Service: exists:boolean
+                deactivate Repository
+
+                alt exists = true
+                    note right of Service
+                    Collect error:
+                    MAJOR_NAME_EXISTS
+                    Continue to next row
+                    end note
+                    Service --> Service
+                    deactivate Service
+                else name unique
+                    ' Create new major
+                    Service -> Repository: save(major)
+                    activate Repository
+                    Repository -> DB: INSERT INTO majors\n(name, code, is_active, created_at, updated_at)\nVALUES (?, ?, ?, NOW(), NOW())
+                    activate DB
+                    DB --> Repository: savedRecord
+                    deactivate DB
+                    Repository --> Service: saved:Major
+                    deactivate Repository
+
+                    note right of Service
+                    Increment successCount
+                    Commit transaction
+                    end note
+                    Service --> Service
+                    deactivate Service
+                end
+            end
+
+        else mode = AddAndUpdate
+            alt existing != null
+                ' Validate name uniqueness (if name changed)
+                opt name changed
+                    Service -> Repository: existsByName(name)
+                    activate Repository
+                    Repository -> DB: SELECT COUNT(*) > 0 FROM majors\nWHERE name = ?
+                    activate DB
+                    DB --> Repository: count
+                    deactivate DB
+                    Repository --> Service: exists:boolean
+                    deactivate Repository
+
+                    alt exists = true
+                        note right of Service
+                        Collect error:
+                        MAJOR_NAME_EXISTS
+                        Continue to next row
+                        end note
+                        Service --> Service
+                        deactivate Service
+                    end
+                end
+
+                ' Update existing major
+                Service -> Repository: save(updatedMajor)
+                activate Repository
+                Repository -> DB: UPDATE majors\nSET name=?, is_active=?, updated_at=NOW()\nWHERE id=?
+                activate DB
+                DB --> Repository: updatedRecord
+                deactivate DB
+                Repository --> Service: saved:Major
+                deactivate Repository
+
+                note right of Service
+                Increment successCount
+                Commit transaction
+                end note
+                Service --> Service
+                deactivate Service
+
+            else existing == null
+                note right of Service
+                Same validation as AddOnly:
+                - Check name uniqueness
+                - Create new major
+                - Increment successCount
+                end note
+                Service --> Service
+                deactivate Service
+            end
+        end
+    end
+end
+
+Service --> Controller: result:ImportResultDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\nmessage: "Import completed: X successful, Y failed",\ndata: {\n  successCount: X,\n  failureCount: Y,\n  errors: [\n    {rowNumber: N, errorCode: "...", message: "..."}\n  ]\n}}
+deactivate Controller
+
+@enduml
