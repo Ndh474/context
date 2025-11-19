@@ -1,0 +1,80 @@
+@startuml Delete Major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: DELETE /api/v1/majors/1
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' === Validation 1: Check Existence ===
+Service -> Repository: existsById(id)
+activate Repository
+
+Repository -> DB: SELECT COUNT(*) > 0 FROM majors\nWHERE id = ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: exists:boolean
+deactivate Repository
+
+alt !exists
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Major not found: 1",\ncode: "MAJOR_NOT_FOUND"}
+end
+
+' === Validation 2: Check Subject Dependencies ===
+Service -> Repository: countSubjectsByMajorId(id)
+activate Repository
+
+Repository -> DB: SELECT COUNT(s.id) FROM subjects s\nJOIN major_subject ms ON s.id = ms.subject_id\nWHERE ms.major_id = ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: subjectCount:long
+deactivate Repository
+
+' === Validation 3: Check Student Dependencies ===
+Service -> Repository: countStudentsByMajorId(id)
+activate Repository
+
+Repository -> DB: SELECT COUNT(sp.id) FROM student_profiles sp\nWHERE sp.major_id = ?
+activate DB
+DB --> Repository: count
+deactivate DB
+
+Repository --> Service: studentCount:long
+deactivate Repository
+
+alt subjectCount > 0 OR studentCount > 0
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 403\n{status: 403,\nmessage: "Cannot delete major. Found X subjects and Y students. Please reassign or delete them first",\ncode: "MAJOR_HAS_DEPENDENCIES"}
+end
+
+' === Delete Major ===
+Service -> Repository: deleteById(id)
+activate Repository
+
+Repository -> DB: DELETE FROM majors\nWHERE id = ?
+activate DB
+DB --> Repository
+deactivate DB
+
+deactivate Repository
+
+Service --> Controller
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\nmessage: "Delete major successfully",\ncode: null,\ndata: null}
+deactivate Controller
+
+@enduml

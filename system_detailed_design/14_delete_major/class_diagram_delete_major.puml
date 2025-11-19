@@ -1,0 +1,74 @@
+@startuml Delete Major - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class MajorController {
+  - majorService : MajorService
+  + delete(id : Short) : Response<Void>
+}
+
+class MajorService {
+  - majorRepository : MajorRepository
+  + delete(id : Short) : void
+}
+
+interface MajorRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countSubjectsByMajorId(majorId : Short) : long
+  + countStudentsByMajorId(majorId : Short) : long
+  + deleteById(id : Short) : void
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ResourceNotFoundException {
+  - errorCode : String
+  + ResourceNotFoundException(message : String, errorCode : String)
+}
+
+class OperationNotAllowedException {
+  - errorCode : String
+  + OperationNotAllowedException(message : String, errorCode : String)
+}
+
+class ErrorCode {
+  + MAJOR_NOT_FOUND : String
+  + MAJOR_HAS_DEPENDENCIES : String
+}
+
+MajorController --> MajorService
+MajorService --> MajorRepository
+
+MajorController ..> Response : <<use>>
+MajorService ..> Major : <<use>>
+MajorService ..> ResourceNotFoundException : <<throws>>
+MajorService ..> OperationNotAllowedException : <<throws>>
+MajorRepository ..> Major : <<use>>
+
+ResourceNotFoundException ..> ErrorCode : <<use>>
+OperationNotAllowedException ..> ErrorCode : <<use>>
+
+Major --|> BaseEntity
+
+@enduml
