@@ -1,0 +1,131 @@
+@startuml Update Major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
+participant ":MajorMapper" as Mapper
+participant ":Database" as DB
+
+Client -> Controller: PUT /api/v1/majors/1\n{name, code, isActive}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' === Validation 1: Find Existing Major ===
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: SELECT * FROM majors\nWHERE id = ?
+activate DB
+DB --> Repository: majorRecord
+deactivate DB
+
+Repository --> Service: majorOpt:Optional<Major>
+deactivate Repository
+
+alt majorOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Major not found: 1",\ncode: "MAJOR_NOT_FOUND"}
+end
+
+' === Validation 2: Code Uniqueness (conditional) ===
+opt code changed
+    Service -> Repository: existsByCodeAndIdNot(code, id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(*) > 0 FROM majors\nWHERE code = ? AND id != ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: exists:boolean
+    deactivate Repository
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Major code already exists: {code}",\ncode: "MAJOR_CODE_EXISTS"}
+    end
+end
+
+' === Validation 3: Name Uniqueness (conditional) ===
+opt name changed
+    Service -> Repository: existsByNameAndIdNot(name, id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(*) > 0 FROM majors\nWHERE name = ? AND id != ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: exists:boolean
+    deactivate Repository
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Major name already exists: {name}",\ncode: "MAJOR_NAME_EXISTS"}
+    end
+end
+
+' === Validation 4: Deactivation Guard (conditional) ===
+opt deactivating (active: true -> false)
+    Service -> Repository: countActiveSubjectsByMajorId(id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(s.id) FROM subjects s\nJOIN major_subject ms ON s.id = ms.subject_id\nWHERE ms.major_id = ? AND s.is_active = true
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: activeSubjects:long
+    deactivate Repository
+
+    Service -> Repository: countActiveStudentsByMajorId(id)
+    activate Repository
+
+    Repository -> DB: SELECT COUNT(sp.id) FROM student_profiles sp\nJOIN users u ON sp.user_id = u.id\nWHERE sp.major_id = ? AND u.is_active = true
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+
+    Repository --> Service: activeStudents:long
+    deactivate Repository
+
+    alt activeSubjects > 0 OR activeStudents > 0
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: HTTP 403\n{status: 403,\nmessage: "Cannot deactivate major. Found X active subjects and Y enrolled students",\ncode: "MAJOR_HAS_ACTIVE_DEPENDENCIES"}
+    end
+end
+
+' === Apply Updates ===
+Service -> Mapper: updateFromRequest(request, major)
+activate Mapper
+Mapper --> Service
+deactivate Mapper
+
+Service -> Repository: save(major)
+activate Repository
+
+Repository -> DB: UPDATE majors\nSET name=?, code=?, is_active=?, updated_at=NOW()\nWHERE id=?
+activate DB
+DB --> Repository: updatedRecord
+deactivate DB
+
+Repository --> Service: saved:Major
+deactivate Repository
+
+Service -> Mapper: toDTO(saved)
+activate Mapper
+Mapper --> Service: dto:MajorDTO
+deactivate Mapper
+
+Service --> Controller: MajorDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  name: "Computer Science Updated",\n  code: "CSU",\n  totalSubject: 10,\n  isActive: true,\n  updatedAt: "2024-11-17T15:00:00Z"\n}}
+deactivate Controller
+
+@enduml

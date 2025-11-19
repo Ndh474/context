@@ -1,0 +1,94 @@
+@startuml Update Major - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class MajorController {
+  - majorService : MajorService
+  + update(id : Short, request : MajorUpdateRequest) : Response<MajorDTO>
+}
+
+class MajorService {
+  - majorRepository : MajorRepository
+  - majorMapper : MajorMapper
+  + update(id : Short, request : MajorUpdateRequest) : MajorDTO
+}
+
+interface MajorRepository <<interface>> {
+  + findById(id : Short) : Optional<Major>
+  + existsByCodeAndIdNot(code : String, id : Short) : boolean
+  + existsByNameAndIdNot(name : String, id : Short) : boolean
+  + countActiveSubjectsByMajorId(majorId : Short) : long
+  + countActiveStudentsByMajorId(majorId : Short) : long
+  + save(entity : Major) : Major
+}
+
+interface MajorMapper <<interface>> {
+  + toDTO(entity : Major) : MajorDTO
+  + updateFromRequest(request : MajorUpdateRequest, major : Major) : void
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class MajorUpdateRequest {
+  - name : String
+  - code : String
+}
+
+class BaseRequest {
+  - isActive : Boolean
+}
+
+class MajorDTO {
+  - id : Short
+  - name : String
+  - code : String
+  - totalSubject : Integer
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+MajorController --> MajorService
+MajorService --> MajorRepository
+MajorService --> MajorMapper
+
+MajorController ..> Response : <<use>>
+MajorController ..> MajorDTO : <<use>>
+MajorController ..> MajorUpdateRequest : <<use>>
+MajorService ..> Major : <<use>>
+MajorService ..> MajorDTO : <<use>>
+MajorService ..> MajorUpdateRequest : <<use>>
+MajorRepository ..> Major : <<use>>
+MajorMapper ..> Major : <<use>>
+MajorMapper ..> MajorDTO : <<use>>
+MajorMapper ..> MajorUpdateRequest : <<use>>
+
+Major --|> BaseEntity
+MajorUpdateRequest --|> BaseRequest
+MajorDTO --|> BaseDTO
+
+@enduml

@@ -1,0 +1,116 @@
+@startuml View List Major - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class MajorController {
+  - majorService : MajorService
+  + findAll(request : MajorSearchRequest) : PagingResponse<MajorDTO>
+}
+
+class MajorService {
+  - majorRepository : MajorRepository
+  + search(request : MajorSearchRequest) : List<MajorDTO>
+  + count(request : MajorSearchRequest) : Long
+}
+
+interface MajorRepository <<interface>> {
+  + findById(id : Short) : Optional<Major>
+  + save(major : Major) : Major
+}
+
+interface CustomMajorRepository <<interface>> {
+  + search(request : MajorSearchRequest) : List<MajorDTO>
+  + count(request : MajorSearchRequest) : Long
+}
+
+class MajorRepositoryImpl {
+  - em : EntityManager
+  + search(request : MajorSearchRequest) : List<MajorDTO>
+  + count(request : MajorSearchRequest) : Long
+  - buildWhereClause(request : MajorSearchRequest, parameters : Map<String, Object>) : String
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class MajorSearchRequest {
+}
+
+class PagedRequest {
+  - page : Integer
+  - pageSize : Integer
+  - sort : String
+  - sortBy : String
+  - search : String
+  - isActive : Boolean
+  + getPage() : Integer
+  + getPageSize() : Integer
+  + getSearch() : String
+  + getSort() : String
+  + getSortBy() : String
+  + getActive() : Boolean
+}
+
+class MajorDTO {
+  - id : Short
+  - name : String
+  - code : String
+  - totalSubject : Integer
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class PagingResponse<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : PageableResponse
+  + of(items : List<T>, total : Long, request : PagedRequest) : PagingResponse<T>
+}
+
+class PageableResponse {
+  - items : List<T>
+  - totalPages : int
+  - currentPage : int
+  - pageSize : int
+  - totalItems : long
+}
+
+MajorController --> MajorService
+MajorService --> MajorRepository
+MajorRepositoryImpl --> EntityManager
+
+MajorController ..> MajorSearchRequest : <<use>>
+MajorController ..> PagingResponse : <<use>>
+MajorService ..> MajorSearchRequest : <<use>>
+MajorService ..> MajorDTO : <<use>>
+MajorRepository ..> Major : <<use>>
+CustomMajorRepository ..> MajorSearchRequest : <<use>>
+CustomMajorRepository ..> MajorDTO : <<use>>
+
+CustomMajorRepository <|.. MajorRepositoryImpl
+
+BaseEntity <|-- Major
+PagedRequest <|-- MajorSearchRequest
+BaseDTO <|-- MajorDTO
+
+PagingResponse +-- PageableResponse
+
+@enduml

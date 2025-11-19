@@ -17,7 +17,7 @@ activate Service
 Service -> Repository: search(request)
 activate Repository
 
-Repository -> DB: SELECT NEW com.fuacs.backend.dto.response.SemesterDTO(\n    s.id, s.name, s.code, s.startDate, s.endDate,\n    COUNT(ac.id), s.isActive, s.createdAt, s.updatedAt)\nFROM Semester s LEFT JOIN s.academicClasses ac\nWHERE (LOWER(s.name) LIKE :search OR LOWER(s.code) LIKE :search)\n  AND s.isActive = :isActive\nGROUP BY s.id, s.name, s.code, s.startDate, s.endDate\nORDER BY s.id ASC\nLIMIT :pageSize OFFSET :offset
+Repository -> DB: SELECT s.id, s.name, s.code, s.start_date, s.end_date,\n    COUNT(ac.id) as total_class, s.is_active, s.created_at, s.updated_at\nFROM semesters s\nLEFT JOIN academic_classes ac ON s.id = ac.semester_id\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?\nGROUP BY s.id, s.name, s.code, s.start_date, s.end_date, s.is_active, s.created_at, s.updated_at\nORDER BY s.id ASC\nLIMIT ? OFFSET ?
 activate DB
 DB --> Repository: resultList
 deactivate DB
@@ -34,7 +34,7 @@ activate Service
 Service -> Repository: count(request)
 activate Repository
 
-Repository -> DB: SELECT COUNT(s.id) FROM Semester s\nWHERE (LOWER(s.name) LIKE :search OR LOWER(s.code) LIKE :search)\n  AND s.isActive = :isActive
+Repository -> DB: SELECT COUNT(s.id) FROM semesters s\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?
 activate DB
 DB --> Repository: total
 deactivate DB
