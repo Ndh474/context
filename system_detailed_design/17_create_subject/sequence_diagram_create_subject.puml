@@ -1,0 +1,133 @@
+@startuml Create Subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as SubjectRepo
+participant ":MajorRepository" as MajorRepo
+participant ":SubjectMapper" as SubjectMapper
+participant ":MajorMapper" as MajorMapper
+participant ":Database" as DB
+
+Client -> Controller: POST /api/v1/subjects\n{name, code, majorIds}
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' === Validation 1: Code Uniqueness ===
+Service -> SubjectRepo: existsByCode(code)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT COUNT(*) > 0 FROM subjects\nWHERE code = ?
+activate DB
+DB --> SubjectRepo: count
+deactivate DB
+
+SubjectRepo --> Service: exists:boolean
+deactivate SubjectRepo
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Subject code already exists: {code}",\ncode: "SUBJECT_CODE_EXISTS"}
+end
+
+' === Validation 2: Name Uniqueness ===
+Service -> SubjectRepo: existsByName(name)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT COUNT(*) > 0 FROM subjects\nWHERE name = ?
+activate DB
+DB --> SubjectRepo: count
+deactivate DB
+
+SubjectRepo --> Service: exists:boolean
+deactivate SubjectRepo
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Subject name already exists: {name}",\ncode: "SUBJECT_NAME_EXISTS"}
+end
+
+' === Validation 3: Major IDs Not Empty ===
+opt majorIds.isEmpty()
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "At least one major must be specified",\ncode: "SUBJECT_MAJOR_IDS_EMPTY"}
+end
+
+' === Validation 4: Majors Exist ===
+Service -> MajorRepo: findByIdIn(majorIds)
+activate MajorRepo
+
+MajorRepo -> DB: SELECT * FROM majors\nWHERE id IN (?)
+activate DB
+DB --> MajorRepo: majorRecords
+deactivate DB
+
+MajorRepo --> Service: majors:List<Major>
+deactivate MajorRepo
+
+alt majors.size() != majorIds.size()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "One or more majors not found",\ncode: "MAJOR_NOT_FOUND"}
+end
+
+' === Validation 5: All Majors Are Active ===
+opt any major.isActive = false
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Cannot assign subject to inactive major (Major ID: {id}, Code: {code})",\ncode: "INACTIVE_MAJOR_NOT_ALLOWED"}
+end
+
+' === Map DTO to Entity ===
+Service -> SubjectMapper: toEntity(request)
+activate SubjectMapper
+SubjectMapper --> Service: subject:Subject
+deactivate SubjectMapper
+
+' === Set Majors Relationship ===
+note over Service: subject.setMajors(new HashSet<>(majors))
+
+' === Save to Database ===
+Service -> SubjectRepo: save(subject)
+activate SubjectRepo
+
+SubjectRepo -> DB: INSERT INTO subjects\n(name, code, is_active, created_at, updated_at)\nVALUES (?, ?, true, NOW(), NOW())\nRETURNING *
+activate DB
+DB --> SubjectRepo: savedRecord
+deactivate DB
+
+SubjectRepo -> DB: INSERT INTO subject_majors\n(subject_id, major_id)\nVALUES (?, ?)
+activate DB
+DB --> SubjectRepo: insertedRows
+deactivate DB
+
+SubjectRepo --> Service: saved:Subject
+deactivate SubjectRepo
+
+' === Map Entity to DTO ===
+Service -> SubjectMapper: toDTO(saved)
+activate SubjectMapper
+SubjectMapper --> Service: dto:SubjectDTO
+deactivate SubjectMapper
+
+' === Map Majors to DTOs ===
+loop for each major in majors
+    Service -> MajorMapper: toDTO(major)
+    activate MajorMapper
+    MajorMapper --> Service: majorDTO:MajorDTO
+    deactivate MajorMapper
+end
+
+note over Service: dto.setMajors(majorDTOs)
+note over Service: dto.setTotalClass(0)
+note over Service: dto.setTotalActiveClass(0)
+
+Service --> Controller: SubjectDTO
+deactivate Service
+
+Controller --> Client: HTTP 201 CREATED\n{status: 201,\ndata: {\n  id: 1,\n  name: "Data Structures",\n  code: "CS101",\n  majors: [\n    {id: 1, name: "Computer Science", code: "CS"},\n    {id: 2, name: "Software Engineering", code: "SE"}\n  ],\n  totalClass: 0,\n  totalActiveClass: 0,\n  isActive: true,\n  createdAt: "2024-11-19T10:30:00Z"\n}}
+deactivate Controller
+
+@enduml
