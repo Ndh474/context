@@ -1,0 +1,1161 @@
+[
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "search",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate semester search functionality with various filters and pagination",
+            "sheet_name": "semester_search"
+        },
+        "statistics": {
+            "passed": 4,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 3,
+                "A": 0,
+                "B": 1
+            },
+            "total_test_cases": 4
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.search"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            },
+            {
+                "description": "Test data exists in repository"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "page",
+                "items": [
+                    {
+                        "description": "1",
+                        "applicable_to": ["TC01", "TC02", "TC03", "TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "size",
+                "items": [
+                    {
+                        "description": "10",
+                        "applicable_to": ["TC01", "TC02", "TC03", "TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "sortDir",
+                "items": [
+                    {
+                        "description": "asc",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    },
+                    {
+                        "description": "desc",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "sortBy",
+                "items": [
+                    {
+                        "description": "name",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    },
+                    {
+                        "description": "code",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "active",
+                "items": [
+                    {
+                        "description": "true",
+                        "applicable_to": ["TC01", "TC02"]
+                    },
+                    {
+                        "description": "null",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "false",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "keyword",
+                "items": [
+                    {
+                        "description": "Fall",
+                        "applicable_to": ["TC01"]
+                    },
+                    {
+                        "description": "NonExistent",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "null",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "Spring",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "List<SemesterDTO> with matching semesters",
+                        "applicable_to": ["TC01", "TC04"]
+                    },
+                    {
+                        "description": "Empty list",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "List<SemesterDTO> with all semesters",
+                        "applicable_to": ["TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "",
+                        "applicable_to": []
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "",
+                        "applicable_to": []
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Search successfully with valid request"
+            },
+            {
+                "id": "TC02",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Search with empty result"
+            },
+            {
+                "id": "TC03",
+                "type": "B",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Search with null parameters"
+            },
+            {
+                "id": "TC04",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Search with different sort options"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "findById",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate finding semester by ID with valid and invalid IDs",
+            "sheet_name": "semester_findById"
+        },
+        "statistics": {
+            "passed": 2,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 1,
+                "A": 1,
+                "B": 0
+            },
+            "total_test_cases": 2
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.findById"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            },
+            {
+                "description": "SemesterMapper is mocked"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "id",
+                "items": [
+                    {
+                        "description": "1",
+                        "applicable_to": ["TC01"]
+                    },
+                    {
+                        "description": "999",
+                        "applicable_to": ["TC02"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "SemesterDTO with totalClass = 3",
+                        "applicable_to": ["TC01"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "ResourceNotFoundException",
+                        "applicable_to": ["TC02"]
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "Semester not found: 999",
+                        "applicable_to": ["TC02"]
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Find by ID successfully"
+            },
+            {
+                "id": "TC02",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Throw ResourceNotFoundException when ID not found"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "create",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate semester creation with various scenarios including validation and duplicate checks",
+            "sheet_name": "semester_create"
+        },
+        "statistics": {
+            "passed": 7,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 3,
+                "A": 3,
+                "B": 1
+            },
+            "total_test_cases": 7
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.create"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            },
+            {
+                "description": "SemesterMapper is mocked"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "name",
+                "items": [
+                    {
+                        "description": "Fall 2024",
+                        "applicable_to": ["TC01", "TC03", "TC05"]
+                    },
+                    {
+                        "description": "Existing Name",
+                        "applicable_to": ["TC04"]
+                    },
+                    {
+                        "description": "S",
+                        "applicable_to": ["TC06"]
+                    },
+                    {
+                        "description": "A Very Long Semester Name That Is Exactly Twenty Chars",
+                        "applicable_to": ["TC07"]
+                    }
+                ]
+            },
+            {
+                "header": "code",
+                "items": [
+                    {
+                        "description": "FA24",
+                        "applicable_to": ["TC01", "TC04", "TC05"]
+                    },
+                    {
+                        "description": "FA2024",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "EXISTING_CODE",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "C",
+                        "applicable_to": ["TC06"]
+                    },
+                    {
+                        "description": "MAX10CHAR",
+                        "applicable_to": ["TC07"]
+                    }
+                ]
+            },
+            {
+                "header": "startDate",
+                "items": [
+                    {
+                        "description": "2024-09-01",
+                        "applicable_to": ["TC01", "TC03", "TC04", "TC06", "TC07"]
+                    },
+                    {
+                        "description": "2024-12-31",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "2024-10-01",
+                        "applicable_to": ["TC05"]
+                    }
+                ]
+            },
+            {
+                "header": "endDate",
+                "items": [
+                    {
+                        "description": "2024-12-31",
+                        "applicable_to": ["TC01", "TC03", "TC04", "TC06", "TC07"]
+                    },
+                    {
+                        "description": "2024-09-01",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "2024-11-30",
+                        "applicable_to": ["TC05"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "SemesterDTO with totalClass = 0",
+                        "applicable_to": ["TC01", "TC06", "TC07"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "InvalidDateException",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "ResourceExistsException",
+                        "applicable_to": ["TC03", "TC04", "TC05"]
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "Start date must be before end date",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "Semester with code already exists",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "Semester name exists: Existing Name",
+                        "applicable_to": ["TC04"]
+                    },
+                    {
+                        "description": "A semester with this start and end date already exists",
+                        "applicable_to": ["TC05"]
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Create semester successfully"
+            },
+            {
+                "id": "TC02",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Invalid date range: start date >= end date"
+            },
+            {
+                "id": "TC03",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Code already exists"
+            },
+            {
+                "id": "TC04",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Semester name already exists"
+            },
+            {
+                "id": "TC05",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Date range already exists"
+            },
+            {
+                "id": "TC06",
+                "type": "B",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Create semester with minimum valid data"
+            },
+            {
+                "id": "TC07",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Create semester with maximum valid data"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "update",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate semester update with various scenarios including ongoing semester handling and validation",
+            "sheet_name": "semester_update"
+        },
+        "statistics": {
+            "passed": 15,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 7,
+                "A": 7,
+                "B": 1
+            },
+            "total_test_cases": 15
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.update"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            },
+            {
+                "description": "SemesterMapper is mocked"
+            },
+            {
+                "description": "Test data exists in repository"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "id",
+                "items": [
+                    {
+                        "description": "1",
+                        "applicable_to": ["TC01", "TC03", "TC04", "TC05", "TC06", "TC07", "TC08", "TC09", "TC10", "TC11", "TC12", "TC13", "TC14", "TC15"]
+                    },
+                    {
+                        "description": "999",
+                        "applicable_to": ["TC02"]
+                    }
+                ]
+            },
+            {
+                "header": "name",
+                "items": [
+                    {
+                        "description": "Updated Fall 2024",
+                        "applicable_to": ["TC01", "TC03", "TC04", "TC06", "TC07", "TC09", "TC10", "TC13"]
+                    },
+                    {
+                        "description": "Existing Name",
+                        "applicable_to": ["TC05"]
+                    },
+                    {
+                        "description": "Fall 2024",
+                        "applicable_to": ["TC08", "TC11", "TC12", "TC15"]
+                    },
+                    {
+                        "description": "Updated Name",
+                        "applicable_to": ["TC14"]
+                    }
+                ]
+            },
+            {
+                "header": "code",
+                "items": [
+                    {
+                        "description": "UPD2024",
+                        "applicable_to": ["TC01", "TC03", "TC05", "TC06", "TC07", "TC09", "TC10", "TC13", "TC14"]
+                    },
+                    {
+                        "description": "EXISTING_CODE",
+                        "applicable_to": ["TC04"]
+                    },
+                    {
+                        "description": "FA2024",
+                        "applicable_to": ["TC08", "TC11", "TC12", "TC15"]
+                    }
+                ]
+            },
+            {
+                "header": "startDate",
+                "items": [
+                    {
+                        "description": "2024-09-15",
+                        "applicable_to": ["TC01", "TC10"]
+                    },
+                    {
+                        "description": "2024-12-31",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "2024-09-01",
+                        "applicable_to": ["TC04", "TC05", "TC06", "TC08", "TC09", "TC11", "TC12", "TC15"]
+                    },
+                    {
+                        "description": "today.minusMonths(1)",
+                        "applicable_to": ["TC07", "TC13"]
+                    },
+                    {
+                        "description": "today.plusMonths(2)",
+                        "applicable_to": ["TC14"]
+                    }
+                ]
+            },
+            {
+                "header": "endDate",
+                "items": [
+                    {
+                        "description": "2024-12-15",
+                        "applicable_to": ["TC01", "TC06", "TC10", "TC15"]
+                    },
+                    {
+                        "description": "2024-09-01",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "2024-11-30",
+                        "applicable_to": ["TC06"]
+                    },
+                    {
+                        "description": "2024-12-31",
+                        "applicable_to": ["TC04", "TC05", "TC08", "TC09", "TC11", "TC12"]
+                    },
+                    {
+                        "description": "today.plusMonths(2)",
+                        "applicable_to": ["TC07"]
+                    },
+                    {
+                        "description": "today.plusMonths(3)",
+                        "applicable_to": ["TC13"]
+                    },
+                    {
+                        "description": "today.plusMonths(6)",
+                        "applicable_to": ["TC14"]
+                    }
+                ]
+            },
+            {
+                "header": "active",
+                "items": [
+                    {
+                        "description": "true",
+                        "applicable_to": ["TC01", "TC03", "TC04", "TC05", "TC06", "TC07", "TC08", "TC09", "TC10", "TC13", "TC14"]
+                    },
+                    {
+                        "description": "false",
+                        "applicable_to": ["TC11"]
+                    },
+                    {
+                        "description": "true (from false)",
+                        "applicable_to": ["TC12"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "SemesterDTO with updated values",
+                        "applicable_to": ["TC01", "TC08", "TC10", "TC11", "TC12", "TC14"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "ResourceNotFoundException",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "InvalidDateException",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "ResourceExistsException",
+                        "applicable_to": ["TC04", "TC05", "TC06", "TC15"]
+                    },
+                    {
+                        "description": "OperationNotAllowedException",
+                        "applicable_to": ["TC07", "TC09", "TC13"]
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "Semester not found: 999",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "Start date must be before end date",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "Semester code exists: EXISTING_CODE",
+                        "applicable_to": ["TC04"]
+                    },
+                    {
+                        "description": "Semester name already exists: Existing Name",
+                        "applicable_to": ["TC05"]
+                    },
+                    {
+                        "description": "A semester with this start and end date already exists",
+                        "applicable_to": ["TC06", "TC15"]
+                    },
+                    {
+                        "description": "Cannot modify dates or active status of an ongoing semester",
+                        "applicable_to": ["TC07", "TC13"]
+                    },
+                    {
+                        "description": "Cannot deactivate semester with 5 active classes",
+                        "applicable_to": ["TC09"]
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Update semester successfully"
+            },
+            {
+                "id": "TC02",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Update non-existent semester"
+            },
+            {
+                "id": "TC03",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Invalid date range"
+            },
+            {
+                "id": "TC04",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Code already exists"
+            },
+            {
+                "id": "TC05",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Name already exists"
+            },
+            {
+                "id": "TC06",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Date range already exists"
+            },
+            {
+                "id": "TC07",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Modify ongoing semester dates"
+            },
+            {
+                "id": "TC08",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Update ongoing semester name and code only"
+            },
+            {
+                "id": "TC09",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Deactivate semester with active classes"
+            },
+            {
+                "id": "TC10",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Update semester with no academic classes"
+            },
+            {
+                "id": "TC11",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Deactivate semester with no active classes"
+            },
+            {
+                "id": "TC12",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Activate inactive semester"
+            },
+            {
+                "id": "TC13",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Modify ongoing semester end date only"
+            },
+            {
+                "id": "TC14",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Modify future semester"
+            },
+            {
+                "id": "TC15",
+                "type": "B",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Date range exists (End date change only)"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "delete",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate semester deletion with dependency checks",
+            "sheet_name": "semester_delete"
+        },
+        "statistics": {
+            "passed": 4,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 1,
+                "A": 3,
+                "B": 0
+            },
+            "total_test_cases": 4
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.delete"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "id",
+                "items": [
+                    {
+                        "description": "1",
+                        "applicable_to": ["TC01"]
+                    },
+                    {
+                        "description": "999",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "Semester with 3 active classes",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "Semester with FK dependencies",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "void",
+                        "applicable_to": ["TC01"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "ResourceNotFoundException",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "OperationNotAllowedException",
+                        "applicable_to": ["TC03", "TC04"]
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "Semester not found: 999",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "Cannot delete semester with 3 active classes. Deactivate classes first.",
+                        "applicable_to": ["TC03"]
+                    },
+                    {
+                        "description": "Delete all class associate with this semester first",
+                        "applicable_to": ["TC04"]
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Delete semester successfully"
+            },
+            {
+                "id": "TC02",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Delete non-existent semester"
+            },
+            {
+                "id": "TC03",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Delete semester with active classes"
+            },
+            {
+                "id": "TC04",
+                "type": "A",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Delete semester with dependencies"
+            }
+        ]
+    },
+    {
+        "metadata": {
+            "code_module": "SemesterService",
+            "method": "count",
+            "created_by": "Test Team",
+            "executed_by": "JUnit",
+            "executed_date": "2025-01-15",
+            "test_requirement": "Validate semester count functionality with various filters",
+            "sheet_name": "semester_count"
+        },
+        "statistics": {
+            "passed": 3,
+            "failed": 0,
+            "untested": 0,
+            "type_counts": {
+                "N": 2,
+                "A": 0,
+                "B": 1
+            },
+            "total_test_cases": 3
+        },
+        "preconditions": [
+            {
+                "description": "Can connect to server"
+            },
+            {
+                "description": "Send request to SemesterService.count"
+            },
+            {
+                "description": "SemesterRepository is mocked"
+            }
+        ],
+        "inputs": [
+            {
+                "header": "page",
+                "items": [
+                    {
+                        "description": "1",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "size",
+                "items": [
+                    {
+                        "description": "10",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "sortDir",
+                "items": [
+                    {
+                        "description": "asc",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "sortBy",
+                "items": [
+                    {
+                        "description": "name",
+                        "applicable_to": ["TC01", "TC02", "TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "active",
+                "items": [
+                    {
+                        "description": "true",
+                        "applicable_to": ["TC01", "TC02"]
+                    },
+                    {
+                        "description": "null",
+                        "applicable_to": ["TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "keyword",
+                "items": [
+                    {
+                        "description": "Fall",
+                        "applicable_to": ["TC01"]
+                    },
+                    {
+                        "description": "NonExistent",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "null",
+                        "applicable_to": ["TC03"]
+                    }
+                ]
+            }
+        ],
+        "confirm_groups": [
+            {
+                "header": "Return Values",
+                "items": [
+                    {
+                        "description": "Long value = 5",
+                        "applicable_to": ["TC01"]
+                    },
+                    {
+                        "description": "Long value = 0",
+                        "applicable_to": ["TC02"]
+                    },
+                    {
+                        "description": "Long value = 10",
+                        "applicable_to": ["TC03"]
+                    }
+                ]
+            },
+            {
+                "header": "Exceptions",
+                "items": [
+                    {
+                        "description": "",
+                        "applicable_to": []
+                    }
+                ]
+            },
+            {
+                "header": "Log Messages",
+                "items": [
+                    {
+                        "description": "",
+                        "applicable_to": []
+                    }
+                ]
+            }
+        ],
+        "test_cases": [
+            {
+                "id": "TC01",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Count successfully with valid request"
+            },
+            {
+                "id": "TC02",
+                "type": "N",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Count with empty result"
+            },
+            {
+                "id": "TC03",
+                "type": "B",
+                "result": "Passed",
+                "executed_date": "2025-01-15",
+                "defect_id": "",
+                "note": "Count with null parameters"
+            }
+        ]
+    }
+]
