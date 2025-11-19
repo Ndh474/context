@@ -1,0 +1,199 @@
+@startuml Update Subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as SubjectRepo
+participant ":MajorRepository" as MajorRepo
+participant ":SubjectMapper" as SubjectMapper
+participant ":MajorMapper" as MajorMapper
+participant ":Database" as DB
+
+Client -> Controller: PUT /api/v1/subjects/1\n{name, code, majorIds, isActive}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' === Validation 1: Find Existing Subject ===
+Service -> SubjectRepo: findById(id)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT * FROM subjects\nWHERE id = ?
+activate DB
+DB --> SubjectRepo: subjectRecord
+deactivate DB
+
+SubjectRepo --> Service: subjectOpt:Optional<Subject>
+deactivate SubjectRepo
+
+alt subjectOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Subject not found: 1",\ncode: "SUBJECT_NOT_FOUND"}
+end
+
+' === Validation 2: Code Uniqueness (conditional) ===
+opt code changed
+    Service -> SubjectRepo: existsByCode(code)
+    activate SubjectRepo
+
+    SubjectRepo -> DB: SELECT COUNT(*) > 0 FROM subjects\nWHERE code = ?
+    activate DB
+    DB --> SubjectRepo: count
+    deactivate DB
+
+    SubjectRepo --> Service: exists:boolean
+    deactivate SubjectRepo
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Subject code already exists: {code}",\ncode: "SUBJECT_CODE_EXISTS"}
+    end
+end
+
+' === Validation 3: Name Uniqueness (conditional) ===
+opt name changed
+    Service -> SubjectRepo: existsByName(name)
+    activate SubjectRepo
+
+    SubjectRepo -> DB: SELECT COUNT(*) > 0 FROM subjects\nWHERE name = ?
+    activate DB
+    DB --> SubjectRepo: count
+    deactivate DB
+
+    SubjectRepo --> Service: exists:boolean
+    deactivate SubjectRepo
+
+    alt exists = true
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Subject name already exists: {name}",\ncode: "SUBJECT_NAME_EXISTS"}
+    end
+end
+
+' === Validation 4: Deactivation Guard (conditional) ===
+opt deactivating (active: true -> false)
+    Service -> SubjectRepo: countActiveClassesBySubjectId(id)
+    activate SubjectRepo
+
+    SubjectRepo -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE subject_id = ? AND is_active = true
+    activate DB
+    DB --> SubjectRepo: count
+    deactivate DB
+
+    SubjectRepo --> Service: activeCount:long
+    deactivate SubjectRepo
+
+    alt activeCount > 0
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Cannot deactivate subject. Found {count} active classes",\ncode: "SUBJECT_HAS_ACTIVE_CLASSES"}
+    end
+end
+
+' === Validation 5: Major IDs Not Empty ===
+opt majorIds.isEmpty()
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "At least one major must be specified",\ncode: "SUBJECT_MAJOR_IDS_EMPTY"}
+end
+
+' === Validation 6: Majors Exist ===
+Service -> MajorRepo: findByIdIn(majorIds)
+activate MajorRepo
+
+MajorRepo -> DB: SELECT * FROM majors\nWHERE id IN (?)
+activate DB
+DB --> MajorRepo: majorRecords
+deactivate DB
+
+MajorRepo --> Service: majors:List<Major>
+deactivate MajorRepo
+
+alt majors.size() != majorIds.size()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "One or more majors not found",\ncode: "MAJOR_NOT_FOUND"}
+end
+
+' === Validation 7: All Majors Are Active ===
+opt any major.isActive = false
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Cannot assign subject to inactive major (Major ID: {id}, Code: {code})",\ncode: "INACTIVE_MAJOR_NOT_ALLOWED"}
+end
+
+' === Apply Updates ===
+Service -> SubjectMapper: updateSubjectFromRequest(request, existing)
+activate SubjectMapper
+SubjectMapper --> Service
+deactivate SubjectMapper
+
+note over Service: existing.setMajors(new HashSet<>(majors))
+
+Service -> SubjectRepo: save(existing)
+activate SubjectRepo
+
+SubjectRepo -> DB: UPDATE subjects\nSET name=?, code=?, is_active=?, updated_at=NOW()\nWHERE id=?
+activate DB
+DB --> SubjectRepo: updatedRecord
+deactivate DB
+
+SubjectRepo -> DB: DELETE FROM subject_majors\nWHERE subject_id = ?
+activate DB
+DB --> SubjectRepo: deletedRows
+deactivate DB
+
+SubjectRepo -> DB: INSERT INTO subject_majors\n(subject_id, major_id)\nVALUES (?, ?)
+activate DB
+DB --> SubjectRepo: insertedRows
+deactivate DB
+
+SubjectRepo --> Service: saved:Subject
+deactivate SubjectRepo
+
+' === Map Entity to DTO ===
+Service -> SubjectMapper: toDTO(saved)
+activate SubjectMapper
+SubjectMapper --> Service: dto:SubjectDTO
+deactivate SubjectMapper
+
+' === Map Majors to DTOs ===
+loop for each major in majors
+    Service -> MajorMapper: toDTO(major)
+    activate MajorMapper
+    MajorMapper --> Service: majorDTO:MajorDTO
+    deactivate MajorMapper
+end
+
+note over Service: dto.setMajors(majorDTOs)
+
+' === Get Class Counts ===
+Service -> SubjectRepo: countAllClassesBySubjectId(id)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE subject_id = ?
+activate DB
+DB --> SubjectRepo: totalCount
+deactivate DB
+
+SubjectRepo --> Service: totalClass:long
+deactivate SubjectRepo
+
+Service -> SubjectRepo: countActiveClassesBySubjectId(id)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE subject_id = ? AND is_active = true
+activate DB
+DB --> SubjectRepo: activeCount
+deactivate DB
+
+SubjectRepo --> Service: activeClass:long
+deactivate SubjectRepo
+
+note over Service: dto.setTotalClass(totalClass)\ndto.setTotalActiveClass(activeClass)
+
+Service --> Controller: SubjectDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  name: "Data Structures Updated",\n  code: "CS101U",\n  majors: [\n    {id: 1, name: "Computer Science", code: "CS"},\n    {id: 3, name: "Information Technology", code: "IT"}\n  ],\n  totalClass: 5,\n  totalActiveClass: 3,\n  isActive: true,\n  updatedAt: "2024-11-19T15:00:00Z"\n}}
+deactivate Controller
+
+@enduml
