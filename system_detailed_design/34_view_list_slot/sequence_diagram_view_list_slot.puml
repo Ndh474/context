@@ -1,0 +1,53 @@
+@startuml View List Slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: GET /api/v1/slots?page=0&pageSize=10&search=Lecture&slotCategory=LECTURE&semesterId=1&isActive=true
+activate Controller
+
+Controller -> Service: findAll(request)
+activate Service
+
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: SELECT\n    s.id, s.title, s.description, s.start_time, s.end_time, s.slot_category,\n    r.id, r.name, r.location,\n    u.id, u.username, u.full_name,\n    c.id, c.code,\n    sub.id, sub.name, sub.code,\n    COALESCE(classSem.id, independentSem.id),\n    COALESCE(classSem.name, independentSem.name),\n    COALESCE(classSem.code, independentSem.code),\n    COUNT(DISTINCT e.id) as total_student,\n    COUNT(DISTINCT CASE WHEN ar.status = 'present' THEN ar.id END) as total_present,\n    COUNT(DISTINCT CASE WHEN ar.status = 'absent' THEN ar.id END) as total_absent,\n    COUNT(DISTINCT CASE WHEN ar.status = 'not_yet' THEN ar.id END) as total_not_yet,\n    s.is_active, s.created_at, s.updated_at\nFROM slots s\nLEFT JOIN rooms r ON s.room_id = r.id\nLEFT JOIN users u ON s.staff_user_id = u.id\nLEFT JOIN academic_classes c ON s.class_id = c.id\nLEFT JOIN subjects sub ON c.subject_id = sub.id\nLEFT JOIN semesters classSem ON c.semester_id = classSem.id\nLEFT JOIN semesters independentSem ON s.semester_id = independentSem.id\nLEFT JOIN enrollments e ON e.class_id = c.id AND e.is_enrolled = true\nLEFT JOIN attendance_records ar ON ar.slot_id = s.id\nWHERE (LOWER(s.title) LIKE ? OR LOWER(r.name) LIKE ? OR LOWER(u.full_name) LIKE ?)\n  AND s.slot_category = ?\n  AND (classSem.id = ? OR independentSem.id = ?)\n  AND s.is_active = ?\nGROUP BY s.id, s.title, s.description, s.start_time, s.end_time, s.slot_category,\n    r.id, r.name, r.location, u.id, u.username, u.full_name,\n    c.id, c.code, sub.id, sub.name, sub.code,\n    COALESCE(classSem.id, independentSem.id),\n    COALESCE(classSem.name, independentSem.name),\n    COALESCE(classSem.code, independentSem.code),\n    s.is_active, s.created_at, s.updated_at\nORDER BY s.start_time ASC\nLIMIT ? OFFSET ?
+activate DB
+DB --> Repository: resultList
+deactivate DB
+
+Repository --> Service: slots:List<SlotDTO>
+deactivate Repository
+
+Service --> Controller: slots:List<SlotDTO>
+deactivate Service
+
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: SELECT COUNT(DISTINCT s.id)\nFROM slots s\nLEFT JOIN rooms r ON s.room_id = r.id\nLEFT JOIN users u ON s.staff_user_id = u.id\nLEFT JOIN academic_classes c ON s.class_id = c.id\nLEFT JOIN subjects sub ON c.subject_id = sub.id\nLEFT JOIN semesters classSem ON c.semester_id = classSem.id\nLEFT JOIN semesters independentSem ON s.semester_id = independentSem.id\nWHERE (LOWER(s.title) LIKE ? OR LOWER(r.name) LIKE ? OR LOWER(u.full_name) LIKE ?)\n  AND s.slot_category = ?\n  AND (classSem.id = ? OR independentSem.id = ?)\n  AND s.is_active = ?
+activate DB
+DB --> Repository: total
+deactivate DB
+
+Repository --> Service: total:Long
+deactivate Repository
+
+Service --> Controller: total:Long
+deactivate Service
+
+Controller -> Controller: PagingResponse.of(slots, total, request)
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  items: [{\n    id: 1,\n    title: "Lecture 1",\n    startTime: "2024-12-15T14:00:00",\n    endTime: "2024-12-15T16:30:00",\n    slotCategory: "LECTURE",\n    room: {id: 1, name: "C301", location: "Building C"},\n    staffUser: {id: 3, username: "lecturer3", fullName: "John Doe"},\n    class: {id: 1, code: "SE1801", subject: {...}, semester: {...}},\n    totalStudent: 30,\n    totalPresentStudent: 25,\n    totalAbsentStudent: 3,\n    totalNotYetStudent: 2,\n    isActive: true\n  }],\n  currentPage: 0,\n  pageSize: 10,\n  totalItems: 50,\n  totalPages: 5\n}}
+deactivate Controller
+
+@enduml
