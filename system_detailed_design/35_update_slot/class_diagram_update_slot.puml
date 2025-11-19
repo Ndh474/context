@@ -1,0 +1,93 @@
+@startuml Update Slot - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SlotController {
+  - slotService : SlotService
+  + update(id : Integer, request : SlotUpdateRequest) : Response<SlotDTO>
+}
+
+class SlotService {
+  - slotRepository : SlotRepository
+  - slotMapper : SlotMapper
+  + update(id : Integer, request : SlotUpdateRequest) : SlotDTO
+}
+
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+  + save(slot : Slot) : Slot
+}
+
+interface SlotMapper <<interface>> {
+  + toDTO(entity : Slot) : SlotDTO
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class SlotUpdateRequest {
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - classId : Short
+  - semesterId : Short
+  - roomId : Short
+  - staffUserId : Integer
+}
+
+class BaseRequest {
+  - isActive : Boolean
+}
+
+class SlotDTO {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+SlotController --> SlotService
+SlotService --> SlotRepository
+SlotService --> SlotMapper
+
+SlotController ..> Response : <<use>>
+SlotController ..> SlotUpdateRequest : <<use>>
+SlotService ..> Slot : <<use>>
+SlotService ..> SlotDTO : <<use>>
+SlotRepository ..> Slot : <<use>>
+SlotMapper ..> Slot : <<use>>
+SlotMapper ..> SlotDTO : <<use>>
+
+BaseEntity <|-- Slot
+BaseRequest <|-- SlotUpdateRequest
+BaseDTO <|-- SlotDTO
+
+@enduml

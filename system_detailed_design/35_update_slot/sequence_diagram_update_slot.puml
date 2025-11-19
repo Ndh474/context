@@ -1,0 +1,113 @@
+@startuml Update Slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as Repository
+participant ":SlotMapper" as Mapper
+participant ":Database" as DB
+
+Client -> Controller: PUT /api/v1/slots/1\n{title, startTime, endTime, slotCategory,\nclassId, semesterId, roomId, staffUserId, isActive}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' === Find Existing Slot ===
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: SELECT * FROM slots WHERE id = ?
+activate DB
+DB --> Repository: slotRecord
+deactivate DB
+
+Repository --> Service: slotOpt:Optional<Slot>
+deactivate Repository
+
+alt slotOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{message: "Slot not found"}
+end
+
+' === Business Validations ===
+alt time/duration/category validation fails
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{message: "Invalid time range/duration/category"}
+end
+
+' === Check Conflicts ===
+Service -> Repository: existsByRoomAndTimeRange(roomId, startTime, endTime, id)
+activate Repository
+Repository -> DB: SELECT COUNT(*) FROM slots\nWHERE room_id = ? AND id != ?\nAND time_range_overlaps
+activate DB
+DB --> Repository: count
+deactivate DB
+Repository --> Service: exists:boolean
+deactivate Repository
+
+alt room or staff conflict exists
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{message: "Room/Staff time conflict"}
+end
+
+' === Validate References ===
+Service -> DB: Validate class, semester, room, staff exist and active
+activate DB
+DB --> Service: validation results
+deactivate DB
+
+alt any reference invalid or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException/BadRequestException
+    Controller --> Client: HTTP 404/400\n{message: "Invalid reference"}
+end
+
+' === Check Time Restriction ===
+alt currentTime > slot.endTime AND !isAdmin
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 403\n{message: "Cannot update after end time"}
+end
+
+' === Check Deactivation ===
+opt deactivating (isActive: true -> false)
+    Service -> Repository: countAttendanceRecordsBySlotId(id)
+    activate Repository
+    Repository -> DB: SELECT COUNT(*) FROM attendance_records\nWHERE slot_id = ?
+    activate DB
+    DB --> Repository: count
+    deactivate DB
+    Repository --> Service: attendanceCount:Long
+    deactivate Repository
+    
+    alt has dependencies
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: HTTP 403\n{message: "Cannot deactivate slot with dependencies"}
+    end
+end
+
+' === Apply Updates ===
+Service -> Repository: save(existing)
+activate Repository
+
+Repository -> DB: UPDATE slots\nSET title=?, start_time=?, end_time=?,\n    slot_category=?, class_id=?, semester_id=?,\n    room_id=?, staff_user_id=?, is_active=?,\n    updated_at=NOW()\nWHERE id=?
+activate DB
+DB --> Repository: updatedRecord
+deactivate DB
+
+Repository --> Service: saved:Slot
+deactivate Repository
+
+Service -> Mapper: toDTO(saved)
+activate Mapper
+Mapper --> Service: dto:SlotDTO
+deactivate Mapper
+
+Service --> Controller: SlotDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  title: "Updated Lecture",\n  startTime: "2024-12-15T14:00:00",\n  endTime: "2024-12-15T16:30:00",\n  slotCategory: "LECTURE",\n  isActive: true\n}}
+deactivate Controller
+
+@enduml
