@@ -1,0 +1,118 @@
+@startuml Import CSV Slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":SlotRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: POST /api/v1/slots/import\nMultipartFile file, String mode
+activate Controller
+
+alt file is null or empty
+    Controller --> Client: HTTP 400\n{message: "CSV file is required"}
+end
+
+Controller -> Service: importFromCsv(file, modeStr)
+activate Service
+
+Service -> CsvParser: parseSlotCsv(file)
+activate CsvParser
+
+alt invalid CSV format
+    CsvParser -->> Service: <<throw>> BadRequestException
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{message: "Invalid CSV format"}
+end
+
+CsvParser --> Service: rows:List<SlotCsvRow>
+deactivate CsvParser
+
+note right of Service
+Deduplication by business key
+end note
+
+loop for each unique row
+    Service -> Service: processOneSlotRow(row, mode)
+    activate Service
+
+    alt validation fails (row format, time range, duration)
+        note right of Service
+        Collect error, continue
+        end note
+        Service --> Service
+        deactivate Service
+    else validation passes
+
+        note right of Service
+        Validate references:
+        - Semester (findByCode)
+        - Room (findByName)
+        - Staff (findByUsernameWithRoles)
+        - Class (findByCodeAndSemesterCode)
+        Check active status for each
+        end note
+
+        alt any reference not found or inactive
+            note right of Service
+            Collect error, continue
+            end note
+            Service --> Service
+            deactivate Service
+        else all references valid
+
+            Service -> Repository: existsByRoomAndTimeRange(...)
+            activate Repository
+            Repository -> DB: SELECT COUNT(*) > 0 FROM slots\nWHERE room_id = ? AND time overlap
+            activate DB
+            DB --> Repository: count
+            deactivate DB
+            Repository --> Service: exists:boolean
+            deactivate Repository
+
+            Service -> Repository: existsByStaffAndTimeRange(...)
+            activate Repository
+            Repository -> DB: SELECT COUNT(*) > 0 FROM slots\nWHERE staff_user_id = ? AND time overlap
+            activate DB
+            DB --> Repository: count
+            deactivate DB
+            Repository --> Service: exists:boolean
+            deactivate Repository
+
+            alt time conflict exists
+                note right of Service
+                Collect error, continue
+                end note
+                Service --> Service
+                deactivate Service
+            else no conflict
+
+                Service -> Repository: save(slot)
+                activate Repository
+                Repository -> DB: INSERT INTO slots\n(title, start_time, end_time, slot_category,\nclass_id, semester_id, room_id, staff_user_id)\nVALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                activate DB
+                DB --> Repository: savedRecord
+                deactivate DB
+                Repository --> Service: savedSlot:Slot
+                deactivate Repository
+
+                note right of Service
+                Increment successCount
+                end note
+                Service --> Service
+                deactivate Service
+            end
+        end
+    end
+end
+
+Service --> Controller: result:ImportResultDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{message: "Import completed: X successful, Y failed",\ndata: {successCount, failureCount, errors}}
+deactivate Controller
+
+@enduml

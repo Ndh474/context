@@ -1,0 +1,86 @@
+@startuml Import CSV Slot - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SlotController {
+  - slotService : SlotService
+  + importSlots(file : MultipartFile, mode : String) : Response<ImportResultDTO>
+}
+
+class SlotService {
+  - slotRepository : SlotRepository
+  - csvParserService : CsvParserService
+  + importFromCsv(file : MultipartFile, modeStr : String) : ImportResultDTO
+  # processOneSlotRow(row : SlotCsvRow, mode : ImportMode) : void
+}
+
+class CsvParserService {
+  + parseSlotCsv(file : MultipartFile) : List<SlotCsvRow>
+}
+
+interface SlotRepository <<interface>> {
+  + existsByRoomAndTimeRange(...) : boolean
+  + existsByStaffAndTimeRange(...) : boolean
+  + save(entity : Slot) : Slot
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+}
+
+class SlotCsvRow {
+  - rowNumber : int
+  - startTimeStr : String
+  - endTimeStr : String
+  - slotCategory : String
+  - classCode : String
+  - semesterCode : String
+  - roomName : String
+  - staffUsername : String
+}
+
+class ImportResultDTO {
+  - successCount : int
+  - failureCount : int
+  - errors : List<ImportErrorDTO>
+}
+
+class ImportErrorDTO {
+  - rowNumber : int
+  - errorCode : String
+  - message : String
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - data : T
+}
+
+class ImportMode <<enumeration>> {
+  ADD_ONLY
+  ADD_AND_UPDATE
+}
+
+SlotController --> SlotService
+SlotService --> SlotRepository
+SlotService --> CsvParserService
+
+SlotController ..> Response : <<use>>
+SlotController ..> ImportResultDTO : <<use>>
+SlotService ..> ImportResultDTO : <<use>>
+SlotService ..> SlotCsvRow : <<use>>
+SlotService ..> ImportMode : <<use>>
+SlotService ..> Slot : <<use>>
+CsvParserService ..> SlotCsvRow : <<use>>
+SlotRepository ..> Slot : <<use>>
+
+ImportResultDTO *-- ImportErrorDTO
+
+@enduml
