@@ -1,0 +1,80 @@
+@startuml Delete Class - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class ClassController {
+  - classService : ClassService
+  + delete(id : Short) : Response<Void>
+}
+
+class ClassService {
+  - classRepository : ClassRepository
+  + delete(id : Short) : void
+}
+
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+  + countAllSlotsByClassId(classId : Short) : long
+  + countAllStudentsByClassId(classId : Short) : long
+  + deleteById(id : Short) : void
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - subject : Subject
+  - semester : Semester
+  - enrollments : Set<Enrollment>
+  - slots : Set<Slot>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ResourceNotFoundException {
+  - errorCode : String
+  + ResourceNotFoundException(message : String, errorCode : String)
+}
+
+class OperationNotAllowedException {
+  - errorCode : String
+  + OperationNotAllowedException(message : String, errorCode : String)
+}
+
+class DataIntegrityViolationException {
+  + DataIntegrityViolationException(message : String)
+}
+
+class ErrorCode {
+  + CLASS_NOT_FOUND : String
+  + CLASS_HAS_DEPENDENCIES : String
+}
+
+ClassController --> ClassService
+ClassService --> ClassRepository
+
+ClassController ..> Response : <<use>>
+ClassService ..> AcademicClass : <<use>>
+ClassService ..> ResourceNotFoundException : <<throws>>
+ClassService ..> OperationNotAllowedException : <<throws>>
+ClassRepository ..> AcademicClass : <<use>>
+ClassRepository ..> DataIntegrityViolationException : <<throws>>
+
+ResourceNotFoundException ..> ErrorCode : <<use>>
+OperationNotAllowedException ..> ErrorCode : <<use>>
+
+AcademicClass --|> BaseEntity
+
+@enduml
