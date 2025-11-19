@@ -1,0 +1,83 @@
+@startuml Add Participant to Exam Slot - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class ExamSlotController {
+  - examSlotService : ExamSlotService
+  + addParticipant(slotId : Integer, request : ExamSlotParticipantCreateRequest) : Response<ExamSlotParticipantDTO>
+}
+
+class ExamSlotService {
+  - examSlotParticipantRepository : ExamSlotParticipantRepository
+  - examSlotSubjectRepository : ExamSlotSubjectRepository
+  - slotRepository : SlotRepository
+  - userRepository : UserRepository
+  - enrollmentRepository : EnrollmentRepository
+  + addParticipant(slotId : Integer, request : ExamSlotParticipantCreateRequest) : ExamSlotParticipantDTO
+}
+
+interface ExamSlotParticipantRepository <<interface>> {
+  + findByExamSlotSubjectIdAndStudentUserId(...) : Optional<ExamSlotParticipant>
+  + existsByExamSlotSubject_Slot_IdAndStudentUserIdAndIsEnrolled(...) : boolean
+  + save(entity : ExamSlotParticipant) : ExamSlotParticipant
+}
+
+interface ExamSlotSubjectRepository <<interface>> {
+  + findBySlotIdAndSubjectId(slotId : Integer, subjectId : Integer) : Optional<ExamSlotSubject>
+}
+
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+}
+
+interface EnrollmentRepository <<interface>> {
+  + existsByStudentAndSubjectAndSemesterAndEnrolled(...) : boolean
+}
+
+class ExamSlotParticipant {
+  - id : Long
+  - examSlotSubject : ExamSlotSubject
+  - studentUser : User
+  - isEnrolled : Boolean
+}
+
+class ExamSlotParticipantCreateRequest {
+  - studentUserId : Integer
+  - subjectId : Integer
+}
+
+class ExamSlotParticipantDTO {
+  - id : Long
+  - slotId : Integer
+  - studentUserId : Integer
+  - subjectId : Integer
+  - isEnrolled : Boolean
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - data : T
+}
+
+ExamSlotController --> ExamSlotService
+ExamSlotService --> ExamSlotParticipantRepository
+ExamSlotService --> ExamSlotSubjectRepository
+ExamSlotService --> SlotRepository
+ExamSlotService --> UserRepository
+ExamSlotService --> EnrollmentRepository
+
+ExamSlotController ..> Response : <<use>>
+ExamSlotController ..> ExamSlotParticipantDTO : <<use>>
+ExamSlotController ..> ExamSlotParticipantCreateRequest : <<use>>
+ExamSlotService ..> ExamSlotParticipant : <<use>>
+ExamSlotService ..> ExamSlotParticipantDTO : <<use>>
+ExamSlotParticipantRepository ..> ExamSlotParticipant : <<use>>
+
+@enduml

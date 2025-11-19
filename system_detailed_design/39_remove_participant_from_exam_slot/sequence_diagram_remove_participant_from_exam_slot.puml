@@ -1,0 +1,92 @@
+@startuml Remove Participant from Exam Slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":ExamSlotController" as Controller
+participant ":ExamSlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":ExamSlotParticipantRepository" as ParticipantRepo
+participant ":ExamAttendanceRepository" as AttendanceRepo
+participant ":Database" as DB
+
+Client -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
+activate Controller
+
+Controller -> Service: removeParticipant(slotId, participantId)
+activate Service
+
+' === Validation 1: Slot Exists ===
+Service -> SlotRepo: findById(slotId)
+activate SlotRepo
+SlotRepo -> DB: SELECT * FROM slots WHERE id = ?
+activate DB
+DB --> SlotRepo: slotRecord
+deactivate DB
+SlotRepo --> Service: slotOpt:Optional<Slot>
+deactivate SlotRepo
+
+alt slotOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{message: "Exam slot not found"}
+end
+
+' === Validation 2: Participant Exists ===
+Service -> ParticipantRepo: findById(participantId)
+activate ParticipantRepo
+ParticipantRepo -> DB: SELECT * FROM exam_slot_participants\nWHERE id = ?
+activate DB
+DB --> ParticipantRepo: participantRecord
+deactivate DB
+ParticipantRepo --> Service: participantOpt:Optional<ExamSlotParticipant>
+deactivate ParticipantRepo
+
+alt participantOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{message: "Participant not found"}
+end
+
+' === Validation 3: Participant Belongs to Slot ===
+alt participant.examSlotSubject.slot.id != slotId
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: HTTP 400\n{message: "Participant does not belong to this slot"}
+end
+
+' === Delete Related ExamAttendance ===
+Service -> AttendanceRepo: findBySlotIdAndStudentUserId(slotId, studentUserId)
+activate AttendanceRepo
+AttendanceRepo -> DB: SELECT * FROM exam_attendances\nWHERE slot_id = ? AND student_user_id = ?
+activate DB
+DB --> AttendanceRepo: attendanceRecord
+deactivate DB
+AttendanceRepo --> Service: attendance:ExamAttendance
+deactivate AttendanceRepo
+
+opt attendance != null
+    Service -> AttendanceRepo: delete(attendance)
+    activate AttendanceRepo
+    AttendanceRepo -> DB: DELETE FROM exam_attendances\nWHERE id = ?
+    activate DB
+    DB --> AttendanceRepo
+    deactivate DB
+    AttendanceRepo --> Service
+    deactivate AttendanceRepo
+end
+
+' === Delete Participant ===
+Service -> ParticipantRepo: delete(participant)
+activate ParticipantRepo
+ParticipantRepo -> DB: DELETE FROM exam_slot_participants\nWHERE id = ?
+activate DB
+DB --> ParticipantRepo
+deactivate DB
+ParticipantRepo --> Service
+deactivate ParticipantRepo
+
+Service --> Controller
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{message: "Participant removed successfully"}
+deactivate Controller
+
+@enduml
