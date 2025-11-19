@@ -1,0 +1,161 @@
+{
+    "metadata": {
+        "code_module": "YourModuleName",
+        "method": "methodName",
+        "created_by": "Your Name",
+        "executed_by": "Executor Name",
+        "executed_date": "2025-11-19",
+        "test_requirement": "Brief description of what this test suite covers",
+        "sheet_name": "module_method"
+    },
+    "preconditions": [
+        {
+            "description": "Can connect to server"
+        },
+        {
+            "description": "Send request to YourModuleName.methodName"
+        },
+        {
+            "description": "YourRepository is mocked"
+        },
+        {
+            "description": "(additional precondition if needed)"
+        }
+    ],
+    "inputs": [
+        {
+            "header": "param1",
+            "items": [
+                {
+                    "description": "(valid value)",
+                    "applicable_to": [
+                        "TC01",
+                        "TC03"
+                    ]
+                },
+                {
+                    "description": "(invalid value)",
+                    "applicable_to": [
+                        "TC02"
+                    ]
+                },
+                {
+                    "description": "(boundary value)",
+                    "applicable_to": [
+                        "TC03"
+                    ]
+                }
+            ]
+        },
+        {
+            "header": "param2",
+            "items": [
+                {
+                    "description": "(valid value)",
+                    "applicable_to": [
+                        "TC01"
+                    ]
+                },
+                {
+                    "description": "(null)",
+                    "applicable_to": [
+                        "TC02"
+                    ]
+                },
+                {
+                    "description": "(empty string)",
+                    "applicable_to": [
+                        "TC03"
+                    ]
+                }
+            ]
+        }
+    ],
+    "confirm_groups": [
+        {
+            "header": "Return Values",
+            "items": [
+                {
+                    "description": "Return: (expected object type)",
+                    "applicable_to": [
+                        "TC01"
+                    ]
+                },
+                {
+                    "description": "Return: null",
+                    "applicable_to": [
+                        "TC02"
+                    ]
+                },
+                {
+                    "description": "Return: (empty collection)",
+                    "applicable_to": [
+                        "TC03"
+                    ]
+                }
+            ]
+        },
+        {
+            "header": "Exceptions",
+            "items": [
+                {
+                    "description": "ResourceNotFoundException",
+                    "applicable_to": [
+                        "TC02"
+                    ]
+                },
+                {
+                    "description": "",
+                    "applicable_to": []
+                }
+            ]
+        },
+        {
+            "header": "Log Messages",
+            "items": [
+                {
+                    "description": "Operation completed successfully",
+                    "applicable_to": [
+                        "TC01"
+                    ]
+                },
+                {
+                    "description": "Resource not found: 999",
+                    "applicable_to": [
+                        "TC02"
+                    ]
+                },
+                {
+                    "description": "",
+                    "applicable_to": []
+                }
+            ]
+        }
+    ],
+    "test_cases": [
+        {
+            "id": "TC01",
+            "type": "N",
+            "result": "Passed",
+            "executed_date": "2025-11-19",
+            "defect_id": "",
+            "note": ""
+        },
+        {
+            "id": "TC02",
+            "type": "A",
+            "result": "Failed",
+            "executed_date": "2025-11-19",
+            "defect_id": "BUG-001",
+            "note": "(failure reason)"
+        },
+        {
+            "id": "TC03",
+            "type": "B",
+            "result": "Untested",
+            "executed_date": "",
+            "defect_id": "",
+            "note": "(optional note)"
+        }
+    ]
+}
