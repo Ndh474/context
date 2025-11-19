@@ -1,0 +1,53 @@
+@startuml View List Class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":ClassRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: GET /api/v1/classes?page=0&pageSize=10&search=SE&isActive=true&semesterId=1
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: SELECT c.id, c.code,\n    s.id, s.name, s.code, s.start_date, s.end_date, s.is_active,\n    sub.id, sub.name, sub.code, sub.is_active,\n    (SELECT COUNT(e.id) FROM enrollments e WHERE e.class_id = c.id),\n    (SELECT COUNT(e.id) FROM enrollments e WHERE e.class_id = c.id AND e.is_enrolled = true),\n    (SELECT COUNT(sl.id) FROM slots sl WHERE sl.class_id = c.id),\n    (SELECT COUNT(sl.id) FROM slots sl WHERE sl.class_id = c.id AND sl.is_active = true),\n    c.is_active, c.created_at, c.updated_at\nFROM classes c\nJOIN semesters s ON c.semester_id = s.id\nJOIN subjects sub ON c.subject_id = sub.id\nWHERE c.is_active = ?\n  AND c.semester_id = ?\n  AND LOWER(c.code) LIKE ?\nORDER BY c.id ASC\nLIMIT ? OFFSET ?
+activate DB
+DB --> Repository: resultList
+deactivate DB
+
+Repository --> Service: classes:List<ClassDTO>
+deactivate Repository
+
+Service --> Controller: classes:List<ClassDTO>
+deactivate Service
+
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: SELECT COUNT(c.id) FROM classes c\nWHERE c.is_active = ?\n  AND c.semester_id = ?\n  AND LOWER(c.code) LIKE ?
+activate DB
+DB --> Repository: total
+deactivate DB
+
+Repository --> Service: total:Long
+deactivate Repository
+
+Service --> Controller: total:Long
+deactivate Service
+
+Controller -> Controller: PagingResponse.of(classes, total, request)
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  items: [\n    {\n      id: 1,\n      code: "SE01",\n      subject: {\n        id: 1,\n        name: "Software Engineering",\n        code: "SE",\n        isActive: true\n      },\n      semester: {\n        id: 1,\n        name: "Fall 2024",\n        code: "FA2024",\n        startDate: "2024-09-01",\n        endDate: "2024-12-31",\n        isActive: true\n      },\n      totalStudent: 50,\n      totalEnrolledStudent: 48,\n      totalSlot: 15,\n      totalActiveSlot: 10,\n      isActive: true\n    }\n  ],\n  currentPage: 0,\n  pageSize: 10,\n  totalItems: 25,\n  totalPages: 3\n}}
+deactivate Controller
+
+@enduml

@@ -1,0 +1,158 @@
+@startuml View List Class - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class ClassController {
+  - classService : ClassService
+  + search(request : ClassSearchRequest) : PagingResponse<ClassDTO>
+}
+
+class ClassService {
+  - classRepository : ClassRepository
+  + search(request : ClassSearchRequest) : List<ClassDTO>
+  + count(request : ClassSearchRequest) : Long
+}
+
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+  + save(entity : AcademicClass) : AcademicClass
+}
+
+interface CustomClassRepository <<interface>> {
+  + search(request : ClassSearchRequest) : List<ClassDTO>
+  + count(request : ClassSearchRequest) : Long
+}
+
+class ClassRepositoryImpl {
+  - em : EntityManager
+  + search(request : ClassSearchRequest) : List<ClassDTO>
+  + count(request : ClassSearchRequest) : Long
+  - buildWhereClause(parameters : Map<String, Object>, request : ClassSearchRequest, includeEnrollment : boolean) : String
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - subject : Subject
+  - semester : Semester
+  - enrollments : Set<Enrollment>
+  - slots : Set<Slot>
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class ClassSearchRequest {
+  - semesterId : Short
+  - subjectId : Short
+  - subjectName : String
+  - subjectCode : String
+  - enrollmentStatus : Boolean
+}
+
+class PagedRequest {
+  - page : Integer
+  - pageSize : Integer
+  - sort : String
+  - sortBy : String
+  - search : String
+  - isActive : Boolean
+  + getPage() : Integer
+  + getPageSize() : Integer
+  + getSearch() : String
+  + getSort() : String
+  + getSortBy() : String
+  + getActive() : Boolean
+}
+
+class ClassDTO {
+  - id : Short
+  - code : String
+  - semester : SemesterDTO
+  - subject : SubjectDTO
+  - totalStudent : Integer
+  - totalEnrolledStudent : Integer
+  - totalSlot : Integer
+  - totalActiveSlot : Integer
+}
+
+class SemesterDTO {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class SubjectDTO {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class PagingResponse<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : PageableResponse
+  + of(items : List<T>, total : Long, request : PagedRequest) : PagingResponse<T>
+}
+
+class PageableResponse {
+  - items : List<T>
+  - totalPages : int
+  - currentPage : int
+  - pageSize : int
+  - totalItems : long
+}
+
+ClassController --> ClassService
+ClassService --> ClassRepository
+ClassRepositoryImpl --> EntityManager
+
+ClassController ..> ClassSearchRequest : <<use>>
+ClassController ..> PagingResponse : <<use>>
+ClassService ..> ClassSearchRequest : <<use>>
+ClassService ..> ClassDTO : <<use>>
+ClassRepository ..> AcademicClass : <<use>>
+CustomClassRepository ..> ClassSearchRequest : <<use>>
+CustomClassRepository ..> ClassDTO : <<use>>
+
+CustomClassRepository <|.. ClassRepositoryImpl
+
+BaseEntity <|-- AcademicClass
+BaseEntity <|-- Subject
+BaseEntity <|-- Semester
+AcademicClass --> Subject
+AcademicClass --> Semester
+PagedRequest <|-- ClassSearchRequest
+BaseDTO <|-- ClassDTO
+
+PagingResponse +-- PageableResponse
+
+@enduml
