@@ -1,0 +1,90 @@
+@startuml Delete Slot - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SlotController {
+  - slotService : SlotService
+  + delete(id : Integer) : Response<Void>
+}
+
+class SlotService {
+  - slotRepository : SlotRepository
+  + delete(id : Integer) : void
+}
+
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+  + countAttendanceRecordsBySlotId(slotId : Integer) : Long
+  + countExamAttendanceRecordsBySlotId(slotId : Integer) : Long
+  + deleteById(id : Integer) : void
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - description : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - sessionStatus : SessionStatus
+  - examSessionStatus : SessionStatus
+  - scanCount : Integer
+  - examScanCount : Integer
+  - academicClass : AcademicClass
+  - semester : Semester
+  - room : Room
+  - staff : User
+  - attendanceRecords : Set<AttendanceRecord>
+  - examAttendances : Set<ExamAttendance>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+class ResourceNotFoundException {
+  - errorCode : String
+  + ResourceNotFoundException(message : String, errorCode : String)
+}
+
+class OperationNotAllowedException {
+  - errorCode : String
+  + OperationNotAllowedException(message : String, errorCode : String)
+}
+
+class DataIntegrityViolationException {
+  + DataIntegrityViolationException(message : String)
+}
+
+class ErrorCode {
+  + SLOT_NOT_FOUND : String
+  + SLOT_HAS_DEPENDENCIES : String
+}
+
+SlotController --> SlotService
+SlotService --> SlotRepository
+
+SlotController ..> Response : <<use>>
+SlotService ..> Slot : <<use>>
+SlotService ..> ResourceNotFoundException : <<throws>>
+SlotService ..> OperationNotAllowedException : <<throws>>
+SlotService ..> DataIntegrityViolationException : <<use>>
+SlotRepository ..> Slot : <<use>>
+
+ResourceNotFoundException ..> ErrorCode : <<use>>
+OperationNotAllowedException ..> ErrorCode : <<use>>
+
+Slot --|> BaseEntity
+
+@enduml
