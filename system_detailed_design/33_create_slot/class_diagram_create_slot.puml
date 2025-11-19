@@ -1,0 +1,152 @@
+@startuml Create Slot - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SlotController {
+  - slotService : SlotService
+  + create(request : SlotCreateRequest) : Response<SlotDTO>
+}
+
+class SlotService {
+  - slotRepository : SlotRepository
+  - classRepository : ClassRepository
+  - semesterRepository : SemesterRepository
+  - roomRepository : RoomRepository
+  - userRepository : UserRepository
+  - subjectRepository : SubjectRepository
+  - examSlotSubjectRepository : ExamSlotSubjectRepository
+  - slotMapper : SlotMapper
+  + create(request : SlotCreateRequest) : SlotDTO
+  - isEndTimeAfterStartTime(start : LocalDateTime, end : LocalDateTime) : boolean
+}
+
+interface SlotRepository <<interface>> {
+  + existsByRoomAndTimeRange(roomId : Short, start : LocalDateTime, end : LocalDateTime, excludeId : Integer) : boolean
+  + existsByStaffAndTimeRange(staffId : Integer, start : LocalDateTime, end : LocalDateTime, excludeId : Integer) : boolean
+  + save(entity : Slot) : Slot
+}
+
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+}
+
+interface SemesterRepository <<interface>> {
+  + findById(id : Short) : Optional<Semester>
+}
+
+interface RoomRepository <<interface>> {
+  + findById(id : Short) : Optional<Room>
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+}
+
+interface SubjectRepository <<interface>> {
+  + findById(id : Short) : Optional<Subject>
+}
+
+interface ExamSlotSubjectRepository <<interface>> {
+  + existsBySlotIdAndSubjectIdAndIsActiveTrue(slotId : Integer, subjectId : Integer) : boolean
+  + save(entity : ExamSlotSubject) : ExamSlotSubject
+}
+
+interface SlotMapper <<interface>> {
+  + toEntity(request : SlotCreateRequest) : Slot
+  + toDTO(entity : Slot) : SlotDTO
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - description : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - academicClass : AcademicClass
+  - semester : Semester
+  - room : Room
+  - staff : User
+}
+
+class ExamSlotSubject {
+  - id : Integer
+  - slot : Slot
+  - subject : Subject
+}
+
+class SlotCategory <<enumeration>> {
+  LECTURE
+  LECTURE_WITH_PT
+  FINAL_EXAM
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class SlotCreateRequest {
+  - title : String
+  - description : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - classId : Short
+  - semesterId : Short
+  - roomId : Short
+  - staffUserId : Integer
+  - subjectIds : List<Short>
+}
+
+class SlotDTO {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - academicClass : ClassDTO
+  - semester : SemesterDTO
+  - room : RoomDTO
+  - staff : StaffDTO
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+SlotController --> SlotService
+SlotService --> SlotRepository
+SlotService --> ClassRepository
+SlotService --> SemesterRepository
+SlotService --> RoomRepository
+SlotService --> UserRepository
+SlotService --> SubjectRepository
+SlotService --> ExamSlotSubjectRepository
+SlotService --> SlotMapper
+
+SlotController ..> Response : <<use>>
+SlotController ..> SlotDTO : <<use>>
+SlotController ..> SlotCreateRequest : <<use>>
+SlotService ..> Slot : <<use>>
+SlotService ..> ExamSlotSubject : <<use>>
+SlotService ..> SlotDTO : <<use>>
+SlotService ..> SlotCreateRequest : <<use>>
+SlotRepository ..> Slot : <<use>>
+ExamSlotSubjectRepository ..> ExamSlotSubject : <<use>>
+SlotMapper ..> Slot : <<use>>
+SlotMapper ..> SlotDTO : <<use>>
+SlotMapper ..> SlotCreateRequest : <<use>>
+
+Slot --|> BaseEntity
+ExamSlotSubject --|> BaseEntity
+Slot --> SlotCategory
+SlotCreateRequest --> SlotCategory
+
+@enduml
