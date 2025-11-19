@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "codebase": "frontend-web",
+    "category": "hook_other",
+    "generated_at": "2025-11-19T20:29:55.658707",
+    "total_files": 3,
+    "total_lines": 85,
+    "total_bytes": 2593
+  },
+  "files": [
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useCurrentUser.ts",
+      "relative_path": "hooks/useCurrentUser.ts",
+      "filename": "useCurrentUser.ts",
+      "size_bytes": 621,
+      "lines": 23,
+      "last_modified": "2025-11-01T15:38:43.369930",
+      "encoding": "utf-8",
+      "language": "typescript",
+      "content": "\"use client\";\n\nimport { useState, useEffect } from \"react\";\nimport { getAuthUser } from \"@/lib/auth\";\nimport { AuthenticatedUser } from \"@/types\";\n\n/**\n * Hook to get current authenticated user\n * Returns user information from localStorage\n */\nexport function useCurrentUser() {\n  const [user, setUser] = useState<AuthenticatedUser | null>(null);\n  const [isLoading, setIsLoading] = useState(true);\n\n  useEffect(() => {\n    // Only access localStorage on client-side\n    const currentUser = getAuthUser();\n    setUser(currentUser);\n    setIsLoading(false);\n  }, []);\n\n  return { user, isLoading };\n}"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useDebounce.ts",
+      "relative_path": "hooks/useDebounce.ts",
+      "filename": "useDebounce.ts",
+      "size_bytes": 409,
+      "lines": 17,
+      "last_modified": "2025-11-01T15:38:43.371605",
+      "encoding": "utf-8",
+      "language": "typescript",
+      "content": "import { useEffect, useState } from \"react\";\n\nexport function useDebounce<T>(value: T, delay: number = 500): T {\n  const [debouncedValue, setDebouncedValue] = useState<T>(value);\n\n  useEffect(() => {\n    const handler = setTimeout(() => {\n      setDebouncedValue(value);\n    }, delay);\n\n    return () => {\n      clearTimeout(handler);\n    };\n  }, [value, delay]);\n\n  return debouncedValue;\n}\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useSessionState.ts",
+      "relative_path": "hooks/useSessionState.ts",
+      "filename": "useSessionState.ts",
+      "size_bytes": 1563,
+      "lines": 45,
+      "last_modified": "2025-11-09T20:23:57.407764",
+      "encoding": "utf-8",
+      "language": "typescript",
+      "content": "import type { Slot, SessionStatus } from \"@/types\";\n\n/**\n * Hook to compute session state and button visibility from slot data.\n *\n * This hook determines which buttons should be displayed based on the\n * session status, scan count, and current time range from the backend.\n *\n * @param slot - Slot object with session metadata\n * @returns Session state and computed flags for UI\n */\nexport function useSessionState(slot: Slot) {\n  const sessionStatus: SessionStatus = slot.sessionStatus || \"NOT_STARTED\";\n  const scanCount = slot.scanCount || 0;\n\n  // Check if current time is within slot time range (startTime to endTime)\n  const now = new Date();\n  const startTime = new Date(slot.startTime);\n  const endTime = new Date(slot.endTime);\n  const isWithinTimeRange = now >= startTime && now <= endTime;\n\n  // Compute button visibility\n  // Start and Rescan buttons only enabled within slot time range\n  const canStart = sessionStatus === \"NOT_STARTED\" && isWithinTimeRange;\n  const canStop = sessionStatus === \"RUNNING\"; // Can always stop if running\n  const canRescan = sessionStatus === \"STOPPED\" && scanCount >= 1 && isWithinTimeRange;\n\n  // Compute session info\n  const isFirstScan = scanCount === 0;\n  const isRunning = sessionStatus === \"RUNNING\";\n  const isStopped = sessionStatus === \"STOPPED\";\n  const isNotStarted = sessionStatus === \"NOT_STARTED\";\n\n  return {\n    sessionStatus,\n    scanCount,\n    canStart,\n    canStop,\n    canRescan,\n    isFirstScan,\n    isRunning,\n    isStopped,\n    isNotStarted,\n  };\n}\n"
+    }
+  ]
+}

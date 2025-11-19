@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "codebase": "frontend-web",
+    "category": "uncategorized",
+    "generated_at": "2025-11-19T20:29:55.665313",
+    "total_files": 14,
+    "total_lines": 547,
+    "total_bytes": 15951
+  },
+  "files": [
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\alert-dialog-destructive-1.tsx",
+      "relative_path": "components/alert-dialog-destructive-1.tsx",
+      "filename": "alert-dialog-destructive-1.tsx",
+      "size_bytes": 1153,
+      "lines": 39,
+      "last_modified": "2025-11-01T15:38:43.314892",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import {\n  AlertDialog,\n  AlertDialogAction,\n  AlertDialogCancel,\n  AlertDialogContent,\n  AlertDialogDescription,\n  AlertDialogFooter,\n  AlertDialogHeader,\n  AlertDialogTitle,\n  AlertDialogTrigger,\n} from \"@/components/ui/alert-dialog\";\nimport { Button } from \"@/components/ui/button\";\n\nexport const title = \"Simple Delete Confirmation\";\n\nconst Example = () => (\n  <AlertDialog>\n    <AlertDialogTrigger asChild>\n      <Button variant=\"destructive\">Delete</Button>\n    </AlertDialogTrigger>\n    <AlertDialogContent>\n      <AlertDialogHeader>\n        <AlertDialogTitle>Delete Item?</AlertDialogTitle>\n        <AlertDialogDescription>\n          This action cannot be undone. This will permanently delete the item\n          from your account.\n        </AlertDialogDescription>\n      </AlertDialogHeader>\n      <AlertDialogFooter>\n        <AlertDialogCancel>Cancel</AlertDialogCancel>\n        <AlertDialogAction className=\"bg-destructive text-white hover:bg-destructive/90\">\n          Delete\n        </AlertDialogAction>\n      </AlertDialogFooter>\n    </AlertDialogContent>\n  </AlertDialog>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\badge-standard-1.tsx",
+      "relative_path": "components/badge-standard-1.tsx",
+      "filename": "badge-standard-1.tsx",
+      "size_bytes": 165,
+      "lines": 7,
+      "last_modified": "2025-11-01T15:38:43.317892",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import { Badge } from \"@/components/ui/badge\";\n\nexport const title = \"Badge with Text\";\n\nconst Example = () => <Badge>Badge</Badge>;\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\button-standard-3.tsx",
+      "relative_path": "components/button-standard-3.tsx",
+      "filename": "button-standard-3.tsx",
+      "size_bytes": 296,
+      "lines": 13,
+      "last_modified": "2025-11-01T15:38:43.317892",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import { ArrowRight } from \"lucide-react\";\nimport { Button } from \"@/components/ui/button\";\n\nexport const title = \"Button with Right Icon\";\n\nconst Example = () => (\n  <Button className=\"gap-2\">\n    Button\n    <ArrowRight className=\"size-4\" />\n  </Button>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\card-standard-2.tsx",
+      "relative_path": "components/card-standard-2.tsx",
+      "filename": "card-standard-2.tsx",
+      "size_bytes": 2078,
+      "lines": 72,
+      "last_modified": "2025-11-01T15:38:43.317892",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport { useState } from \"react\";\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardFooter,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\";\nimport { Input } from \"@/components/ui/input\";\nimport { Label } from \"@/components/ui/label\";\n\nexport const title = \"Login Card\";\n\nconst Example = () => {\n  const [email, setEmail] = useState(\"\");\n  const [password, setPassword] = useState(\"\");\n\n  return (\n    <Card className=\"w-full max-w-md\">\n      <CardHeader>\n        <CardTitle>Login to your account</CardTitle>\n        <CardDescription>\n          Enter your email below to login to your account\n        </CardDescription>\n      </CardHeader>\n      <CardContent className=\"space-y-4\">\n        <div className=\"space-y-2\">\n          <Label htmlFor=\"email\">Email</Label>\n          <Input\n            id=\"email\"\n            onChange={(e) => setEmail(e.target.value)}\n            placeholder=\"m@example.com\"\n            type=\"email\"\n            value={email}\n          />\n        </div>\n        <div className=\"space-y-2\">\n          <div className=\"flex items-center justify-between\">\n            <Label htmlFor=\"password\">Password</Label>\n            <a className=\"text-sm hover:underline\" href=\"#\">\n              Forgot your password?\n            </a>\n          </div>\n          <Input\n            id=\"password\"\n            onChange={(e) => setPassword(e.target.value)}\n            type=\"password\"\n            value={password}\n          />\n        </div>\n        <Button className=\"w-full\">Login</Button>\n        <Button className=\"w-full\" variant=\"outline\">\n          Login with Google\n        </Button>\n      </CardContent>\n      <CardFooter className=\"flex justify-center\">\n        <p className=\"text-muted-foreground text-sm\">\n          Don&apos;t have an account?{\" \"}\n          <a className=\"underline\" href=\"#\">\n            Sign up\n          </a>\n        </p>\n      </CardFooter>\n    </Card>\n  );\n};\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\combobox-standard-5.tsx",
+      "relative_path": "components/combobox-standard-5.tsx",
+      "filename": "combobox-standard-5.tsx",
+      "size_bytes": 2512,
+      "lines": 85,
+      "last_modified": "2025-11-01T15:38:43.317892",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport { Check, ChevronsUpDown } from \"lucide-react\";\nimport { useState } from \"react\";\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Command,\n  CommandEmpty,\n  CommandGroup,\n  CommandInput,\n  CommandItem,\n  CommandList,\n} from \"@/components/ui/command\";\nimport {\n  Popover,\n  PopoverContent,\n  PopoverTrigger,\n} from \"@/components/ui/popover\";\nimport { cn } from \"@/lib/utils\";\n\nexport const title = \"Large Size Variant\";\n\nconst priorities = [\n  { value: \"low\", label: \"Low Priority\" },\n  { value: \"medium\", label: \"Medium Priority\" },\n  { value: \"high\", label: \"High Priority\" },\n  { value: \"urgent\", label: \"Urgent Priority\" },\n];\n\nconst Example = () => {\n  const [open, setOpen] = useState(false);\n  const [value, setValue] = useState(\"\");\n\n  return (\n    <Popover onOpenChange={setOpen} open={open}>\n      <PopoverTrigger asChild>\n        <Button\n          aria-expanded={open}\n          className=\"h-12 w-[280px] justify-between text-base\"\n          role=\"combobox\"\n          variant=\"outline\"\n        >\n          {value\n            ? priorities.find((priority) => priority.value === value)?.label\n            : \"Select priority level...\"}\n          <ChevronsUpDown className=\"ml-2 size-5 shrink-0 opacity-50\" />\n        </Button>\n      </PopoverTrigger>\n      <PopoverContent className=\"w-[280px] p-0\">\n        <Command>\n          <CommandInput\n            className=\"h-12 text-base\"\n            placeholder=\"Search priority...\"\n          />\n          <CommandList>\n            <CommandEmpty>No priority found.</CommandEmpty>\n            <CommandGroup>\n              {priorities.map((priority) => (\n                <CommandItem\n                  className=\"text-base\"\n                  key={priority.value}\n                  onSelect={(currentValue) => {\n                    setValue(currentValue === value ? \"\" : currentValue);\n                    setOpen(false);\n                  }}\n                  value={priority.value}\n                >\n                  <Check\n                    className={cn(\n                      \"mr-2 size-5\",\n                      value === priority.value ? \"opacity-100\" : \"opacity-0\"\n                    )}\n                  />\n                  {priority.label}\n                </CommandItem>\n              ))}\n            </CommandGroup>\n          </CommandList>\n        </Command>\n      </PopoverContent>\n    </Popover>\n  );\n};\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\date-picker-standard-1.tsx",
+      "relative_path": "components/date-picker-standard-1.tsx",
+      "filename": "date-picker-standard-1.tsx",
+      "size_bytes": 1768,
+      "lines": 67,
+      "last_modified": "2025-11-01T15:38:43.319398",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport { format } from \"date-fns\";\nimport { CalendarIcon } from \"lucide-react\";\nimport { useState } from \"react\";\nimport type { DateRange } from \"react-day-picker\";\nimport { Button } from \"@/components/ui/button\";\nimport { Calendar } from \"@/components/ui/calendar\";\nimport {\n  Popover,\n  PopoverContent,\n  PopoverTrigger,\n} from \"@/components/ui/popover\";\nimport { cn } from \"@/lib/utils\";\n\nexport const title = \"Date Picker with Range\";\n\nconst now = new Date();\n\n// Default date range for the picker\nconst from = new Date(now.getFullYear(), now.getMonth(), 5);\nconst to = new Date(now.getFullYear(), now.getMonth(), 20);\n\nconst Example = () => {\n  const [date, setDate] = useState<DateRange | undefined>({\n    from,\n    to,\n  });\n\n  return (\n    <Popover>\n      <PopoverTrigger asChild>\n        <Button\n          className={cn(\n            \"w-[280px] justify-start text-left font-normal\",\n            !date && \"text-muted-foreground\"\n          )}\n          variant=\"outline\"\n        >\n          <CalendarIcon className=\"mr-2 h-4 w-4\" />\n          {date?.from ? (\n            date.to ? (\n              <>\n                {format(date.from, \"LLL dd, y\")} -{\" \"}\n                {format(date.to, \"LLL dd, y\")}\n              </>\n            ) : (\n              format(date.from, \"LLL dd, y\")\n            )\n          ) : (\n            <span>Pick a date range</span>\n          )}\n        </Button>\n      </PopoverTrigger>\n      <PopoverContent align=\"start\" className=\"w-auto p-0\">\n        <Calendar\n          mode=\"range\"\n          numberOfMonths={2}\n          onSelect={setDate}\n          selected={date}\n        />\n      </PopoverContent>\n    </Popover>\n  );\n};\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\dialog-standard-2.tsx",
+      "relative_path": "components/dialog-standard-2.tsx",
+      "filename": "dialog-standard-2.tsx",
+      "size_bytes": 2841,
+      "lines": 72,
+      "last_modified": "2025-11-01T15:38:43.319915",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import { Button } from \"@/components/ui/button\";\nimport {\n  Dialog,\n  DialogContent,\n  DialogDescription,\n  DialogFooter,\n  DialogHeader,\n  DialogTitle,\n  DialogTrigger,\n} from \"@/components/ui/dialog\";\nimport { ScrollArea } from \"@/components/ui/scroll-area\";\n\nexport const title = \"Scrollable\";\n\nconst Example = () => (\n  <Dialog>\n    <DialogTrigger asChild>\n      <Button variant=\"outline\">View Privacy Policy</Button>\n    </DialogTrigger>\n    <DialogContent className=\"sm:max-w-lg\">\n      <DialogHeader>\n        <DialogTitle>Privacy Policy</DialogTitle>\n        <DialogDescription>\n          Please review our privacy policy carefully.\n        </DialogDescription>\n      </DialogHeader>\n      <ScrollArea className=\"h-[300px] pr-4\">\n        <div className=\"space-y-4 text-sm\">\n          <p>\n            We respect your privacy and are committed to protecting your\n            personal data. This privacy policy will inform you about how we look\n            after your personal data when you visit our website.\n          </p>\n          <h4 className=\"font-semibold\">Information We Collect</h4>\n          <p>\n            We may collect, use, store and transfer different kinds of personal\n            data about you which we have grouped together as follows: Identity\n            Data, Contact Data, Technical Data, Profile Data, Usage Data,\n            Marketing and Communications Data.\n          </p>\n          <h4 className=\"font-semibold\">How We Use Your Information</h4>\n          <p>\n            We will only use your personal data when the law allows us to. Most\n            commonly, we will use your personal data in the following\n            circumstances: where we need to perform the contract we are about to\n            enter into or have entered into with you, where it is necessary for\n            our legitimate interests, and where we need to comply with a legal\n            obligation.\n          </p>\n          <h4 className=\"font-semibold\">Data Security</h4>\n          <p>\n            We have put in place appropriate security measures to prevent your\n            personal data from being accidentally lost, used or accessed in an\n            unauthorized way, altered or disclosed.\n          </p>\n          <h4 className=\"font-semibold\">Your Legal Rights</h4>\n          <p>\n            Under certain circumstances, you have rights under data protection\n            laws in relation to your personal data, including the right to\n            request access, correction, erasure, restriction, transfer, or to\n            object to processing.\n          </p>\n        </div>\n      </ScrollArea>\n      <DialogFooter>\n        <Button type=\"button\">I Understand</Button>\n      </DialogFooter>\n    </DialogContent>\n  </Dialog>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\empty-data-2.tsx",
+      "relative_path": "components/empty-data-2.tsx",
+      "filename": "empty-data-2.tsx",
+      "size_bytes": 667,
+      "lines": 29,
+      "last_modified": "2025-11-01T15:38:43.319915",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport { BarChart3 } from \"lucide-react\";\nimport {\n  Empty,\n  EmptyDescription,\n  EmptyHeader,\n  EmptyMedia,\n  EmptyTitle,\n} from \"@/components/ui/empty\";\n\nexport const title = \"Empty Chart\";\n\nconst Example = () => (\n  <Empty>\n    <EmptyHeader>\n      <EmptyMedia>\n        <BarChart3 className=\"h-16 w-16 text-muted-foreground\" />\n      </EmptyMedia>\n      <EmptyTitle>No data available</EmptyTitle>\n      <EmptyDescription>\n        There&apos;s no data to display in this chart yet. Data will appear here once\n        it&apos;s available.\n      </EmptyDescription>\n    </EmptyHeader>\n  </Empty>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\mode-toggle.tsx",
+      "relative_path": "components/mode-toggle.tsx",
+      "filename": "mode-toggle.tsx",
+      "size_bytes": 1773,
+      "lines": 56,
+      "last_modified": "2025-11-01T15:38:43.328962",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { Moon, Sun } from \"lucide-react\";\nimport { useTheme } from \"next-themes\";\n\nimport { Button } from \"@/components/ui/button\";\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuTrigger,\n} from \"@/components/ui/dropdown-menu\";\n\nexport function ModeToggle() {\n  const { setTheme } = useTheme();\n  const [mounted, setMounted] = React.useState(false);\n\n  // Avoid hydration mismatch by only rendering after mount\n  React.useEffect(() => {\n    setMounted(true);\n  }, []);\n\n  if (!mounted) {\n    // Return a placeholder button with the same dimensions to avoid layout shift\n    return (\n      <Button variant=\"outline\" size=\"icon\" disabled>\n        <Sun className=\"h-[1.2rem] w-[1.2rem]\" />\n        <span className=\"sr-only\">Toggle theme</span>\n      </Button>\n    );\n  }\n\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger asChild>\n        <Button variant=\"outline\" size=\"icon\">\n          <Sun className=\"h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90\" />\n          <Moon className=\"absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0\" />\n          <span className=\"sr-only\">Toggle theme</span>\n        </Button>\n      </DropdownMenuTrigger>\n      <DropdownMenuContent align=\"end\">\n        <DropdownMenuItem onClick={() => setTheme(\"light\")}>\n          Light\n        </DropdownMenuItem>\n        <DropdownMenuItem onClick={() => setTheme(\"dark\")}>\n          Dark\n        </DropdownMenuItem>\n        <DropdownMenuItem onClick={() => setTheme(\"system\")}>\n          System\n        </DropdownMenuItem>\n      </DropdownMenuContent>\n    </DropdownMenu>\n  );\n}\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\skeleton-card-1.tsx",
+      "relative_path": "components/skeleton-card-1.tsx",
+      "filename": "skeleton-card-1.tsx",
+      "size_bytes": 360,
+      "lines": 13,
+      "last_modified": "2025-11-01T15:38:43.332505",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import { Skeleton } from \"@/components/ui/skeleton\";\n\nexport const title = \"Simple Card with Image and Text\";\n\nconst Example = () => (\n  <div className=\"flex w-full max-w-sm flex-col gap-3\">\n    <Skeleton className=\"h-48 w-full\" />\n    <Skeleton className=\"h-4 w-3/4\" />\n    <Skeleton className=\"h-4 w-1/2\" />\n  </div>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\switch-labeled-1.tsx",
+      "relative_path": "components/switch-labeled-1.tsx",
+      "filename": "switch-labeled-1.tsx",
+      "size_bytes": 366,
+      "lines": 15,
+      "last_modified": "2025-11-01T15:38:43.345546",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport { Label } from \"@/components/ui/label\";\nimport { Switch } from \"@/components/ui/switch\";\n\nexport const title = \"Switch with Label\";\n\nconst Example = () => (\n  <div className=\"flex items-center gap-2\">\n    <Switch id=\"airplane-mode\" />\n    <Label htmlFor=\"airplane-mode\">Airplane Mode</Label>\n  </div>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\table-standard-1.tsx",
+      "relative_path": "components/table-standard-1.tsx",
+      "filename": "table-standard-1.tsx",
+      "size_bytes": 1681,
+      "lines": 70,
+      "last_modified": "2025-11-01T15:38:43.345546",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "import {\n  Table,\n  TableBody,\n  TableCell,\n  TableHead,\n  TableHeader,\n  TableRow,\n} from \"@/components/ui/table\";\n\nexport const title = \"Basic Table\";\n\nconst users = [\n  {\n    name: \"John Doe\",\n    email: \"john@example.com\",\n    location: \"New York\",\n    status: \"Active\",\n    balance: \"$1,234.56\",\n  },\n  {\n    name: \"Jane Smith\",\n    email: \"jane@example.com\",\n    location: \"London\",\n    status: \"Active\",\n    balance: \"$2,345.67\",\n  },\n  {\n    name: \"Bob Johnson\",\n    email: \"bob@example.com\",\n    location: \"Tokyo\",\n    status: \"Inactive\",\n    balance: \"$567.89\",\n  },\n  {\n    name: \"Alice Williams\",\n    email: \"alice@example.com\",\n    location: \"Paris\",\n    status: \"Active\",\n    balance: \"$3,456.78\",\n  },\n];\n\nconst Example = () => (\n  <div className=\"w-full max-w-4xl rounded-md border bg-background\">\n    <Table>\n      <TableHeader>\n        <TableRow>\n          <TableHead>Name</TableHead>\n          <TableHead>Email</TableHead>\n          <TableHead>Location</TableHead>\n          <TableHead>Status</TableHead>\n          <TableHead className=\"text-right\">Balance</TableHead>\n        </TableRow>\n      </TableHeader>\n      <TableBody>\n        {users.map((user) => (\n          <TableRow key={user.email}>\n            <TableCell className=\"font-medium\">{user.name}</TableCell>\n            <TableCell>{user.email}</TableCell>\n            <TableCell>{user.location}</TableCell>\n            <TableCell>{user.status}</TableCell>\n            <TableCell className=\"text-right\">{user.balance}</TableCell>\n          </TableRow>\n        ))}\n      </TableBody>\n    </Table>\n  </div>\n);\n\nexport default Example;\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\next-env.d.ts",
+      "relative_path": "next-env.d.ts",
+      "filename": "next-env.d.ts",
+      "size_bytes": 268,
+      "lines": 6,
+      "last_modified": "2025-10-05T21:07:50.461381",
+      "encoding": "utf-8",
+      "language": "typescript",
+      "content": "/// <reference types=\"next\" />\n/// <reference types=\"next/image-types/global\" />\n/// <reference path=\"./.next/types/routes.d.ts\" />\n\n// NOTE: This file should not be edited\n// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\stagewise.json",
+      "relative_path": "stagewise.json",
+      "filename": "stagewise.json",
+      "size_bytes": 23,
+      "lines": 3,
+      "last_modified": "2025-10-13T21:26:33.907811",
+      "encoding": "utf-8",
+      "language": "json",
+      "content": "{\n  \"appPort\": 3000\n}"
+    }
+  ]
+}

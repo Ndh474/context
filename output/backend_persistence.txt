@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "codebase": "backend",
+    "category": "persistence",
+    "generated_at": "2025-11-19T20:29:52.215286",
+    "total_files": 3,
+    "total_lines": 98,
+    "total_bytes": 3720
+  },
+  "files": [
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\persistence\\converter\\AttendanceMethodConverter.java",
+      "relative_path": "src/main/java/com/fuacs/backend/persistence/converter/AttendanceMethodConverter.java",
+      "filename": "AttendanceMethodConverter.java",
+      "size_bytes": 1306,
+      "lines": 33,
+      "last_modified": "2025-10-29T20:56:54.599134",
+      "encoding": "utf-8",
+      "language": "java",
+      "content": "package com.fuacs.backend.persistence.converter;\n\nimport com.fuacs.backend.constant.enums.AttendanceMethod;\nimport jakarta.persistence.AttributeConverter;\nimport jakarta.persistence.Converter;\n\n@Converter(autoApply = false)\npublic class AttendanceMethodConverter implements AttributeConverter<AttendanceMethod, String> {\n    @Override\n    public String convertToDatabaseColumn(AttendanceMethod attribute) {\n        if (attribute == null) return null;\n        return switch (attribute) {\n            case AUTO -> \"auto\";\n            case MANUAL -> \"manual\";\n            case SYSTEM_FINALIZE -> \"system_finalize\";\n        };\n    }\n\n    @Override\n    public AttendanceMethod convertToEntityAttribute(String dbData) {\n        if (dbData == null) return null;\n        String v = dbData.trim();\n        if (v.equalsIgnoreCase(\"auto\")) return AttendanceMethod.AUTO;\n        if (v.equalsIgnoreCase(\"manual\")) return AttendanceMethod.MANUAL;\n        if (v.equalsIgnoreCase(\"system_finalize\") || v.equalsIgnoreCase(\"system-finalize\")) return AttendanceMethod.SYSTEM_FINALIZE;\n        try {\n            return AttendanceMethod.valueOf(v.toUpperCase());\n        } catch (IllegalArgumentException ex) {\n            return AttendanceMethod.MANUAL; // neutral fallback\n        }\n    }\n}\n\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\persistence\\converter\\AttendanceStatusConverter.java",
+      "relative_path": "src/main/java/com/fuacs/backend/persistence/converter/AttendanceStatusConverter.java",
+      "filename": "AttendanceStatusConverter.java",
+      "size_bytes": 1381,
+      "lines": 35,
+      "last_modified": "2025-10-29T20:56:54.599134",
+      "encoding": "utf-8",
+      "language": "java",
+      "content": "package com.fuacs.backend.persistence.converter;\n\nimport com.fuacs.backend.constant.enums.AttendanceStatus;\nimport jakarta.persistence.AttributeConverter;\nimport jakarta.persistence.Converter;\n\n@Converter(autoApply = false)\npublic class AttendanceStatusConverter implements AttributeConverter<AttendanceStatus, String> {\n    @Override\n    public String convertToDatabaseColumn(AttendanceStatus attribute) {\n        if (attribute == null) return null;\n        return switch (attribute) {\n            case PRESENT -> \"present\";\n            case ABSENT -> \"absent\";\n            case NOT_YET -> \"not_yet\";\n        };\n    }\n\n    @Override\n    public AttendanceStatus convertToEntityAttribute(String dbData) {\n        if (dbData == null) return null;\n        String v = dbData.trim();\n        if (v.equalsIgnoreCase(\"present\")) return AttendanceStatus.PRESENT;\n        if (v.equalsIgnoreCase(\"absent\")) return AttendanceStatus.ABSENT;\n        if (v.equalsIgnoreCase(\"not_yet\") || v.equalsIgnoreCase(\"not-yet\")) return AttendanceStatus.NOT_YET;\n        // Fallback: try enum name\n        try {\n            return AttendanceStatus.valueOf(v.toUpperCase());\n        } catch (IllegalArgumentException ex) {\n            // Unknown value; prefer a safe default consistent with schema semantics\n            return AttendanceStatus.NOT_YET;\n        }\n    }\n}\n\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\persistence\\converter\\TargetEntityConverter.java",
+      "relative_path": "src/main/java/com/fuacs/backend/persistence/converter/TargetEntityConverter.java",
+      "filename": "TargetEntityConverter.java",
+      "size_bytes": 1033,
+      "lines": 30,
+      "last_modified": "2025-10-29T20:56:54.599134",
+      "encoding": "utf-8",
+      "language": "java",
+      "content": "package com.fuacs.backend.persistence.converter;\n\nimport com.fuacs.backend.constant.enums.TargetEntity;\nimport jakarta.persistence.AttributeConverter;\nimport jakarta.persistence.Converter;\n\n@Converter(autoApply = false)\npublic class TargetEntityConverter implements AttributeConverter<TargetEntity, String> {\n    @Override\n    public String convertToDatabaseColumn(TargetEntity attribute) {\n        if (attribute == null) return null;\n        return attribute.getValue(); // lowercase token per schema\n    }\n\n    @Override\n    public TargetEntity convertToEntityAttribute(String dbData) {\n        if (dbData == null) return null;\n        String v = dbData.trim().toLowerCase();\n        for (TargetEntity te : TargetEntity.values()) {\n            if (te.getValue().equals(v)) return te;\n        }\n        // Fallback: try enum name mapping\n        try {\n            return TargetEntity.valueOf(v.toUpperCase());\n        } catch (IllegalArgumentException ex) {\n            return null;\n        }\n    }\n}\n\n"
+    }
+  ]
+}

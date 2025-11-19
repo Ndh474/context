@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "codebase": "frontend-web",
+    "category": "component_provider",
+    "generated_at": "2025-11-19T20:29:55.652038",
+    "total_files": 2,
+    "total_lines": 36,
+    "total_bytes": 982
+  },
+  "files": [
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\query-provider.tsx",
+      "relative_path": "components/providers/query-provider.tsx",
+      "filename": "query-provider.tsx",
+      "size_bytes": 672,
+      "lines": 25,
+      "last_modified": "2025-10-13T21:26:33.899658",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\nimport { QueryClient, QueryClientProvider } from \"@tanstack/react-query\";\nimport { ReactQueryDevtools } from \"@tanstack/react-query-devtools\";\nimport { useState } from \"react\";\n\nexport function QueryProvider({ children }: { children: React.ReactNode }) {\n  const [queryClient] = useState(\n    () =>\n      new QueryClient({\n        defaultOptions: {\n          queries: {\n            staleTime: 1000 * 60 * 5,\n            retry: false,\n          },\n        },\n      })\n  );\n\n  return (\n    <QueryClientProvider client={queryClient}>\n      {children}\n      <ReactQueryDevtools initialIsOpen={false} />\n    </QueryClientProvider>\n  );\n}\n"
+    },
+    {
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\theme-provider.tsx",
+      "relative_path": "components/providers/theme-provider.tsx",
+      "filename": "theme-provider.tsx",
+      "size_bytes": 310,
+      "lines": 11,
+      "last_modified": "2025-10-06T12:31:23.267980",
+      "encoding": "utf-8",
+      "language": "typescript-react",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\nimport { ThemeProvider as NextThemesProvider } from \"next-themes\";\n\nexport function ThemeProvider({\n  children,\n  ...props\n}: React.ComponentProps<typeof NextThemesProvider>) {\n  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;\n}\n"
+    }
+  ]
+}
