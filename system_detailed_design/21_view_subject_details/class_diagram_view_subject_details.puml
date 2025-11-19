@@ -1,0 +1,107 @@
+@startuml View Subject Details - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class SubjectController {
+  - subjectService : SubjectService
+  + findById(id : Short) : Response<SubjectDTO>
+}
+
+class SubjectService {
+  - subjectRepository : SubjectRepository
+  - subjectMapper : SubjectMapper
+  - majorMapper : MajorMapper
+  + findById(id : Short) : SubjectDTO
+}
+
+interface SubjectRepository <<interface>> {
+  + findById(id : Short) : Optional<Subject>
+  + countAllClassesBySubjectId(subjectId : Short) : long
+  + countActiveClassesBySubjectId(subjectId : Short) : long
+}
+
+interface SubjectMapper <<interface>> {
+  + toDTO(entity : Subject) : SubjectDTO
+}
+
+interface MajorMapper <<interface>> {
+  + toDTO(entity : Major) : MajorDTO
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - majors : Set<Major>
+  - academicClasses : Set<AcademicClass>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - subjects : Set<Subject>
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class SubjectDTO {
+  - id : Short
+  - name : String
+  - code : String
+  - majors : List<MajorDTO>
+  - totalClass : Integer
+  - totalActiveClass : Integer
+}
+
+class MajorDTO {
+  - id : Short
+  - name : String
+  - code : String
+  - totalSubject : Integer
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+SubjectController --> SubjectService
+SubjectService --> SubjectRepository
+SubjectService --> SubjectMapper
+SubjectService --> MajorMapper
+
+SubjectController ..> Response : <<use>>
+SubjectController ..> SubjectDTO : <<use>>
+SubjectService ..> Subject : <<use>>
+SubjectService ..> SubjectDTO : <<use>>
+SubjectService ..> Major : <<use>>
+SubjectService ..> MajorDTO : <<use>>
+SubjectRepository ..> Subject : <<use>>
+SubjectMapper ..> Subject : <<use>>
+SubjectMapper ..> SubjectDTO : <<use>>
+MajorMapper ..> Major : <<use>>
+MajorMapper ..> MajorDTO : <<use>>
+
+Subject --|> BaseEntity
+Major --|> BaseEntity
+SubjectDTO --|> BaseDTO
+MajorDTO --|> BaseDTO
+
+Subject *-- Major
+
+@enduml

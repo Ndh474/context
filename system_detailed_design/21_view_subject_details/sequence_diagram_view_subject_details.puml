@@ -1,0 +1,79 @@
+@startuml View Subject Details
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as Repository
+participant ":SubjectMapper" as SubjectMapper
+participant ":MajorMapper" as MajorMapper
+participant "Database" as DB
+
+Client -> Controller: GET /api/v1/subjects/1
+activate Controller
+
+Controller -> Service: findById(id)
+activate Service
+
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: SELECT s.*, m.*\nFROM subjects s\nLEFT JOIN subject_majors sm ON s.id = sm.subject_id\nLEFT JOIN majors m ON sm.major_id = m.id\nWHERE s.id = ?
+activate DB
+DB --> Repository: subjectRecord
+deactivate DB
+
+Repository --> Service: subjectOpt:Optional<Subject>
+deactivate Repository
+
+alt subjectOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Subject not found: 1",\ncode: "SUBJECT_NOT_FOUND"}
+end
+
+Service -> SubjectMapper: toDTO(subject)
+activate SubjectMapper
+SubjectMapper --> Service: dto:SubjectDTO
+deactivate SubjectMapper
+
+loop for each major in subject.majors
+    Service -> MajorMapper: toDTO(major)
+    activate MajorMapper
+    MajorMapper --> Service: majorDTO:MajorDTO
+    deactivate MajorMapper
+end
+
+note over Service: dto.setMajors(majorDTOs)
+
+Service -> Repository: countAllClassesBySubjectId(id)
+activate Repository
+
+Repository -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE subject_id = ?
+activate DB
+DB --> Repository: totalCount
+deactivate DB
+
+Repository --> Service: totalClass:long
+deactivate Repository
+
+Service -> Repository: countActiveClassesBySubjectId(id)
+activate Repository
+
+Repository -> DB: SELECT COUNT(id) FROM academic_classes\nWHERE subject_id = ? AND is_active = true
+activate DB
+DB --> Repository: activeCount
+deactivate DB
+
+Repository --> Service: activeClass:long
+deactivate Repository
+
+note over Service: dto.setTotalClass(totalClass)\ndto.setTotalActiveClass(activeClass)
+
+Service --> Controller: SubjectDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  name: "Data Structures",\n  code: "CS101",\n  majors: [\n    {id: 1, name: "Computer Science", code: "CS", isActive: true},\n    {id: 2, name: "Software Engineering", code: "SE", isActive: true}\n  ],\n  totalClass: 5,\n  totalActiveClass: 3,\n  isActive: true,\n  createdAt: "2024-11-19T10:30:00Z",\n  updatedAt: "2024-11-19T15:00:00Z"\n}}
+deactivate Controller
+
+@enduml
