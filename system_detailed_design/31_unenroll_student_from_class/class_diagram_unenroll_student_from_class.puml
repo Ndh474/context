@@ -1,0 +1,133 @@
+@startuml Unenroll Student from Class - Class Diagram
+!theme plain
+skinparam classAttributeIconSize 0
+hide circle
+skinparam circledCharacterRadius 0
+
+class EnrollmentController {
+  - enrollmentService : EnrollmentService
+  + update(classId : Short, studentUserId : Integer, request : EnrollmentUpdateRequest) : Response<EnrollmentDTO>
+}
+
+class EnrollmentService {
+  - enrollmentRepository : EnrollmentRepository
+  - enrollmentMapper : EnrollmentMapper
+  + update(classId : Short, studentUserId : Integer, request : EnrollmentUpdateRequest) : EnrollmentDTO
+}
+
+interface EnrollmentRepository <<interface>> {
+  + findById(id : EnrollmentId) : Optional<Enrollment>
+  + save(entity : Enrollment) : Enrollment
+}
+
+interface CustomEnrollmentRepository <<interface>> {
+  + findByEnrollmentId(id : EnrollmentId) : EnrollmentDTO
+}
+
+interface EnrollmentMapper <<interface>> {
+  + createEnrollmentId(classId : Short, studentUserId : Integer) : EnrollmentId
+  + updateEnrollmentFromRequest(request : EnrollmentUpdateRequest, enrollment : Enrollment) : void
+}
+
+class Enrollment {
+  - id : EnrollmentId
+  - academicClass : AcademicClass
+  - student : User
+  - isEnrolled : Boolean
+}
+
+class EnrollmentId {
+  - classId : Short
+  - studentUserId : Integer
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - subject : Subject
+  - semester : Semester
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class BaseEntity {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class EnrollmentUpdateRequest {
+  - isEnrolled : Boolean
+}
+
+class EnrollmentDTO {
+  - classId : Short
+  - studentUserId : Integer
+  - student : StudentProfileDTO
+  - academicClass : ClassDTO
+  - isEnrolled : Boolean
+}
+
+class StudentProfileDTO {
+  - userId : Integer
+  - fullName : String
+  - rollNumber : String
+  - email : String
+  - majorName : String
+  - majorCode : String
+}
+
+class ClassDTO {
+  - id : Short
+  - code : String
+  - subject : SubjectDTO
+  - semester : SemesterDTO
+}
+
+class BaseDTO {
+  - isActive : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class Response<T> {
+  - status : int
+  - message : String
+  - code : String
+  - data : T
+}
+
+EnrollmentController --> EnrollmentService
+EnrollmentService --> EnrollmentRepository
+EnrollmentService --> EnrollmentMapper
+
+EnrollmentController ..> Response : <<use>>
+EnrollmentController ..> EnrollmentDTO : <<use>>
+EnrollmentController ..> EnrollmentUpdateRequest : <<use>>
+EnrollmentService ..> Enrollment : <<use>>
+EnrollmentService ..> EnrollmentDTO : <<use>>
+EnrollmentService ..> EnrollmentUpdateRequest : <<use>>
+EnrollmentService ..> EnrollmentId : <<use>>
+EnrollmentRepository ..> Enrollment : <<use>>
+EnrollmentRepository ..> EnrollmentId : <<use>>
+CustomEnrollmentRepository ..> EnrollmentId : <<use>>
+CustomEnrollmentRepository ..> EnrollmentDTO : <<use>>
+EnrollmentMapper ..> Enrollment : <<use>>
+EnrollmentMapper ..> EnrollmentUpdateRequest : <<use>>
+EnrollmentMapper ..> EnrollmentId : <<use>>
+
+Enrollment --> EnrollmentId
+Enrollment --> AcademicClass
+AcademicClass --> Semester
+Enrollment --|> BaseEntity
+AcademicClass --|> BaseEntity
+Semester --|> BaseEntity
+EnrollmentDTO --|> BaseDTO
+
+@enduml

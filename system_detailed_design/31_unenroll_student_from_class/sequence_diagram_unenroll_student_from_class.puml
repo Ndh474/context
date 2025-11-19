@@ -1,0 +1,87 @@
+@startuml Unenroll Student from Class
+!theme plain
+hide footbox
+
+actor Client
+participant ":EnrollmentController" as Controller
+participant ":EnrollmentService" as Service
+participant ":EnrollmentMapper" as Mapper
+participant ":EnrollmentRepository" as Repository
+participant "Database" as DB
+
+Client -> Controller: PUT /api/v1/enrollments/1/101\n{isEnrolled: false}
+activate Controller
+
+Controller -> Service: update(classId, studentUserId, request)
+activate Service
+
+' === Create EnrollmentId ===
+Service -> Mapper: createEnrollmentId(classId, studentUserId)
+activate Mapper
+Mapper --> Service: enrollmentId:EnrollmentId
+deactivate Mapper
+
+' === Validation 1: Enrollment Exists ===
+Service -> Repository: findById(enrollmentId)
+activate Repository
+
+Repository -> DB: SELECT * FROM enrollments e\nJOIN classes c ON e.class_id = c.id\nJOIN semesters sem ON c.semester_id = sem.id\nWHERE e.class_id = ? AND e.student_user_id = ?
+activate DB
+DB --> Repository: enrollmentRecord
+deactivate DB
+
+Repository --> Service: enrollmentOpt:Optional<Enrollment>
+deactivate Repository
+
+alt enrollmentOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Enrollment not found for class {classId} and student {studentUserId}",\ncode: "ENROLLMENT_NOT_FOUND"}
+end
+
+Service -> Service: enrollment = enrollmentOpt.get()
+
+' === Validation 2: Semester Not Ended ===
+Service -> Service: today = LocalDate.now()
+Service -> Service: semesterEndDate = enrollment.academicClass.semester.endDate
+
+alt today.isAfter(semesterEndDate)
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 403\n{status: 403,\nmessage: "Cannot modify enrollments after semester ends (ended: {date})",\ncode: "SEMESTER_ENDED"}
+end
+
+' === Update Enrollment ===
+Service -> Mapper: updateEnrollmentFromRequest(request, enrollment)
+activate Mapper
+Mapper --> Service
+deactivate Mapper
+
+Service -> Repository: save(enrollment)
+activate Repository
+
+Repository -> DB: UPDATE enrollments\nSET is_enrolled = ?, updated_at = NOW()\nWHERE class_id = ? AND student_user_id = ?
+activate DB
+DB --> Repository: updatedRecord
+deactivate DB
+
+Repository --> Service: saved:Enrollment
+deactivate Repository
+
+' === Get Full DTO with Details ===
+Service -> Repository: findByEnrollmentId(enrollmentId)
+activate Repository
+
+Repository -> DB: SELECT e.class_id, e.student_user_id,\n    u.id, u.full_name, sp.roll_number, u.email, m.name, m.code,\n    c.id, c.code, sub.id, sub.name, sub.code,\n    sem.id, sem.name, sem.code,\n    e.is_enrolled, e.created_at, e.updated_at\nFROM enrollments e\nJOIN users u ON e.student_user_id = u.id\nLEFT JOIN student_profiles sp ON sp.user_id = u.id\nLEFT JOIN majors m ON sp.major_id = m.id\nJOIN classes c ON e.class_id = c.id\nJOIN subjects sub ON c.subject_id = sub.id\nJOIN semesters sem ON c.semester_id = sem.id\nWHERE e.class_id = ? AND e.student_user_id = ?
+activate DB
+DB --> Repository: fullRecord
+deactivate DB
+
+Repository --> Service: dto:EnrollmentDTO
+deactivate Repository
+
+Service --> Controller: EnrollmentDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  classId: 1,\n  studentUserId: 101,\n  student: {\n    userId: 101,\n    fullName: "John Doe",\n    rollNumber: "SE12345",\n    email: "john@example.com",\n    majorName: "Software Engineering",\n    majorCode: "SE"\n  },\n  class: {\n    id: 1,\n    code: "SE01",\n    subject: {...},\n    semester: {...}\n  },\n  isEnrolled: false,\n  updatedAt: "2024-11-19T16:15:00Z"\n}}
+deactivate Controller
+
+@enduml
