@@ -1,0 +1,179 @@
+@startuml Update Class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":ClassRepository" as ClassRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":SemesterRepository" as SemesterRepo
+participant ":ClassMapper" as ClassMapper
+participant ":SemesterMapper" as SemesterMapper
+participant ":Database" as DB
+
+Client -> Controller: PUT /api/v1/classes/1\n{code, subjectId, semesterId, isActive}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' === Validation 1: Find Existing Class ===
+Service -> ClassRepo: findById(id)
+activate ClassRepo
+
+ClassRepo -> DB: SELECT * FROM classes\nWHERE id = ?
+activate DB
+DB --> ClassRepo: classRecord
+deactivate DB
+
+ClassRepo --> Service: classOpt:Optional<AcademicClass>
+deactivate ClassRepo
+
+alt classOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Class not found: 1",\ncode: "CLASS_NOT_FOUND"}
+end
+
+Service -> Service: existing = classOpt.get()
+
+' === Validation 2: Unique Constraint (excluding current) ===
+Service -> ClassRepo: existsByCodeAndSubjectIdAndSemesterIdAndIdNot(code, subjectId, semesterId, id)
+activate ClassRepo
+
+ClassRepo -> DB: SELECT EXISTS(SELECT 1 FROM classes\nWHERE code = ? AND subject_id = ? AND semester_id = ? AND id != ?)
+activate DB
+DB --> ClassRepo: exists
+deactivate DB
+
+ClassRepo --> Service: exists:boolean
+deactivate ClassRepo
+
+alt exists = true
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Class already exists with subject, semester, and code",\ncode: "CLASS_EXISTS"}
+end
+
+' === Validation 3: Subject Exists ===
+Service -> SubjectRepo: findById(subjectId)
+activate SubjectRepo
+
+SubjectRepo -> DB: SELECT * FROM subjects\nWHERE id = ?
+activate DB
+DB --> SubjectRepo: subjectRecord
+deactivate DB
+
+SubjectRepo --> Service: subjectOpt:Optional<Subject>
+deactivate SubjectRepo
+
+alt subjectOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Subject not found: {subjectId}",\ncode: "SUBJECT_NOT_FOUND"}
+end
+
+Service -> Service: subject = subjectOpt.get()
+
+' === Validation 4: Semester Exists ===
+Service -> SemesterRepo: findById(semesterId)
+activate SemesterRepo
+
+SemesterRepo -> DB: SELECT * FROM semesters\nWHERE id = ?
+activate DB
+DB --> SemesterRepo: semesterRecord
+deactivate DB
+
+SemesterRepo --> Service: semesterOpt:Optional<Semester>
+deactivate SemesterRepo
+
+alt semesterOpt.isEmpty()
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Semester not found: {semesterId}",\ncode: "SEMESTER_NOT_FOUND"}
+end
+
+Service -> Service: semester = semesterOpt.get()
+
+' === Validation 5: Active References ===
+opt !subject.isActive || !semester.isActive
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Cannot update class with inactive subject or semester",\ncode: "INACTIVE_REFERENCE_NOT_ALLOWED"}
+end
+
+' === Validation 6: Deactivation Guard ===
+opt deactivating (existing.isActive = true AND request.isActive = false)
+    Service -> ClassRepo: countActiveSlotsByClassId(id)
+    activate ClassRepo
+
+    ClassRepo -> DB: SELECT COUNT(id) FROM slots\nWHERE class_id = ?
+    activate DB
+    DB --> ClassRepo: count
+    deactivate DB
+
+    ClassRepo --> Service: activeSlots:long
+    deactivate ClassRepo
+
+    Service -> ClassRepo: countEnrolledStudentsByClassId(id)
+    activate ClassRepo
+
+    ClassRepo -> DB: SELECT COUNT(id) FROM enrollments\nWHERE class_id = ? AND is_enrolled = true
+    activate DB
+    DB --> ClassRepo: count
+    deactivate DB
+
+    ClassRepo --> Service: enrolledStudents:long
+    deactivate ClassRepo
+
+    alt activeSlots > 0 OR enrolledStudents > 0
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Cannot deactivate class. Found X active slots and Y enrolled students",\ncode: "CLASS_HAS_ACTIVE_DEPENDENCIES"}
+    end
+end
+
+' === Apply Updates ===
+Service -> ClassMapper: updateClassFromRequest(request, existing)
+activate ClassMapper
+ClassMapper --> Service
+deactivate ClassMapper
+
+Service -> Service: existing.setSubject(subject)
+Service -> Service: existing.setSemester(semester)
+
+Service -> ClassRepo: save(existing)
+activate ClassRepo
+
+ClassRepo -> DB: UPDATE classes\nSET code=?, subject_id=?, semester_id=?, is_active=?, updated_at=NOW()\nWHERE id=?
+activate DB
+DB --> ClassRepo: updatedRecord
+deactivate DB
+
+ClassRepo --> Service: savedClass:AcademicClass
+deactivate ClassRepo
+
+' === Map Entity to DTO ===
+Service -> ClassMapper: toDTO(savedClass)
+activate ClassMapper
+ClassMapper --> Service: classDTO:ClassDTO
+deactivate ClassMapper
+
+' === Map Semester to DTO ===
+Service -> SemesterMapper: toDTO(semester)
+activate SemesterMapper
+SemesterMapper --> Service: semesterDTO:SemesterDTO
+deactivate SemesterMapper
+
+Service -> Service: classDTO.setSemester(semesterDTO)
+
+' === Create SubjectDTO ===
+Service -> Service: subjectDTO = new SubjectDTO()
+Service -> Service: subjectDTO.setId(subject.getId())
+Service -> Service: subjectDTO.setName(subject.getName())
+Service -> Service: subjectDTO.setCode(subject.getCode())
+Service -> Service: subjectDTO.setActive(subject.getActive())
+Service -> Service: classDTO.setSubject(subjectDTO)
+
+Service --> Controller: ClassDTO
+deactivate Service
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  code: "SE02",\n  subject: {\n    id: 1,\n    name: "Software Engineering",\n    code: "SE",\n    isActive: true\n  },\n  semester: {\n    id: 1,\n    name: "Fall 2024",\n    code: "FA2024",\n    startDate: "2024-09-01",\n    endDate: "2024-12-31",\n    isActive: true\n  },\n  isActive: true,\n  updatedAt: "2024-11-19T15:45:00Z"\n}}
+deactivate Controller
+
+@enduml
