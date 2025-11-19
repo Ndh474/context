@@ -1,0 +1,60 @@
+@startuml View List Subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as Repository
+participant ":Database" as DB
+
+Client -> Controller: GET /api/v1/subjects?page=1&pageSize=10&search=Data&isActive=true
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: SELECT s.id, s.name, s.code,\n    COUNT(DISTINCT c.id) AS classCount,\n    SUM(CASE WHEN c.is_active = true THEN 1 ELSE 0 END) AS activeClassCount,\n    s.is_active, s.created_at, s.updated_at\nFROM subjects s\nLEFT JOIN academic_classes c ON s.id = c.subject_id\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?\nGROUP BY s.id, s.name, s.code, s.is_active, s.created_at, s.updated_at\nORDER BY s.id ASC\nLIMIT ? OFFSET ?
+activate DB
+DB --> Repository: resultList
+deactivate DB
+
+Repository -> DB: SELECT s.id AS subjectId,\n    m.id, m.name, m.code, m.is_active\nFROM subjects s\nJOIN subject_majors sm ON s.id = sm.subject_id\nJOIN majors m ON sm.major_id = m.id\nWHERE s.id IN (?)\nORDER BY m.name
+activate DB
+DB --> Repository: majorRecords
+deactivate DB
+
+note over Repository: Map majors to subjects\nand build SubjectDTO list
+
+Repository --> Service: subjects:List<SubjectDTO>
+deactivate Repository
+
+Service --> Controller: subjects:List<SubjectDTO>
+deactivate Service
+
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: SELECT COUNT(s.id) FROM subjects s\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?
+activate DB
+DB --> Repository: total
+deactivate DB
+
+Repository --> Service: total:Long
+deactivate Repository
+
+Service --> Controller: total:Long
+deactivate Service
+
+Controller -> Controller: PagingResponse.of(subjects, total, request)
+
+Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  items: [\n    {\n      id: 1,\n      name: "Data Structures",\n      code: "CS101",\n      majors: [\n        {id: 1, name: "Computer Science", code: "CS", isActive: true},\n        {id: 2, name: "Software Engineering", code: "SE", isActive: true}\n      ],\n      totalClass: 5,\n      totalActiveClass: 3,\n      isActive: true,\n      createdAt: "2024-11-19T10:30:00Z"\n    }\n  ],\n  currentPage: 1,\n  pageSize: 10,\n  totalItems: 25,\n  totalPages: 3\n}}
+deactivate Controller
+
+@enduml
