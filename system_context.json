@@ -121,6 +121,12 @@
       "GENERAL_PERMISSIONS": {
         "OWN_PROFILE_READ": "View own personal profile information.",
         "OWN_PASSWORD_UPDATE": "Change own password."
+      },
+      "DASHBOARD_PERMISSIONS": {
+        "DASHBOARD_VIEW_STUDENT": "View student dashboard with personal statistics and schedule.",
+        "DASHBOARD_VIEW_LECTURER": "View lecturer dashboard with teaching statistics and upcoming classes.",
+        "DASHBOARD_VIEW_SUPERVISOR": "View supervisor dashboard with exam supervision statistics.",
+        "DASHBOARD_VIEW_DATA_OPERATOR": "View data operator dashboard with system-wide statistics and administrative data."
       }
     },
     "role_definitions": {
@@ -187,7 +193,8 @@
           "CAMERA_IMPORT",
           "REPORT_EXPORT_ACADEMIC_DATA",
           "OWN_PROFILE_READ",
-          "OWN_PASSWORD_UPDATE"
+          "OWN_PASSWORD_UPDATE",
+          "DASHBOARD_VIEW_DATA_OPERATOR"
         ]
       },
       "LECTURER": {
@@ -221,7 +228,9 @@
           "SLOT_READ_DETAIL",
           "SUBJECT_READ_LIST",
           "SUBJECT_READ_DETAIL",
-          "SLOT_UPDATE_CATEGORY"
+          "SLOT_UPDATE_CATEGORY",
+          "DASHBOARD_VIEW_LECTURER",
+          "LECTURER_READ"
         ]
       },
       "SUPERVISOR": {
@@ -253,7 +262,8 @@
           "SLOT_READ_LIST",
           "SLOT_READ_DETAIL",
           "SUBJECT_READ_LIST",
-          "SUBJECT_READ_DETAIL"
+          "SUBJECT_READ_DETAIL",
+          "DASHBOARD_VIEW_SUPERVISOR"
         ]
       },
       "STUDENT": {
@@ -276,7 +286,8 @@
           "SLOT_READ_LIST",
           "SLOT_READ_DETAIL",
           "SUBJECT_READ_LIST",
-          "SUBJECT_READ_DETAIL"
+          "SUBJECT_READ_DETAIL",
+          "DASHBOARD_VIEW_STUDENT"
         ]
       }
     },
