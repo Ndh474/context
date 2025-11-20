@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "backend",
     "category": "dto_mapper",
-    "generated_at": "2025-11-19T20:29:52.209252",
+    "generated_at": "2025-11-20T20:18:28.639211",
     "total_files": 19,
     "total_lines": 646,
     "total_bytes": 26258
   },
   "files": [
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\AttendanceRecordMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\AttendanceRecordMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/AttendanceRecordMapper.java",
       "filename": "AttendanceRecordMapper.java",
       "size_bytes": 963,
@@ -20,7 +20,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.response.AttendanceRecordDTO;\nimport com.fuacs.backend.entity.AttendanceRecord;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.Mappings;\nimport org.mapstruct.ReportingPolicy;\n\n@Mapper(\n        componentModel = \"spring\",\n        unmappedTargetPolicy = ReportingPolicy.IGNORE // ignore unmapped fields globally in this mapper\n)\npublic interface AttendanceRecordMapper extends DTOMapper<AttendanceRecordDTO, AttendanceRecord> {\n\n    @Override\n    @Mappings({\n            @Mapping(target = \"student\", ignore = true),\n            @Mapping(target = \"slot\", ignore = true)\n    })\n    AttendanceRecordDTO toDTO(AttendanceRecord entity);\n\n    @Override\n    @Mappings({\n            @Mapping(target = \"student\", ignore = true),\n            @Mapping(target = \"slot\", ignore = true)\n    })\n    AttendanceRecord toEntity(AttendanceRecordDTO dto);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\CameraMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\CameraMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/CameraMapper.java",
       "filename": "CameraMapper.java",
       "size_bytes": 1741,
@@ -31,7 +31,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.CameraCreateRequest;\nimport com.fuacs.backend.dto.request.CameraUpdateRequest;\nimport com.fuacs.backend.dto.response.CameraDTO;\nimport com.fuacs.backend.entity.Camera;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.MappingTarget;\n\n/**\n * MapStruct mapper để convert giữa Camera entity và các DTO tương ứng.\n * Hỗ trợ mapping cho các use case: create, update, và response.\n *\n * @see Camera\n * @see CameraDTO\n * @see CameraCreateRequest\n * @see CameraUpdateRequest\n */\n@Mapper(componentModel = \"spring\")\npublic interface CameraMapper extends DTOMapper<CameraDTO, Camera> {\n\n    /**\n     * Convert CameraCreateRequest thành Camera entity mới.\n     * Dùng khi tạo camera mới từ API endpoint.\n     *\n     * @param request Request chứa name, rtspUrl, roomId\n     * @return Camera entity với các field được map từ request\n     */\n    Camera toEntity(CameraCreateRequest request);\n\n    /**\n     * Convert CameraUpdateRequest thành Camera entity.\n     * Dùng trong quá trình update camera.\n     *\n     * @param request Request chứa name, rtspUrl, roomId, isActive\n     * @return Camera entity với các field được map từ request\n     */\n    Camera toEntity(CameraUpdateRequest request);\n\n    /**\n     * Cập nhật Camera entity hiện có từ CameraUpdateRequest.\n     * Dùng để apply các thay đổi vào entity đã có sẵn.\n     *\n     * @param request Request chứa thông tin cập nhật\n     * @param camera Camera entity cần cập nhật (target)\n     */\n    void updateCameraFromRequest(CameraUpdateRequest request, @MappingTarget Camera camera);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ClassMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ClassMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/ClassMapper.java",
       "filename": "ClassMapper.java",
       "size_bytes": 716,
@@ -42,7 +42,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.ClassCreateRequest;\nimport com.fuacs.backend.dto.request.ClassUpdateRequest;\nimport com.fuacs.backend.dto.response.ClassDTO;\nimport com.fuacs.backend.entity.AcademicClass;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\", uses = { SubjectMapper.class, SemesterMapper.class })\npublic interface ClassMapper {\n\n    ClassDTO toDTO(AcademicClass academicClass);\n\n    AcademicClass toEntity(ClassCreateRequest dto);\n\n    AcademicClass toEntity(ClassUpdateRequest dto);\n\n    void updateClassFromRequest(ClassUpdateRequest request, @MappingTarget AcademicClass academicClass);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\DTOMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\DTOMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/DTOMapper.java",
       "filename": "DTOMapper.java",
       "size_bytes": 275,
@@ -53,7 +53,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport java.util.List;\nimport java.util.Set;\n\npublic interface DTOMapper< D, E> {\n\n    D toDTO(E e);\n\n    E toEntity(D d);\n\n    List<D> toDTO(List<E> e);\n\n    Set<D> toDTO(Set<E> e);\n\n    List<E> toEntity(List<D> d);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\EnrollmentMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\EnrollmentMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/EnrollmentMapper.java",
       "filename": "EnrollmentMapper.java",
       "size_bytes": 4660,
@@ -64,7 +64,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.EnrollmentCreateRequest;\nimport com.fuacs.backend.dto.request.EnrollmentUpdateRequest;\nimport com.fuacs.backend.dto.response.EnrollmentDTO;\nimport com.fuacs.backend.dto.response.StudentProfileDTO;\nimport com.fuacs.backend.entity.Enrollment;\nimport com.fuacs.backend.entity.EnrollmentId;\nimport com.fuacs.backend.entity.User;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.MappingTarget;\nimport org.mapstruct.Mappings;\nimport org.mapstruct.ReportingPolicy;\n\n@Mapper(componentModel = \"spring\", unmappedTargetPolicy = ReportingPolicy.IGNORE, uses = {StudentProfileMapper.class, ClassMapper.class})\npublic interface EnrollmentMapper extends DTOMapper<EnrollmentDTO, Enrollment> {\n\n    @Override\n    @Mappings({\n            @Mapping(target = \"classId\", source = \"id.classId\"),\n            @Mapping(target = \"studentUserId\", source = \"id.studentUserId\"),\n            @Mapping(target = \"student\", ignore = true),\n            @Mapping(target = \"academicClass\", source = \"academicClass\"),\n            @Mapping(target = \"isEnrolled\", source = \"enrolled\")\n    })\n    EnrollmentDTO toDTO(Enrollment enrollment);\n\n    @Mappings({\n        @Mapping(target = \"id\", expression = \"java(createEnrollmentId(request.getClassId(), request.getStudentUserId()))\"),\n        @Mapping(target = \"academicClass\", ignore = true),\n        @Mapping(target = \"student\", ignore = true),\n        @Mapping(target = \"enrolled\", ignore = true),\n        @Mapping(target = \"createdAt\", ignore = true),\n        @Mapping(target = \"updatedAt\", ignore = true)\n    })\n    Enrollment toEntity(EnrollmentCreateRequest request);\n\n    @Override\n    @Mappings({\n            @Mapping(target = \"student\", ignore = true),\n            @Mapping(target = \"academicClass\", ignore = true),\n            @Mapping(target = \"createdAt\", ignore = true),\n            @Mapping(target = \"updatedAt\", ignore = true)\n    })\n    Enrollment toEntity(EnrollmentDTO dto);\n\n    // @Mapping(target = \"id\", ignore = true)\n    // @Mapping(target = \"academicClass\", ignore = true)\n    // @Mapping(target = \"student\", ignore = true)\n    // @Mapping(target = \"createdAt\", ignore = true)\n    // @Mapping(target = \"updatedAt\", ignore = true)\n    void updateEnrollmentFromRequest(EnrollmentUpdateRequest request, @MappingTarget Enrollment enrollment);\n\n    default EnrollmentId createEnrollmentId(Short classId, Integer studentUserId) {\n        return new EnrollmentId(classId, studentUserId);\n    }\n\n    // @Named(\"mapStudentToDTO\")\n    // default EnrollmentDTO.StudentDTO\n    // mapStudentToDTO(com.fuacs.backend.entity.StudentProfile student) {\n    // if (student == null) {\n    // return null;\n    // }\n    // EnrollmentDTO.StudentDTO studentDTO = new EnrollmentDTO.StudentDTO();\n    // studentDTO.setUserId(student.getUserId());\n    // studentDTO.setFullName(student.getUser().getFullName());\n    // studentDTO.setEmail(student.getUser().getEmail());\n    //\n    // // Get student profile for roll number and major\n    // studentDTO.setRollNumber(student.getRollNumber());\n    // if (student.getMajor() != null) {\n    // studentDTO.setMajorName(student.getMajor().getName());\n    // studentDTO.setMajorCode(student.getMajor().getCode());\n    // }\n    //\n    // return studentDTO;\n    // }\n    //\n    // @Named(\"mapClassToDTO\")\n    // default EnrollmentDTO.ClassDTO\n    // mapClassToDTO(com.fuacs.backend.entity.AcademicClass academicClass) {\n    // if (academicClass == null) {\n    // return null;\n    // }\n    // EnrollmentDTO.ClassDTO classDTO = new EnrollmentDTO.ClassDTO();\n    // classDTO.setId(academicClass.getId());\n    // classDTO.setCode(academicClass.getCode());\n    //\n    // // Map subject\n    // if (academicClass.getSubject() != null) {\n    // EnrollmentDTO.SubjectDTO subjectDTO = new EnrollmentDTO.SubjectDTO();\n    // subjectDTO.setId(academicClass.getSubject().getId());\n    // subjectDTO.setName(academicClass.getSubject().getName());\n    // subjectDTO.setCode(academicClass.getSubject().getCode());\n    // classDTO.setSubject(subjectDTO);\n    // }\n    //\n    // // Map semester\n    // if (academicClass.getSemester() != null) {\n    // EnrollmentDTO.SemesterDTO semesterDTO = new EnrollmentDTO.SemesterDTO();\n    // semesterDTO.setId(academicClass.getSemester().getId());\n    // semesterDTO.setName(academicClass.getSemester().getName());\n    // semesterDTO.setCode(academicClass.getSemester().getCode());\n    // classDTO.setSemester(semesterDTO);\n    // }\n    //\n    // return classDTO;\n    // }\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ExamSlotParticipantMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ExamSlotParticipantMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/ExamSlotParticipantMapper.java",
       "filename": "ExamSlotParticipantMapper.java",
       "size_bytes": 645,
@@ -75,7 +75,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.response.ExamSlotParticipantDTO;\nimport com.fuacs.backend.entity.ExamSlotParticipant;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\n\n@Mapper(componentModel = \"spring\")\npublic interface ExamSlotParticipantMapper extends DTOMapper<ExamSlotParticipantDTO, ExamSlotParticipant> {\n\n    @Mapping(target = \"slotId\", source = \"examSlotSubject.slot.id\")\n    @Mapping(target = \"studentUserId\", source = \"studentUser.id\")\n    @Mapping(target = \"subjectId\", source = \"examSlotSubject.subject.id\")\n    ExamSlotParticipantDTO toDTO(ExamSlotParticipant entity);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ExamSlotSubjectMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\ExamSlotSubjectMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/ExamSlotSubjectMapper.java",
       "filename": "ExamSlotSubjectMapper.java",
       "size_bytes": 572,
@@ -86,7 +86,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.response.ExamSlotSubjectDTO;\nimport com.fuacs.backend.entity.ExamSlotSubject;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\n\n@Mapper(componentModel = \"spring\")\npublic interface ExamSlotSubjectMapper extends DTOMapper<ExamSlotSubjectDTO, ExamSlotSubject> {\n\n    @Mapping(target = \"slotId\", source = \"slot.id\")\n    @Mapping(target = \"subjectId\", source = \"subject.id\")\n    @Mapping(target = \"subject\", source = \"subject\")\n    ExamSlotSubjectDTO toDTO(ExamSlotSubject entity);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\MajorMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\MajorMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/MajorMapper.java",
       "filename": "MajorMapper.java",
       "size_bytes": 631,
@@ -97,7 +97,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.MajorCreateRequest;\nimport com.fuacs.backend.dto.request.MajorUpdateRequest;\nimport com.fuacs.backend.dto.response.MajorDTO;\nimport com.fuacs.backend.entity.Major;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\")\npublic interface MajorMapper extends DTOMapper<MajorDTO, Major> {\n\n    Major toEntity(MajorCreateRequest dto);\n\n    Major toEntity(MajorUpdateRequest dto);\n\n    void updateFromRequest(MajorUpdateRequest request, @MappingTarget Major major);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\MajorSimpleMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\MajorSimpleMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/MajorSimpleMapper.java",
       "filename": "MajorSimpleMapper.java",
       "size_bytes": 677,
@@ -108,7 +108,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.response.MajorDTO;\nimport com.fuacs.backend.entity.Major;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\n\n/**\n * Simplified mapper for Major entity when used as nested object.\n * Used in StudentProfileDTO, SubjectDTO, etc.\n * Only maps: id, name, code, isActive (excludes createdAt, updatedAt,\n * totalSubject)\n */\n@Mapper(componentModel = \"spring\")\npublic interface MajorSimpleMapper {\n\n    @Mapping(target = \"createdAt\", ignore = true)\n    @Mapping(target = \"updatedAt\", ignore = true)\n    @Mapping(target = \"totalSubject\", ignore = true)\n    MajorDTO toDTO(Major major);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\PermissionMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\PermissionMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/PermissionMapper.java",
       "filename": "PermissionMapper.java",
       "size_bytes": 417,
@@ -119,7 +119,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.PermissionCreateRequest;\nimport com.fuacs.backend.dto.response.PermissionDTO;\nimport com.fuacs.backend.entity.Permission;\nimport org.mapstruct.Mapper;\n\n@Mapper(componentModel = \"spring\")\npublic interface PermissionMapper extends DTOMapper<PermissionDTO, Permission> {\n    Permission toEntity(PermissionCreateRequest request);\n\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\RoleMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\RoleMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/RoleMapper.java",
       "filename": "RoleMapper.java",
       "size_bytes": 367,
@@ -130,7 +130,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.RoleCreateRequest;\nimport com.fuacs.backend.dto.response.RoleDTO;\nimport com.fuacs.backend.entity.Role;\nimport org.mapstruct.Mapper;\n\n@Mapper(componentModel = \"spring\")\npublic interface RoleMapper extends DTOMapper<RoleDTO, Role> {\n    Role toEntity(RoleCreateRequest request);\n\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\RoomMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\RoomMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/RoomMapper.java",
       "filename": "RoomMapper.java",
       "size_bytes": 1798,
@@ -141,7 +141,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.RoomUpdateRequest;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.MappingTarget;\nimport com.fuacs.backend.dto.request.RoomCreateRequest;\nimport com.fuacs.backend.dto.response.RoomDTO;\nimport com.fuacs.backend.entity.Room;\n\n/**\n * MapStruct mapper để convert giữa Room entity và các DTO tương ứng.\n * Hỗ trợ mapping cho các use case: create, update, và response.\n *\n * @see Room\n * @see RoomDTO\n * @see RoomCreateRequest\n * @see RoomUpdateRequest\n */\n@Mapper(componentModel = \"spring\")\npublic interface RoomMapper extends DTOMapper<RoomDTO, Room> {\n    /**\n     * Convert RoomCreateRequest thành Room entity mới.\n     * Dùng khi tạo phòng mới từ API request.\n     *\n     * @param request Request chứa thông tin phòng mới (name, location)\n     * @return Room entity với các field được map từ request\n     */\n    Room toEntity(RoomCreateRequest request);\n\n    /**\n     * Convert RoomUpdateRequest thành Room entity.\n     * Dùng khi cần tạo entity tạm để validate hoặc so sánh.\n     *\n     * @param request Request chứa thông tin cập nhật (name, location, isActive)\n     * @return Room entity với các field được map từ request\n     */\n    Room toEntity(RoomUpdateRequest request);\n\n    /**\n     * Cập nhật Room entity hiện có từ RoomUpdateRequest (in-place update).\n     * Dùng khi update phòng đã tồn tại, giữ nguyên ID và audit fields.\n     *\n     * @param request Request chứa các field cần update\n     * @param room Room entity hiện có sẽ được update (modified in-place)\n     */\n    void updateRoomFromRequest(RoomUpdateRequest request, @MappingTarget Room room);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SemesterMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SemesterMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/SemesterMapper.java",
       "filename": "SemesterMapper.java",
       "size_bytes": 652,
@@ -152,7 +152,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.SemesterUpdateRequest;\nimport org.mapstruct.Mapper;\nimport com.fuacs.backend.dto.request.SemesterCreateRequest;\nimport com.fuacs.backend.dto.response.SemesterDTO;\nimport com.fuacs.backend.entity.Semester;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\")\npublic interface SemesterMapper extends DTOMapper<SemesterDTO, Semester> {\n    Semester toEntity(SemesterCreateRequest request);\n    Semester toEntity(SemesterUpdateRequest request);\n    void updateSemesterFromRequest(SemesterUpdateRequest request, @MappingTarget Semester semester);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SlotMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SlotMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/SlotMapper.java",
       "filename": "SlotMapper.java",
       "size_bytes": 2637,
@@ -163,7 +163,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.SlotCreateRequest;\nimport com.fuacs.backend.dto.request.SlotUpdateRequest;\nimport com.fuacs.backend.dto.response.SlotDTO;\nimport com.fuacs.backend.entity.Slot;\nimport org.mapstruct.AfterMapping;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.MappingTarget;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\n@Mapper(componentModel = \"spring\", uses = { ClassMapper.class, RoomMapper.class, UserMapper.class })\npublic interface SlotMapper extends DTOMapper<SlotDTO, Slot> {\n    @Mapping(source = \"classId\", target = \"academicClass.id\")\n    @Mapping(source = \"semesterId\", target = \"semester.id\")\n    @Mapping(source = \"staffUserId\", target = \"staff.id\")\n    @Mapping(source = \"roomId\", target = \"room.id\")\n    Slot toEntity(SlotCreateRequest request);\n\n    @Mapping(source = \"classId\", target = \"academicClass.id\")\n    @Mapping(source = \"semesterId\", target = \"semester.id\")\n    @Mapping(source = \"staffUserId\", target = \"staff.id\")\n    @Mapping(source = \"roomId\", target = \"room.id\")\n    Slot toEntity(SlotUpdateRequest request);\n\n    @Mapping(source = \"academicClass\", target = \"classObj\")\n    @Mapping(source = \"staff\", target = \"staffUser\")\n    @Mapping(source = \"sessionStatus\", target = \"sessionStatus\")\n    @Mapping(source = \"scanCount\", target = \"scanCount\")\n    @Mapping(source = \"lastSessionStoppedAt\", target = \"lastSessionStoppedAt\")\n    @Mapping(source = \"examSessionStatus\", target = \"examSessionStatus\")\n    @Mapping(source = \"examScanCount\", target = \"examScanCount\")\n    @Mapping(source = \"lastExamSessionStoppedAt\", target = \"lastExamSessionStoppedAt\")\n    SlotDTO toDTO(Slot slot);\n\n    void updateSlotFromRequest(SlotUpdateRequest request, @MappingTarget Slot slot);\n\n    @AfterMapping\n    default void populateSubjects(@MappingTarget SlotDTO dto, Slot slot) {\n        if (dto.getSlotCategory() == com.fuacs.backend.constant.enums.SlotCategory.FINAL_EXAM) {\n            // For FINAL_EXAM slots: get subjects from exam_slot_subjects table\n            // ExamSubjects are mapped directly from entity relationship\n            if (dto.getExamSubjects() == null) {\n                dto.setExamSubjects(new ArrayList<>());\n            }\n        } else if (dto.getClassObj() != null && dto.getClassObj().getSubject() != null) {\n            // For LECTURE/LECTURE_WITH_PT slots: get subject from class\n            dto.setExamSubjects(List.of(dto.getClassObj().getSubject()));\n        } else {\n            dto.setExamSubjects(new ArrayList<>());\n        }\n    }\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StaffProfileMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StaffProfileMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/StaffProfileMapper.java",
       "filename": "StaffProfileMapper.java",
       "size_bytes": 1615,
@@ -174,7 +174,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.StaffProfileCreateRequest;\nimport com.fuacs.backend.dto.request.StaffProfileUpdateRequest;\nimport com.fuacs.backend.dto.response.StaffProfileDTO;\nimport com.fuacs.backend.entity.StaffProfile;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\")\npublic interface StaffProfileMapper extends DTOMapper<StaffProfileDTO, StaffProfile> {\n\n    @Mapping(source = \"user.id\", target = \"userId\")\n    @Mapping(source = \"user.fullName\", target = \"fullName\")\n    @Mapping(source = \"user.email\", target = \"email\")\n    @Mapping(source = \"user.username\", target = \"username\")\n    @Mapping(source = \"staffCode\", target = \"staffCode\")\n    @Mapping(source = \"user.active\", target = \"active\")\n    @Mapping(source = \"user.createdAt\", target = \"createdAt\")\n    @Mapping(source = \"user.updatedAt\", target = \"updatedAt\")\n    StaffProfileDTO toDTO(StaffProfile staffProfile);\n\n    @Mapping(source = \"email\", target = \"user.email\")\n    @Mapping(source = \"fullName\", target = \"user.fullName\")\n    @Mapping(source = \"staffCode\", target = \"staffCode\")\n    StaffProfile toEntity(StaffProfileCreateRequest dto);\n\n    @Mapping(source = \"email\", target = \"user.email\")\n    @Mapping(source = \"fullName\", target = \"user.fullName\")\n    @Mapping(source = \"active\", target = \"user.active\")\n    @Mapping(source = \"staffCode\", target = \"staffCode\")\n    void updateStaffProfileFromRequest(StaffProfileUpdateRequest request, @MappingTarget StaffProfile staffProfile);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StudentDashboardMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StudentDashboardMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/StudentDashboardMapper.java",
       "filename": "StudentDashboardMapper.java",
       "size_bytes": 2372,
@@ -185,7 +185,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.response.StudentSlotDTO;\nimport com.fuacs.backend.dto.response.StudentSubjectDTO;\nimport com.fuacs.backend.entity.Slot;\nimport com.fuacs.backend.entity.Enrollment;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\n\n/**\n * MapStruct mapper for Student Dashboard DTOs.\n * Provides mapping methods from entities to flattened DTOs for dashboard display.\n */\n@Mapper(componentModel = \"spring\")\npublic interface StudentDashboardMapper {\n\n    /**\n     * Maps a Slot entity to StudentSlotDTO with flattened related data.\n     * Used for converting entity-based slot data to dashboard-friendly format.\n     *\n     * @param slot The slot entity to map\n     * @return StudentSlotDTO with flattened data\n     */\n    @Mapping(source = \"id\", target = \"id\")\n    @Mapping(source = \"title\", target = \"title\")\n    @Mapping(source = \"description\", target = \"description\")\n    @Mapping(source = \"slotCategory\", target = \"slotCategory\")\n    @Mapping(source = \"startTime\", target = \"startTime\")\n    @Mapping(source = \"endTime\", target = \"endTime\")\n    @Mapping(source = \"academicClass.subject.name\", target = \"subjectName\")\n    @Mapping(source = \"academicClass.subject.code\", target = \"subjectCode\")\n    @Mapping(source = \"academicClass.code\", target = \"classCode\")\n    @Mapping(source = \"room.name\", target = \"roomName\")\n    @Mapping(source = \"staff.fullName\", target = \"staffName\")\n    @Mapping(source = \"sessionStatus\", target = \"sessionStatus\")\n    StudentSlotDTO toStudentSlotDTO(Slot slot);\n\n    /**\n     * Maps an Enrollment entity to StudentSubjectDTO with flattened related data.\n     * Used for converting enrollment data to dashboard-friendly subject format.\n     *\n     * @param enrollment The enrollment entity to map\n     * @return StudentSubjectDTO with flattened data\n     */\n    @Mapping(source = \"academicClass.subject.id\", target = \"subjectId\")\n    @Mapping(source = \"academicClass.subject.name\", target = \"subjectName\")\n    @Mapping(source = \"academicClass.subject.code\", target = \"subjectCode\")\n    @Mapping(source = \"academicClass.code\", target = \"classCode\")\n    @Mapping(source = \"academicClass.id\", target = \"classId\")\n    @Mapping(source = \"enrolled\", target = \"enrolled\")\n    StudentSubjectDTO toStudentSubjectDTO(Enrollment enrollment);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StudentProfileMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\StudentProfileMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/StudentProfileMapper.java",
       "filename": "StudentProfileMapper.java",
       "size_bytes": 2915,
@@ -196,7 +196,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.StudentProfileCreateRequest;\nimport com.fuacs.backend.dto.request.StudentProfileUpdateRequest;\nimport com.fuacs.backend.dto.response.StudentProfileDTO;\nimport com.fuacs.backend.entity.StudentProfile;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.Mapping;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\", uses = { MajorSimpleMapper.class })\npublic interface StudentProfileMapper extends DTOMapper<StudentProfileDTO, StudentProfile> {\n\n    @Override\n    @Mapping(source = \"user.id\", target = \"userId\")\n    @Mapping(source = \"user.fullName\", target = \"fullName\")\n    @Mapping(source = \"user.email\", target = \"email\")\n    @Mapping(source = \"user.username\", target = \"username\")\n    @Mapping(source = \"major\", target = \"major\")\n    @Mapping(source = \"user.active\", target = \"active\")\n    @Mapping(source = \"user.createdAt\", target = \"createdAt\")\n    @Mapping(source = \"user.updatedAt\", target = \"updatedAt\")\n    @Mapping(source = \"baseUrl\", target = \"baseUrl\")\n    @Mapping(target = \"photoUrl\", expression = \"java(generatePhotoUrl(studentProfile.getUserId(), studentProfile.getBaseUrl()))\")\n    @Mapping(target = \"roles\", ignore = true)\n    @Mapping(target = \"hasActiveEmbedding\", ignore = true)\n    @Mapping(target = \"canUseFaceRecognition\", ignore = true)\n    @Mapping(target = \"isEnrolled\", ignore = true)\n    @Mapping(target = \"enrolledAt\", ignore = true)\n    StudentProfileDTO toDTO(StudentProfile studentProfile);\n\n    default String generatePhotoUrl(Integer userId, String baseUrl) {\n        if (baseUrl != null && !baseUrl.isEmpty() && userId != null) {\n            return \"/api/v1/student-photos/\" + userId + \"/\" + baseUrl;\n        }\n        return null;\n    }\n\n    @Mapping(source = \"username\", target = \"user.username\")\n    @Mapping(source = \"email\", target = \"user.email\")\n    @Mapping(source = \"fullName\", target = \"user.fullName\")\n    // @Mapping(source = \"active\", target = \"user.active\")\n    @Mapping(source = \"rollNumber\", target = \"rollNumber\")\n    @Mapping(source = \"majorId\", target = \"major.id\")\n    @Mapping(target = \"user.roles\", ignore = true)\n    @Mapping(target = \"userId\", ignore = true)\n    StudentProfile toEntity(StudentProfileCreateRequest dto);\n\n    @Mapping(source = \"username\", target = \"user.username\")\n    @Mapping(source = \"email\", target = \"user.email\")\n    @Mapping(source = \"fullName\", target = \"user.fullName\")\n    @Mapping(source = \"active\", target = \"user.active\")\n    @Mapping(source = \"rollNumber\", target = \"rollNumber\")\n    @Mapping(source = \"majorId\", target = \"major.id\")\n    @Mapping(target = \"user.roles\", ignore = true)\n    @Mapping(target = \"userId\", ignore = true)\n    void updateStudentProfileFromRequest(StudentProfileUpdateRequest request,\n            @MappingTarget StudentProfile studentProfile);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SubjectMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\SubjectMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/SubjectMapper.java",
       "filename": "SubjectMapper.java",
       "size_bytes": 689,
@@ -207,7 +207,7 @@
       "content": "package com.fuacs.backend.dto.mapper;\n\nimport com.fuacs.backend.dto.request.SubjectCreateRequest;\nimport com.fuacs.backend.dto.request.SubjectUpdateRequest;\nimport com.fuacs.backend.dto.response.SubjectDTO;\nimport com.fuacs.backend.entity.Subject;\nimport org.mapstruct.Mapper;\nimport org.mapstruct.MappingTarget;\n\n@Mapper(componentModel = \"spring\")\npublic interface SubjectMapper extends DTOMapper<SubjectDTO, Subject> {\n\n    SubjectDTO toDTO(Subject subject);\n    \n    Subject toEntity(SubjectCreateRequest dto);\n    \n    Subject toEntity(SubjectUpdateRequest dto);\n    \n    void updateSubjectFromRequest(SubjectUpdateRequest request, @MappingTarget Subject subject);\n}"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\UserMapper.java",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\dto\\mapper\\UserMapper.java",
       "relative_path": "src/main/java/com/fuacs/backend/dto/mapper/UserMapper.java",
       "filename": "UserMapper.java",
       "size_bytes": 1916,

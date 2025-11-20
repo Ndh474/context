@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "core",
-    "generated_at": "2025-11-19T20:29:55.718707",
+    "generated_at": "2025-11-20T20:18:33.150705",
     "total_files": 5,
     "total_lines": 279,
     "total_bytes": 8530
   },
   "files": [
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\__init__.py",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\__init__.py",
       "relative_path": "src/recognition_service/core/__init__.py",
       "filename": "__init__.py",
       "size_bytes": 35,
@@ -20,7 +20,7 @@
       "content": "\"\"\"Core package initialization\"\"\"\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\config.py",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\config.py",
       "relative_path": "src/recognition_service/core/config.py",
       "filename": "config.py",
       "size_bytes": 3006,
@@ -31,7 +31,7 @@
       "content": "\"\"\"\nConfiguration Management using Pydantic Settings\n\nLoads configuration from:\n1. Environment variables\n2. .env file (if present)\n3. Default values (fallback)\n\nUsage:\n    from core.config import get_settings\n\n    settings = get_settings()\n    print(settings.API_KEY)\n\"\"\"\n\nfrom pydantic_settings import BaseSettings\nfrom functools import lru_cache\nfrom typing import Optional\n\n\nclass Settings(BaseSettings):\n    \"\"\"\n    Application settings loaded from environment variables.\n\n    All settings can be overridden via environment variables.\n    See .env.example for template.\n    \"\"\"\n\n    # ========== Service Information ==========\n    SERVICE_NAME: str = \"FUACS Face Recognition Service\"\n    SERVICE_VERSION: str = \"1.0.0\"\n\n    # ========== Security ==========\n    API_KEY: str = \"python-service-secret-key-12345\"  # Default for testing\n\n    # ========== Java Backend Integration ==========\n    JAVA_BACKEND_URL: str = \"http://localhost:8080\"\n\n    # ========== InsightFace Model Configuration ==========\n    MODEL_NAME: str = \"buffalo_l\"\n    MODEL_PATH: str = \"./src/recognition_service/models/insightface\"\n\n    # ========== Server Configuration ==========\n    HOST: str = \"0.0.0.0\"  # Bind address (0.0.0.0 = all interfaces)\n    PORT: int = 8000\n    PUBLIC_HOST: str = \"localhost\"  # Public hostname for URL generation\n    LOG_LEVEL: str = \"INFO\"\n\n    # ========== Session Configuration ==========\n    MAX_CONCURRENT_SESSIONS: int = 10\n\n    # ========== Recognition Configuration ==========\n    DEFAULT_SIMILARITY_THRESHOLD: float = 0.55  # Default face matching threshold\n    MAX_SCAN_INTERVAL: int = 60  # Maximum seconds between scans\n    EVIDENCE_RETENTION_DAYS: int = 30  # Days to keep evidence images\n    CALLBACK_TIMEOUT: int = 30  # Seconds for callback timeout\n    CALLBACK_RETRY_ATTEMPTS: int = 3  # Number of callback retry attempts\n\n    # ========== Embedding Configuration ==========\n    EMBEDDING_VALIDATION_THRESHOLD: float = 0.90  # Photo-video similarity\n    EMBEDDING_QUALITY_THRESHOLD: float = 0.50  # Minimum acceptable quality\n    MAX_VIDEO_SIZE_MB: int = 50  # Max upload size\n    TEMP_DIR: str = \"./temp\"  # Temp file storage\n    VIDEO_SAMPLE_INTERVAL: float = 0.5  # Seconds between frames (for embedding)\n    VALIDATION_SAMPLE_INTERVAL: float = 1.0  # Seconds between frames (for validation)\n\n    # ========== Development Settings ==========\n    RELOAD: bool = False\n    WORKERS: int = 1\n\n    class Config:\n        \"\"\"Pydantic configuration\"\"\"\n\n        env_file = \".env\"\n        env_file_encoding = \"utf-8\"\n        case_sensitive = True\n\n\n@lru_cache\ndef get_settings() -> Settings:\n    \"\"\"\n    Get cached settings instance (Singleton pattern).\n\n    Settings are loaded once and cached for the lifetime of the application.\n\n    Returns:\n        Settings: Application settings\n\n    Raises:\n        ValidationError: If required settings are missing or invalid\n    \"\"\"\n    return Settings()\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\hardware.py",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\hardware.py",
       "relative_path": "src/recognition_service/core/hardware.py",
       "filename": "hardware.py",
       "size_bytes": 3049,
@@ -42,7 +42,7 @@
       "content": "\"\"\"\nHardware Configuration Module\nProvides hardware detection and configuration for optimal performance\n\"\"\"\n\nimport os\nimport subprocess\nimport logging\nfrom typing import List, Dict, Any\n\nlogger = logging.getLogger(__name__)\n\n\nclass HardwareDetector:\n    \"\"\"Hardware detection and configuration\"\"\"\n\n    @staticmethod\n    def detect_nvidia_gpu() -> bool:\n        \"\"\"Check if NVIDIA GPU is available\"\"\"\n        try:\n            # Try nvidia-smi command\n            result = subprocess.run([\"nvidia-smi\"], capture_output=True, text=True, timeout=5)\n            return result.returncode == 0\n        except (subprocess.TimeoutExpired, FileNotFoundError):\n            return False\n\n    @staticmethod\n    def detect_cuda() -> bool:\n        \"\"\"Check if CUDA is available\"\"\"\n        try:\n            # Check CUDA environment variables\n            cuda_path = os.environ.get(\"CUDA_PATH\") or os.environ.get(\"CUDA_HOME\")\n            if cuda_path and os.path.exists(cuda_path):\n                return True\n\n            # Try nvcc command\n            result = subprocess.run(\n                [\"nvcc\", \"--version\"], capture_output=True, text=True, timeout=5\n            )\n            return result.returncode == 0\n        except (subprocess.TimeoutExpired, FileNotFoundError):\n            return False\n\n    @classmethod\n    def get_optimal_config(cls) -> Dict[str, Any]:\n        \"\"\"Get optimal configuration based on available hardware\"\"\"\n        has_gpu = cls.detect_nvidia_gpu()\n        has_cuda = cls.detect_cuda()\n\n        if has_gpu and has_cuda:\n            config = {\n                \"device_type\": \"gpu\",\n                \"providers\": [\"CUDAExecutionProvider\", \"CPUExecutionProvider\"],\n                \"ctx_id\": 0,  # GPU device 0\n                \"device_name\": \"GPU (CUDA)\",\n            }\n            logger.info(\"🚀 GPU acceleration available - using CUDA\")\n        else:\n            config = {\n                \"device_type\": \"cpu\",\n                \"providers\": [\"CPUExecutionProvider\"],\n                \"ctx_id\": -1,  # CPU\n                \"device_name\": \"CPU\",\n            }\n            logger.info(\"🖥️  Using CPU-only mode\")\n\n        return config\n\n\n# Global hardware configuration\n_hardware_config = None\n\n\ndef get_hardware_config() -> Dict[str, Any]:\n    \"\"\"Get cached hardware configuration\"\"\"\n    global _hardware_config\n\n    if _hardware_config is None:\n        _hardware_config = HardwareDetector.get_optimal_config()\n        logger.info(f\"Hardware config initialized: {_hardware_config['device_name']}\")\n\n    return _hardware_config\n\n\ndef get_onnx_providers() -> List[str]:\n    \"\"\"Get ONNX Runtime providers based on hardware\"\"\"\n    return get_hardware_config()[\"providers\"]\n\n\ndef get_insightface_ctx_id() -> int:\n    \"\"\"Get InsightFace context ID based on hardware\"\"\"\n    return get_hardware_config()[\"ctx_id\"]\n\n\ndef get_device_info() -> str:\n    \"\"\"Get human-readable device information\"\"\"\n    return get_hardware_config()[\"device_name\"]\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\logging_config.py",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\logging_config.py",
       "relative_path": "src/recognition_service/core/logging_config.py",
       "filename": "logging_config.py",
       "size_bytes": 1075,
@@ -53,7 +53,7 @@
       "content": "\"\"\"\nLogging Configuration\n\nSets up JSON structured logging for production and human-readable logs for development.\n\"\"\"\n\nimport logging\nimport sys\nfrom pythonjsonlogger import jsonlogger\n\n\ndef setup_logging(log_level: str = \"INFO\") -> None:\n    \"\"\"\n    Configure application logging.\n\n    Args:\n        log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)\n    \"\"\"\n\n    # Create logger\n    logger = logging.getLogger()\n    logger.setLevel(getattr(logging, log_level.upper()))\n\n    # Remove existing handlers\n    logger.handlers.clear()\n\n    # Create console handler\n    console_handler = logging.StreamHandler(sys.stdout)\n    console_handler.setLevel(getattr(logging, log_level.upper()))\n\n    # JSON formatter for structured logging\n    formatter = jsonlogger.JsonFormatter(\n        \"%(asctime)s %(name)s %(levelname)s %(message)s\", timestamp=True\n    )\n\n    console_handler.setFormatter(formatter)\n    logger.addHandler(console_handler)\n\n    # Log startup message\n    logger.info(f\"Logging configured at {log_level} level\")\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\security.py",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\core\\security.py",
       "relative_path": "src/recognition_service/core/security.py",
       "filename": "security.py",
       "size_bytes": 1365,

@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "hook_realtime",
-    "generated_at": "2025-11-19T20:29:55.658707",
+    "generated_at": "2025-11-20T20:18:33.078100",
     "total_files": 1,
     "total_lines": 129,
     "total_bytes": 4741
   },
   "files": [
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\realtime\\useSlotRosterSSE.ts",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\realtime\\useSlotRosterSSE.ts",
       "relative_path": "hooks/realtime/useSlotRosterSSE.ts",
       "filename": "useSlotRosterSSE.ts",
       "size_bytes": 4741,

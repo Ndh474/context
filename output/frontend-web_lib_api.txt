@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "lib_api",
-    "generated_at": "2025-11-19T20:29:55.660722",
+    "generated_at": "2025-11-20T20:18:33.078604",
     "total_files": 3,
-    "total_lines": 191,
-    "total_bytes": 6011
+    "total_lines": 193,
+    "total_bytes": 6148
   },
   "files": [
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\adapters\\staff-profile-adapter.ts",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\adapters\\staff-profile-adapter.ts",
       "relative_path": "lib/adapters/staff-profile-adapter.ts",
       "filename": "staff-profile-adapter.ts",
       "size_bytes": 946,
@@ -20,18 +20,18 @@
       "content": "/**\n * Adapter functions to convert between API types and UI types\n * for Staff Profiles\n */\n\nimport { StaffProfile } from \"@/types\";\nimport { StaffUserRow } from \"@/components/admin/users-roles/staff-columns\";\n\n/**\n * Convert StaffProfile (API type) to StaffUserRow (UI type)\n *\n * Mappings:\n * - userId → id\n * - roles array directly mapped to UI\n */\nexport function staffProfileToRow(profile: StaffProfile): StaffUserRow {\n  return {\n    id: profile.userId,\n    username: profile.username,\n    staffCode: profile.staffCode,\n    fullName: profile.fullName,\n    email: profile.email,\n    isActive: profile.isActive,\n    roles: profile.roles,\n    createdAt: profile.createdAt,\n    updatedAt: profile.updatedAt,\n  };\n}\n\n/**\n * Convert array of StaffProfile to array of StaffUserRow\n */\nexport function staffProfilesToRows(profiles: StaffProfile[]): StaffUserRow[] {\n  return profiles.map(staffProfileToRow);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\adapters\\student-profile-adapter.ts",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\adapters\\student-profile-adapter.ts",
       "relative_path": "lib/adapters/student-profile-adapter.ts",
       "filename": "student-profile-adapter.ts",
-      "size_bytes": 1132,
-      "lines": 39,
-      "last_modified": "2025-11-01T15:38:43.373612",
+      "size_bytes": 1269,
+      "lines": 41,
+      "last_modified": "2025-11-20T12:31:20.050754",
       "encoding": "utf-8",
       "language": "typescript",
-      "content": "/**\n * Adapter functions to convert between API types and UI types\n * for Student Profiles\n */\n\nimport { StudentProfile } from \"@/types\";\nimport { StudentUserRow } from \"@/components/admin/users-roles/student-columns\";\n\n/**\n * Convert StudentProfile (API type) to StudentUserRow (UI type)\n *\n * Mappings:\n * - userId → id\n * - major.code → major (display code)\n * - major.id → majorId (for API operations)\n * - Use updatedAt as lastActiveAt fallback\n */\nexport function studentProfileToRow(profile: StudentProfile): StudentUserRow {\n  return {\n    id: profile.userId,\n    rollNumber: profile.rollNumber,\n    fullName: profile.fullName,\n    email: profile.email,\n    major: profile.major.code,\n    majorId: profile.major.id,\n    isActive: profile.isActive,\n    createdAt: profile.createdAt,\n    lastActiveAt: profile.updatedAt, // Using updatedAt as proxy for last activity\n  };\n}\n\n/**\n * Convert array of StudentProfile to array of StudentUserRow\n */\nexport function studentProfilesToRows(\n  profiles: StudentProfile[]\n): StudentUserRow[] {\n  return profiles.map(studentProfileToRow);\n}\n"
+      "content": "/**\n * Adapter functions to convert between API types and UI types\n * for Student Profiles\n */\n\nimport { StudentProfile } from \"@/types\";\nimport { StudentUserRow } from \"@/components/admin/users-roles/student-columns\";\n\n/**\n * Convert StudentProfile (API type) to StudentUserRow (UI type)\n *\n * Mappings:\n * - userId → id\n * - username → username (login identification)\n * - major.code → major (display code)\n * - major.id → majorId (for API operations)\n * - Use updatedAt as lastActiveAt fallback\n */\nexport function studentProfileToRow(profile: StudentProfile): StudentUserRow {\n  return {\n    id: profile.userId,\n    rollNumber: profile.rollNumber,\n    username: profile.username ?? 'N/A', // Map username, fallback to N/A if missing\n    fullName: profile.fullName,\n    email: profile.email,\n    major: profile.major.code,\n    majorId: profile.major.id,\n    isActive: profile.isActive,\n    createdAt: profile.createdAt,\n    lastActiveAt: profile.updatedAt, // Using updatedAt as proxy for last activity\n  };\n}\n\n/**\n * Convert array of StudentProfile to array of StudentUserRow\n */\nexport function studentProfilesToRows(\n  profiles: StudentProfile[]\n): StudentUserRow[] {\n  return profiles.map(studentProfileToRow);\n}\n"
     },
     {
-      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\api-axios.ts",
+      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\lib\\api-axios.ts",
       "relative_path": "lib/api-axios.ts",
       "filename": "api-axios.ts",
       "size_bytes": 3933,
