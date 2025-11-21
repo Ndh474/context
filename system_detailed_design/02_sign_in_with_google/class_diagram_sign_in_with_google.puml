@@ -1,46 +1,31 @@
-@startuml Sign In with Google - Class Diagram
+@startuml sign_in_with_google
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class AuthenticationController {
-  - authenticationService : AuthenticationService
-  + googleLogin(request : LoginGoogleRequest) : ResponseEntity<TokenResponse>
+  + googleLogin(request) : Response
 }
 
+' --- SERVICE ---
 class AuthenticationService {
-  - userRepository : UserRepository
-  - tokenProvider : TokenProviderUtil
-  - googleClientId : String
-  + googleLogin(request : LoginGoogleRequest) : TokenResponse
-  - buildTokenResponse(user : User) : TokenResponse
-  - validateUserActive(user : User) : void
+  + googleLogin(request) : TokenResponse
+  + validateUserActive(user) : void
+  + buildTokenResponse(user) : TokenResponse
 }
 
+' --- REPOSITORY ---
 interface UserRepository <<interface>> {
   + findByEmail(email : String) : Optional<User>
 }
 
-class TokenProviderUtil {
-  + createAccessToken(user : User, permissions : Set<Permission>) : String
-  + createRefreshToken(userId : Integer) : String
-}
-
-class LoginGoogleRequest {
-  - token : String
-}
-
-class TokenResponse {
-  - accessToken : String
-  - refreshToken : String
-  - tokenType : String
-  - fullName : String
-  - username : String
-  - roles : Set<String>
-  - userId : Integer
-}
-
+' --- ENTITIES ---
 class User {
   - id : Integer
   - username : String
@@ -62,21 +47,15 @@ class Permission {
   - name : String
 }
 
-AuthenticationController --> AuthenticationService
-AuthenticationService --> UserRepository
-AuthenticationService --> TokenProviderUtil
+' --- DEPENDENCY INJECTION (Association) ---
+AuthenticationController -down-> AuthenticationService
+AuthenticationService -down-> UserRepository
 
-AuthenticationController ..> LoginGoogleRequest : <<use>>
-AuthenticationController ..> TokenResponse : <<use>>
-AuthenticationService ..> LoginGoogleRequest : <<use>>
-AuthenticationService ..> TokenResponse : <<use>>
-AuthenticationService ..> User : <<use>>
-TokenProviderUtil ..> User : <<use>>
-TokenProviderUtil ..> Permission : <<use>>
+' --- REPOSITORY USAGE (Dependency) ---
+UserRepository .down.> User
 
-UserRepository ..> User : <<use>>
-
-User *-- Role
-Role *-- Permission
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+User o-right- Role
+Role o-right- Permission
 
 @enduml
