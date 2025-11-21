@@ -1,0 +1,56 @@
+@startuml view_list_major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/majors
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+' --- SEARCH QUERY ---
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: Query Majors with Filters and Pagination
+activate DB
+DB --> Repository: Major List with Subject Count
+deactivate DB
+
+Repository --> Service: List<MajorDTO>
+deactivate Repository
+
+Service --> Controller: List<MajorDTO>
+deactivate Service
+
+' --- COUNT QUERY ---
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: Count Total Majors
+activate DB
+DB --> Repository: Total Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service --> Controller: Long
+deactivate Service
+
+' Build paging response (internal)
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

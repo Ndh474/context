@@ -1,0 +1,62 @@
+@startuml import_csv_major
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class MajorController {
+  + importMajors(file, mode) : Response
+}
+
+' --- SERVICE ---
+class MajorService {
+  + importFromCsv(file, mode) : ImportResult
+  + processOneMajorRow(row, mode) : void
+}
+
+' --- REPOSITORY ---
+interface MajorRepository <<interface>> {
+  + findByCode(code : String) : Major
+  + existsByName(name : String) : boolean
+  + existsByNameAndIdNot(name, id) : boolean
+  + save(major : Major) : Major
+}
+
+' --- ENTITIES ---
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class Subject {
+  - id : Integer
+  - name : String
+  - code : String
+}
+
+class StudentProfile {
+  - id : Integer
+  - studentCode : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+MajorController -down-> MajorService
+MajorService -down-> MajorRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+MajorRepository .down.> Major
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Major o-left- Subject
+Major o-right- StudentProfile
+
+@enduml

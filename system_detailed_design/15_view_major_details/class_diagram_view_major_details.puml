@@ -1,0 +1,58 @@
+@startuml view_major_details
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class MajorController {
+  + findById(id) : Response
+}
+
+' --- SERVICE ---
+class MajorService {
+  + findById(id) : MajorDTO
+}
+
+' --- REPOSITORY ---
+interface MajorRepository <<interface>> {
+  + findMajorDTOById(id : Short) : Optional<MajorDTO>
+}
+
+' --- ENTITIES ---
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class Subject {
+  - id : Integer
+  - name : String
+  - code : String
+}
+
+class StudentProfile {
+  - id : Integer
+  - studentCode : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+MajorController -down-> MajorService
+MajorService -down-> MajorRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+MajorRepository .down.> Major
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Major o-left- Subject
+Major o-right- StudentProfile
+
+@enduml

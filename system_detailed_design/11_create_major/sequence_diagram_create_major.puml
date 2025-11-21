@@ -1,0 +1,70 @@
+@startuml create_major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/majors
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' --- CHECK CODE UNIQUENESS ---
+Service -> Repository: existsByCode(code)
+activate Repository
+
+Repository -> DB: Query Major by Code
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Code already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+end
+
+' --- CHECK NAME UNIQUENESS ---
+Service -> Repository: existsByName(name)
+activate Repository
+
+Repository -> DB: Query Major by Name
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Name already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+end
+
+' --- SAVE TO DATABASE ---
+Service -> Repository: save(major)
+activate Repository
+
+Repository -> DB: Insert New Major
+activate DB
+DB --> Repository: Saved Major
+deactivate DB
+
+Repository --> Service: Major
+deactivate Repository
+
+Service --> Controller: MajorDTO
+deactivate Service
+
+Controller --> Client: 201 Created
+deactivate Controller
+
+@enduml

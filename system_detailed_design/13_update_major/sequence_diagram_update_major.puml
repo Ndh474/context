@@ -1,0 +1,87 @@
+@startuml update_major
+!theme plain
+hide footbox
+
+actor Client
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/majors/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Major by ID
+activate DB
+DB --> Repository: Major Record / Null
+deactivate DB
+
+Repository --> Service: Optional<Major>
+deactivate Repository
+
+alt Major not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK CODE UNIQUENESS (if changed) ---
+Service -> Repository: existsByCodeAndIdNot(code, id)
+activate Repository
+
+Repository -> DB: Query Major by Code excluding current ID
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Code already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+end
+
+' --- CHECK NAME UNIQUENESS (if changed) ---
+Service -> Repository: existsByNameAndIdNot(name, id)
+activate Repository
+
+Repository -> DB: Query Major by Name excluding current ID
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Name already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+end
+
+' --- UPDATE ---
+Service -> Repository: save(major)
+activate Repository
+
+Repository -> DB: Update Major
+activate DB
+DB --> Repository: Updated Major
+deactivate DB
+
+Repository --> Service: Major
+deactivate Repository
+
+Service --> Controller: MajorDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

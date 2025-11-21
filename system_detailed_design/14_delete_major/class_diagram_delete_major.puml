@@ -1,0 +1,62 @@
+@startuml delete_major
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class MajorController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class MajorService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface MajorRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countSubjectsByMajorId(id : Short) : long
+  + countStudentsByMajorId(id : Short) : long
+  + deleteById(id : Short) : void
+}
+
+' --- ENTITIES ---
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - subjects : Set<Subject>
+  - studentProfiles : Set<StudentProfile>
+}
+
+class Subject {
+  - id : Integer
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class StudentProfile {
+  - id : Integer
+  - studentCode : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+MajorController -down-> MajorService
+MajorService -down-> MajorRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+MajorRepository .down.> Major
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Major o-left- Subject
+Major o-right- StudentProfile
+
+@enduml

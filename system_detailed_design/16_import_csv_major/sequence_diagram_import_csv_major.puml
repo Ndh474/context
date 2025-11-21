@@ -1,15 +1,15 @@
-@startuml import_csv_semester
+@startuml import_csv_major
 !theme plain
 hide footbox
 
 actor Client
-participant ":SemesterController" as Controller
-participant ":SemesterService" as Service
-participant ":SemesterRepository" as Repository
+participant ":MajorController" as Controller
+participant ":MajorService" as Service
+participant ":MajorRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/semesters/import
+Client -> Controller: POST /api/v1/majors/import
 activate Controller
 
 ' File validation (internal)
@@ -35,12 +35,12 @@ loop For each unique CSV row
     Service -> Repository: findByCode(code)
     activate Repository
 
-    Repository -> DB: Query Semester by Code
+    Repository -> DB: Query Major by Code
     activate DB
-    DB --> Repository: Semester / Null
+    DB --> Repository: Major / Null
     deactivate DB
 
-    Repository --> Service: Semester
+    Repository --> Service: Major
     deactivate Repository
 
     ' Business logic: create or update based on mode (internal)
@@ -48,15 +48,15 @@ loop For each unique CSV row
     alt Validation fails
         Service --> Service: Collect error, continue
     else Validation passes
-        Service -> Repository: save(semester)
+        Service -> Repository: save(major)
         activate Repository
 
-        Repository -> DB: Insert or Update Semester
+        Repository -> DB: Insert or Update Major
         activate DB
-        DB --> Repository: Saved Semester
+        DB --> Repository: Saved Major
         deactivate DB
 
-        Repository --> Service: Semester
+        Repository --> Service: Major
         deactivate Repository
     end
 end
