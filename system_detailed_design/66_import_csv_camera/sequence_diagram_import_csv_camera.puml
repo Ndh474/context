@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":CameraController" as Controller
 participant ":CameraService" as Service
 participant ":CsvParserService" as CsvParser
@@ -11,13 +11,13 @@ participant ":CameraRepository" as CameraRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/cameras/import
+Admin -> Controller: POST /api/v1/cameras/import
 activate Controller
 
 ' File validation (internal)
 
 alt File validation fails
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 Controller -> Service: importFromCsv(file, mode)
@@ -32,7 +32,7 @@ deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' CSV deduplication (internal)
@@ -143,7 +143,7 @@ end
 Service --> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

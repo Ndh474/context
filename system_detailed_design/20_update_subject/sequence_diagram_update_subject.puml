@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SubjectController" as Controller
 participant ":SubjectService" as Service
 participant ":SubjectRepository" as SubjectRepo
@@ -10,7 +10,7 @@ participant ":MajorRepository" as MajorRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/subjects/{id}
+Admin -> Controller: PUT /api/v1/subjects/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -30,7 +30,7 @@ deactivate SubjectRepo
 
 alt Subject not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -38,7 +38,7 @@ end
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request / 409 Conflict
+    Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
 ' --- VALIDATE MAJORS ---
@@ -55,7 +55,7 @@ deactivate MajorRepo
 
 alt Major not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Client: 404 Not Found / 403 Forbidden
+    Controller --> Admin: 404 Not Found / 403 Forbidden
 end
 
 ' --- UPDATE ---
@@ -73,7 +73,7 @@ deactivate SubjectRepo
 Service --> Controller: Subject
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -15,7 +15,7 @@ participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/slots
+Admin -> Controller: POST /api/v1/slots
 activate Controller
 
 Controller -> Service: create(request)
@@ -25,12 +25,12 @@ activate Service
 
 alt Time range validation failed
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Slot category validation failed
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- CHECK ROOM TIME CONFLICT ---
@@ -47,7 +47,7 @@ deactivate SlotRepo
 
 alt Room time conflict
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- CHECK STAFF TIME CONFLICT ---
@@ -64,7 +64,7 @@ deactivate SlotRepo
 
 alt Staff time conflict
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE SEMESTER ---
@@ -81,14 +81,14 @@ deactivate SemesterRepo
 
 alt Semester not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
-    Controller --> Client: 404 Not Found / 400 Bad Request
+    Controller --> Admin: 404 Not Found / 400 Bad Request
 end
 
 ' Validation logic (internal)
 
 alt Slot time outside semester range
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE CLASS (if provided) ---
@@ -106,12 +106,12 @@ opt Class ID provided
 
     alt Class not found or inactive
         Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
-        Controller --> Client: 404 Not Found / 400 Bad Request
+        Controller --> Admin: 404 Not Found / 400 Bad Request
     end
 
     alt Class semester mismatch
         Service -->> Controller: <<throw>> BadRequestException
-        Controller --> Client: 400 Bad Request
+        Controller --> Admin: 400 Bad Request
     end
 end
 
@@ -129,7 +129,7 @@ deactivate RoomRepo
 
 alt Room not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
-    Controller --> Client: 404 Not Found / 400 Bad Request
+    Controller --> Admin: 404 Not Found / 400 Bad Request
 end
 
 ' --- VALIDATE STAFF ---
@@ -146,12 +146,12 @@ deactivate UserRepo
 
 alt Staff not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
-    Controller --> Client: 404 Not Found / 400 Bad Request
+    Controller --> Admin: 404 Not Found / 400 Bad Request
 end
 
 alt Staff role invalid
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- SAVE SLOT ---
@@ -182,7 +182,7 @@ opt Slot category is FINAL_EXAM and subjects provided
 
         alt Subject not found or inactive
             Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
-            Controller --> Client: 404 Not Found / 400 Bad Request
+            Controller --> Admin: 404 Not Found / 400 Bad Request
         end
 
         Service -> ExamSlotSubjectRepo: save(examSlotSubject)
@@ -203,7 +203,7 @@ end
 Service --> Controller: Slot
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

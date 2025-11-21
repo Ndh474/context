@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as Service
 participant ":ClassRepository" as ClassRepo
@@ -11,7 +11,7 @@ participant ":SemesterRepository" as SemesterRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/classes/{id}
+Admin -> Controller: PUT /api/v1/classes/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -31,7 +31,7 @@ deactivate ClassRepo
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -39,7 +39,7 @@ end
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request / 409 Conflict
+    Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
 ' --- VALIDATE SUBJECT ---
@@ -56,7 +56,7 @@ deactivate SubjectRepo
 
 alt Subject not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Client: 404 Not Found / 403 Forbidden
+    Controller --> Admin: 404 Not Found / 403 Forbidden
 end
 
 ' --- VALIDATE SEMESTER ---
@@ -73,7 +73,7 @@ deactivate SemesterRepo
 
 alt Semester not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Client: 404 Not Found / 403 Forbidden
+    Controller --> Admin: 404 Not Found / 403 Forbidden
 end
 
 ' --- DEACTIVATION CHECK ---
@@ -91,7 +91,7 @@ opt Deactivating class
 
     alt Class not finished
         Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
+        Controller --> Admin: 403 Forbidden
     end
 end
 
@@ -110,7 +110,7 @@ deactivate ClassRepo
 Service --> Controller: Class
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

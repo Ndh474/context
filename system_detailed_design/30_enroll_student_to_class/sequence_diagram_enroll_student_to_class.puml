@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":EnrollmentController" as Controller
 participant ":EnrollmentService" as Service
 participant ":ClassRepository" as ClassRepo
@@ -11,7 +11,7 @@ participant ":EnrollmentRepository" as EnrollmentRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/enrollments
+Admin -> Controller: POST /api/v1/enrollments
 activate Controller
 
 ' Request validation (internal)
@@ -33,12 +33,12 @@ deactivate ClassRepo
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 alt Class is inactive
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE STUDENT ---
@@ -55,24 +55,24 @@ deactivate StudentRepo
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 alt Student is inactive
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' Validation logic (internal)
 
 alt Student major not eligible for class subject
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Semester has ended
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' --- CHECK EXISTING ENROLLMENT ---
@@ -89,7 +89,7 @@ deactivate EnrollmentRepo
 
 alt Enrollment exists and is enrolled
     Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Client: 409 Conflict
+    Controller --> Admin: 409 Conflict
 else Enrollment exists but withdrawn
     Service -> EnrollmentRepo: findById(enrollmentId)
     activate EnrollmentRepo
@@ -132,7 +132,7 @@ end
 Service --> Controller: Enrollment
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

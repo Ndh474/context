@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":CameraController" as Controller
 participant ":CameraService" as Service
 participant ":RoomRepository" as RoomRepo
@@ -10,7 +10,7 @@ participant ":CameraRepository" as CameraRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/cameras
+Admin -> Controller: POST /api/v1/cameras
 activate Controller
 
 Controller -> Service: create(request)
@@ -30,7 +30,7 @@ deactivate RoomRepo
 
 alt Room not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -47,7 +47,7 @@ deactivate CameraRepo
 
 alt Name already exists
     Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Client: 409 Conflict
+    Controller --> Admin: 409 Conflict
 end
 
 Service -> CameraRepo: existsByRtspUrl(rtspUrl)
@@ -63,7 +63,7 @@ deactivate CameraRepo
 
 alt RTSP URL already exists
     Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Client: 409 Conflict
+    Controller --> Admin: 409 Conflict
 end
 
 ' --- SAVE TO DATABASE ---
@@ -81,7 +81,7 @@ deactivate CameraRepo
 Service --> Controller: CameraDTO
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

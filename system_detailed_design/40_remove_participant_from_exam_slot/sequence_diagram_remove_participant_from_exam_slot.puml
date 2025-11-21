@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ExamSlotController" as Controller
 participant ":ExamSlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -11,7 +11,7 @@ participant ":ExamAttendanceRepository" as AttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
+Admin -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
 activate Controller
 
 Controller -> Service: removeParticipant(slotId, participantId)
@@ -31,7 +31,7 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- FIND PARTICIPANT ---
@@ -48,12 +48,12 @@ deactivate ParticipantRepo
 
 alt Participant not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 alt Participant does not belong to slot
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- DELETE EXAM ATTENDANCE ---
@@ -96,7 +96,7 @@ deactivate ParticipantRepo
 Service --> Controller: Success
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SemesterController" as Controller
 participant ":SemesterService" as Service
 participant ":SemesterRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/semesters
+Admin -> Controller: POST /api/v1/semesters
 activate Controller
 
 Controller -> Service: create(request)
@@ -20,7 +20,7 @@ activate Service
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- SAVE TO DATABASE ---
@@ -38,7 +38,7 @@ deactivate Repository
 Service --> Controller: Semester
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

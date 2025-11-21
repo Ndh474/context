@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":RoomController" as Controller
 participant ":RoomService" as Service
 participant ":RoomRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/rooms/{id}
+Admin -> Controller: PUT /api/v1/rooms/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -29,7 +29,7 @@ deactivate Repository
 
 alt Room not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -47,7 +47,7 @@ opt Name changed
     
     alt Name already exists
         Service -->> Controller: <<throw>> ResourceExistsException
-        Controller --> Client: 409 Conflict
+        Controller --> Admin: 409 Conflict
     end
 end
 
@@ -66,7 +66,7 @@ opt Deactivating room
     
     alt Has active cameras
         Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
+        Controller --> Admin: 403 Forbidden
     end
     
     Service -> Repository: countActiveSlotsByRoomId(id, now)
@@ -82,7 +82,7 @@ opt Deactivating room
     
     alt Has active slots
         Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
+        Controller --> Admin: 403 Forbidden
     end
 end
 
@@ -101,7 +101,7 @@ deactivate Repository
 Service --> Controller: RoomDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

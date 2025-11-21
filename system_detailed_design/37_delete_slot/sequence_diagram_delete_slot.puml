@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -11,7 +11,7 @@ participant ":ExamAttendanceRepository" as ExamAttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: DELETE /api/v1/slots/{id}
+Admin -> Controller: DELETE /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: delete(id)
@@ -31,14 +31,14 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' Validation logic (internal)
 
 alt Slot has started
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' --- COUNT PRESENT/ABSENT RECORDS ---
@@ -88,7 +88,7 @@ deactivate ExamAttendanceRepo
 
 alt Has PRESENT/ABSENT records
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' --- DELETE NOT_YET RECORDS ---
@@ -151,7 +151,7 @@ alt Foreign key constraint violation
     DB -->> SlotRepo: <<throw>> DataIntegrityViolationException
     SlotRepo -->> Service: <<throw>> DataIntegrityViolationException
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 DB --> SlotRepo: Success
@@ -163,7 +163,7 @@ deactivate SlotRepo
 Service --> Controller: Success
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

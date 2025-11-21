@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SemesterController" as Controller
 participant ":SemesterService" as Service
 participant ":SemesterRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/semesters/{id}
+Admin -> Controller: GET /api/v1/semesters/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -29,13 +29,13 @@ deactivate Repository
 ' --- VALIDATION LOGIC ---
 alt Semester not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 Service --> Controller: Semester
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

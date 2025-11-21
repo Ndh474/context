@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as ClassService
 participant ":EnrollmentService" as EnrollmentService
@@ -11,7 +11,7 @@ participant ":EnrollmentRepository" as EnrollmentRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/classes/{id}/enrollments
+Admin -> Controller: GET /api/v1/classes/{id}/enrollments
 activate Controller
 
 ' --- GET CLASS DETAILS ---
@@ -31,7 +31,7 @@ deactivate ClassRepo
 
 alt Class not found
     ClassService -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ClassService --> Controller: Class Details
@@ -54,7 +54,7 @@ deactivate ClassRepo
 
 alt Class not found
     EnrollmentService -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 EnrollmentService -> EnrollmentRepo: findByClassId(id, request)
@@ -127,7 +127,7 @@ deactivate EnrollmentService
 
 ' Build roster response (internal)
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ExamSlotController" as Controller
 participant ":ExamSlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -14,7 +14,7 @@ participant ":ExamAttendanceRepository" as AttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/exam-slots/{slotId}/participants
+Admin -> Controller: POST /api/v1/exam-slots/{slotId}/participants
 activate Controller
 
 Controller -> Service: addParticipant(slotId, request)
@@ -34,17 +34,17 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 alt Slot is not FINAL_EXAM or has class
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Slot is inactive
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE STUDENT ---
@@ -61,17 +61,17 @@ deactivate UserRepo
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 alt Student is inactive
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Student does not have STUDENT role
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE SUBJECT ASSIGNMENT ---
@@ -88,7 +88,7 @@ deactivate SubjectRepo
 
 alt Subject not assigned to slot
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- VALIDATE ENROLLMENT ---
@@ -105,7 +105,7 @@ deactivate EnrollmentRepo
 
 alt Student not enrolled in subject
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- CHECK DUPLICATE IN SLOT ---
@@ -122,7 +122,7 @@ deactivate ParticipantRepo
 
 alt Student already in slot (another subject)
     Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Client: 409 Conflict
+    Controller --> Admin: 409 Conflict
 end
 
 ' --- CHECK EXISTING PARTICIPANT ---
@@ -139,7 +139,7 @@ deactivate ParticipantRepo
 
 alt Participant exists and enrolled
     Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Client: 409 Conflict
+    Controller --> Admin: 409 Conflict
 else Participant exists but withdrawn
     ' Re-enrollment case
     Service -> ParticipantRepo: save(participant)
@@ -206,7 +206,7 @@ deactivate ParticipantRepo
 Service --> Controller: ExamSlotParticipantDTO
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

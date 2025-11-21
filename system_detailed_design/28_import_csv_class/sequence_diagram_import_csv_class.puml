@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as Service
 participant ":CsvParserService" as CsvParser
@@ -12,13 +12,13 @@ participant ":SemesterRepository" as SemesterRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/classes/import
+Admin -> Controller: POST /api/v1/classes/import
 activate Controller
 
 ' File validation (internal)
 
 alt File validation fails
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 Controller -> Service: importFromCsv(file, mode)
@@ -31,7 +31,7 @@ activate CsvParser
 alt CSV parsing fails
     CsvParser -->> Service: <<throw>> Exception
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 CsvParser --> Service: List<ClassCsvRow>
@@ -110,7 +110,7 @@ end
 Service --> Controller: Import Result
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

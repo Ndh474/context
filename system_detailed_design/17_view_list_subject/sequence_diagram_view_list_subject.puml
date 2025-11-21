@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SubjectController" as Controller
 participant ":SubjectService" as Service
 participant ":SubjectRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/subjects
+Admin -> Controller: GET /api/v1/subjects
 activate Controller
 
 Controller -> Service: search(request)
@@ -50,7 +50,7 @@ deactivate Service
 
 ' Build paging response (internal)
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

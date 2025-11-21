@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":CsvParserService" as CsvParser
@@ -16,13 +16,13 @@ participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/slots/import
+Admin -> Controller: POST /api/v1/slots/import
 activate Controller
 
 ' File validation (internal)
 
 alt File validation fails
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 Controller -> Service: importFromCsv(file, mode)
@@ -32,7 +32,7 @@ activate Controller
 
 alt Invalid import mode
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- PARSE CSV ---
@@ -44,7 +44,7 @@ deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' CSV deduplication (internal)
@@ -177,7 +177,7 @@ end
 Service --> Controller: Import Result
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

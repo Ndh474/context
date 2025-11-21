@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":MajorController" as Controller
 participant ":MajorService" as Service
 participant ":MajorRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: DELETE /api/v1/majors/{id}
+Admin -> Controller: DELETE /api/v1/majors/{id}
 activate Controller
 
 Controller -> Service: delete(id)
@@ -29,7 +29,7 @@ deactivate Repository
 
 alt Major not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- CHECK SUBJECTS ---
@@ -58,7 +58,7 @@ deactivate Repository
 
 alt Has subjects or students
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' --- DELETE OPERATION ---
@@ -72,7 +72,7 @@ alt Foreign key constraint violation
     DB -->> Repository: <<throw>> DataIntegrityViolationException
     Repository -->> Service: <<throw>> DataIntegrityViolationException
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 DB --> Repository: Success
@@ -84,7 +84,7 @@ deactivate Repository
 Service --> Controller: Success
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

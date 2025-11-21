@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":StaffProfileController" as Controller
 participant ":StaffProfileService" as Service
 participant ":StaffProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/staff-profiles/{id}
+Admin -> Controller: GET /api/v1/staff-profiles/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -29,13 +29,13 @@ deactivate Repository
 ' --- VALIDATION LOGIC ---
 alt Staff not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 Service --> Controller: StaffProfileDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

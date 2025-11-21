@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as Service
 participant ":ClassRepository" as ClassRepo
@@ -11,7 +11,7 @@ participant ":SemesterRepository" as SemesterRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/classes
+Admin -> Controller: POST /api/v1/classes
 activate Controller
 
 Controller -> Service: create(request)
@@ -22,7 +22,7 @@ activate Service
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request / 409 Conflict
+    Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
 ' --- VALIDATE SUBJECT ---
@@ -39,7 +39,7 @@ deactivate SubjectRepo
 
 alt Subject not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Client: 404 Not Found / 403 Forbidden
+    Controller --> Admin: 404 Not Found / 403 Forbidden
 end
 
 ' --- VALIDATE SEMESTER ---
@@ -56,7 +56,7 @@ deactivate SemesterRepo
 
 alt Semester not found or inactive
     Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Client: 404 Not Found / 403 Forbidden
+    Controller --> Admin: 404 Not Found / 403 Forbidden
 end
 
 ' --- SAVE TO DATABASE ---
@@ -74,7 +74,7 @@ deactivate ClassRepo
 Service --> Controller: Class
 deactivate Service
 
-Controller --> Client: 201 Created
+Controller --> Admin: 201 Created
 deactivate Controller
 
 @enduml

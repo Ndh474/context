@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":EnrollmentController" as Controller
 participant ":EnrollmentService" as Service
 participant ":EnrollmentRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/enrollments/{classId}/{studentUserId}
+Admin -> Controller: PUT /api/v1/enrollments/{classId}/{studentUserId}
 activate Controller
 
 ' Request validation (internal)
@@ -31,14 +31,14 @@ deactivate Repository
 
 alt Enrollment not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' Validation logic (internal)
 
 alt Semester has ended
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' Update enrollment status (internal)
@@ -70,7 +70,7 @@ deactivate Repository
 Service --> Controller: Enrollment
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

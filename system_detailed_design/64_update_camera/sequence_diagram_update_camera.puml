@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":CameraController" as Controller
 participant ":CameraService" as Service
 participant ":CameraRepository" as CameraRepo
@@ -10,7 +10,7 @@ participant ":RoomRepository" as RoomRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/cameras/{id}
+Admin -> Controller: PUT /api/v1/cameras/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -30,7 +30,7 @@ deactivate CameraRepo
 
 alt Camera not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -48,7 +48,7 @@ opt Name changed
     
     alt Name already exists
         Service -->> Controller: <<throw>> ResourceExistsException
-        Controller --> Client: 409 Conflict
+        Controller --> Admin: 409 Conflict
     end
 end
 
@@ -66,7 +66,7 @@ opt RTSP URL changed
     
     alt RTSP URL already exists
         Service -->> Controller: <<throw>> ResourceExistsException
-        Controller --> Client: 409 Conflict
+        Controller --> Admin: 409 Conflict
     end
 end
 
@@ -84,7 +84,7 @@ deactivate RoomRepo
 
 alt Room not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' --- UPDATE ---
@@ -102,7 +102,7 @@ deactivate CameraRepo
 Service --> Controller: CameraDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml

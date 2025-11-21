@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -14,7 +14,7 @@ participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/slots/{id}
+Admin -> Controller: PUT /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -34,19 +34,19 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Admin: 404 Not Found
 end
 
 ' Validation logic (internal)
 
 alt Time range validation failed
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Slot category validation failed
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- CHECK ROOM TIME CONFLICT ---
@@ -63,7 +63,7 @@ deactivate SlotRepo
 
 alt Room time conflict
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' --- CHECK STAFF TIME CONFLICT ---
@@ -80,26 +80,26 @@ deactivate SlotRepo
 
 alt Staff time conflict
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' Validation logic (internal)
 
 alt Slot time outside semester range
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 alt Update after slot end time (non-admin)
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Admin: 403 Forbidden
 end
 
 ' --- CHECK DEACTIVATION CONSTRAINTS ---
 opt Trying to deactivate active slot
     alt Slot has started or passed
         Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
+        Controller --> Admin: 403 Forbidden
     end
 
     Service -> SlotRepo: countActualAttendanceRecordsBySlotId(id)
@@ -126,13 +126,13 @@ opt Trying to deactivate active slot
 
     alt Has actual attendance data
         Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
+        Controller --> Admin: 403 Forbidden
     end
 end
 
 alt Updating inactive slot (not reactivating)
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Admin: 400 Bad Request
 end
 
 ' Update fields (internal)
@@ -166,7 +166,7 @@ opt Slot category is FINAL_EXAM and subjects provided
 
         alt Subject has participants
             Service -->> Controller: <<throw>> OperationNotAllowedException
-            Controller --> Client: 403 Forbidden
+            Controller --> Admin: 403 Forbidden
         end
 
         Service -> ExamSlotSubjectRepo: save(examSlotSubject)
@@ -210,7 +210,7 @@ deactivate SlotRepo
 Service --> Controller: Slot
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Admin: 200 OK
 deactivate Controller
 
 @enduml
