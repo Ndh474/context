@@ -1,0 +1,87 @@
+@startuml update_student
+!theme plain
+hide footbox
+
+actor Client
+participant ":StudentProfileController" as Controller
+participant ":StudentProfileService" as Service
+participant ":StudentProfileRepository" as StudentRepo
+participant ":UserRepository" as UserRepo
+participant ":MajorRepository" as MajorRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/student-profiles/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> StudentRepo: findById(id)
+activate StudentRepo
+
+StudentRepo -> DB: Query Student by ID
+activate DB
+DB --> StudentRepo: Student Record / Null
+deactivate DB
+
+StudentRepo --> Service: Optional<StudentProfile>
+deactivate StudentRepo
+
+alt Student not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- VALIDATION LOGIC ---
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request / 409 Conflict
+end
+
+alt Username change attempted
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- FIND MAJOR IF CHANGED ---
+opt Major changed
+    Service -> MajorRepo: findById(majorId)
+    activate MajorRepo
+    
+    MajorRepo -> DB: Query Major by ID
+    activate DB
+    DB --> MajorRepo: Major Record / Null
+    deactivate DB
+    
+    MajorRepo --> Service: Optional<Major>
+    deactivate MajorRepo
+    
+    alt Major not found
+        Service -->> Controller: <<throw>> ResourceNotFoundException
+        Controller --> Client: 404 Not Found
+    end
+end
+
+' --- UPDATE ---
+Service -> StudentRepo: save(profile)
+activate StudentRepo
+
+StudentRepo -> DB: Update Student Profile
+activate DB
+DB --> StudentRepo: Updated Profile
+deactivate DB
+
+StudentRepo --> Service: StudentProfile
+deactivate StudentRepo
+
+Service --> Controller: StudentProfileDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

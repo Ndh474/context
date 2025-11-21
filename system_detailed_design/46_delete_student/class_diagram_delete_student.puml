@@ -1,0 +1,65 @@
+@startuml delete_student
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class StudentProfileService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + existsById(id : Integer) : boolean
+  + deleteById(id : Integer) : void
+}
+
+' --- ENTITIES ---
+class StudentProfile {
+  - userId : Integer
+  - user : User
+  - major : Major
+  - rollNumber : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+}
+
+class Enrollment {
+  - id : EnrollmentId
+  - student : User
+  - academicClass : AcademicClass
+}
+
+class AttendanceRecord {
+  - id : Long
+  - student : User
+  - slot : Slot
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> StudentProfileService
+StudentProfileService -down-> StudentProfileRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StudentProfileRepository .down.> StudentProfile
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StudentProfile o-right- User
+Enrollment o-right- User
+AttendanceRecord o-right- User
+
+@enduml

@@ -1,0 +1,88 @@
+@startuml import_student_photos
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + bulkUploadPhotosEmbeddings(csvFile, zipFile, mode) : Response
+}
+
+' --- SERVICE ---
+class BulkPhotoUploadService {
+  + processBulkUpload(csvFile, zipFile, mode) : ImportResultDTO
+  + processOneStudent(row, imageFiles, mode) : void
+}
+
+class CsvParserService {
+  + parseBulkPhotoCsv(file) : List<BulkPhotoUploadCsvRow>
+}
+
+class ZipFileService {
+  + extractZipToTemp(zipFile) : Path
+  + listImageFiles(tempDir) : Map<String, Path>
+  + cleanupTempDirectory(tempDir) : void
+}
+
+class StudentPhotoService {
+  + hasExistingPhoto(userId) : boolean
+  + savePhotoToUserFolder(imagePath, userId, rollNumber) : String
+  + updateStudentProfilePhoto(userId, baseUrl) : void
+}
+
+class PythonBackendClient {
+  + generateEmbedding(imagePath, userId) : PythonEmbeddingResponse
+}
+
+class FaceEmbeddingService {
+  + saveEmbedding(userId, embeddingVector) : void
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + findByRollNumber(rollNumber : String) : StudentProfile
+}
+
+' --- ENTITIES ---
+class StudentProfile {
+  - userId : Integer
+  - user : User
+  - rollNumber : String
+  - baseUrl : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - active : Boolean
+}
+
+class FaceEmbedding {
+  - id : Long
+  - user : User
+  - embeddingVector : float[]
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> BulkPhotoUploadService
+BulkPhotoUploadService -down-> CsvParserService
+BulkPhotoUploadService -down-> ZipFileService
+BulkPhotoUploadService -down-> StudentPhotoService
+BulkPhotoUploadService -down-> PythonBackendClient
+BulkPhotoUploadService -down-> FaceEmbeddingService
+BulkPhotoUploadService -down-> StudentProfileRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StudentProfileRepository .down.> StudentProfile
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StudentProfile o-right- User
+FaceEmbedding o-right- User
+
+@enduml

@@ -1,0 +1,56 @@
+@startuml view_list_student
+!theme plain
+hide footbox
+
+actor Client
+participant ":StudentProfileController" as Controller
+participant ":StudentProfileService" as Service
+participant ":StudentProfileRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/student-profiles
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+' --- SEARCH QUERY ---
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: Query Students with Filters and Pagination
+activate DB
+DB --> Repository: Student List
+deactivate DB
+
+Repository --> Service: List<StudentProfileDTO>
+deactivate Repository
+
+Service --> Controller: List<StudentProfileDTO>
+deactivate Service
+
+' --- COUNT QUERY ---
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: Count Total Students
+activate DB
+DB --> Repository: Total Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service --> Controller: Long
+deactivate Service
+
+' Build paging response (internal)
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

@@ -1,0 +1,156 @@
+@startuml import_csv_student
+!theme plain
+hide footbox
+
+actor Client
+participant ":StudentProfileController" as Controller
+participant ":StudentProfileService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":MajorRepository" as MajorRepo
+participant ":StudentProfileRepository" as StudentRepo
+participant ":UserRepository" as UserRepo
+participant ":RoleRepository" as RoleRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/student-profiles/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importFromCsv(file, mode)
+activate Service
+
+' --- PARSE CSV ---
+Service -> CsvParser: parseStudentProfileCsv(file)
+activate CsvParser
+
+CsvParser --> Service: List<StudentProfileCsvRow>
+deactivate CsvParser
+
+alt CSV parsing fails
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' --- FIND MAJOR ---
+    Service -> MajorRepo: findByCode(majorCode)
+    activate MajorRepo
+    
+    MajorRepo -> DB: Query Major by Code
+    activate DB
+    DB --> MajorRepo: Major / Null
+    deactivate DB
+    
+    MajorRepo --> Service: Major
+    deactivate MajorRepo
+    
+    alt Major not found
+        Service --> Service: Collect error, continue
+    end
+    
+    alt Major is inactive
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- CHECK EXISTING STUDENT ---
+    Service -> StudentRepo: findByRollNumber(rollNumber)
+    activate StudentRepo
+    
+    StudentRepo -> DB: Query Student by Roll Number
+    activate DB
+    DB --> StudentRepo: Student / Null
+    deactivate DB
+    
+    StudentRepo --> Service: StudentProfile
+    deactivate StudentRepo
+    
+    alt Student exists
+        alt Mode is AddOnly
+            Service --> Service: Collect error, continue
+        else Mode is AddAndUpdate
+            ' Update existing student
+            Service -> UserRepo: save(user)
+            activate UserRepo
+            
+            UserRepo -> DB: Update User
+            activate DB
+            DB --> UserRepo: Updated User
+            deactivate DB
+            
+            UserRepo --> Service: User
+            deactivate UserRepo
+            
+            Service -> StudentRepo: save(profile)
+            activate StudentRepo
+            
+            StudentRepo -> DB: Update Student Profile
+            activate DB
+            DB --> StudentRepo: Updated Profile
+            deactivate DB
+            
+            StudentRepo --> Service: StudentProfile
+            deactivate StudentRepo
+        end
+    else Student does not exist
+        ' Validation logic (internal)
+        
+        alt Validation fails
+            Service --> Service: Collect error, continue
+        end
+        
+        ' --- FIND STUDENT ROLE ---
+        Service -> RoleRepo: findByName("STUDENT")
+        activate RoleRepo
+        
+        RoleRepo -> DB: Query Role by Name
+        activate DB
+        DB --> RoleRepo: Role Record / Null
+        deactivate DB
+        
+        RoleRepo --> Service: Optional<Role>
+        deactivate RoleRepo
+        
+        ' --- CREATE NEW USER ---
+        Service -> UserRepo: save(newUser)
+        activate UserRepo
+        
+        UserRepo -> DB: Insert New User
+        activate DB
+        DB --> UserRepo: Saved User
+        deactivate DB
+        
+        UserRepo --> Service: User
+        deactivate UserRepo
+        
+        ' --- CREATE NEW STUDENT PROFILE ---
+        Service -> StudentRepo: save(newProfile)
+        activate StudentRepo
+        
+        StudentRepo -> DB: Insert New Student Profile
+        activate DB
+        DB --> StudentRepo: Saved Profile
+        deactivate DB
+        
+        StudentRepo --> Service: StudentProfile
+        deactivate StudentRepo
+    end
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: ImportResultDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

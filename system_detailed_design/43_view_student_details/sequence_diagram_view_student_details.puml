@@ -1,0 +1,41 @@
+@startuml view_student_details
+!theme plain
+hide footbox
+
+actor Client
+participant ":StudentProfileController" as Controller
+participant ":StudentProfileService" as Service
+participant ":StudentProfileRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/student-profiles/{id}
+activate Controller
+
+Controller -> Service: findById(id)
+activate Service
+
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Student by ID
+activate DB
+DB --> Repository: Student Record / Null
+deactivate DB
+
+Repository --> Service: Optional<StudentProfile>
+deactivate Repository
+
+' --- VALIDATION LOGIC ---
+alt Student not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+Service --> Controller: StudentProfileDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

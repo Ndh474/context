@@ -1,0 +1,63 @@
+@startuml view_list_student
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + search(request) : PagingResponse
+}
+
+' --- SERVICE ---
+class StudentProfileService {
+  + search(request) : List<StudentProfileDTO>
+  + count(request) : Long
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + search(request) : List<StudentProfileDTO>
+  + count(request) : Long
+}
+
+' --- ENTITIES ---
+class StudentProfile {
+  - userId : Integer
+  - user : User
+  - major : Major
+  - rollNumber : String
+  - baseUrl : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - active : Boolean
+  - roles : Set<Role>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> StudentProfileService
+StudentProfileService -down-> StudentProfileRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StudentProfileRepository .down.> StudentProfile
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StudentProfile o-right- User
+StudentProfile o-right- Major
+
+@enduml

@@ -1,0 +1,95 @@
+@startuml import_csv_student
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + importStudentProfiles(file, mode) : Response
+}
+
+' --- SERVICE ---
+class StudentProfileService {
+  + importFromCsv(file, mode) : ImportResultDTO
+  + processOneStudentRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseStudentProfileCsv(file) : List<StudentProfileCsvRow>
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + findByRollNumber(rollNumber : String) : StudentProfile
+  + save(profile : StudentProfile) : StudentProfile
+}
+
+interface UserRepository <<interface>> {
+  + existsByEmail(email : String) : boolean
+  + existsByUsername(username : String) : boolean
+  + save(user : User) : User
+}
+
+interface MajorRepository <<interface>> {
+  + findByCode(code : String) : Major
+}
+
+interface RoleRepository <<interface>> {
+  + findByName(name : String) : Optional<Role>
+}
+
+' --- ENTITIES ---
+class StudentProfile {
+  - userId : Integer
+  - user : User
+  - major : Major
+  - rollNumber : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - active : Boolean
+  - roles : Set<Role>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - active : Boolean
+}
+
+class Role {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> StudentProfileService
+StudentProfileService -down-> CsvParserService
+StudentProfileService -down-> StudentProfileRepository
+StudentProfileService -down-> UserRepository
+StudentProfileService -down-> MajorRepository
+StudentProfileService -down-> RoleRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StudentProfileRepository .down.> StudentProfile
+UserRepository .down.> User
+MajorRepository .down.> Major
+RoleRepository .down.> Role
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StudentProfile o-right- User
+StudentProfile o-right- Major
+User o-right- Role
+
+@enduml

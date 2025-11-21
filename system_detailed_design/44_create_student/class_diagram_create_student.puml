@@ -1,0 +1,92 @@
+@startuml create_student
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + create(request) : Response
+}
+
+' --- SERVICE ---
+class StudentProfileService {
+  + create(request) : StudentProfileDTO
+}
+
+class EmailService {
+  + sendPassword(email, password) : void
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + existsByRollNumber(rollNumber : String) : boolean
+  + save(profile : StudentProfile) : StudentProfile
+}
+
+interface UserRepository <<interface>> {
+  + existsByEmail(email : String) : boolean
+  + existsByUsername(username : String) : boolean
+  + save(user : User) : User
+}
+
+interface MajorRepository <<interface>> {
+  + findById(id : Short) : Optional<Major>
+}
+
+interface RoleRepository <<interface>> {
+  + findByName(name : String) : Optional<Role>
+}
+
+' --- ENTITIES ---
+class StudentProfile {
+  - userId : Integer
+  - user : User
+  - major : Major
+  - rollNumber : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - roles : Set<Role>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Role {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> StudentProfileService
+StudentProfileService -down-> StudentProfileRepository
+StudentProfileService -down-> UserRepository
+StudentProfileService -down-> MajorRepository
+StudentProfileService -down-> RoleRepository
+StudentProfileService -down-> EmailService
+
+' --- REPOSITORY USAGE (Dependency) ---
+StudentProfileRepository .down.> StudentProfile
+UserRepository .down.> User
+MajorRepository .down.> Major
+RoleRepository .down.> Role
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StudentProfile o-right- User
+StudentProfile o-right- Major
+User o-right- Role
+
+@enduml
