@@ -1,0 +1,92 @@
+@startuml update_staff
+!theme plain
+hide footbox
+
+actor Client
+participant ":StaffProfileController" as Controller
+participant ":StaffProfileService" as Service
+participant ":StaffProfileRepository" as StaffRepo
+participant ":UserRepository" as UserRepo
+participant ":RoleRepository" as RoleRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/staff-profiles/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> StaffRepo: findById(id)
+activate StaffRepo
+
+StaffRepo -> DB: Query Staff by ID
+activate DB
+DB --> StaffRepo: Staff Record / Null
+deactivate DB
+
+StaffRepo --> Service: Optional<StaffProfile>
+deactivate StaffRepo
+
+alt Staff not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- VALIDATION LOGIC ---
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request / 409 Conflict
+end
+
+' --- VALIDATE ROLES ---
+Service -> RoleRepo: findByNameIn(roleNames)
+activate RoleRepo
+
+RoleRepo -> DB: Query Roles by Names
+activate DB
+DB --> RoleRepo: Role List
+deactivate DB
+
+RoleRepo --> Service: List<Role>
+deactivate RoleRepo
+
+alt Invalid roles or STUDENT role
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- UPDATE USER ---
+Service -> UserRepo: save(user)
+activate UserRepo
+
+UserRepo -> DB: Update User
+activate DB
+DB --> UserRepo: Updated User
+deactivate DB
+
+UserRepo --> Service: User
+deactivate UserRepo
+
+' --- UPDATE STAFF PROFILE ---
+Service -> StaffRepo: save(profile)
+activate StaffRepo
+
+StaffRepo -> DB: Update Staff Profile
+activate DB
+DB --> StaffRepo: Updated Profile
+deactivate DB
+
+StaffRepo --> Service: StaffProfile
+deactivate StaffRepo
+
+Service --> Controller: StaffProfileDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

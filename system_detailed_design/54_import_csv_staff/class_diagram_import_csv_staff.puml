@@ -1,0 +1,79 @@
+@startuml import_csv_staff
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StaffProfileController {
+  + importStaffProfiles(file, mode) : Response
+}
+
+' --- SERVICE ---
+class StaffProfileService {
+  + importFromCsv(file, mode) : ImportResultDTO
+  + processOneStaffRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseStaffProfileCsv(file) : List<StaffProfileCsvRow>
+}
+
+' --- REPOSITORY ---
+interface StaffProfileRepository <<interface>> {
+  + findByStaffCode(staffCode : String) : StaffProfile
+  + save(profile : StaffProfile) : StaffProfile
+}
+
+interface UserRepository <<interface>> {
+  + existsByEmail(email : String) : boolean
+  + save(user : User) : User
+}
+
+interface RoleRepository <<interface>> {
+  + findByNameIn(names : Set<String>) : List<Role>
+}
+
+' --- ENTITIES ---
+class StaffProfile {
+  - userId : Integer
+  - user : User
+  - staffCode : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - passwordHash : String
+  - active : Boolean
+  - roles : Set<Role>
+}
+
+class Role {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StaffProfileController -down-> StaffProfileService
+StaffProfileService -down-> CsvParserService
+StaffProfileService -down-> StaffProfileRepository
+StaffProfileService -down-> UserRepository
+StaffProfileService -down-> RoleRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StaffProfileRepository .down.> StaffProfile
+UserRepository .down.> User
+RoleRepository .down.> Role
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StaffProfile o-right- User
+User o-right- Role
+
+@enduml

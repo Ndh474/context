@@ -1,0 +1,84 @@
+@startuml delete_staff
+!theme plain
+hide footbox
+
+actor Client
+participant ":StaffProfileController" as Controller
+participant ":StaffProfileService" as Service
+participant ":StaffProfileRepository" as StaffRepo
+participant ":SlotRepository" as SlotRepo
+participant ":UserRepository" as UserRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/staff-profiles/{id}
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> StaffRepo: findById(id)
+activate StaffRepo
+
+StaffRepo -> DB: Query Staff by ID
+activate DB
+DB --> StaffRepo: Staff Record / Null
+deactivate DB
+
+StaffRepo --> Service: Optional<StaffProfile>
+deactivate StaffRepo
+
+alt Staff not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK ACTIVE SLOTS ---
+Service -> SlotRepo: findByStaffUserId(userId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slots by Staff User ID
+activate DB
+DB --> SlotRepo: Slot List
+deactivate DB
+
+SlotRepo --> Service: List<Slot>
+deactivate SlotRepo
+
+alt Has active slots
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- DELETE STAFF PROFILE ---
+Service -> StaffRepo: deleteById(id)
+activate StaffRepo
+
+StaffRepo -> DB: Delete Staff Profile
+activate DB
+DB --> StaffRepo: Success
+deactivate DB
+
+StaffRepo --> Service: void
+deactivate StaffRepo
+
+' --- DELETE USER ---
+Service -> UserRepo: deleteById(userId)
+activate UserRepo
+
+UserRepo -> DB: Delete User
+activate DB
+DB --> UserRepo: Success
+deactivate DB
+
+UserRepo --> Service: void
+deactivate UserRepo
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

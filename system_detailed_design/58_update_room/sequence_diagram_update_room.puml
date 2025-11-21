@@ -1,0 +1,107 @@
+@startuml update_room
+!theme plain
+hide footbox
+
+actor Client
+participant ":RoomController" as Controller
+participant ":RoomService" as Service
+participant ":RoomRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/rooms/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Room by ID
+activate DB
+DB --> Repository: Room Record / Null
+deactivate DB
+
+Repository --> Service: Optional<Room>
+deactivate Repository
+
+alt Room not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- VALIDATION LOGIC ---
+opt Name changed
+    Service -> Repository: existsByNameAndIdNot(name, id)
+    activate Repository
+    
+    Repository -> DB: Check Name Uniqueness
+    activate DB
+    DB --> Repository: Boolean
+    deactivate DB
+    
+    Repository --> Service: Boolean
+    deactivate Repository
+    
+    alt Name already exists
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: 409 Conflict
+    end
+end
+
+' --- CHECK DEACTIVATION ---
+opt Deactivating room
+    Service -> Repository: countActiveCamerasByRoomId(id)
+    activate Repository
+    
+    Repository -> DB: Count Active Cameras
+    activate DB
+    DB --> Repository: Count
+    deactivate DB
+    
+    Repository --> Service: Long
+    deactivate Repository
+    
+    alt Has active cameras
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: 403 Forbidden
+    end
+    
+    Service -> Repository: countActiveSlotsByRoomId(id, now)
+    activate Repository
+    
+    Repository -> DB: Count Active Slots
+    activate DB
+    DB --> Repository: Count
+    deactivate DB
+    
+    Repository --> Service: Long
+    deactivate Repository
+    
+    alt Has active slots
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller --> Client: 403 Forbidden
+    end
+end
+
+' --- UPDATE ---
+Service -> Repository: save(room)
+activate Repository
+
+Repository -> DB: Update Room
+activate DB
+DB --> Repository: Updated Room
+deactivate DB
+
+Repository --> Service: Room
+deactivate Repository
+
+Service --> Controller: RoomDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

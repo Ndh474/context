@@ -1,0 +1,69 @@
+@startuml delete_staff
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StaffProfileController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class StaffProfileService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface StaffProfileRepository <<interface>> {
+  + findById(id : Integer) : Optional<StaffProfile>
+  + deleteById(id : Integer) : void
+}
+
+interface SlotRepository <<interface>> {
+  + findByStaffUserId(userId : Integer) : List<Slot>
+}
+
+interface UserRepository <<interface>> {
+  + deleteById(id : Integer) : void
+}
+
+' --- ENTITIES ---
+class StaffProfile {
+  - userId : Integer
+  - user : User
+  - staffCode : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - staff : User
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StaffProfileController -down-> StaffProfileService
+StaffProfileService -down-> StaffProfileRepository
+StaffProfileService -down-> SlotRepository
+StaffProfileService -down-> UserRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StaffProfileRepository .down.> StaffProfile
+SlotRepository .down.> Slot
+UserRepository .down.> User
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StaffProfile o-right- User
+Slot o-right- User
+
+@enduml

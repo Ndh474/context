@@ -1,0 +1,95 @@
+@startuml delete_room
+!theme plain
+hide footbox
+
+actor Client
+participant ":RoomController" as Controller
+participant ":RoomService" as Service
+participant ":RoomRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/rooms/{id}
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' --- CHECK EXISTENCE ---
+Service -> Repository: existsById(id)
+activate Repository
+
+Repository -> DB: Check Room Existence
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Room not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK CAMERAS ---
+Service -> Repository: countAllCamerasByRoomId(id)
+activate Repository
+
+Repository -> DB: Count All Cameras
+activate DB
+DB --> Repository: Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+alt Has cameras
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- CHECK FUTURE SLOTS ---
+Service -> Repository: countFutureSlotsByRoomId(id, now)
+activate Repository
+
+Repository -> DB: Count Future Slots
+activate DB
+DB --> Repository: Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+alt Has future slots
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- DELETE OPERATION ---
+Service -> Repository: deleteById(id)
+activate Repository
+
+Repository -> DB: Delete Room by ID
+activate DB
+
+alt Foreign key constraint violation
+    DB -->> Repository: <<throw>> DataIntegrityViolationException
+    Repository -->> Service: <<throw>> DataIntegrityViolationException
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+DB --> Repository: Success
+deactivate DB
+
+Repository --> Service: void
+deactivate Repository
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

@@ -1,0 +1,48 @@
+@startuml import_csv_room
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class RoomController {
+  + importRooms(file, mode) : Response
+}
+
+' --- SERVICE ---
+class RoomService {
+  + importFromCsv(file, mode) : ImportResultDTO
+  + processOneRoomRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseRoomCsv(file) : List<RoomCsvRow>
+}
+
+' --- REPOSITORY ---
+interface RoomRepository <<interface>> {
+  + findByName(name : String) : Room
+  + save(room : Room) : Room
+}
+
+' --- ENTITIES ---
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+  - active : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+RoomController -down-> RoomService
+RoomService -down-> CsvParserService
+RoomService -down-> RoomRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+RoomRepository .down.> Room
+
+@enduml

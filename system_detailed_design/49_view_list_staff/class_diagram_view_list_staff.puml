@@ -1,0 +1,59 @@
+@startuml view_list_staff
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StaffProfileController {
+  + search(request) : PagingResponse
+}
+
+' --- SERVICE ---
+class StaffProfileService {
+  + search(request) : PagingResponse
+}
+
+' --- REPOSITORY ---
+interface StaffProfileRepository <<interface>> {
+  + search(request) : List<StaffProfileDTO>
+  + count(request) : Long
+}
+
+' --- ENTITIES ---
+class StaffProfile {
+  - userId : Integer
+  - user : User
+  - staffCode : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - active : Boolean
+  - roles : Set<Role>
+}
+
+class Role {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StaffProfileController -down-> StaffProfileService
+StaffProfileService -down-> StaffProfileRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+StaffProfileRepository .down.> StaffProfile
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+StaffProfile o-right- User
+User o-right- Role
+
+@enduml

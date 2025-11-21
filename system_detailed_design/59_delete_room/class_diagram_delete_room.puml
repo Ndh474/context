@@ -1,0 +1,59 @@
+@startuml delete_room
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class RoomController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class RoomService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface RoomRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countAllCamerasByRoomId(roomId : Short) : long
+  + countFutureSlotsByRoomId(roomId, now) : long
+  + deleteById(id : Short) : void
+}
+
+' --- ENTITIES ---
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+  - cameras : Set<Camera>
+  - slots : Set<Slot>
+}
+
+class Camera {
+  - id : Integer
+  - name : String
+}
+
+class Slot {
+  - id : Integer
+  - startTime : LocalDateTime
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+RoomController -down-> RoomService
+RoomService -down-> RoomRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+RoomRepository .down.> Room
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Room o-right- Camera
+Room o-right- Slot
+
+@enduml

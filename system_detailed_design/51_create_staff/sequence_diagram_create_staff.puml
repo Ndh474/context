@@ -1,0 +1,85 @@
+@startuml create_staff
+!theme plain
+hide footbox
+
+actor Client
+participant ":StaffProfileController" as Controller
+participant ":StaffProfileService" as Service
+participant ":UserRepository" as UserRepo
+participant ":StaffProfileRepository" as StaffRepo
+participant ":RoleRepository" as RoleRepo
+participant ":EmailService" as EmailService
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/staff-profiles
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' --- VALIDATION LOGIC ---
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request / 409 Conflict
+end
+
+' --- VALIDATE ROLES ---
+Service -> RoleRepo: findByNameIn(roleNames)
+activate RoleRepo
+
+RoleRepo -> DB: Query Roles by Names
+activate DB
+DB --> RoleRepo: Role List
+deactivate DB
+
+RoleRepo --> Service: List<Role>
+deactivate RoleRepo
+
+alt Invalid roles or STUDENT role
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- GENERATE PASSWORD AND SEND EMAIL ---
+opt Password not provided
+    Service -> EmailService: sendPassword(email, password)
+    activate EmailService
+    
+    EmailService --> Service: void
+    deactivate EmailService
+end
+
+' --- SAVE USER ---
+Service -> UserRepo: save(user)
+activate UserRepo
+
+UserRepo -> DB: Insert New User
+activate DB
+DB --> UserRepo: Saved User
+deactivate DB
+
+UserRepo --> Service: User
+deactivate UserRepo
+
+' --- SAVE STAFF PROFILE ---
+Service -> StaffRepo: save(profile)
+activate StaffRepo
+
+StaffRepo -> DB: Insert New Staff Profile
+activate DB
+DB --> StaffRepo: Saved Profile
+deactivate DB
+
+StaffRepo --> Service: StaffProfile
+deactivate StaffRepo
+
+Service --> Controller: StaffProfileDTO
+deactivate Service
+
+Controller --> Client: 201 Created
+deactivate Controller
+
+@enduml

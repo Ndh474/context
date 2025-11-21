@@ -1,0 +1,42 @@
+@startuml create_room
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class RoomController {
+  + create(request) : Response
+}
+
+' --- SERVICE ---
+class RoomService {
+  + create(request) : RoomDTO
+}
+
+' --- REPOSITORY ---
+interface RoomRepository <<interface>> {
+  + existsByName(name : String) : boolean
+  + save(room : Room) : Room
+}
+
+' --- ENTITIES ---
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+  - active : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+RoomController -down-> RoomService
+RoomService -down-> RoomRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+RoomRepository .down.> Room
+
+@enduml

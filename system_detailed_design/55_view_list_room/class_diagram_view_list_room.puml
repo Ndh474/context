@@ -1,0 +1,61 @@
+@startuml view_list_room
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class RoomController {
+  + search(request) : PagingResponse
+}
+
+' --- SERVICE ---
+class RoomService {
+  + search(request) : List<RoomDTO>
+  + count(request) : Long
+}
+
+' --- REPOSITORY ---
+interface RoomRepository <<interface>> {
+  + search(request) : List<RoomDTO>
+  + count(request) : Long
+}
+
+' --- ENTITIES ---
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+  - active : Boolean
+  - cameras : Set<Camera>
+  - slots : Set<Slot>
+}
+
+class Camera {
+  - id : Integer
+  - name : String
+  - isActive : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+RoomController -down-> RoomService
+RoomService -down-> RoomRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+RoomRepository .down.> Room
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Room o-right- Camera
+Room o-right- Slot
+
+@enduml
