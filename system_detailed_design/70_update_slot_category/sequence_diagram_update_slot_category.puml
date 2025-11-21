@@ -1,0 +1,98 @@
+@startuml update_slot_category
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":ExamAttendanceRepository" as ExamRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/slots/{id}/category
+activate Controller
+
+Controller -> Service: updateSlotCategory(id, request, currentUserId)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> SlotRepo: findById(id)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slot by ID
+activate DB
+DB --> SlotRepo: Slot Record / Null
+deactivate DB
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK AUTHORIZATION ---
+alt Not assigned staff
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- VALIDATE CATEGORY TRANSITION ---
+' Validation logic (internal)
+
+alt Invalid category transition
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- CHECK EXAM DATA (if LECTURE_WITH_PT → LECTURE) ---
+opt Category change to LECTURE
+    Service -> ExamRepo: countBySlotIdAndStatusNot(id, NOT_YET)
+    activate ExamRepo
+    
+    ExamRepo -> DB: Count Exam Attendance with Data
+    activate DB
+    DB --> ExamRepo: Count
+    deactivate DB
+    
+    ExamRepo --> Service: Long
+    deactivate ExamRepo
+    
+    alt Has exam data
+        Service -->> Controller: <<throw>> BadRequestException
+        Controller --> Client: 400 Bad Request
+    else All NOT_YET
+        Service -> ExamRepo: deleteBySlotId(id)
+        activate ExamRepo
+        
+        ExamRepo -> DB: Delete NOT_YET Exam Attendance
+        activate DB
+        DB --> ExamRepo: Success
+        deactivate DB
+        
+        ExamRepo --> Service: void
+        deactivate ExamRepo
+    end
+end
+
+' --- UPDATE ---
+Service -> SlotRepo: save(slot)
+activate SlotRepo
+
+SlotRepo -> DB: Update Slot Category
+activate DB
+DB --> SlotRepo: Updated Slot
+deactivate DB
+
+SlotRepo --> Service: Slot
+deactivate SlotRepo
+
+Service --> Controller: SlotDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

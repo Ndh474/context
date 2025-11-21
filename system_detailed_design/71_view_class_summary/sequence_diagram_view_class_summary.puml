@@ -1,0 +1,103 @@
+@startuml view_class_summary
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassSummaryService" as Service
+participant ":ClassRepository" as ClassRepo
+participant ":SlotRepository" as SlotRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":AttendanceRecordRepository" as AttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/classes/{classId}/summary?semester={semesterId}
+activate Controller
+
+Controller -> Service: getClassSummary(classId, semesterId)
+activate Service
+
+' --- VALIDATE AUTHORIZATION ---
+Service -> ClassRepo: findById(classId)
+activate ClassRepo
+
+ClassRepo -> DB: Query Class by ID
+activate DB
+DB --> ClassRepo: Class Record / Null
+deactivate DB
+
+ClassRepo --> Service: Optional<AcademicClass>
+deactivate ClassRepo
+
+alt Class not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+alt Class not in semester
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+Service -> SlotRepo: findByClassIdAndStaffUserId(classId, currentUserId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slots by Class and Staff
+activate DB
+DB --> SlotRepo: Slot List
+deactivate DB
+
+SlotRepo --> Service: List<Slot>
+deactivate SlotRepo
+
+alt Not assigned to class
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- GET ENROLLMENT SUMMARY ---
+Service -> EnrollmentRepo: countByClassIdAndEnrolled(classId, true)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Count Enrolled Students
+activate DB
+DB --> EnrollmentRepo: Count
+deactivate DB
+
+EnrollmentRepo --> Service: Long
+deactivate EnrollmentRepo
+
+' --- GET ATTENDANCE STATISTICS ---
+Service -> AttendanceRepo: countBySlotIdAndStatus(slotId, status)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Count Attendance by Status
+activate DB
+DB --> AttendanceRepo: Count
+deactivate DB
+
+AttendanceRepo --> Service: Long
+deactivate AttendanceRepo
+
+' --- GET SLOT LIST ---
+Service -> SlotRepo: findByClassIdAndSemesterId(classId, semesterId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slots
+activate DB
+DB --> SlotRepo: Slot List
+deactivate DB
+
+SlotRepo --> Service: List<Slot>
+deactivate SlotRepo
+
+' Get student attendance summaries (internal)
+
+Service --> Controller: ClassSummaryDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

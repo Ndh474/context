@@ -1,0 +1,63 @@
+@startuml view_slot_roster
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/slots/{id}/roster
+activate Controller
+
+Controller -> Service: getSlotRoster(id, currentUserId)
+activate Service
+
+' --- VALIDATE SLOT ---
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Slot by ID
+activate DB
+DB --> Repository: Slot Record / Null
+deactivate DB
+
+Repository --> Service: Optional<Slot>
+deactivate Repository
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK AUTHORIZATION ---
+' Authorization logic (internal)
+
+alt Not assigned staff and not data operator
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- GET ROSTER ---
+Service -> Repository: getSlotRoster(id)
+activate Repository
+
+Repository -> DB: Query Roster with Attendance Status
+activate DB
+DB --> Repository: Roster List
+deactivate DB
+
+Repository --> Service: List<SlotRosterItemDTO>
+deactivate Repository
+
+' Ensure attendance records exist (internal)
+
+Service --> Controller: List<SlotRosterItemDTO>
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

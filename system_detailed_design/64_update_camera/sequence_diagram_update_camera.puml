@@ -1,0 +1,108 @@
+@startuml update_camera
+!theme plain
+hide footbox
+
+actor Client
+participant ":CameraController" as Controller
+participant ":CameraService" as Service
+participant ":CameraRepository" as CameraRepo
+participant ":RoomRepository" as RoomRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/cameras/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> CameraRepo: findById(id)
+activate CameraRepo
+
+CameraRepo -> DB: Query Camera by ID
+activate DB
+DB --> CameraRepo: Camera Record / Null
+deactivate DB
+
+CameraRepo --> Service: Optional<Camera>
+deactivate CameraRepo
+
+alt Camera not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- VALIDATION LOGIC ---
+opt Name changed
+    Service -> CameraRepo: existsByNameAndIdNot(name, id)
+    activate CameraRepo
+    
+    CameraRepo -> DB: Check Name Uniqueness
+    activate DB
+    DB --> CameraRepo: Boolean
+    deactivate DB
+    
+    CameraRepo --> Service: Boolean
+    deactivate CameraRepo
+    
+    alt Name already exists
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: 409 Conflict
+    end
+end
+
+opt RTSP URL changed
+    Service -> CameraRepo: existsByRtspUrlAndIdNot(rtspUrl, id)
+    activate CameraRepo
+    
+    CameraRepo -> DB: Check RTSP URL Uniqueness
+    activate DB
+    DB --> CameraRepo: Boolean
+    deactivate DB
+    
+    CameraRepo --> Service: Boolean
+    deactivate CameraRepo
+    
+    alt RTSP URL already exists
+        Service -->> Controller: <<throw>> ResourceExistsException
+        Controller --> Client: 409 Conflict
+    end
+end
+
+' --- VALIDATE NEW ROOM ---
+Service -> RoomRepo: findById(roomId)
+activate RoomRepo
+
+RoomRepo -> DB: Query Room by ID
+activate DB
+DB --> RoomRepo: Room Record / Null
+deactivate DB
+
+RoomRepo --> Service: Optional<Room>
+deactivate RoomRepo
+
+alt Room not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- UPDATE ---
+Service -> CameraRepo: save(camera)
+activate CameraRepo
+
+CameraRepo -> DB: Update Camera
+activate DB
+DB --> CameraRepo: Updated Camera
+deactivate DB
+
+CameraRepo --> Service: Camera
+deactivate CameraRepo
+
+Service --> Controller: CameraDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

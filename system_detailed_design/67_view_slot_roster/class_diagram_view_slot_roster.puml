@@ -1,0 +1,61 @@
+@startuml view_slot_roster
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + getSlotRoster(id) : Response
+}
+
+' --- SERVICE ---
+class SlotService {
+  + getSlotRoster(id, currentUserId) : List<SlotRosterItemDTO>
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+  + getSlotRoster(id : Integer) : List<SlotRosterItemDTO>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - staff : User
+  - academicClass : AcademicClass
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - fullName : String
+}
+
+class AttendanceRecord {
+  - id : Long
+  - slot : Slot
+  - student : User
+  - status : AttendanceStatus
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotService
+SlotService -down-> SlotRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- User
+AttendanceRecord o-right- Slot
+AttendanceRecord o-right- User
+
+@enduml

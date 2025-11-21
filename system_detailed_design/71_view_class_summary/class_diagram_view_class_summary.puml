@@ -1,0 +1,82 @@
+@startuml view_class_summary
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ClassController {
+  + getClassSummary(classId, semester) : Response
+}
+
+' --- SERVICE ---
+class ClassSummaryService {
+  + getClassSummary(classId, semesterId) : ClassSummaryDTO
+}
+
+class ClassService {
+  + findById(id) : ClassDTO
+}
+
+' --- REPOSITORY ---
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+}
+
+interface SlotRepository <<interface>> {
+  + findByClassIdAndStaffUserId(classId, staffUserId) : List<Slot>
+}
+
+interface EnrollmentRepository <<interface>> {
+  + countByClassIdAndEnrolled(classId, enrolled) : Long
+}
+
+interface AttendanceRecordRepository <<interface>> {
+  + countBySlotIdAndStatus(slotId, status) : Long
+}
+
+' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - name : String
+  - code : String
+  - semester : Semester
+  - subject : Subject
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - staff : User
+  - academicClass : AcademicClass
+}
+
+class Enrollment {
+  - id : EnrollmentId
+  - student : User
+  - academicClass : AcademicClass
+  - enrolled : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ClassController -down-> ClassSummaryService
+ClassSummaryService -down-> ClassService
+ClassSummaryService -down-> ClassRepository
+ClassSummaryService -down-> SlotRepository
+ClassSummaryService -down-> EnrollmentRepository
+ClassSummaryService -down-> AttendanceRecordRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+ClassRepository .down.> AcademicClass
+SlotRepository .down.> Slot
+EnrollmentRepository .down.> Enrollment
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- AcademicClass
+Enrollment o-right- AcademicClass
+
+@enduml

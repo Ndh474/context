@@ -1,0 +1,59 @@
+@startuml delete_camera
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class CameraController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class CameraService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface CameraRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countActiveSlotsByCameraId(cameraId, now) : long
+  + deleteById(id : Short) : void
+}
+
+' --- ENTITIES ---
+class Camera {
+  - id : Short
+  - name : String
+  - rtspUrl : String
+  - room : Room
+}
+
+class Room {
+  - id : Short
+  - name : String
+  - slots : Set<Slot>
+}
+
+class Slot {
+  - id : Integer
+  - startTime : LocalDateTime
+  - active : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+CameraController -down-> CameraService
+CameraService -down-> CameraRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+CameraRepository .down.> Camera
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Camera o-right- Room
+Room o-right- Slot
+
+@enduml

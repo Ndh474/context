@@ -1,0 +1,73 @@
+@startuml update_student_attendance_status
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + submitAttendance(id, request, currentUserId) : Response
+}
+
+' --- SERVICE ---
+class SlotService {
+  + submitAttendance(slotId, request, currentUserId) : SlotAttendanceSubmissionResponse
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+}
+
+interface AttendanceRecordRepository <<interface>> {
+  + save(record : AttendanceRecord) : AttendanceRecord
+  + saveAll(records : List<AttendanceRecord>) : List<AttendanceRecord>
+  + findBySlotIdAndNeedsReview(slotId, needsReview) : List<AttendanceRecord>
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - staff : User
+  - startTime : LocalDateTime
+}
+
+class AttendanceRecord {
+  - id : Long
+  - slot : Slot
+  - student : User
+  - status : AttendanceStatus
+  - method : AttendanceMethod
+  - needsReview : Boolean
+}
+
+class User {
+  - id : Integer
+  - fullName : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotService
+SlotService -down-> SlotRepository
+SlotService -down-> AttendanceRecordRepository
+SlotService -down-> UserRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+AttendanceRecordRepository .down.> AttendanceRecord
+UserRepository .down.> User
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AttendanceRecord o-right- Slot
+AttendanceRecord o-right- User
+Slot o-right- User
+
+@enduml

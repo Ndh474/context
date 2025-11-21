@@ -1,0 +1,51 @@
+@startuml view_camera_details
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class CameraController {
+  + findById(id) : Response
+}
+
+' --- SERVICE ---
+class CameraService {
+  + findById(id) : CameraDTO
+}
+
+' --- REPOSITORY ---
+interface CameraRepository <<interface>> {
+  + findById(id : Short) : Optional<Camera>
+}
+
+' --- ENTITIES ---
+class Camera {
+  - id : Short
+  - name : String
+  - rtspUrl : String
+  - active : Boolean
+  - room : Room
+}
+
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+CameraController -down-> CameraService
+CameraService -down-> CameraRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+CameraRepository .down.> Camera
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Camera o-right- Room
+
+@enduml

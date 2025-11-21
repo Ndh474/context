@@ -1,0 +1,59 @@
+@startuml update_slot_category
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + updateSlotCategory(id, request) : Response
+}
+
+' --- SERVICE ---
+class SlotService {
+  + updateSlotCategory(id, request, currentUserId) : SlotDTO
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+  + save(slot : Slot) : Slot
+}
+
+interface ExamAttendanceRepository <<interface>> {
+  + countBySlotIdAndStatusNot(slotId, status) : Long
+  + deleteBySlotId(slotId : Integer) : void
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - slotCategory : SlotCategory
+  - staff : User
+}
+
+class ExamAttendance {
+  - id : Long
+  - slot : Slot
+  - student : User
+  - status : AttendanceStatus
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotService
+SlotService -down-> SlotRepository
+SlotService -down-> ExamAttendanceRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+ExamAttendanceRepository .down.> ExamAttendance
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+ExamAttendance o-right- Slot
+
+@enduml

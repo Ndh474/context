@@ -1,0 +1,66 @@
+@startuml import_csv_camera
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class CameraController {
+  + importCameras(file, mode) : Response
+}
+
+' --- SERVICE ---
+class CameraService {
+  + importFromCsv(file, mode) : ImportResultDTO
+  + processOneCameraRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseCameraCsv(file) : List<CameraCsvRow>
+}
+
+' --- REPOSITORY ---
+interface CameraRepository <<interface>> {
+  + findByName(name : String) : Camera
+  + existsByRtspUrl(rtspUrl : String) : boolean
+  + existsByRtspUrlAndIdNot(rtspUrl, id) : boolean
+  + save(camera : Camera) : Camera
+}
+
+interface RoomRepository <<interface>> {
+  + findByName(name : String) : Room
+}
+
+' --- ENTITIES ---
+class Camera {
+  - id : Short
+  - name : String
+  - rtspUrl : String
+  - active : Boolean
+  - room : Room
+}
+
+class Room {
+  - id : Short
+  - name : String
+  - location : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+CameraController -down-> CameraService
+CameraService -down-> CsvParserService
+CameraService -down-> CameraRepository
+CameraService -down-> RoomRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+CameraRepository .down.> Camera
+RoomRepository .down.> Room
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Camera o-right- Room
+
+@enduml
