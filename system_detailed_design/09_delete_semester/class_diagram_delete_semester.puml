@@ -21,7 +21,7 @@ class SemesterService {
 ' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + existsById(id : Short) : boolean
-  + countActiveClassesBySemesterId(id : Short) : long
+  + countClassesBySemesterId(id : Short) : long
   + deleteById(id : Short) : void
 }
 

@@ -32,11 +32,11 @@ alt Semester not found
     Controller --> Client: 404 Not Found
 end
 
-' --- CHECK ACTIVE CLASSES ---
-Service -> Repository: countActiveClassesBySemesterId(id)
+' --- CHECK CLASSES ---
+Service -> Repository: countClassesBySemesterId(id)
 activate Repository
 
-Repository -> DB: Count Active Classes by Semester
+Repository -> DB: Count Classes by Semester
 activate DB
 DB --> Repository: Count
 deactivate DB
@@ -44,7 +44,7 @@ deactivate DB
 Repository --> Service: Long
 deactivate Repository
 
-alt Has active classes
+alt Has classes
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Client: 403 Forbidden
 end
@@ -55,14 +55,6 @@ activate Repository
 
 Repository -> DB: Delete Semester by ID
 activate DB
-
-alt Foreign key constraint violation
-    DB -->> Repository: <<throw>> DataIntegrityViolationException
-    Repository -->> Service: <<throw>> DataIntegrityViolationException
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
-end
-
 DB --> Repository: Success
 deactivate DB
 
