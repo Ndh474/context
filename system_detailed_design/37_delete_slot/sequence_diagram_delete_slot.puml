@@ -1,0 +1,169 @@
+@startuml delete_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":AttendanceRecordRepository" as AttendanceRepo
+participant ":ExamAttendanceRepository" as ExamAttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/slots/{id}
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' --- FIND SLOT ---
+Service -> SlotRepo: findById(id)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slot by ID
+activate DB
+DB --> SlotRepo: Slot / Null
+deactivate DB
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' Validation logic (internal)
+
+alt Slot has started
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- COUNT PRESENT/ABSENT RECORDS ---
+Service -> AttendanceRepo: countBySlotIdAndStatus(id, PRESENT)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Count PRESENT Records
+activate DB
+DB --> AttendanceRepo: Count
+deactivate DB
+
+AttendanceRepo --> Service: Long
+deactivate AttendanceRepo
+
+Service -> AttendanceRepo: countBySlotIdAndStatus(id, ABSENT)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Count ABSENT Records
+activate DB
+DB --> AttendanceRepo: Count
+deactivate DB
+
+AttendanceRepo --> Service: Long
+deactivate AttendanceRepo
+
+Service -> ExamAttendanceRepo: countBySlotIdAndStatus(id, PRESENT)
+activate ExamAttendanceRepo
+
+ExamAttendanceRepo -> DB: Count PRESENT Exam Records
+activate DB
+DB --> ExamAttendanceRepo: Count
+deactivate DB
+
+ExamAttendanceRepo --> Service: Long
+deactivate ExamAttendanceRepo
+
+Service -> ExamAttendanceRepo: countBySlotIdAndStatus(id, ABSENT)
+activate ExamAttendanceRepo
+
+ExamAttendanceRepo -> DB: Count ABSENT Exam Records
+activate DB
+DB --> ExamAttendanceRepo: Count
+deactivate DB
+
+ExamAttendanceRepo --> Service: Long
+deactivate ExamAttendanceRepo
+
+alt Has PRESENT/ABSENT records
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- DELETE NOT_YET RECORDS ---
+Service -> AttendanceRepo: findBySlotIdAndStatus(id, NOT_YET)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Query NOT_YET Records
+activate DB
+DB --> AttendanceRepo: List<AttendanceRecord>
+deactivate DB
+
+AttendanceRepo --> Service: List<AttendanceRecord>
+deactivate AttendanceRepo
+
+opt Has NOT_YET records
+    Service -> AttendanceRepo: deleteAll(records)
+    activate AttendanceRepo
+
+    AttendanceRepo -> DB: Delete NOT_YET Records
+    activate DB
+    DB --> AttendanceRepo: Success
+    deactivate DB
+
+    AttendanceRepo --> Service: void
+    deactivate AttendanceRepo
+end
+
+Service -> ExamAttendanceRepo: findBySlotIdAndStatus(id, NOT_YET)
+activate ExamAttendanceRepo
+
+ExamAttendanceRepo -> DB: Query NOT_YET Exam Records
+activate DB
+DB --> ExamAttendanceRepo: List<ExamAttendance>
+deactivate DB
+
+ExamAttendanceRepo --> Service: List<ExamAttendance>
+deactivate ExamAttendanceRepo
+
+opt Has NOT_YET exam records
+    Service -> ExamAttendanceRepo: deleteAll(records)
+    activate ExamAttendanceRepo
+
+    ExamAttendanceRepo -> DB: Delete NOT_YET Exam Records
+    activate DB
+    DB --> ExamAttendanceRepo: Success
+    deactivate DB
+
+    ExamAttendanceRepo --> Service: void
+    deactivate ExamAttendanceRepo
+end
+
+' --- DELETE SLOT ---
+Service -> SlotRepo: deleteById(id)
+activate SlotRepo
+
+SlotRepo -> DB: Delete Slot by ID
+activate DB
+
+alt Foreign key constraint violation
+    DB -->> SlotRepo: <<throw>> DataIntegrityViolationException
+    SlotRepo -->> Service: <<throw>> DataIntegrityViolationException
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+DB --> SlotRepo: Success
+deactivate DB
+
+SlotRepo --> Service: void
+deactivate SlotRepo
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

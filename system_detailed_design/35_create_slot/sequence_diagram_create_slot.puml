@@ -1,0 +1,209 @@
+@startuml create_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":ClassRepository" as ClassRepo
+participant ":SemesterRepository" as SemesterRepo
+participant ":RoomRepository" as RoomRepo
+participant ":UserRepository" as UserRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/slots
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' Validation logic (internal)
+
+alt Time range validation failed
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+alt Slot category validation failed
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- CHECK ROOM TIME CONFLICT ---
+Service -> SlotRepo: existsByRoomAndTimeRange(roomId, startTime, endTime, null)
+activate SlotRepo
+
+SlotRepo -> DB: Check Room Time Conflicts
+activate DB
+DB --> SlotRepo: boolean
+deactivate DB
+
+SlotRepo --> Service: boolean
+deactivate SlotRepo
+
+alt Room time conflict
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- CHECK STAFF TIME CONFLICT ---
+Service -> SlotRepo: existsByStaffAndTimeRange(staffId, startTime, endTime, null)
+activate SlotRepo
+
+SlotRepo -> DB: Check Staff Time Conflicts
+activate DB
+DB --> SlotRepo: boolean
+deactivate DB
+
+SlotRepo --> Service: boolean
+deactivate SlotRepo
+
+alt Staff time conflict
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- VALIDATE SEMESTER ---
+Service -> SemesterRepo: findById(semesterId)
+activate SemesterRepo
+
+SemesterRepo -> DB: Query Semester by ID
+activate DB
+DB --> SemesterRepo: Semester / Null
+deactivate DB
+
+SemesterRepo --> Service: Optional<Semester>
+deactivate SemesterRepo
+
+alt Semester not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
+    Controller --> Client: 404 Not Found / 400 Bad Request
+end
+
+' Validation logic (internal)
+
+alt Slot time outside semester range
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- VALIDATE CLASS (if provided) ---
+opt Class ID provided
+    Service -> ClassRepo: findById(classId)
+    activate ClassRepo
+
+    ClassRepo -> DB: Query Class by ID
+    activate DB
+    DB --> ClassRepo: AcademicClass / Null
+    deactivate DB
+
+    ClassRepo --> Service: Optional<AcademicClass>
+    deactivate ClassRepo
+
+    alt Class not found or inactive
+        Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
+        Controller --> Client: 404 Not Found / 400 Bad Request
+    end
+
+    alt Class semester mismatch
+        Service -->> Controller: <<throw>> BadRequestException
+        Controller --> Client: 400 Bad Request
+    end
+end
+
+' --- VALIDATE ROOM ---
+Service -> RoomRepo: findById(roomId)
+activate RoomRepo
+
+RoomRepo -> DB: Query Room by ID
+activate DB
+DB --> RoomRepo: Room / Null
+deactivate DB
+
+RoomRepo --> Service: Optional<Room>
+deactivate RoomRepo
+
+alt Room not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
+    Controller --> Client: 404 Not Found / 400 Bad Request
+end
+
+' --- VALIDATE STAFF ---
+Service -> UserRepo: findById(staffUserId)
+activate UserRepo
+
+UserRepo -> DB: Query User by ID
+activate DB
+DB --> UserRepo: User / Null
+deactivate DB
+
+UserRepo --> Service: Optional<User>
+deactivate UserRepo
+
+alt Staff not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
+    Controller --> Client: 404 Not Found / 400 Bad Request
+end
+
+alt Staff role invalid
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- SAVE SLOT ---
+Service -> SlotRepo: save(slot)
+activate SlotRepo
+
+SlotRepo -> DB: Insert New Slot
+activate DB
+DB --> SlotRepo: Saved Slot
+deactivate DB
+
+SlotRepo --> Service: Slot
+deactivate SlotRepo
+
+' --- HANDLE SUBJECTS (for FINAL_EXAM) ---
+opt Slot category is FINAL_EXAM and subjects provided
+    loop For each subject ID
+        Service -> SubjectRepo: findById(subjectId)
+        activate SubjectRepo
+
+        SubjectRepo -> DB: Query Subject by ID
+        activate DB
+        DB --> SubjectRepo: Subject / Null
+        deactivate DB
+
+        SubjectRepo --> Service: Optional<Subject>
+        deactivate SubjectRepo
+
+        alt Subject not found or inactive
+            Service -->> Controller: <<throw>> ResourceNotFoundException / BadRequestException
+            Controller --> Client: 404 Not Found / 400 Bad Request
+        end
+
+        Service -> ExamSlotSubjectRepo: save(examSlotSubject)
+        activate ExamSlotSubjectRepo
+
+        ExamSlotSubjectRepo -> DB: Insert Exam Slot Subject
+        activate DB
+        DB --> ExamSlotSubjectRepo: Saved Record
+        deactivate DB
+
+        ExamSlotSubjectRepo --> Service: ExamSlotSubject
+        deactivate ExamSlotSubjectRepo
+    end
+end
+
+' Create initial attendance records (internal)
+
+Service --> Controller: Slot
+deactivate Service
+
+Controller --> Client: 201 Created
+deactivate Controller
+
+@enduml

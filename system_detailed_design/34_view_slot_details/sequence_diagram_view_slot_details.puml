@@ -1,0 +1,40 @@
+@startuml view_slot_details
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/slots/{id}
+activate Controller
+
+Controller -> Service: findById(id)
+activate Service
+
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Slot by ID
+activate DB
+DB --> Repository: Slot / Null
+deactivate DB
+
+Repository --> Service: Optional<Slot>
+deactivate Repository
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+Service --> Controller: Slot
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

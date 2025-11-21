@@ -1,0 +1,212 @@
+@startuml add_participant_to_exam_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":ExamSlotController" as Controller
+participant ":ExamSlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":UserRepository" as UserRepo
+participant ":ExamSlotSubjectRepository" as SubjectRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":ExamSlotParticipantRepository" as ParticipantRepo
+participant ":ExamAttendanceRepository" as AttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/exam-slots/{slotId}/participants
+activate Controller
+
+Controller -> Service: addParticipant(slotId, request)
+activate Service
+
+' --- VALIDATE SLOT ---
+Service -> SlotRepo: findById(slotId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slot by ID
+activate DB
+DB --> SlotRepo: Slot Record / Null
+deactivate DB
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+alt Slot is not FINAL_EXAM or has class
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+alt Slot is inactive
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- VALIDATE STUDENT ---
+Service -> UserRepo: findById(studentUserId)
+activate UserRepo
+
+UserRepo -> DB: Query User by ID
+activate DB
+DB --> UserRepo: User Record / Null
+deactivate DB
+
+UserRepo --> Service: Optional<User>
+deactivate UserRepo
+
+alt Student not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+alt Student is inactive
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+alt Student does not have STUDENT role
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- VALIDATE SUBJECT ASSIGNMENT ---
+Service -> SubjectRepo: findBySlotIdAndSubjectId(slotId, subjectId)
+activate SubjectRepo
+
+SubjectRepo -> DB: Query ExamSlotSubject
+activate DB
+DB --> SubjectRepo: ExamSlotSubject / Null
+deactivate DB
+
+SubjectRepo --> Service: Optional<ExamSlotSubject>
+deactivate SubjectRepo
+
+alt Subject not assigned to slot
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- VALIDATE ENROLLMENT ---
+Service -> EnrollmentRepo: existsByStudentAndSubjectAndSemesterAndEnrolled()
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Check Enrollment
+activate DB
+DB --> EnrollmentRepo: Boolean
+deactivate DB
+
+EnrollmentRepo --> Service: Boolean
+deactivate EnrollmentRepo
+
+alt Student not enrolled in subject
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- CHECK DUPLICATE IN SLOT ---
+Service -> ParticipantRepo: existsByExamSlotSubject_Slot_IdAndStudentUserIdAndIsEnrolled()
+activate ParticipantRepo
+
+ParticipantRepo -> DB: Check Participant in Slot
+activate DB
+DB --> ParticipantRepo: Boolean
+deactivate DB
+
+ParticipantRepo --> Service: Boolean
+deactivate ParticipantRepo
+
+alt Student already in slot (another subject)
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+end
+
+' --- CHECK EXISTING PARTICIPANT ---
+Service -> ParticipantRepo: findByExamSlotSubjectIdAndStudentUserId()
+activate ParticipantRepo
+
+ParticipantRepo -> DB: Query Participant
+activate DB
+DB --> ParticipantRepo: Participant / Null
+deactivate DB
+
+ParticipantRepo --> Service: Optional<ExamSlotParticipant>
+deactivate ParticipantRepo
+
+alt Participant exists and enrolled
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller --> Client: 409 Conflict
+else Participant exists but withdrawn
+    ' Re-enrollment case
+    Service -> ParticipantRepo: save(participant)
+    activate ParticipantRepo
+    
+    ParticipantRepo -> DB: Update Participant (set isEnrolled = true)
+    activate DB
+    DB --> ParticipantRepo: Updated Participant
+    deactivate DB
+    
+    ParticipantRepo --> Service: ExamSlotParticipant
+    deactivate ParticipantRepo
+else Participant does not exist
+    ' Create new participant
+    Service -> ParticipantRepo: save(newParticipant)
+    activate ParticipantRepo
+    
+    ParticipantRepo -> DB: Insert New Participant
+    activate DB
+    DB --> ParticipantRepo: Saved Participant
+    deactivate DB
+    
+    ParticipantRepo --> Service: ExamSlotParticipant
+    deactivate ParticipantRepo
+end
+
+' --- AUTO-CREATE EXAM ATTENDANCE ---
+Service -> AttendanceRepo: findBySlotIdAndStudentUserId(slotId, studentUserId)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Query ExamAttendance
+activate DB
+DB --> AttendanceRepo: ExamAttendance / Null
+deactivate DB
+
+AttendanceRepo --> Service: ExamAttendance
+deactivate AttendanceRepo
+
+opt Attendance not exists
+    Service -> AttendanceRepo: save(newAttendance)
+    activate AttendanceRepo
+    
+    AttendanceRepo -> DB: Insert ExamAttendance
+    activate DB
+    DB --> AttendanceRepo: Saved Attendance
+    deactivate DB
+    
+    AttendanceRepo --> Service: ExamAttendance
+    deactivate AttendanceRepo
+end
+
+' --- GET FULL DETAILS ---
+Service -> ParticipantRepo: findByIdWithDetails(participantId)
+activate ParticipantRepo
+
+ParticipantRepo -> DB: Query Participant with Details
+activate DB
+DB --> ParticipantRepo: ExamSlotParticipantDTO
+deactivate DB
+
+ParticipantRepo --> Service: ExamSlotParticipantDTO
+deactivate ParticipantRepo
+
+Service --> Controller: ExamSlotParticipantDTO
+deactivate Service
+
+Controller --> Client: 201 Created
+deactivate Controller
+
+@enduml

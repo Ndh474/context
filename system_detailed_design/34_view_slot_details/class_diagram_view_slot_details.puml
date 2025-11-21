@@ -1,0 +1,75 @@
+@startuml view_slot_details
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + findById(id) : Response
+}
+
+' --- SERVICE ---
+class SlotService {
+  + findById(id) : Slot
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - description : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - sessionStatus : SessionStatus
+  - scanCount : Integer
+  - examSessionStatus : SessionStatus
+  - examScanCount : Integer
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Room {
+  - id : Short
+  - name : String
+}
+
+class User {
+  - id : Integer
+  - fullName : String
+  - email : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotService
+SlotService -down-> SlotRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- AcademicClass
+Slot o-right- Semester
+Slot o-right- Room
+Slot o-right- User
+
+@enduml

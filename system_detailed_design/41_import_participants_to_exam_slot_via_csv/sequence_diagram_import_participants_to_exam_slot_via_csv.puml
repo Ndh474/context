@@ -1,0 +1,195 @@
+@startuml import_participants_to_exam_slot_via_csv
+!theme plain
+hide footbox
+
+actor Client
+participant ":ExamSlotImportController" as Controller
+participant ":ExamSlotImportService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":SlotRepository" as SlotRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":StudentProfileRepository" as StudentRepo
+participant ":ExamSlotSubjectRepository" as SubjectAssignRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":ExamSlotParticipantRepository" as ParticipantRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/exam-slot-participants/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importParticipantsFromCsv(file, mode)
+activate Service
+
+' --- PARSE CSV ---
+Service -> CsvParser: parseExamSlotParticipantCsv(file)
+activate CsvParser
+
+CsvParser --> Service: List<ExamSlotParticipantCsvRow>
+deactivate CsvParser
+
+alt CSV parsing fails
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' --- FIND SLOT BY NATURAL KEYS ---
+    Service -> SlotRepo: findBySemesterCodeAndStartTimeAndRoomName()
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Slot by Natural Keys
+    activate DB
+    DB --> SlotRepo: Slot / Null
+    deactivate DB
+    
+    SlotRepo --> Service: Slot
+    deactivate SlotRepo
+    
+    alt Slot not found
+        Service --> Service: Collect error, continue
+    end
+    
+    alt Slot is not FINAL_EXAM or has class
+        Service --> Service: Collect error, continue
+    end
+    
+    alt Slot is inactive
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- FIND SUBJECT ---
+    Service -> SubjectRepo: findByCode(subjectCode)
+    activate SubjectRepo
+    
+    SubjectRepo -> DB: Query Subject by Code
+    activate DB
+    DB --> SubjectRepo: Subject / Null
+    deactivate DB
+    
+    SubjectRepo --> Service: Subject
+    deactivate SubjectRepo
+    
+    alt Subject not found
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- CHECK SUBJECT ASSIGNMENT ---
+    Service -> SubjectAssignRepo: findBySlotIdAndSubjectIdAndIsActiveTrue()
+    activate SubjectAssignRepo
+    
+    SubjectAssignRepo -> DB: Query ExamSlotSubject
+    activate DB
+    DB --> SubjectAssignRepo: ExamSlotSubject / Null
+    deactivate DB
+    
+    SubjectAssignRepo --> Service: Optional<ExamSlotSubject>
+    deactivate SubjectAssignRepo
+    
+    alt Subject not assigned to slot
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- FIND STUDENT ---
+    Service -> StudentRepo: findByRollNumberWithUserAndMajor(rollNumber)
+    activate StudentRepo
+    
+    StudentRepo -> DB: Query Student by Roll Number
+    activate DB
+    DB --> StudentRepo: StudentProfile / Null
+    deactivate DB
+    
+    StudentRepo --> Service: StudentProfile
+    deactivate StudentRepo
+    
+    alt Student not found
+        Service --> Service: Collect error, continue
+    end
+    
+    alt Student is inactive
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- CHECK ENROLLMENT ---
+    Service -> EnrollmentRepo: existsByStudentAndSubjectAndSemesterAndEnrolled()
+    activate EnrollmentRepo
+    
+    EnrollmentRepo -> DB: Check Enrollment
+    activate DB
+    DB --> EnrollmentRepo: Boolean
+    deactivate DB
+    
+    EnrollmentRepo --> Service: Boolean
+    deactivate EnrollmentRepo
+    
+    alt Student not enrolled in subject
+        Service --> Service: Collect error, continue
+    end
+    
+    ' --- CHECK EXISTING PARTICIPANT ---
+    Service -> ParticipantRepo: findByExamSlotSubjectIdAndStudentUserId()
+    activate ParticipantRepo
+    
+    ParticipantRepo -> DB: Query Participant
+    activate DB
+    DB --> ParticipantRepo: Participant / Null
+    deactivate DB
+    
+    ParticipantRepo --> Service: Optional<ExamSlotParticipant>
+    deactivate ParticipantRepo
+    
+    alt Participant exists and enrolled
+        alt Mode is AddOnly
+            Service --> Service: Collect error, continue
+        else Mode is AddAndUpdate
+            Service --> Service: Skip (no change needed)
+        end
+    else Participant exists but withdrawn
+        alt Mode is AddOnly
+            Service --> Service: Collect error, continue
+        else Mode is AddAndUpdate
+            ' Re-enroll participant
+            Service -> ParticipantRepo: save(participant)
+            activate ParticipantRepo
+            
+            ParticipantRepo -> DB: Update Participant (set isEnrolled = true)
+            activate DB
+            DB --> ParticipantRepo: Updated Participant
+            deactivate DB
+            
+            ParticipantRepo --> Service: ExamSlotParticipant
+            deactivate ParticipantRepo
+        end
+    else Participant does not exist
+        ' Create new participant
+        Service -> ParticipantRepo: save(newParticipant)
+        activate ParticipantRepo
+        
+        ParticipantRepo -> DB: Insert New Participant
+        activate DB
+        DB --> ParticipantRepo: Saved Participant
+        deactivate DB
+        
+        ParticipantRepo --> Service: ExamSlotParticipant
+        deactivate ParticipantRepo
+    end
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: ImportResultDTO
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

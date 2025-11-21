@@ -1,0 +1,132 @@
+@startuml add_participant_to_exam_slot
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ExamSlotController {
+  + addParticipant(slotId, request) : Response
+}
+
+' --- SERVICE ---
+class ExamSlotService {
+  + addParticipant(slotId, request) : ExamSlotParticipantDTO
+}
+
+' --- REPOSITORY ---
+interface ExamSlotParticipantRepository <<interface>> {
+  + findByExamSlotSubjectIdAndStudentUserId(examSlotSubjectId, studentUserId) : Optional<ExamSlotParticipant>
+  + existsByExamSlotSubject_Slot_IdAndStudentUserIdAndIsEnrolled(slotId, studentUserId, isEnrolled) : boolean
+  + save(participant : ExamSlotParticipant) : ExamSlotParticipant
+  + findByIdWithDetails(id : Long) : ExamSlotParticipantDTO
+}
+
+interface ExamSlotSubjectRepository <<interface>> {
+  + findBySlotIdAndSubjectId(slotId, subjectId) : Optional<ExamSlotSubject>
+}
+
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+}
+
+interface EnrollmentRepository <<interface>> {
+  + existsByStudentAndSubjectAndSemesterAndEnrolled(studentId, subjectId, semesterId, enrolled) : boolean
+}
+
+interface ExamAttendanceRepository <<interface>> {
+  + findBySlotIdAndStudentUserId(slotId, studentUserId) : ExamAttendance
+  + save(attendance : ExamAttendance) : ExamAttendance
+}
+
+' --- ENTITIES ---
+class ExamSlotParticipant {
+  - id : Long
+  - examSlotSubject : ExamSlotSubject
+  - studentUser : User
+  - isEnrolled : Boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class ExamSlotSubject {
+  - id : Long
+  - slot : Slot
+  - subject : Subject
+  - isActive : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - semester : Semester
+  - room : Room
+  - staff : User
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - active : Boolean
+  - roles : Set<Role>
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - active : Boolean
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class ExamAttendance {
+  - id : Long
+  - slot : Slot
+  - student : User
+  - status : AttendanceStatus
+  - method : AttendanceMethod
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ExamSlotController -down-> ExamSlotService
+ExamSlotService -down-> ExamSlotParticipantRepository
+ExamSlotService -down-> ExamSlotSubjectRepository
+ExamSlotService -down-> SlotRepository
+ExamSlotService -down-> UserRepository
+ExamSlotService -down-> EnrollmentRepository
+ExamSlotService -down-> ExamAttendanceRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+ExamSlotParticipantRepository .down.> ExamSlotParticipant
+ExamSlotSubjectRepository .down.> ExamSlotSubject
+SlotRepository .down.> Slot
+UserRepository .down.> User
+ExamAttendanceRepository .down.> ExamAttendance
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+ExamSlotParticipant o-right- ExamSlotSubject
+ExamSlotParticipant o-right- User
+ExamSlotSubject o-right- Slot
+ExamSlotSubject o-right- Subject
+Slot o-right- Semester
+ExamAttendance o-right- Slot
+ExamAttendance o-right- User
+
+@enduml

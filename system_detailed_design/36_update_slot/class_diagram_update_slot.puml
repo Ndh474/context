@@ -1,0 +1,125 @@
+@startuml update_slot
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + update(id, request) : Response
+}
+
+' --- SERVICE ---
+class SlotService {
+  + update(id, request) : Slot
+  + updateExamSlotSubjects(slot, subjectIds) : void
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id : Integer) : Optional<Slot>
+  + existsByRoomAndTimeRange(roomId, startTime, endTime, excludeId) : boolean
+  + existsByStaffAndTimeRange(staffId, startTime, endTime, excludeId) : boolean
+  + countActualAttendanceRecordsBySlotId(slotId) : long
+  + countActualExamAttendanceRecordsBySlotId(slotId) : long
+  + save(slot : Slot) : Slot
+}
+
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+  + existsById(id : Short) : boolean
+}
+
+interface SemesterRepository <<interface>> {
+  + findById(id : Short) : Optional<Semester>
+  + existsById(id : Short) : boolean
+}
+
+interface RoomRepository <<interface>> {
+  + findById(id : Short) : Optional<Room>
+  + existsById(id : Short) : boolean
+}
+
+interface UserRepository <<interface>> {
+  + findById(id : Integer) : Optional<User>
+  + existsById(id : Integer) : boolean
+}
+
+interface ExamSlotSubjectRepository <<interface>> {
+  + findBySlotIdAndIsActiveTrue(slotId) : List<ExamSlotSubject>
+  + countActiveParticipants(examSlotSubjectId) : Long
+  + save(examSlotSubject) : ExamSlotSubject
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - description : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - active : boolean
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - active : boolean
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - active : boolean
+}
+
+class Room {
+  - id : Short
+  - name : String
+  - active : boolean
+}
+
+class User {
+  - id : Integer
+  - fullName : String
+  - email : String
+  - active : boolean
+}
+
+class ExamSlotSubject {
+  - id : Integer
+  - isActive : boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotService
+SlotService -down-> SlotRepository
+SlotService -down-> ClassRepository
+SlotService -down-> SemesterRepository
+SlotService -down-> RoomRepository
+SlotService -down-> UserRepository
+SlotService -down-> ExamSlotSubjectRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+ClassRepository .down.> AcademicClass
+SemesterRepository .down.> Semester
+RoomRepository .down.> Room
+UserRepository .down.> User
+ExamSlotSubjectRepository .down.> ExamSlotSubject
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- AcademicClass
+Slot o-right- Semester
+Slot o-right- Room
+Slot o-right- User
+
+@enduml

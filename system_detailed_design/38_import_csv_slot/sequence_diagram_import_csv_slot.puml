@@ -1,0 +1,183 @@
+@startuml import_csv_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":SemesterRepository" as SemesterRepo
+participant ":RoomRepository" as RoomRepo
+participant ":UserRepository" as UserRepo
+participant ":ClassRepository" as ClassRepo
+participant ":SlotRepository" as SlotRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/slots/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importFromCsv(file, mode)
+activate Controller
+
+' Mode validation (internal)
+
+alt Invalid import mode
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- PARSE CSV ---
+Service -> CsvParser: parseSlotCsv(file)
+activate CsvParser
+
+CsvParser --> Service: List<SlotCsvRow>
+deactivate CsvParser
+
+alt CSV parsing fails
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' Row validation (internal)
+
+    alt Row validation fails
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- FIND SEMESTER ---
+    Service -> SemesterRepo: findByCode(semesterCode)
+    activate SemesterRepo
+
+    SemesterRepo -> DB: Query Semester by Code
+    activate DB
+    DB --> SemesterRepo: Semester / Null
+    deactivate DB
+
+    SemesterRepo --> Service: Semester
+    deactivate SemesterRepo
+
+    alt Semester not found or inactive
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- FIND ROOM ---
+    Service -> RoomRepo: findByName(roomName)
+    activate RoomRepo
+
+    RoomRepo -> DB: Query Room by Name
+    activate DB
+    DB --> RoomRepo: Room / Null
+    deactivate DB
+
+    RoomRepo --> Service: Room
+    deactivate RoomRepo
+
+    alt Room not found or inactive
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- FIND STAFF ---
+    Service -> UserRepo: findByUsernameWithRoles(staffUsername)
+    activate UserRepo
+
+    UserRepo -> DB: Query User by Username with Roles
+    activate DB
+    DB --> UserRepo: User / Null
+    deactivate DB
+
+    UserRepo --> Service: Optional<User>
+    deactivate UserRepo
+
+    alt Staff not found or inactive
+        Service --> Service: Collect error, continue
+    end
+
+    alt Staff role invalid
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- FIND CLASS ---
+    Service -> ClassRepo: findByCodeAndSemesterCode(classCode, semesterCode)
+    activate ClassRepo
+
+    ClassRepo -> DB: Query Class by Code and Semester
+    activate DB
+    DB --> ClassRepo: AcademicClass / Null
+    deactivate DB
+
+    ClassRepo --> Service: AcademicClass
+    deactivate ClassRepo
+
+    alt Class not found or inactive
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- CHECK ROOM TIME CONFLICT ---
+    Service -> SlotRepo: existsByRoomAndTimeRange(roomId, startTime, endTime, null)
+    activate SlotRepo
+
+    SlotRepo -> DB: Check Room Time Conflicts
+    activate DB
+    DB --> SlotRepo: boolean
+    deactivate DB
+
+    SlotRepo --> Service: boolean
+    deactivate SlotRepo
+
+    alt Room time conflict
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- CHECK STAFF TIME CONFLICT ---
+    Service -> SlotRepo: existsByStaffAndTimeRange(staffId, startTime, endTime, null)
+    activate SlotRepo
+
+    SlotRepo -> DB: Check Staff Time Conflicts
+    activate DB
+    DB --> SlotRepo: boolean
+    deactivate DB
+
+    SlotRepo --> Service: boolean
+    deactivate SlotRepo
+
+    alt Staff time conflict
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- SAVE SLOT ---
+    Service -> SlotRepo: save(slot)
+    activate SlotRepo
+
+    SlotRepo -> DB: Insert New Slot
+    activate DB
+    DB --> SlotRepo: Saved Slot
+    deactivate DB
+
+    SlotRepo --> Service: Slot
+    deactivate SlotRepo
+
+    ' Create initial attendance records (internal)
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: Import Result
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

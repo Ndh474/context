@@ -1,0 +1,70 @@
+@startuml view_list_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":SlotController" as Controller
+participant ":SlotService" as Service
+participant ":SlotRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/slots
+activate Controller
+
+Controller -> Service: findAll(request)
+activate Service
+
+' --- SEARCH QUERY ---
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: Query Slots with Filters and Pagination
+activate DB
+DB --> Repository: Slot List
+deactivate DB
+
+Repository --> Service: List<Slot>
+deactivate Repository
+
+' --- POPULATE ATTENDANCE STATS ---
+loop For each slot
+    Service -> Repository: getAttendanceStats(slotId)
+    activate Repository
+
+    Repository -> DB: Query Attendance Statistics
+    activate DB
+    DB --> Repository: Stats
+    deactivate DB
+
+    Repository --> Service: AttendanceStats
+    deactivate Repository
+end
+
+Service --> Controller: List<Slot>
+deactivate Service
+
+' --- COUNT QUERY ---
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: Count Total Slots
+activate DB
+DB --> Repository: Total Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service --> Controller: Long
+deactivate Service
+
+' Build paging response (internal)
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

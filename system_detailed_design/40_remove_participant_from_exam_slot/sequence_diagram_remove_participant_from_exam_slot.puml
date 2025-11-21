@@ -1,0 +1,102 @@
+@startuml remove_participant_from_exam_slot
+!theme plain
+hide footbox
+
+actor Client
+participant ":ExamSlotController" as Controller
+participant ":ExamSlotService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":ExamSlotParticipantRepository" as ParticipantRepo
+participant ":ExamAttendanceRepository" as AttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
+activate Controller
+
+Controller -> Service: removeParticipant(slotId, participantId)
+activate Service
+
+' --- VALIDATE SLOT ---
+Service -> SlotRepo: findById(slotId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Slot by ID
+activate DB
+DB --> SlotRepo: Slot Record / Null
+deactivate DB
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- FIND PARTICIPANT ---
+Service -> ParticipantRepo: findById(participantId)
+activate ParticipantRepo
+
+ParticipantRepo -> DB: Query Participant by ID
+activate DB
+DB --> ParticipantRepo: Participant Record / Null
+deactivate DB
+
+ParticipantRepo --> Service: Optional<ExamSlotParticipant>
+deactivate ParticipantRepo
+
+alt Participant not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+alt Participant does not belong to slot
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- DELETE EXAM ATTENDANCE ---
+Service -> AttendanceRepo: findBySlotIdAndStudentUserId(slotId, studentUserId)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Query ExamAttendance
+activate DB
+DB --> AttendanceRepo: ExamAttendance / Null
+deactivate DB
+
+AttendanceRepo --> Service: ExamAttendance
+deactivate AttendanceRepo
+
+opt Attendance exists
+    Service -> AttendanceRepo: delete(attendance)
+    activate AttendanceRepo
+    
+    AttendanceRepo -> DB: Delete ExamAttendance
+    activate DB
+    DB --> AttendanceRepo: Success
+    deactivate DB
+    
+    AttendanceRepo --> Service: void
+    deactivate AttendanceRepo
+end
+
+' --- DELETE PARTICIPANT ---
+Service -> ParticipantRepo: delete(participant)
+activate ParticipantRepo
+
+ParticipantRepo -> DB: Delete Participant
+activate DB
+DB --> ParticipantRepo: Success
+deactivate DB
+
+ParticipantRepo --> Service: void
+deactivate ParticipantRepo
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml
