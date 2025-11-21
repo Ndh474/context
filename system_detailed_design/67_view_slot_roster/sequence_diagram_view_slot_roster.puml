@@ -2,14 +2,14 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Lecturer
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/slots/{id}/roster
+Lecturer -> Controller: GET /api/v1/slots/{id}/roster
 activate Controller
 
 Controller -> Service: getSlotRoster(id, currentUserId)
@@ -29,7 +29,7 @@ deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Lecturer: 404 Not Found
 end
 
 ' --- CHECK AUTHORIZATION ---
@@ -37,7 +37,7 @@ end
 
 alt Not assigned staff and not data operator
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 ' --- GET ROSTER ---
@@ -57,7 +57,7 @@ deactivate Repository
 Service --> Controller: List<SlotRosterItemDTO>
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Lecturer: 200 OK
 deactivate Controller
 
 @enduml

@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Lecturer
 participant ":ClassController" as Controller
 participant ":ClassSummaryService" as Service
 participant ":ClassRepository" as ClassRepo
@@ -12,7 +12,7 @@ participant ":AttendanceRecordRepository" as AttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: GET /api/v1/classes/{classId}/summary?semester={semesterId}
+Lecturer -> Controller: GET /api/v1/classes/{classId}/summary?semester={semesterId}
 activate Controller
 
 Controller -> Service: getClassSummary(classId, semesterId)
@@ -32,12 +32,12 @@ deactivate ClassRepo
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Lecturer: 404 Not Found
 end
 
 alt Class not in semester
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 Service -> SlotRepo: findByClassIdAndStaffUserId(classId, currentUserId)
@@ -53,7 +53,7 @@ deactivate SlotRepo
 
 alt Not assigned to class
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 ' --- GET ENROLLMENT SUMMARY ---
@@ -97,7 +97,7 @@ deactivate SlotRepo
 Service --> Controller: ClassSummaryDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Lecturer: 200 OK
 deactivate Controller
 
 @enduml

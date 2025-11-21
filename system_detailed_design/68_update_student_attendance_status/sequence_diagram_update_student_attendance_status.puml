@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Lecturer
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -11,7 +11,7 @@ participant ":AttendanceRecordRepository" as AttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/slots/{id}/submit-attendance
+Lecturer -> Controller: POST /api/v1/slots/{id}/submit-attendance
 activate Controller
 
 Controller -> Service: submitAttendance(id, request, currentUserId)
@@ -31,7 +31,7 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Lecturer: 404 Not Found
 end
 
 ' --- VALIDATION LOGIC ---
@@ -39,12 +39,12 @@ end
 
 alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 alt Edit window expired
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 ' --- GET CURRENT USER ---
@@ -117,7 +117,7 @@ deactivate AttendanceRepo
 Service --> Controller: SlotAttendanceSubmissionResponse
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Lecturer: 200 OK
 deactivate Controller
 
 @enduml

@@ -2,7 +2,7 @@
 !theme plain
 hide footbox
 
-actor Client
+actor Lecturer
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
@@ -10,7 +10,7 @@ participant ":ExamAttendanceRepository" as ExamRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
-Client -> Controller: PUT /api/v1/slots/{id}/category
+Lecturer -> Controller: PUT /api/v1/slots/{id}/category
 activate Controller
 
 Controller -> Service: updateSlotCategory(id, request, currentUserId)
@@ -30,13 +30,13 @@ deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller --> Lecturer: 404 Not Found
 end
 
 ' --- CHECK AUTHORIZATION ---
 alt Not assigned staff
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Client: 403 Forbidden
+    Controller --> Lecturer: 403 Forbidden
 end
 
 ' --- VALIDATE CATEGORY TRANSITION ---
@@ -44,7 +44,7 @@ end
 
 alt Invalid category transition
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: 400 Bad Request
+    Controller --> Lecturer: 400 Bad Request
 end
 
 ' --- CHECK EXAM DATA (if LECTURE_WITH_PT → LECTURE) ---
@@ -62,7 +62,7 @@ opt Category change to LECTURE
     
     alt Has exam data
         Service -->> Controller: <<throw>> BadRequestException
-        Controller --> Client: 400 Bad Request
+        Controller --> Lecturer: 400 Bad Request
     else All NOT_YET
         Service -> ExamRepo: deleteBySlotId(id)
         activate ExamRepo
@@ -92,7 +92,7 @@ deactivate SlotRepo
 Service --> Controller: SlotDTO
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller --> Lecturer: 200 OK
 deactivate Controller
 
 @enduml
