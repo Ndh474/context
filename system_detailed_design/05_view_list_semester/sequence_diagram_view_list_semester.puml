@@ -48,11 +48,7 @@ deactivate Repository
 Service --> Controller: Long
 deactivate Service
 
-' --- BUILD RESPONSE ---
-group Build Paging Response
-    Controller -> Controller: calculate pagination metadata
-    Controller -> Controller: build response with items and metadata
-end
+' Build paging response (internal)
 
 Controller --> Client: 200 OK
 deactivate Controller

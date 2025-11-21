@@ -1,112 +1,61 @@
-@startuml Import CSV Semester - Class Diagram
+@startuml import_csv_semester
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class SemesterController {
-  - semesterService : SemesterService
-  + importSemesters(file : MultipartFile, mode : String) : Response<ImportResultDTO>
+  + importFromCsv(file, mode) : Response
 }
 
+' --- SERVICE ---
 class SemesterService {
-  - semesterRepository : SemesterRepository
-  - csvParserService : CsvParserService
-  - semesterMapper : SemesterMapper
-  + importFromCsv(file : MultipartFile, modeStr : String) : ImportResultDTO
-  # processOneSemesterRow(row : SemesterCsvRow, mode : ImportMode) : void
+  + importFromCsv(file, mode) : ImportResult
+  + parseAndValidateCsv(file) : List<Row>
+  + processImportRow(row, mode) : Result
 }
 
-class CsvParserService {
-  + parseSemesterCsv(file : MultipartFile) : List<SemesterCsvRow>
-}
-
+' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + findByCode(code : String) : Optional<Semester>
   + existsByCode(code : String) : boolean
   + existsByName(name : String) : boolean
-  + existsByNameAndIdNot(name : String, id : Short) : boolean
-  + existsByDateRangeOverlap(startDate : LocalDate, endDate : LocalDate) : boolean
-  + existsByDateRangeOverlapAndIdNot(startDate : LocalDate, endDate : LocalDate, id : Short) : boolean
-  + save(entity : Semester) : Semester
+  + existsByNameAndIdNot(name, id) : boolean
+  + existsByDateRangeOverlap(startDate, endDate) : boolean
+  + existsByDateRangeOverlapAndIdNot(startDate, endDate, id) : boolean
+  + save(semester : Semester) : Semester
 }
 
-interface SemesterMapper <<interface>> {
-  + toEntity(row : SemesterCsvRow) : Semester
-  + toDTO(entity : Semester) : SemesterDTO
-}
-
+' --- ENTITIES ---
 class Semester {
   - id : Short
   - name : String
   - code : String
   - startDate : LocalDate
   - endDate : LocalDate
+  - isActive : Boolean
   - academicClasses : Set<AcademicClass>
 }
 
-class BaseEntity {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class SemesterCsvRow {
-  - rowNumber : int
-  - code : String
+class AcademicClass {
+  - id : Integer
   - name : String
-  - startDateStr : String
-  - endDateStr : String
-  - statusStr : String
-  + isValid() : boolean
-  + getStartDate() : LocalDate
-  + getEndDate() : LocalDate
-  + getActive() : Boolean
-}
-
-class ImportResultDTO {
-  - successCount : int
-  - failureCount : int
-  - errors : List<ImportErrorDTO>
-}
-
-class ImportErrorDTO {
-  - rowNumber : int
-  - errorCode : String
-  - message : String
-}
-
-class Response<T> {
-  - status : int
-  - message : String
   - code : String
-  - data : T
 }
 
-class ImportMode <<enumeration>> {
-  ADD_ONLY
-  ADD_AND_UPDATE
-  + fromString(mode : String) : ImportMode
-}
+' --- DEPENDENCY INJECTION (Association) ---
+SemesterController -down-> SemesterService
+SemesterService -down-> SemesterRepository
 
-SemesterController --> SemesterService
-SemesterService --> SemesterRepository
-SemesterService --> CsvParserService
-SemesterService --> SemesterMapper
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
 
-SemesterController ..> Response : <<use>>
-SemesterController ..> ImportResultDTO : <<use>>
-SemesterService ..> ImportResultDTO : <<use>>
-SemesterService ..> SemesterCsvRow : <<use>>
-SemesterService ..> ImportMode : <<use>>
-SemesterService ..> Semester : <<use>>
-CsvParserService ..> SemesterCsvRow : <<use>>
-SemesterRepository ..> Semester : <<use>>
-SemesterMapper ..> Semester : <<use>>
-SemesterMapper ..> SemesterCsvRow : <<use>>
-
-ImportResultDTO *-- ImportErrorDTO
-
-Semester --|> BaseEntity
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Semester o-right- AcademicClass
 
 @enduml

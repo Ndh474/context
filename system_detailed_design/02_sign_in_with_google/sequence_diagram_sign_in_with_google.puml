@@ -16,10 +16,7 @@ Controller -> Service: googleLogin(request)
 activate Service
 
 ' --- GOOGLE TOKEN VERIFICATION ---
-group Google Token Verification
-    Service -> Service: verify Google ID token
-    Service -> Service: extract email from token payload
-end
+' Google token verification (internal)
 
 alt Invalid token
     Service -->> Controller: <<throw>> InvalidBearerTokenException
@@ -55,12 +52,7 @@ alt User is inactive
 end
 
 ' --- TOKEN GENERATION ---
-group Token Generation
-    Service -> Service: extract roles and permissions
-    Service -> Service: createAccessToken(user, permissions)
-    Service -> Service: createRefreshToken(userId)
-    Service -> Service: build TokenResponse
-end
+' Token generation (internal)
 
 Service --> Controller: TokenResponse
 deactivate Service

@@ -1,246 +1,135 @@
-@startuml Import CSV Semester
+@startuml import_csv_semester
 !theme plain
 hide footbox
 
 actor Client
 participant ":SemesterController" as Controller
 participant ":SemesterService" as Service
-participant ":CsvParserService" as CsvParser
 participant ":SemesterRepository" as Repository
 participant "Database" as DB
 
-Client -> Controller: POST /api/v1/semesters/import\nMultipartFile file, String mode
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/semesters/import
 activate Controller
 
-' === Validation 1: File Required ===
-alt file is null or empty
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "CSV file is required",\ncode: "FILE_REQUIRED"}
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
 end
 
-' === Validation 2: Import Mode ===
-alt invalid mode (not AddOnly or AddAndUpdate)
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid import mode",\ncode: "INVALID_IMPORT_MODE"}
-end
-
-Controller -> Service: importFromCsv(file, modeStr)
+Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' === CSV Parsing ===
-Service -> CsvParser: parseSemesterCsv(file)
-activate CsvParser
+' CSV parsing and validation (internal)
 
-' === File Validation ===
-alt file size > 5MB
-    CsvParser -->> Service: <<throw>> BadRequestException
+alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "File size exceeds 5MB limit",\ncode: "FILE_TOO_LARGE"}
+    Controller --> Client: 400 Bad Request
 end
 
-alt invalid file type (not CSV)
-    CsvParser -->> Service: <<throw>> BadRequestException
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid file type",\ncode: "INVALID_FILE_TYPE"}
-end
-
-alt invalid CSV header
-    CsvParser -->> Service: <<throw>> BadRequestException
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Invalid CSV format. Expected header: code,name,start_date,end_date[,status]",\ncode: "INVALID_CSV_FORMAT"}
-end
-
-alt row count > 10,000
-    CsvParser -->> Service: <<throw>> BadRequestException
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Client: HTTP 400\n{status: 400,\nmessage: "Too many rows (max 10,000)",\ncode: "TOO_MANY_ROWS"}
-end
-
-CsvParser --> Service: rows:List<SemesterCsvRow>
-deactivate CsvParser
-
-note right of Service
-Perform in-memory deduplication
-by code (keep first occurrence)
-end note
-
-' === Batch Processing Loop ===
-loop for each unique row
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
     note right of Service
     Each row processed in
-    REQUIRES_NEW transaction
-    (independent commit/rollback)
+    independent transaction
+    (REQUIRES_NEW)
     end note
 
-    Service -> Service: processOneSemesterRow(row, mode)
-    activate Service
+    ' Row validation (internal)
 
-    ' === Row Validation ===
-    alt !row.isValid() OR startDate >= endDate
+    alt Row validation fails
         note right of Service
-        Collect error:
-        INVALID_FIELD_FORMAT
+        Collect error
         Continue to next row
         end note
-        Service --> Service
-        deactivate Service
-    else row is valid
+    end
 
-        ' === Check Existence ===
-        Service -> Repository: findByCode(code)
-        activate Repository
+    ' --- CHECK EXISTENCE ---
+    Service -> Repository: findByCode(code)
+    activate Repository
 
-        Repository -> DB: SELECT * FROM semesters\nWHERE code = ?
-        activate DB
-        DB --> Repository: semesterRecord
-        deactivate DB
+    Repository -> DB: Query Semester by Code
+    activate DB
+    DB --> Repository: Semester / Null
+    deactivate DB
 
-        Repository --> Service: existing:Optional<Semester>
-        deactivate Repository
+    Repository --> Service: Optional<Semester>
+    deactivate Repository
 
-        ' === Mode Branching ===
-        alt mode = AddOnly
-            alt existing.isPresent()
+    ' --- MODE-SPECIFIC LOGIC ---
+    alt Mode: AddOnly
+        alt Semester exists
+            note right of Service
+            Collect error: CODE_EXISTS
+            Continue to next row
+            end note
+        else Semester not exists
+            ' Validation logic (internal)
+
+            alt Validation fails
                 note right of Service
-                Collect error:
-                SEMESTER_CODE_EXISTS
+                Collect error
                 Continue to next row
                 end note
-                Service --> Service
-                deactivate Service
-            else !existing.isPresent()
-                ' Validate uniqueness
-                Service -> Repository: existsByName(name)
+            else Validation passes
+                Service -> Repository: save(newSemester)
                 activate Repository
-                Repository -> DB: SELECT COUNT(*) > 0\nFROM semesters WHERE name = ?
+                Repository -> DB: Insert New Semester
                 activate DB
-                DB --> Repository: count
+                DB --> Repository: Saved Semester
                 deactivate DB
-                Repository --> Service: exists:boolean
+                Repository --> Service: Semester
                 deactivate Repository
 
-                alt exists = true
-                    note right of Service
-                    Collect error:
-                    SEMESTER_NAME_EXISTS
-                    Continue to next row
-                    end note
-                    Service --> Service
-                    deactivate Service
-                else name unique
-                    Service -> Repository: existsByDateRangeOverlap(start, end)
-                    activate Repository
-                    Repository -> DB: SELECT COUNT(s) > 0\nWHERE start_date < ? AND end_date > ?
-                    activate DB
-                    DB --> Repository: count
-                    deactivate DB
-                    Repository --> Service: exists:boolean
-                    deactivate Repository
-
-                    alt exists = true
-                        note right of Service
-                        Collect error:
-                        SEMESTER_DATE_RANGE_EXISTS
-                        Continue to next row
-                        end note
-                        Service --> Service
-                        deactivate Service
-                    else no overlap
-                        ' Create new semester
-                        Service -> Repository: save(semester)
-                        activate Repository
-                        Repository -> DB: INSERT INTO semesters\n(name, code, start_date, end_date, is_active)\nVALUES (?, ?, ?, ?, ?)
-                        activate DB
-                        DB --> Repository: savedRecord
-                        deactivate DB
-                        Repository --> Service: saved:Semester
-                        deactivate Repository
-
-                        note right of Service
-                        Increment successCount
-                        Commit transaction
-                        end note
-                        Service --> Service
-                        deactivate Service
-                    end
-                end
-            end
-
-        else mode = AddAndUpdate
-            alt existing.isPresent()
-                ' Validate uniqueness (exclude self)
-                Service -> Repository: existsByNameAndIdNot(name, id)
-                activate Repository
-                Repository -> DB: SELECT COUNT(*) > 0\nWHERE name = ? AND id != ?
-                activate DB
-                DB --> Repository: count
-                deactivate DB
-                Repository --> Service: exists:boolean
-                deactivate Repository
-
-                alt exists = true
-                    note right of Service
-                    Collect error:
-                    SEMESTER_NAME_EXISTS
-                    Continue to next row
-                    end note
-                    Service --> Service
-                    deactivate Service
-                else name unique
-                    Service -> Repository: existsByDateRangeOverlapAndIdNot(start, end, id)
-                    activate Repository
-                    Repository -> DB: SELECT COUNT(s) > 0\nWHERE id != ? AND start_date < ? AND end_date > ?
-                    activate DB
-                    DB --> Repository: count
-                    deactivate DB
-                    Repository --> Service: exists:boolean
-                    deactivate Repository
-
-                    alt exists = true
-                        note right of Service
-                        Collect error:
-                        SEMESTER_DATE_RANGE_EXISTS
-                        Continue to next row
-                        end note
-                        Service --> Service
-                        deactivate Service
-                    else no overlap
-                        ' Update existing semester
-                        Service -> Repository: save(updatedSemester)
-                        activate Repository
-                        Repository -> DB: UPDATE semesters\nSET name=?, start_date=?, end_date=?, is_active=?, updated_at=NOW()\nWHERE id=?
-                        activate DB
-                        DB --> Repository: updatedRecord
-                        deactivate DB
-                        Repository --> Service: saved:Semester
-                        deactivate Repository
-
-                        note right of Service
-                        Increment successCount
-                        Commit transaction
-                        end note
-                        Service --> Service
-                        deactivate Service
-                    end
-                end
-
-            else !existing.isPresent()
                 note right of Service
-                Same validation as AddOnly:
-                - Check name uniqueness
-                - Check date range overlap
-                - Create new semester
-                - Increment successCount
+                Increment successCount
+                Commit transaction
                 end note
-                Service --> Service
-                deactivate Service
             end
+        end
+
+    else Mode: AddAndUpdate
+        alt Semester exists
+            ' Validation logic (internal)
+
+            alt Validation fails
+                note right of Service
+                Collect error
+                Continue to next row
+                end note
+            else Validation passes
+                Service -> Repository: save(updatedSemester)
+                activate Repository
+                Repository -> DB: Update Existing Semester
+                activate DB
+                DB --> Repository: Updated Semester
+                deactivate DB
+                Repository --> Service: Semester
+                deactivate Repository
+
+                note right of Service
+                Increment successCount
+                Commit transaction
+                end note
+            end
+
+        else Semester not exists
+            note right of Service
+            Same as AddOnly:
+            Create new semester
+            after validation
+            end note
         end
     end
 end
 
-Service --> Controller: result:ImportResultDTO
+' Build result (internal)
+
+Service --> Controller: Import Result
 deactivate Service
 
-Controller --> Client: HTTP 200 OK\n{status: 200,\nmessage: "Import completed: X successful, Y failed",\ndata: {\n  successCount: X,\n  failureCount: Y,\n  errors: [\n    {rowNumber: N, errorCode: "...", message: "..."}\n  ]\n}}
+Controller --> Client: 200 OK
 deactivate Controller
 
 @enduml

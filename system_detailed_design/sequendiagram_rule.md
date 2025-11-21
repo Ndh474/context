@@ -183,14 +183,123 @@ Sử dụng alt hoặc opt kết hợp với stereotype <<throw>>.
 
 ### **B. Logic Nội Bộ (Grouping) - QUAN TRỌNG**
 
-Thay vì vẽ mũi tên tự chỉ vào mình (Service -> Service) nhiều lần gây rối (Spaghetti), hãy dùng group để đóng gói logic.
+#### **KHI NÀO DÙNG `group`**
 
-- **Ví dụ:** Logic tạo Token gồm nhiều bước (Sign, Encrypt, Save Redis...).
+Dùng `group` **CHỈ KHI** gom nhiều external interactions (calls to other services/components) vào một sub-flow logic.
 
-60. group Token Generation
-61.     Service -> TokenProvider: createAccess()
-62.     Service -> TokenProvider: createRefresh()
-63. end
+**✅ NÊN (Do) - Có nhiều external calls:**
+
+```puml
+group Token Generation
+    Service -> TokenProvider: createAccessToken()
+    Service -> TokenProvider: createRefreshToken()
+    Service -> RedisCache: storeTokens()
+end
+```
+
+**Lý do:** Gom 3 external calls (TokenProvider x2, RedisCache) thành 1 logical unit.
+
+---
+
+#### **KHI NÀO KHÔNG DÙNG `group`**
+
+**❌ KHÔNG NÊN (Don't) - Chỉ có self-calls:**
+
+```puml
+' SAI: Vẽ implementation details
+group Business Rules Validation
+    Service -> Service: validate date range
+    Service -> Service: check code uniqueness
+    Service -> Service: check name uniqueness
+    Service -> Service: check date overlap
+end
+```
+
+**Lý do:** Đây là **implementation detail** (code nội bộ), không phải design decision. Architect chỉ quan tâm "Service validate business rules", không quan tâm validate bao nhiêu rules.
+
+**✅ ĐÚNG - Bỏ group, dùng comment hoặc note:**
+
+```puml
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request
+end
+```
+
+**HOẶC nếu cần làm rõ:**
+
+```puml
+note right of Service
+    Validate business rules:
+    date range, uniqueness, overlap
+end note
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+end
+```
+
+---
+
+#### **So Sánh: Khi Nào Dùng vs Không Dùng**
+
+| Tình huống | Dùng `group`? | Lý do |
+|------------|---------------|-------|
+| **Multiple external calls** (Service → Provider, Cache, Queue) | ✅ CÓ | Gom sub-flow logic với external dependencies |
+| **Self-calls validation** (Service → Service x5) | ❌ KHÔNG | Implementation detail, không phải design |
+| **Single operation** (Service → Service: applyChanges) | ❌ KHÔNG | Thừa, chỉ là step trước save() |
+| **Loop with external calls** | ✅ CÓ (dùng `loop`) | Cần thể hiện iteration pattern |
+| **Conditional logic** | ❌ KHÔNG (dùng `alt`/`opt`) | Đã có cấu trúc branching rồi |
+
+---
+
+#### **Ví Dụ Thực Tế: Update Semester**
+
+**❌ SAI (Over-engineering):**
+
+```puml
+group Business Rules Validation
+    Service -> Service: validate date range (start < end)
+    Service -> Service: check code uniqueness (if changed)
+    Service -> Service: check name uniqueness (if changed)
+    Service -> Service: check date overlap (if changed)
+end
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+end
+
+group Update Semester
+    Service -> Service: apply changes to semester entity
+end
+
+Service -> Repository: save(semester)
+```
+
+**✅ ĐÚNG (High-level design):**
+
+```puml
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request
+end
+
+Service -> Repository: save(semester)
+activate Repository
+Repository -> DB: Update Semester
+...
+```
+
+**Giải thích:**
+- Bỏ `group Business Rules Validation` → chỉ giữ `alt` cho error handling
+- Bỏ `group Update Semester` → thừa, giống như save() bên dưới
+- Kết quả: Gọn gàng, focus vào design flow, không rối bởi implementation details
+
+---
 
 ### **C. Vòng Lặp (Loops) - MỚI**
 
@@ -211,6 +320,7 @@ Thay vì vẽ mũi tên tự chỉ vào mình (Service -> Service) nhiều lần
 1. [ ] **Visual:** Database có phải là hình chữ nhật (participant) không? (Không dùng hình trụ).
 2. [ ] **Flow:** Database query có dễ đọc không? (Tránh SQL dài).
 3. [ ] **Repository:** Chỉ có 1 Repository participant chưa? Đã gộp Custom + Impl vào 1 participant chưa?
-4. [ ] **Clean:** Đã dùng group cho các logic phức tạp thay vì self-call liên tục chưa?
-5. [ ] **Logic:** Vòng lặp (loop) có mô tả nghiệp vụ thay vì cú pháp code không?
-6. [ ] **Naming:** Tên file có đúng format sequence_diagram\_[feature].puml không?
+4. [ ] **Group Usage:** `group` chỉ dùng cho external calls, KHÔNG dùng cho self-calls validation hay single operations.
+5. [ ] **Over-Engineering:** Đã bỏ các `group` cho validation logic (Service -> Service) chưa? Chỉ giữ `alt`/`opt` cho branching.
+6. [ ] **Logic:** Vòng lặp (loop) có mô tả nghiệp vụ thay vì cú pháp code không?
+7. [ ] **Naming:** Tên file có đúng format sequence_diagram\_[feature].puml không?

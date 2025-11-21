@@ -1,99 +1,58 @@
-@startuml Update Semester - Class Diagram
+@startuml update_semester
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class SemesterController {
-  - semesterService : SemesterService
-  + update(id : Short, request : SemesterUpdateRequest) : Response<SemesterDTO>
+  + update(id, request) : Response
 }
 
+' --- SERVICE ---
 class SemesterService {
-  - semesterRepository : SemesterRepository
-  - semesterMapper : SemesterMapper
-  + update(id : Short, request : SemesterUpdateRequest) : SemesterDTO
+  + update(id, request) : Semester
 }
 
+' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + findById(id : Short) : Optional<Semester>
-  + existsByCodeAndIdNot(code : String, id : Short) : boolean
-  + existsByNameAndIdNot(name : String, id : Short) : boolean
-  + existsByDateRangeOverlapAndIdNot(startDate : LocalDate, endDate : LocalDate, id : Short) : boolean
-  + countActiveClassesBySemesterId(semesterId : Short) : long
-  + save(entity : Semester) : Semester
+  + existsByCodeAndIdNot(code, id) : boolean
+  + existsByNameAndIdNot(name, id) : boolean
+  + existsByDateRangeOverlapAndIdNot(startDate, endDate, id) : boolean
+  + countActiveClassesBySemesterId(id) : long
+  + save(semester : Semester) : Semester
 }
 
-interface SemesterMapper <<interface>> {
-  + toDTO(entity : Semester) : SemesterDTO
-  + updateSemesterFromRequest(request : SemesterUpdateRequest, semester : Semester) : void
-}
-
+' --- ENTITIES ---
 class Semester {
   - id : Short
   - name : String
   - code : String
   - startDate : LocalDate
   - endDate : LocalDate
+  - isActive : Boolean
   - academicClasses : Set<AcademicClass>
 }
 
-class BaseEntity {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class SemesterUpdateRequest {
+class AcademicClass {
+  - id : Integer
   - name : String
   - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
 }
 
-class BaseRequest {
-  - isActive : Boolean
-}
+' --- DEPENDENCY INJECTION (Association) ---
+SemesterController -down-> SemesterService
+SemesterService -down-> SemesterRepository
 
-class SemesterDTO {
-  - id : Short
-  - name : String
-  - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
-  - totalClass : Short
-}
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
 
-class BaseDTO {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class Response<T> {
-  - status : int
-  - message : String
-  - code : String
-  - data : T
-}
-
-SemesterController --> SemesterService
-SemesterService --> SemesterRepository
-SemesterService --> SemesterMapper
-
-SemesterController ..> Response : <<use>>
-SemesterController ..> SemesterDTO : <<use>>
-SemesterController ..> SemesterUpdateRequest : <<use>>
-SemesterService ..> Semester : <<use>>
-SemesterService ..> SemesterDTO : <<use>>
-SemesterService ..> SemesterUpdateRequest : <<use>>
-SemesterRepository ..> Semester : <<use>>
-SemesterMapper ..> Semester : <<use>>
-SemesterMapper ..> SemesterDTO : <<use>>
-SemesterMapper ..> SemesterUpdateRequest : <<use>>
-
-Semester --|> BaseEntity
-SemesterUpdateRequest --|> BaseRequest
-SemesterDTO --|> BaseDTO
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Semester o-right- AcademicClass
 
 @enduml

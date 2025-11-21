@@ -1,81 +1,56 @@
-@startuml Delete Semester - Class Diagram
+@startuml delete_semester
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class SemesterController {
-  - semesterService : SemesterService
-  + delete(id : Short) : Response<Void>
+  + delete(id) : Response
 }
 
+' --- SERVICE ---
 class SemesterService {
-  - semesterRepository : SemesterRepository
-  + delete(id : Short) : void
+  + delete(id) : void
 }
 
+' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + existsById(id : Short) : boolean
-  + countActiveClassesBySemesterId(semesterId : Short) : long
+  + countActiveClassesBySemesterId(id : Short) : long
   + deleteById(id : Short) : void
-  + flush() : void
 }
 
+' --- ENTITIES ---
 class Semester {
   - id : Short
   - name : String
   - code : String
   - startDate : LocalDate
   - endDate : LocalDate
+  - isActive : Boolean
   - academicClasses : Set<AcademicClass>
 }
 
-class BaseEntity {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class Response<T> {
-  - status : int
-  - message : String
+class AcademicClass {
+  - id : Integer
+  - name : String
   - code : String
-  - data : T
+  - isActive : Boolean
 }
 
-class ResourceNotFoundException {
-  - errorCode : String
-  + ResourceNotFoundException(message : String, errorCode : String)
-}
+' --- DEPENDENCY INJECTION (Association) ---
+SemesterController -down-> SemesterService
+SemesterService -down-> SemesterRepository
 
-class OperationNotAllowedException {
-  - errorCode : String
-  + OperationNotAllowedException(message : String, errorCode : String)
-}
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
 
-class DataIntegrityViolationException {
-  + DataIntegrityViolationException(message : String)
-}
-
-class ErrorCode {
-  + SEMESTER_NOT_FOUND : String
-  + SEMESTER_HAS_ACTIVE_CLASSES : String
-  + FOREIGN_KEY_CONSTRAINT_VIOLATION : String
-}
-
-SemesterController --> SemesterService
-SemesterService --> SemesterRepository
-
-SemesterController ..> Response : <<use>>
-SemesterService ..> Semester : <<use>>
-SemesterService ..> ResourceNotFoundException : <<throws>>
-SemesterService ..> OperationNotAllowedException : <<throws>>
-SemesterRepository ..> Semester : <<use>>
-SemesterRepository ..> DataIntegrityViolationException : <<throws>>
-
-ResourceNotFoundException ..> ErrorCode : <<use>>
-OperationNotAllowedException ..> ErrorCode : <<use>>
-
-Semester --|> BaseEntity
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Semester o-right- AcademicClass
 
 @enduml
