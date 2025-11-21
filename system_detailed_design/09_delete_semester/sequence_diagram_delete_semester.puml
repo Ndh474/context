@@ -55,6 +55,14 @@ activate Repository
 
 Repository -> DB: Delete Semester by ID
 activate DB
+
+alt Foreign key constraint violation
+    DB -->> Repository: <<throw>> DataIntegrityViolationException
+    Repository -->> Service: <<throw>> DataIntegrityViolationException
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
 DB --> Repository: Success
 deactivate DB
 
