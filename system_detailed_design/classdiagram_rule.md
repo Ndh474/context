@@ -64,6 +64,67 @@ Design quan tâm đến cấu trúc dữ liệu trừu tượng, không quan tâ
 
 - Ghi class cụ thể: ArrayList, HashSet, java.sql.Timestamp.
 
+### **C. Luật "Đơn Giản Hóa Repository" (Repository Simplification) - QUAN TRỌNG**
+
+Ở mức High-Level Design, **không cần vẽ** chi tiết implementation pattern của Repository.
+
+#### **✅ NÊN (Do) - Gọn gàng**
+
+Chỉ vẽ 1 interface đại diện cho toàn bộ Data Access Layer:
+
+```puml
+interface SemesterRepository <<interface>> {
+  + findById(id) : Optional<Semester>
+  + save(semester) : Semester
+  + search(request) : List<Semester>
+  + count(request) : Long
+}
+```
+
+Trong code có thể có: `JpaRepository`, `CustomSemesterRepository`, `SemesterRepositoryImpl` → **Nhưng trong diagram chỉ cần 1 Repository interface**.
+
+#### **❌ KHÔNG NÊN (Don't) - Rối rắm**
+
+```puml
+interface SemesterRepository <<interface>> {
+  + findById(id) : Optional<Semester>
+  + save(semester) : Semester
+}
+
+interface CustomSemesterRepository <<interface>> {
+  + search(request) : List<Semester>
+  + count(request) : Long
+}
+
+class SemesterRepositoryImpl {
+  - entityManager : EntityManager
+  + search(request) : List<Semester>
+  + count(request) : Long
+}
+```
+
+#### **Lý do:**
+
+- Architect chỉ quan tâm **Repository có khả năng gì** (search, count, save...).
+- **Không quan tâm** việc code implement bằng Spring Data JPA pattern hay custom query.
+- Tách interface là **implementation detail**, không phải **design decision**.
+- Vẽ nhiều Repository gây rối, làm mất focus vào business logic.
+
+#### **Ví dụ thực tế:**
+
+**❌ SAI (3 components cho 1 Data Access Layer):**
+```
+Service --> JpaRepository
+Service --> CustomRepository
+CustomRepository <|.. RepositoryImpl
+```
+
+**✅ ĐÚNG (1 component, clean & clear):**
+```
+Service --> Repository
+Repository ..> Entity
+```
+
 ## **3. Layout & Thẩm Mỹ (Aesthetics)**
 
 ### **Luật "Vuông Góc" (Ortho Layout)**
@@ -128,7 +189,8 @@ Design quan tâm đến cấu trúc dữ liệu trừu tượng, không quan tâ
 
 1. [ ] **Scope:** Chỉ có 4 loại class (Controller, Service, Repo, Entity) chưa? Đã xóa hết Utils/Mapper chưa?
 2. [ ] **Clean:** Đã xóa hết DTO chưa?
-3. [ ] **Abstract:** Đã thay ArrayList bằng List chưa?
-4. [ ] **Style:** Đã thêm skinparam linetype ortho chưa?
-5. [ ] **Layout:** Đường nối có vuông vức không? Có bị đường chéo cắt ngang logic không?
-6. [ ] **Naming:** Tên file có đúng format class_diagram\_[feature_name].puml không?
+3. [ ] **Repository:** Chỉ có 1 Repository interface chưa? Đã gộp Custom + Impl vào 1 interface chưa?
+4. [ ] **Abstract:** Đã thay ArrayList bằng List chưa?
+5. [ ] **Style:** Đã thêm skinparam linetype ortho chưa?
+6. [ ] **Layout:** Đường nối có vuông vức không? Có bị đường chéo cắt ngang logic không?
+7. [ ] **Naming:** Tên file có đúng format class_diagram\_[feature_name].puml không?

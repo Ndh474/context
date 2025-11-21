@@ -90,8 +90,52 @@ Sequence Diagram dùng để giao tiếp về **Luồng xử lý**, không phả
 
 #### **Ví dụ chuẩn:**
 
-50. participant ":AuthenticationService" as Service
-51. participant "Database" as DB
+participant ":AuthenticationService" as Service
+participant "Database" as DB
+
+### **Đơn Giản Hóa Repository (Repository Simplification) - QUAN TRỌNG**
+
+Ở mức High-Level Design, **không cần vẽ** chi tiết implementation pattern của Repository.
+
+#### **✅ NÊN (Do) - Gọn gàng**
+
+Chỉ vẽ 1 participant đại diện cho toàn bộ Data Access Layer:
+
+```
+participant ":SemesterRepository" as Repository
+```
+
+Trong code có thể có: `JpaRepository`, `CustomSemesterRepository`, `SemesterRepositoryImpl` → **Nhưng trong diagram chỉ cần 1 Repository**.
+
+#### **❌ KHÔNG NÊN (Don't) - Rối rắm**
+
+```
+participant ":SemesterRepository" as Repo1
+participant ":CustomSemesterRepository" as Repo2
+participant ":SemesterRepositoryImpl" as Impl
+```
+
+#### **Lý do:**
+
+- Architect chỉ quan tâm **Repository có khả năng gì** (search, count, save...).
+- **Không quan tâm** việc code implement bằng Spring Data JPA pattern hay custom query.
+- Tách interface là **implementation detail**, không phải **design decision**.
+
+#### **Ví dụ thực tế:**
+
+**❌ SAI (quá chi tiết):**
+```
+Service -> JpaRepository: findById(id)
+Service -> CustomRepository: search(request)
+Service -> CustomRepository: count(request)
+```
+
+**✅ ĐÚNG (đơn giản):**
+```
+Service -> Repository: findById(id)
+Service -> Repository: search(request)
+Service -> Repository: count(request)
+```
 
 ## **4. Thông Điệp & Tương Tác (Messages)**
 
@@ -166,6 +210,7 @@ Thay vì vẽ mũi tên tự chỉ vào mình (Service -> Service) nhiều lần
 
 1. [ ] **Visual:** Database có phải là hình chữ nhật (participant) không? (Không dùng hình trụ).
 2. [ ] **Flow:** Database query có dễ đọc không? (Tránh SQL dài).
-3. [ ] **Clean:** Đã dùng group cho các logic phức tạp thay vì self-call liên tục chưa?
-4. [ ] **Logic:** Vòng lặp (loop) có mô tả nghiệp vụ thay vì cú pháp code không?
-5. [ ] **Naming:** Tên file có đúng format sequence_diagram\_[feature].puml không?
+3. [ ] **Repository:** Chỉ có 1 Repository participant chưa? Đã gộp Custom + Impl vào 1 participant chưa?
+4. [ ] **Clean:** Đã dùng group cho các logic phức tạp thay vì self-call liên tục chưa?
+5. [ ] **Logic:** Vòng lặp (loop) có mô tả nghiệp vụ thay vì cú pháp code không?
+6. [ ] **Naming:** Tên file có đúng format sequence_diagram\_[feature].puml không?

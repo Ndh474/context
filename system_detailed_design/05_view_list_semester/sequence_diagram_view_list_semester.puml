@@ -1,4 +1,4 @@
-@startuml View List Semester
+@startuml view_list_semester
 !theme plain
 hide footbox
 
@@ -6,48 +6,55 @@ actor Client
 participant ":SemesterController" as Controller
 participant ":SemesterService" as Service
 participant ":SemesterRepository" as Repository
-participant ":Database" as DB
+participant "Database" as DB
 
-Client -> Controller: GET /api/v1/semesters?page=1&pageSize=10&search=Fall&isActive=true
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/semesters
 activate Controller
 
 Controller -> Service: search(request)
 activate Service
 
+' --- SEARCH QUERY ---
 Service -> Repository: search(request)
 activate Repository
 
-Repository -> DB: SELECT s.id, s.name, s.code, s.start_date, s.end_date,\n    COUNT(ac.id) as total_class, s.is_active, s.created_at, s.updated_at\nFROM semesters s\nLEFT JOIN academic_classes ac ON s.id = ac.semester_id\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?\nGROUP BY s.id, s.name, s.code, s.start_date, s.end_date, s.is_active, s.created_at, s.updated_at\nORDER BY s.id ASC\nLIMIT ? OFFSET ?
+Repository -> DB: Query Semesters with Filters and Pagination
 activate DB
-DB --> Repository: resultList
+DB --> Repository: Semester List
 deactivate DB
 
-Repository --> Service: semesters:List<SemesterDTO>
+Repository --> Service: List<Semester>
 deactivate Repository
 
-Service --> Controller: semesters:List<SemesterDTO>
+Service --> Controller: List<Semester>
 deactivate Service
 
+' --- COUNT QUERY ---
 Controller -> Service: count(request)
 activate Service
 
 Service -> Repository: count(request)
 activate Repository
 
-Repository -> DB: SELECT COUNT(s.id) FROM semesters s\nWHERE (LOWER(s.name) LIKE ? OR LOWER(s.code) LIKE ?)\n  AND s.is_active = ?
+Repository -> DB: Count Total Semesters
 activate DB
-DB --> Repository: total
+DB --> Repository: Total Count
 deactivate DB
 
-Repository --> Service: total:Long
+Repository --> Service: Long
 deactivate Repository
 
-Service --> Controller: total:Long
+Service --> Controller: Long
 deactivate Service
 
-Controller -> Controller: PagingResponse.of(semesters, total, request)
+' --- BUILD RESPONSE ---
+group Build Paging Response
+    Controller -> Controller: calculate pagination metadata
+    Controller -> Controller: build response with items and metadata
+end
 
-Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  items: [SemesterDTO...],\n  currentPage: 1,\n  pageSize: 10,\n  totalItems: 50,\n  totalPages: 5\n}}
+Controller --> Client: 200 OK
 deactivate Controller
 
 @enduml

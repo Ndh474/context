@@ -1,123 +1,59 @@
-@startuml View List Semester - Class Diagram
+@startuml view_list_semester
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class SemesterController {
-  - semesterService : SemesterService
-  + search(request : SemesterSearchRequest) : PagingResponse<SemesterDTO>
-  + findById(id : Short) : Response<SemesterDTO>
+  + search(request) : PagingResponse
+  + findById(id) : Response
 }
 
+' --- SERVICE ---
 class SemesterService {
-  - semesterRepository : SemesterRepository
-  - semesterMapper : SemesterMapper
-  + search(request : SemesterSearchRequest) : List<SemesterDTO>
-  + count(request : SemesterSearchRequest) : Long
-  + findById(id : Short) : SemesterDTO
+  + search(request) : List<Semester>
+  + count(request) : Long
+  + findById(id) : Semester
 }
 
+' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + findById(id : Short) : Optional<Semester>
   + save(semester : Semester) : Semester
+  + search(request) : List<Semester>
+  + count(request) : Long
 }
 
-interface CustomSemesterRepository <<interface>> {
-  + search(request : SemesterSearchRequest) : List<SemesterDTO>
-  + count(request : SemesterSearchRequest) : Long
-}
-
-class SemesterRepositoryImpl {
-  - em : EntityManager
-  + search(request : SemesterSearchRequest) : List<SemesterDTO>
-  + count(request : SemesterSearchRequest) : Long
-  - buildWhereClause(parameters : Map<String, Object>, request : SemesterSearchRequest) : String
-  - buildOrderBy(sortBy : String, sort : String) : String
-}
-
+' --- ENTITIES ---
 class Semester {
   - id : Short
   - name : String
   - code : String
   - startDate : LocalDate
   - endDate : LocalDate
+  - isActive : Boolean
   - academicClasses : Set<AcademicClass>
 }
 
-class BaseEntity {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class SemesterSearchRequest {
-}
-
-class PagedRequest {
-  - page : Integer
-  - pageSize : Integer
-  - sort : String
-  - sortBy : String
-  - search : String
-  - isActive : Boolean
-  + getPage() : Integer
-  + getPageSize() : Integer
-  + getSearch() : String
-  + getSort() : String
-  + getSortBy() : String
-  + getActive() : Boolean
-}
-
-class SemesterDTO {
-  - id : Short
+class AcademicClass {
+  - id : Integer
   - name : String
   - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
-  - totalClass : Short
 }
 
-class BaseDTO {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
+' --- DEPENDENCY INJECTION (Association) ---
+SemesterController -down-> SemesterService
+SemesterService -down-> SemesterRepository
 
-class PagingResponse<T> {
-  - status : int
-  - message : String
-  - code : String
-  - data : PageableResponse
-  + of(items : List<T>, total : Long, request : PagedRequest) : PagingResponse<T>
-}
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
 
-class PageableResponse {
-  - items : List<T>
-  - totalPages : int
-  - currentPage : int
-  - pageSize : int
-  - totalItems : long
-}
-
-SemesterController --> SemesterService
-SemesterService --> SemesterRepository
-SemesterRepositoryImpl --> EntityManager
-
-SemesterController ..> SemesterSearchRequest : <<use>>
-SemesterController ..> PagingResponse : <<use>>
-SemesterService ..> SemesterSearchRequest : <<use>>
-SemesterService ..> SemesterDTO : <<use>>
-SemesterRepository ..> Semester : <<use>>
-CustomSemesterRepository ..> SemesterSearchRequest : <<use>>
-CustomSemesterRepository ..> SemesterDTO : <<use>>
-
-CustomSemesterRepository <|.. SemesterRepositoryImpl
-
-BaseEntity <|-- Semester
-PagedRequest <|-- SemesterSearchRequest
-BaseDTO <|-- SemesterDTO
-
-PagingResponse +-- PageableResponse
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Semester o-right- AcademicClass
 
 @enduml
