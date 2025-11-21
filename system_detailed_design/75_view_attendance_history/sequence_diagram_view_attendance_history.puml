@@ -1,0 +1,102 @@
+@startuml view_attendance_history
+!theme plain
+hide footbox
+
+actor Student
+participant ":StudentProfileController" as Controller
+participant ":AttendanceHistoryService" as Service
+participant ":StudentProfileRepository" as StudentRepo
+participant ":AttendanceHistoryRepository" as AttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Student -> Controller: GET /api/v1/student-profiles/{id}/attendance-history
+activate Controller
+
+Controller -> Service: getAttendanceHistory(studentId, request)
+activate Service
+
+' --- VALIDATE STUDENT EXISTS ---
+Service -> StudentRepo: findById(studentId)
+activate StudentRepo
+
+StudentRepo -> DB: Query Student Profile by ID
+activate DB
+DB --> StudentRepo: StudentProfile Record / Null
+deactivate DB
+
+StudentRepo --> Service: Optional<StudentProfile>
+deactivate StudentRepo
+
+alt Student not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Student: 404 Not Found
+end
+
+' --- GET ATTENDANCE HISTORY ---
+Service -> AttendanceRepo: searchByStudentId(studentId, request)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Query Attendance Records with Filters and Pagination
+activate DB
+DB --> AttendanceRepo: Attendance History List
+deactivate DB
+
+AttendanceRepo --> Service: List<AttendanceHistoryDTO>
+deactivate AttendanceRepo
+
+' --- GET ATTENDANCE SUMMARY ---
+Service -> AttendanceRepo: getAttendanceSummary(studentId, request)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Calculate Attendance Summary Statistics
+activate DB
+DB --> AttendanceRepo: Summary Data
+deactivate DB
+
+AttendanceRepo --> Service: AttendanceSummaryDTO
+deactivate AttendanceRepo
+
+Service --> Controller: AttendanceHistoryWithSummaryDTO
+deactivate Service
+
+' --- COUNT TOTAL RECORDS ---
+Controller -> Service: countAttendanceHistory(studentId, request)
+activate Service
+
+Service -> AttendanceRepo: countByStudentId(studentId, request)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Count Total Attendance Records
+activate DB
+DB --> AttendanceRepo: Total Count
+deactivate DB
+
+AttendanceRepo --> Service: Long
+deactivate AttendanceRepo
+
+Service --> Controller: Long
+deactivate Service
+
+' --- GET DETAILED SUMMARY ---
+Controller -> Service: getDetailedSummary(studentId, request)
+activate Service
+
+Service -> AttendanceRepo: getDetailedSummary(studentId, request)
+activate AttendanceRepo
+
+AttendanceRepo -> DB: Calculate Detailed Summary by Type
+activate DB
+DB --> AttendanceRepo: Detailed Summary Data
+deactivate DB
+
+AttendanceRepo --> Service: AttendanceSummaryDetailsDTO
+deactivate AttendanceRepo
+
+Service --> Controller: AttendanceSummaryDetailsDTO
+deactivate Service
+
+Controller --> Student: 200 OK
+deactivate Controller
+
+@enduml

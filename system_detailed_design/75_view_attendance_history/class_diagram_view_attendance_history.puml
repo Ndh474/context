@@ -1,0 +1,74 @@
+@startuml view_attendance_history
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class StudentProfileController {
+  + getAttendanceHistory(id, request) : StudentAttendanceHistoryResponse
+}
+
+' --- SERVICE ---
+class AttendanceHistoryService {
+  + getAttendanceHistory(studentId, request) : AttendanceHistoryWithSummaryDTO
+  + countAttendanceHistory(studentId, request) : Long
+  + getDetailedSummary(studentId, request) : AttendanceSummaryDetailsDTO
+}
+
+' --- REPOSITORY ---
+interface AttendanceHistoryRepository <<interface>> {
+  + searchByStudentId(studentId, request) : List<AttendanceHistoryDTO>
+  + countByStudentId(studentId, request) : Long
+  + getAttendanceSummary(studentId, request) : AttendanceSummaryDTO
+  + getDetailedSummary(studentId, request) : AttendanceSummaryDetailsDTO
+}
+
+interface StudentProfileRepository <<interface>> {
+  + findById(id) : Optional<StudentProfile>
+}
+
+' --- ENTITIES ---
+class AttendanceRecord {
+  - id : Long
+  - status : AttendanceStatus
+  - remark : String
+  - slot : Slot
+  - student : User
+}
+
+class ExamAttendance {
+  - id : Long
+  - status : AttendanceStatus
+  - remark : String
+  - slot : Slot
+  - student : User
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+StudentProfileController -down-> AttendanceHistoryService
+AttendanceHistoryService -down-> AttendanceHistoryRepository
+AttendanceHistoryService -down-> StudentProfileRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+AttendanceHistoryRepository .down.> AttendanceRecord
+AttendanceHistoryRepository .down.> ExamAttendance
+StudentProfileRepository .down.> StudentProfile
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AttendanceRecord o-right- Slot
+ExamAttendance o-right- Slot
+
+@enduml

@@ -1,0 +1,118 @@
+@startuml view_student_timetable
+!theme plain
+hide footbox
+
+actor Student
+participant ":DashboardController" as Controller
+participant ":StudentDashboardService" as Service
+participant ":StudentProfileRepository" as StudentRepo
+participant ":SemesterRepository" as SemesterRepo
+participant ":SlotRepository" as SlotRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Student -> Controller: GET /api/v1/dashboard/student?semesterId={id}
+activate Controller
+
+Controller -> Service: getDashboardData(studentUserId, semesterId)
+activate Service
+
+' --- VALIDATE STUDENT EXISTS ---
+Service -> StudentRepo: existsById(studentUserId)
+activate StudentRepo
+
+StudentRepo -> DB: Check Student Profile Exists
+activate DB
+DB --> StudentRepo: Boolean
+deactivate DB
+
+StudentRepo --> Service: Boolean
+deactivate StudentRepo
+
+alt Student not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Student: 404 Not Found
+end
+
+' --- GET CURRENT SEMESTER IF NOT PROVIDED ---
+alt semesterId is null
+    Service -> SemesterRepo: findCurrentSemesters()
+    activate SemesterRepo
+    
+    SemesterRepo -> DB: Query Current Semesters by Date Range
+    activate DB
+    DB --> SemesterRepo: Current Semester List
+    deactivate DB
+    
+    SemesterRepo --> Service: List<Semester>
+    deactivate SemesterRepo
+end
+
+' --- GET ALL SEMESTERS FOR DROPDOWN ---
+Service -> SemesterRepo: findAll()
+activate SemesterRepo
+
+SemesterRepo -> DB: Query All Semesters
+activate DB
+DB --> SemesterRepo: Semester List
+deactivate DB
+
+SemesterRepo --> Service: List<Semester>
+deactivate SemesterRepo
+
+' --- GET NEXT DAY SLOTS ---
+Service -> SlotRepo: findNextDaySlotsByStudentId(studentUserId, semesterId, currentTime)
+activate SlotRepo
+
+SlotRepo -> DB: Query Next Day Slots (Dynamic)
+activate DB
+DB --> SlotRepo: Next Day Slot List
+deactivate DB
+
+SlotRepo --> Service: List<StudentSlotDTO>
+deactivate SlotRepo
+
+' --- GET UPCOMING LEARNING SLOTS ---
+Service -> SlotRepo: findUpcomingLearningSlotsBySemester(studentUserId, semesterId, currentTime)
+activate SlotRepo
+
+SlotRepo -> DB: Query Upcoming Learning Slots
+activate DB
+DB --> SlotRepo: Learning Slot List
+deactivate DB
+
+SlotRepo --> Service: List<StudentSlotDTO>
+deactivate SlotRepo
+
+' --- GET UPCOMING EXAM SLOTS ---
+Service -> SlotRepo: findUpcomingExamSlotsBySemester(studentUserId, semesterId, currentTime)
+activate SlotRepo
+
+SlotRepo -> DB: Query Upcoming Exam Slots
+activate DB
+DB --> SlotRepo: Exam Slot List
+deactivate DB
+
+SlotRepo --> Service: List<StudentSlotDTO>
+deactivate SlotRepo
+
+' --- GET SEMESTER SUBJECTS ---
+Service -> EnrollmentRepo: findCurrentSemesterSubjectsByStudentId(studentUserId, semesterId)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Query Enrolled Subjects by Semester
+activate DB
+DB --> EnrollmentRepo: Subject List
+deactivate DB
+
+EnrollmentRepo --> Service: List<StudentSubjectDTO>
+deactivate EnrollmentRepo
+
+Service --> Controller: StudentDashboardResponse
+deactivate Service
+
+Controller --> Student: 200 OK
+deactivate Controller
+
+@enduml

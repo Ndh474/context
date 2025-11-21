@@ -1,0 +1,90 @@
+@startuml view_student_timetable
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class DashboardController {
+  + getDashboardData(semesterId) : Response
+}
+
+' --- SERVICE ---
+class StudentDashboardService {
+  + getDashboardData(studentUserId, semesterId) : StudentDashboardResponse
+}
+
+' --- REPOSITORY ---
+interface StudentProfileRepository <<interface>> {
+  + existsById(id) : Boolean
+}
+
+interface SemesterRepository <<interface>> {
+  + findCurrentSemesters() : List<Semester>
+  + findAll() : List<Semester>
+}
+
+interface SlotRepository <<interface>> {
+  + findNextDaySlotsByStudentId(studentUserId, semesterId, currentTime) : List<StudentSlotDTO>
+  + findUpcomingLearningSlotsBySemester(studentUserId, semesterId, currentTime) : List<StudentSlotDTO>
+  + findUpcomingExamSlotsBySemester(studentUserId, semesterId, currentTime) : List<StudentSlotDTO>
+}
+
+interface EnrollmentRepository <<interface>> {
+  + findCurrentSemesterSubjectsByStudentId(studentUserId, semesterId) : List<StudentSubjectDTO>
+}
+
+' --- ENTITIES ---
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - isActive : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - room : Room
+  - staff : User
+  - academicClass : AcademicClass
+}
+
+class Enrollment {
+  - classId : Short
+  - studentUserId : Integer
+  - isEnrolled : Boolean
+  - academicClass : AcademicClass
+}
+
+class Room {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+DashboardController -down-> StudentDashboardService
+StudentDashboardService -down-> StudentProfileRepository
+StudentDashboardService -down-> SemesterRepository
+StudentDashboardService -down-> SlotRepository
+StudentDashboardService -down-> EnrollmentRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
+SlotRepository .down.> Slot
+EnrollmentRepository .down.> Enrollment
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- Room
+Slot o-right- Semester
+
+@enduml
