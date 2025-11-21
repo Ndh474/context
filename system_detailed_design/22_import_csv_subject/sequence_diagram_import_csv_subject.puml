@@ -1,0 +1,101 @@
+@startuml import_csv_subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":SubjectRepository" as SubjectRepo
+participant ":MajorRepository" as MajorRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/subjects/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importFromCsv(file, mode)
+activate Service
+
+' --- CSV PARSING ---
+Service -> CsvParser: parseSubjectCsv(file)
+activate CsvParser
+
+alt CSV parsing fails
+    CsvParser -->> Service: <<throw>> Exception
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+CsvParser --> Service: List<SubjectCsvRow>
+deactivate CsvParser
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' Row validation (internal)
+
+    ' --- VALIDATE MAJORS ---
+    loop For each major code
+        Service -> MajorRepo: findByCode(majorCode)
+        activate MajorRepo
+
+        MajorRepo -> DB: Query Major by Code
+        activate DB
+        DB --> MajorRepo: Major / Null
+        deactivate DB
+
+        MajorRepo --> Service: Major
+        deactivate MajorRepo
+
+        alt Major not found or inactive
+            Service --> Service: Collect error, continue
+        end
+    end
+
+    ' --- CHECK EXISTING SUBJECT ---
+    Service -> SubjectRepo: findByCode(code)
+    activate SubjectRepo
+
+    SubjectRepo -> DB: Query Subject by Code
+    activate DB
+    DB --> SubjectRepo: Subject / Null
+    deactivate DB
+
+    SubjectRepo --> Service: Subject
+    deactivate SubjectRepo
+
+    ' Business logic: create or update based on mode (internal)
+
+    alt Validation fails
+        Service --> Service: Collect error, continue
+    else Validation passes
+        Service -> SubjectRepo: save(subject)
+        activate SubjectRepo
+
+        SubjectRepo -> DB: Insert or Update Subject with Majors
+        activate DB
+        DB --> SubjectRepo: Saved Subject
+        deactivate DB
+
+        SubjectRepo --> Service: Subject
+        deactivate SubjectRepo
+    end
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: Import Result
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

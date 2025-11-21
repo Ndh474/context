@@ -1,0 +1,78 @@
+@startuml delete_subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/subjects/{id}
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' --- CHECK EXISTENCE ---
+Service -> Repository: existsById(id)
+activate Repository
+
+Repository -> DB: Check Subject Existence
+activate DB
+DB --> Repository: Boolean
+deactivate DB
+
+Repository --> Service: Boolean
+deactivate Repository
+
+alt Subject not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK CLASSES ---
+Service -> Repository: countAllClassesBySubjectId(id)
+activate Repository
+
+Repository -> DB: Count Classes by Subject
+activate DB
+DB --> Repository: Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+alt Has classes
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- DELETE OPERATION ---
+Service -> Repository: deleteById(id)
+activate Repository
+
+Repository -> DB: Delete Subject by ID
+activate DB
+
+alt Foreign key constraint violation
+    DB -->> Repository: <<throw>> DataIntegrityViolationException
+    Repository -->> Service: <<throw>> DataIntegrityViolationException
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+DB --> Repository: Success
+deactivate DB
+
+Repository --> Service: void
+deactivate Repository
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

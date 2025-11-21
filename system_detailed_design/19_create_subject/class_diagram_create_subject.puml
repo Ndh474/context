@@ -1,0 +1,69 @@
+@startuml create_subject
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SubjectController {
+  + create(request) : Response
+}
+
+' --- SERVICE ---
+class SubjectService {
+  + create(request) : Subject
+}
+
+' --- REPOSITORY ---
+interface SubjectRepository <<interface>> {
+  + existsByCode(code : String) : boolean
+  + existsByName(name : String) : boolean
+  + save(subject : Subject) : Subject
+}
+
+interface MajorRepository <<interface>> {
+  + findByIdIn(ids : Set<Short>) : List<Major>
+}
+
+' --- ENTITIES ---
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - majors : Set<Major>
+  - academicClasses : Set<AcademicClass>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class AcademicClass {
+  - id : Integer
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SubjectController -down-> SubjectService
+SubjectService -down-> SubjectRepository
+SubjectService -down-> MajorRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SubjectRepository .down.> Subject
+MajorRepository .down.> Major
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Subject o-right- Major
+Subject o-down- AcademicClass
+
+@enduml

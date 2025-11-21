@@ -1,0 +1,63 @@
+@startuml delete_subject
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SubjectController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class SubjectService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface SubjectRepository <<interface>> {
+  + existsById(id : Short) : boolean
+  + countAllClassesBySubjectId(id : Short) : long
+  + deleteById(id : Short) : void
+}
+
+' --- ENTITIES ---
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - majors : Set<Major>
+  - academicClasses : Set<AcademicClass>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class AcademicClass {
+  - id : Integer
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SubjectController -down-> SubjectService
+SubjectService -down-> SubjectRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SubjectRepository .down.> Subject
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Subject o-right- Major
+Subject o-down- AcademicClass
+
+@enduml

@@ -1,0 +1,76 @@
+@startuml import_csv_subject
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SubjectController {
+  + importFromCsv(file, mode) : Response
+}
+
+' --- SERVICE ---
+class SubjectService {
+  + importFromCsv(file, mode) : ImportResult
+  + processOneSubjectRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseSubjectCsv(file) : List<Row>
+}
+
+' --- REPOSITORY ---
+interface SubjectRepository <<interface>> {
+  + findByCode(code : String) : Subject
+  + existsByCode(code : String) : boolean
+  + existsByName(name : String) : boolean
+  + existsByNameAndIdNot(name, id) : boolean
+  + save(subject : Subject) : Subject
+}
+
+interface MajorRepository <<interface>> {
+  + findByCode(code : String) : Major
+}
+
+' --- ENTITIES ---
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+  - majors : Set<Major>
+  - academicClasses : Set<AcademicClass>
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class AcademicClass {
+  - id : Integer
+  - name : String
+  - code : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SubjectController -down-> SubjectService
+SubjectService -down-> SubjectRepository
+SubjectService -down-> MajorRepository
+SubjectService -down-> CsvParserService
+
+' --- REPOSITORY USAGE (Dependency) ---
+SubjectRepository .down.> Subject
+MajorRepository .down.> Major
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Subject o-right- Major
+Subject o-down- AcademicClass
+
+@enduml

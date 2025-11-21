@@ -1,0 +1,64 @@
+@startuml view_subject_details
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/subjects/{id}
+activate Controller
+
+Controller -> Service: findById(id)
+activate Service
+
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Subject by ID with Majors
+activate DB
+DB --> Repository: Subject Record / Null
+deactivate DB
+
+Repository --> Service: Optional<Subject>
+deactivate Repository
+
+' --- VALIDATION LOGIC ---
+alt Subject not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- COUNT CLASSES ---
+Service -> Repository: countAllClassesBySubjectId(id)
+activate Repository
+
+Repository -> DB: Count All Classes
+activate DB
+DB --> Repository: Total Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service -> Repository: countActiveClassesBySubjectId(id)
+activate Repository
+
+Repository -> DB: Count Active Classes
+activate DB
+DB --> Repository: Active Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service --> Controller: Subject
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

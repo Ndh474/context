@@ -1,0 +1,79 @@
+@startuml update_subject
+!theme plain
+hide footbox
+
+actor Client
+participant ":SubjectController" as Controller
+participant ":SubjectService" as Service
+participant ":SubjectRepository" as SubjectRepo
+participant ":MajorRepository" as MajorRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/subjects/{id}
+activate Controller
+
+Controller -> Service: update(id, request)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> SubjectRepo: findById(id)
+activate SubjectRepo
+
+SubjectRepo -> DB: Query Subject by ID
+activate DB
+DB --> SubjectRepo: Subject Record / Null
+deactivate DB
+
+SubjectRepo --> Service: Optional<Subject>
+deactivate SubjectRepo
+
+alt Subject not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- VALIDATION LOGIC ---
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request / 409 Conflict
+end
+
+' --- VALIDATE MAJORS ---
+Service -> MajorRepo: findByIdIn(majorIds)
+activate MajorRepo
+
+MajorRepo -> DB: Query Majors by IDs
+activate DB
+DB --> MajorRepo: Major List
+deactivate DB
+
+MajorRepo --> Service: List<Major>
+deactivate MajorRepo
+
+alt Major not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
+    Controller --> Client: 404 Not Found / 403 Forbidden
+end
+
+' --- UPDATE ---
+Service -> SubjectRepo: save(subject)
+activate SubjectRepo
+
+SubjectRepo -> DB: Update Subject with Majors
+activate DB
+DB --> SubjectRepo: Updated Subject
+deactivate DB
+
+SubjectRepo --> Service: Subject
+deactivate SubjectRepo
+
+Service --> Controller: Subject
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml
