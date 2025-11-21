@@ -40,23 +40,10 @@ alt Validation failed
     Controller --> Client: 400 Bad Request / 409 Conflict
 end
 
-' --- DEACTIVATION CHECK ---
-opt Deactivating semester
-    Service -> Repository: countActiveClassesBySemesterId(id)
-    activate Repository
-
-    Repository -> DB: Count Active Classes by Semester
-    activate DB
-    DB --> Repository: Count
-    deactivate DB
-
-    Repository --> Service: Long
-    deactivate Repository
-
-    alt Has active classes
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Client: 403 Forbidden
-    end
+' --- ONGOING CHECK ---
+opt Ongoing semester & modifying dates/status
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
 end
 
 ' --- UPDATE ---

@@ -24,7 +24,6 @@ interface SemesterRepository <<interface>> {
   + existsByCodeAndIdNot(code, id) : boolean
   + existsByNameAndIdNot(name, id) : boolean
   + existsByDateRangeOverlapAndIdNot(startDate, endDate, id) : boolean
-  + countActiveClassesBySemesterId(id) : long
   + save(semester : Semester) : Semester
 }
 
@@ -36,13 +35,6 @@ class Semester {
   - startDate : LocalDate
   - endDate : LocalDate
   - isActive : Boolean
-  - academicClasses : Set<AcademicClass>
-}
-
-class AcademicClass {
-  - id : Integer
-  - name : String
-  - code : String
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -51,8 +43,5 @@ SemesterService -down-> SemesterRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SemesterRepository .down.> Semester
-
-' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Semester o-right- AcademicClass
 
 @enduml
