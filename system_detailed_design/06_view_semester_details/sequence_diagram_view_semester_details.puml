@@ -1,4 +1,4 @@
-@startuml View Semester Details
+@startuml view_semester_details
 !theme plain
 hide footbox
 
@@ -6,10 +6,10 @@ actor Client
 participant ":SemesterController" as Controller
 participant ":SemesterService" as Service
 participant ":SemesterRepository" as Repository
-participant ":SemesterMapper" as Mapper
 participant "Database" as DB
 
-Client -> Controller: GET /api/v1/semesters/1
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/semesters/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -18,28 +18,24 @@ activate Service
 Service -> Repository: findById(id)
 activate Repository
 
-Repository -> DB: SELECT * FROM semesters\nWHERE id = ?
+Repository -> DB: Query Semester by ID
 activate DB
-DB --> Repository: semesterRecord
+DB --> Repository: Semester Record / Null
 deactivate DB
 
-Repository --> Service: semesterOpt:Optional<Semester>
+Repository --> Service: Optional<Semester>
 deactivate Repository
 
-alt semesterOpt.isEmpty()
+' --- VALIDATION LOGIC ---
+alt Semester not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: HTTP 404\n{status: 404,\nmessage: "Semester not found: 1",\ncode: "SEMESTER_NOT_FOUND"}
+    Controller --> Client: 404 Not Found
 end
 
-Service -> Mapper: toDTO(semester)
-activate Mapper
-Mapper --> Service: dto:SemesterDTO
-deactivate Mapper
-
-Service --> Controller: SemesterDTO
+Service --> Controller: Semester
 deactivate Service
 
-Controller --> Client: HTTP 200 OK\n{status: 200,\ndata: {\n  id: 1,\n  name: "Fall 2024",\n  code: "FA2024",\n  startDate: "2024-09-01",\n  endDate: "2024-12-31",\n  totalClass: 5,\n  isActive: true\n}}
+Controller --> Client: 200 OK
 deactivate Controller
 
 @enduml

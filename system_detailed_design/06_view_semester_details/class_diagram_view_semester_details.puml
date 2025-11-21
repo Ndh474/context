@@ -1,78 +1,53 @@
-@startuml View Semester Details - Class Diagram
+@startuml view_semester_details
 !theme plain
-skinparam classAttributeIconSize 0
 hide circle
-skinparam circledCharacterRadius 0
+skinparam classAttributeIconSize 0
 
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
 class SemesterController {
-  - semesterService : SemesterService
-  + findById(id : Short) : Response<SemesterDTO>
+  + findById(id) : Response
 }
 
+' --- SERVICE ---
 class SemesterService {
-  - semesterRepository : SemesterRepository
-  - semesterMapper : SemesterMapper
-  + findById(id : Short) : SemesterDTO
+  + findById(id) : Semester
 }
 
+' --- REPOSITORY ---
 interface SemesterRepository <<interface>> {
   + findById(id : Short) : Optional<Semester>
 }
 
-interface SemesterMapper <<interface>> {
-  + toDTO(entity : Semester) : SemesterDTO
-}
-
+' --- ENTITIES ---
 class Semester {
   - id : Short
   - name : String
   - code : String
   - startDate : LocalDate
   - endDate : LocalDate
+  - isActive : Boolean
   - academicClasses : Set<AcademicClass>
 }
 
-class BaseEntity {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
-
-class SemesterDTO {
-  - id : Short
+class AcademicClass {
+  - id : Integer
   - name : String
   - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
-  - totalClass : Short
 }
 
-class BaseDTO {
-  - isActive : Boolean
-  - createdAt : Instant
-  - updatedAt : Instant
-}
+' --- DEPENDENCY INJECTION (Association) ---
+SemesterController -down-> SemesterService
+SemesterService -down-> SemesterRepository
 
-class Response<T> {
-  - status : int
-  - message : String
-  - code : String
-  - data : T
-}
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
 
-SemesterController --> SemesterService
-SemesterService --> SemesterRepository
-SemesterService --> SemesterMapper
-
-SemesterController ..> Response : <<use>>
-SemesterController ..> SemesterDTO : <<use>>
-SemesterService ..> Semester : <<use>>
-SemesterService ..> SemesterDTO : <<use>>
-SemesterRepository ..> Semester : <<use>>
-SemesterMapper ..> Semester : <<use>>
-SemesterMapper ..> SemesterDTO : <<use>>
-
-Semester --|> BaseEntity
-SemesterDTO --|> BaseDTO
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Semester o-right- AcademicClass
 
 @enduml
