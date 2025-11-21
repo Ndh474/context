@@ -1,0 +1,83 @@
+@startuml view_exam_schedule_supervisor
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class DashboardController {
+  + getSupervisorDashboard(semesterId) : Response
+}
+
+' --- SERVICE ---
+class SupervisorDashboardService {
+  + getDashboardData(supervisorId, semesterId) : SupervisorDashboardResponse
+}
+
+' --- REPOSITORY ---
+interface SemesterRepository <<interface>> {
+  + findSemestersWithSupervisionData(supervisorId) : List<Semester>
+  + findCurrentSemesters() : List<Semester>
+}
+
+interface SlotRepository <<interface>> {
+  + calculateSupervisorStats(supervisorId, semesterId) : SupervisorStatsDTO
+  + calculateSupervisorStatsAllSemesters(supervisorId) : SupervisorStatsDTO
+  + findRecentSupervisionActivity(supervisorId, semesterId, start, end) : List<RecentActivitySlotDTO>
+  + findUpcomingExamSlots(supervisorId, semesterId, now, maxResults) : List<TodaySlotDTO>
+  + getAttendanceStats(slotId) : AttendanceStatsDTO
+}
+
+' --- ENTITIES ---
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - isActive : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - sessionStatus : SessionStatus
+  - examSessionStatus : SessionStatus
+  - staff : User
+  - room : Room
+  - semester : Semester
+  - academicClass : AcademicClass
+}
+
+class Room {
+  - id : Short
+  - name : String
+}
+
+class User {
+  - id : Integer
+  - fullName : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+DashboardController -down-> SupervisorDashboardService
+SupervisorDashboardService -down-> SemesterRepository
+SupervisorDashboardService -down-> SlotRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
+SlotRepository .down.> Slot
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- Semester
+Slot o-right- Room
+Slot o-right- User
+
+@enduml

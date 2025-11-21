@@ -1,0 +1,126 @@
+@startuml view_exam_schedule_supervisor
+!theme plain
+hide footbox
+
+actor Supervisor
+participant ":DashboardController" as Controller
+participant ":SupervisorDashboardService" as Service
+participant ":SemesterRepository" as SemesterRepo
+participant ":SlotRepository" as SlotRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Supervisor -> Controller: GET /api/v1/dashboard/supervisor?semesterId={id}
+activate Controller
+
+Controller -> Service: getDashboardData(supervisorId, semesterId)
+activate Service
+
+' --- GET AVAILABLE SEMESTERS ---
+Service -> SemesterRepo: findSemestersWithSupervisionData(supervisorId)
+activate SemesterRepo
+
+SemesterRepo -> DB: Query Semesters with Exam Slots by Supervisor
+activate DB
+DB --> SemesterRepo: Semester List
+deactivate DB
+
+SemesterRepo --> Service: List<Semester>
+deactivate SemesterRepo
+
+' --- GET CURRENT SEMESTER ---
+Service -> SemesterRepo: findCurrentSemesters()
+activate SemesterRepo
+
+SemesterRepo -> DB: Query Current Semesters by Date Range
+activate DB
+DB --> SemesterRepo: Current Semester List
+deactivate DB
+
+SemesterRepo --> Service: List<Semester>
+deactivate SemesterRepo
+
+' --- CALCULATE SUPERVISOR STATS ---
+alt semesterId is null (All Semesters)
+    Service -> SlotRepo: calculateSupervisorStatsAllSemesters(supervisorId)
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Exam Slot Statistics for All Semesters
+    activate DB
+    DB --> SlotRepo: Stats Data
+    deactivate DB
+    
+    SlotRepo --> Service: SupervisorStatsDTO
+    deactivate SlotRepo
+else specific semester selected
+    Service -> SlotRepo: calculateSupervisorStats(supervisorId, semesterId)
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Exam Slot Statistics by Semester
+    activate DB
+    DB --> SlotRepo: Stats Data
+    deactivate DB
+    
+    SlotRepo --> Service: SupervisorStatsDTO
+    deactivate SlotRepo
+end
+
+' --- GET RECENT SUPERVISION ACTIVITY ---
+Service -> SlotRepo: findRecentSupervisionActivity(supervisorId, semesterId, start, end)
+activate SlotRepo
+
+SlotRepo -> DB: Query Recent Exam Slots (Last 7 Days)
+activate DB
+DB --> SlotRepo: Recent Activity List
+deactivate DB
+
+SlotRepo --> Service: List<RecentActivitySlotDTO>
+deactivate SlotRepo
+
+' --- GET ATTENDANCE STATS FOR RECENT SLOTS ---
+loop For each recent slot
+    Service -> SlotRepo: getAttendanceStats(slotId)
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Attendance Statistics
+    activate DB
+    DB --> SlotRepo: Attendance Stats
+    deactivate DB
+    
+    SlotRepo --> Service: AttendanceStatsDTO
+    deactivate SlotRepo
+end
+
+' --- GET UPCOMING EXAM SLOTS ---
+Service -> SlotRepo: findUpcomingExamSlots(supervisorId, semesterId, now, maxResults)
+activate SlotRepo
+
+SlotRepo -> DB: Query Upcoming Exam Slots (Next 10)
+activate DB
+DB --> SlotRepo: Upcoming Exam List
+deactivate DB
+
+SlotRepo --> Service: List<TodaySlotDTO>
+deactivate SlotRepo
+
+' --- GET ATTENDANCE STATS FOR UPCOMING SLOTS ---
+loop For each upcoming slot
+    Service -> SlotRepo: getAttendanceStats(slotId)
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Attendance Statistics
+    activate DB
+    DB --> SlotRepo: Attendance Stats
+    deactivate DB
+    
+    SlotRepo --> Service: AttendanceStatsDTO
+    deactivate SlotRepo
+end
+
+Service --> Controller: SupervisorDashboardResponse
+deactivate Service
+
+Controller --> Supervisor: 200 OK
+deactivate Controller
+
+@enduml
