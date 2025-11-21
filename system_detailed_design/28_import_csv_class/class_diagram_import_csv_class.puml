@@ -1,0 +1,79 @@
+@startuml import_csv_class
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ClassController {
+  + importFromCsv(file, mode) : Response
+}
+
+' --- SERVICE ---
+class ClassService {
+  + importFromCsv(file, mode) : ImportResult
+  + processOneClassRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseClassCsv(file) : List<Row>
+}
+
+' --- REPOSITORY ---
+interface ClassRepository <<interface>> {
+  + findByCodeAndSubjectIdAndSemesterId(code, subjectId, semesterId) : AcademicClass
+  + save(class : AcademicClass) : AcademicClass
+}
+
+interface SubjectRepository <<interface>> {
+  + findByCode(code : String) : Subject
+}
+
+interface SemesterRepository <<interface>> {
+  + findByCode(code : String) : Semester
+}
+
+' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - code : String
+  - isActive : Boolean
+  - subject : Subject
+  - semester : Semester
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ClassController -down-> ClassService
+ClassService -down-> ClassRepository
+ClassService -down-> SubjectRepository
+ClassService -down-> SemesterRepository
+ClassService -down-> CsvParserService
+
+' --- REPOSITORY USAGE (Dependency) ---
+ClassRepository .down.> AcademicClass
+SubjectRepository .down.> Subject
+SemesterRepository .down.> Semester
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AcademicClass o-right- Subject
+AcademicClass o-right- Semester
+
+@enduml

@@ -1,0 +1,116 @@
+@startuml import_csv_class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":ClassRepository" as ClassRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":SemesterRepository" as SemesterRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/classes/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importFromCsv(file, mode)
+activate Service
+
+' --- CSV PARSING ---
+Service -> CsvParser: parseClassCsv(file)
+activate CsvParser
+
+alt CSV parsing fails
+    CsvParser -->> Service: <<throw>> Exception
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+CsvParser --> Service: List<ClassCsvRow>
+deactivate CsvParser
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' Row validation (internal)
+
+    ' --- VALIDATE SUBJECT ---
+    Service -> SubjectRepo: findByCode(subjectCode)
+    activate SubjectRepo
+
+    SubjectRepo -> DB: Query Subject by Code
+    activate DB
+    DB --> SubjectRepo: Subject / Null
+    deactivate DB
+
+    SubjectRepo --> Service: Subject
+    deactivate SubjectRepo
+
+    alt Subject not found
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- VALIDATE SEMESTER ---
+    Service -> SemesterRepo: findByCode(semesterCode)
+    activate SemesterRepo
+
+    SemesterRepo -> DB: Query Semester by Code
+    activate DB
+    DB --> SemesterRepo: Semester / Null
+    deactivate DB
+
+    SemesterRepo --> Service: Semester
+    deactivate SemesterRepo
+
+    alt Semester not found
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- CHECK EXISTING CLASS ---
+    Service -> ClassRepo: findByCodeAndSubjectIdAndSemesterId(code, subjectId, semesterId)
+    activate ClassRepo
+
+    ClassRepo -> DB: Query Class by Code, Subject, Semester
+    activate DB
+    DB --> ClassRepo: Class / Null
+    deactivate DB
+
+    ClassRepo --> Service: AcademicClass
+    deactivate ClassRepo
+
+    ' Business logic: create or update based on mode (internal)
+
+    alt Validation fails
+        Service --> Service: Collect error, continue
+    else Validation passes
+        Service -> ClassRepo: save(class)
+        activate ClassRepo
+
+        ClassRepo -> DB: Insert or Update Class
+        activate DB
+        DB --> ClassRepo: Saved Class
+        deactivate DB
+
+        ClassRepo --> Service: AcademicClass
+        deactivate ClassRepo
+    end
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: Import Result
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

@@ -1,0 +1,108 @@
+@startuml import_csv_enrollment
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class EnrollmentController {
+  + importEnrollments(file, mode) : Response
+}
+
+' --- SERVICE ---
+class EnrollmentService {
+  + importFromCsv(file, mode) : ImportResult
+  + processOneEnrollmentRow(row, mode) : void
+}
+
+class CsvParserService {
+  + parseEnrollmentCsv(file) : List<Row>
+}
+
+' --- REPOSITORY ---
+interface EnrollmentRepository <<interface>> {
+  + findById(id) : Optional<Enrollment>
+  + existsById(id) : boolean
+  + save(enrollment) : Enrollment
+}
+
+interface StudentProfileRepository <<interface>> {
+  + findByRollNumberWithUserAndMajor(rollNumber) : StudentProfile
+}
+
+interface ClassRepository <<interface>> {
+  + findByCodeAndSemesterCodeWithSubjectAndSemester(classCode, semesterCode) : AcademicClass
+}
+
+' --- ENTITIES ---
+class Enrollment {
+  - id : EnrollmentId
+  - isEnrolled : boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - active : boolean
+}
+
+class Subject {
+  - id : Integer
+  - name : String
+  - code : String
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+  - active : boolean
+}
+
+class StudentProfile {
+  - userId : Integer
+  - rollNumber : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+EnrollmentController -down-> EnrollmentService
+EnrollmentService -down-> CsvParserService
+EnrollmentService -down-> EnrollmentRepository
+EnrollmentService -down-> StudentProfileRepository
+EnrollmentService -down-> ClassRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+EnrollmentRepository .down.> Enrollment
+StudentProfileRepository .down.> StudentProfile
+ClassRepository .down.> AcademicClass
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Enrollment o-right- AcademicClass
+Enrollment o-right- User
+AcademicClass o-right- Subject
+AcademicClass o-right- Semester
+Subject o-right- Major
+User o-right- StudentProfile
+StudentProfile o-right- Major
+
+@enduml

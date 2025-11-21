@@ -1,0 +1,80 @@
+@startuml create_class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":ClassRepository" as ClassRepo
+participant ":SubjectRepository" as SubjectRepo
+participant ":SemesterRepository" as SemesterRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/classes
+activate Controller
+
+Controller -> Service: create(request)
+activate Service
+
+' --- VALIDATION LOGIC ---
+' Validation logic (internal)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Client: 400 Bad Request / 409 Conflict
+end
+
+' --- VALIDATE SUBJECT ---
+Service -> SubjectRepo: findById(subjectId)
+activate SubjectRepo
+
+SubjectRepo -> DB: Query Subject by ID
+activate DB
+DB --> SubjectRepo: Subject / Null
+deactivate DB
+
+SubjectRepo --> Service: Optional<Subject>
+deactivate SubjectRepo
+
+alt Subject not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
+    Controller --> Client: 404 Not Found / 403 Forbidden
+end
+
+' --- VALIDATE SEMESTER ---
+Service -> SemesterRepo: findById(semesterId)
+activate SemesterRepo
+
+SemesterRepo -> DB: Query Semester by ID
+activate DB
+DB --> SemesterRepo: Semester / Null
+deactivate DB
+
+SemesterRepo --> Service: Optional<Semester>
+deactivate SemesterRepo
+
+alt Semester not found or inactive
+    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
+    Controller --> Client: 404 Not Found / 403 Forbidden
+end
+
+' --- SAVE TO DATABASE ---
+Service -> ClassRepo: save(class)
+activate ClassRepo
+
+ClassRepo -> DB: Insert New Class
+activate DB
+DB --> ClassRepo: Saved Class
+deactivate DB
+
+ClassRepo --> Service: AcademicClass
+deactivate ClassRepo
+
+Service --> Controller: Class
+deactivate Service
+
+Controller --> Client: 201 Created
+deactivate Controller
+
+@enduml

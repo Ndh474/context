@@ -1,0 +1,75 @@
+@startuml create_class
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ClassController {
+  + create(request) : Response
+}
+
+' --- SERVICE ---
+class ClassService {
+  + create(request) : Class
+}
+
+' --- REPOSITORY ---
+interface ClassRepository <<interface>> {
+  + existsByCodeAndSubjectIdAndSemesterId(code, subjectId, semesterId) : boolean
+  + save(class : AcademicClass) : AcademicClass
+}
+
+interface SubjectRepository <<interface>> {
+  + findById(id : Short) : Optional<Subject>
+}
+
+interface SemesterRepository <<interface>> {
+  + findById(id : Short) : Optional<Semester>
+}
+
+' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - code : String
+  - isActive : Boolean
+  - subject : Subject
+  - semester : Semester
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+  - isActive : Boolean
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ClassController -down-> ClassService
+ClassService -down-> ClassRepository
+ClassService -down-> SubjectRepository
+ClassService -down-> SemesterRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+ClassRepository .down.> AcademicClass
+SubjectRepository .down.> Subject
+SemesterRepository .down.> Semester
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AcademicClass o-right- Subject
+AcademicClass o-right- Semester
+
+@enduml

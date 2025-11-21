@@ -1,0 +1,133 @@
+@startuml view_class_students
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as ClassService
+participant ":EnrollmentService" as EnrollmentService
+participant ":ClassRepository" as ClassRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/classes/{id}/enrollments
+activate Controller
+
+' --- GET CLASS DETAILS ---
+Controller -> ClassService: getClassDetailsForRoster(id)
+activate ClassService
+
+ClassService -> ClassRepo: findById(id)
+activate ClassRepo
+
+ClassRepo -> DB: Query Class by ID
+activate DB
+DB --> ClassRepo: AcademicClass / Null
+deactivate DB
+
+ClassRepo --> ClassService: Optional<AcademicClass>
+deactivate ClassRepo
+
+alt Class not found
+    ClassService -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+ClassService --> Controller: Class Details
+deactivate ClassService
+
+' --- GET STUDENTS LIST ---
+Controller -> EnrollmentService: findByClassId(id, request)
+activate EnrollmentService
+
+EnrollmentService -> ClassRepo: existsById(id)
+activate ClassRepo
+
+ClassRepo -> DB: Check Class Exists
+activate DB
+DB --> ClassRepo: boolean
+deactivate DB
+
+ClassRepo --> EnrollmentService: boolean
+deactivate ClassRepo
+
+alt Class not found
+    EnrollmentService -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+EnrollmentService -> EnrollmentRepo: findByClassId(id, request)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Query Students with Enrollment Status
+activate DB
+DB --> EnrollmentRepo: Student List
+deactivate DB
+
+EnrollmentRepo --> EnrollmentService: List<StudentProfile>
+deactivate EnrollmentRepo
+
+EnrollmentService --> Controller: List<StudentProfile>
+deactivate EnrollmentService
+
+' --- COUNT TOTAL ---
+Controller -> EnrollmentService: countByClassId(id, request)
+activate EnrollmentService
+
+EnrollmentService -> EnrollmentRepo: countByClassId(id, request)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Count Total Students
+activate DB
+DB --> EnrollmentRepo: Total Count
+deactivate DB
+
+EnrollmentRepo --> EnrollmentService: Long
+deactivate EnrollmentRepo
+
+EnrollmentService --> Controller: Long
+deactivate EnrollmentService
+
+' --- COUNT ENROLLED ---
+Controller -> EnrollmentService: countEnrolledByClassId(id)
+activate EnrollmentService
+
+EnrollmentService -> EnrollmentRepo: countEnrolledByClassId(id)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Count Enrolled Students
+activate DB
+DB --> EnrollmentRepo: Enrolled Count
+deactivate DB
+
+EnrollmentRepo --> EnrollmentService: Long
+deactivate EnrollmentRepo
+
+EnrollmentService --> Controller: Long
+deactivate EnrollmentService
+
+' --- COUNT WITHDRAWN ---
+Controller -> EnrollmentService: countWithdrawnByClassId(id)
+activate EnrollmentService
+
+EnrollmentService -> EnrollmentRepo: countWithdrawnByClassId(id)
+activate EnrollmentRepo
+
+EnrollmentRepo -> DB: Count Withdrawn Students
+activate DB
+DB --> EnrollmentRepo: Withdrawn Count
+deactivate DB
+
+EnrollmentRepo --> EnrollmentService: Long
+deactivate EnrollmentRepo
+
+EnrollmentService --> Controller: Long
+deactivate EnrollmentService
+
+' Build roster response (internal)
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

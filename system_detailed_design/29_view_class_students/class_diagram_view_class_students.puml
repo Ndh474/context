@@ -1,0 +1,89 @@
+@startuml view_class_students
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ClassController {
+  + getRosterByClassId(id, request) : PagingResponse
+}
+
+' --- SERVICE ---
+class EnrollmentService {
+  + findByClassId(classId, request) : List<StudentProfile>
+  + countByClassId(classId, request) : Long
+  + countEnrolledByClassId(classId) : Long
+  + countWithdrawnByClassId(classId) : Long
+}
+
+class ClassService {
+  + getClassDetailsForRoster(id) : Class
+}
+
+' --- REPOSITORY ---
+interface EnrollmentRepository <<interface>> {
+  + findByClassId(classId, request) : List<StudentProfile>
+  + countByClassId(classId, request) : Long
+  + countEnrolledByClassId(classId) : Long
+  + countWithdrawnByClassId(classId) : Long
+}
+
+interface ClassRepository <<interface>> {
+  + findById(id) : Optional<AcademicClass>
+  + existsById(id) : boolean
+}
+
+' --- ENTITIES ---
+class Enrollment {
+  - id : EnrollmentId
+  - isEnrolled : boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+}
+
+class StudentProfile {
+  - userId : Integer
+  - rollNumber : String
+}
+
+class Major {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ClassController -down-> EnrollmentService
+ClassController -down-> ClassService
+EnrollmentService -down-> EnrollmentRepository
+EnrollmentService -down-> ClassRepository
+ClassService -down-> ClassRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+EnrollmentRepository .down.> Enrollment
+ClassRepository .down.> AcademicClass
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Enrollment o-right- AcademicClass
+Enrollment o-right- User
+User o-right- StudentProfile
+StudentProfile o-right- Major
+
+@enduml

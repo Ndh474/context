@@ -1,0 +1,56 @@
+@startuml view_list_class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":ClassRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: GET /api/v1/classes
+activate Controller
+
+Controller -> Service: search(request)
+activate Service
+
+' --- SEARCH QUERY ---
+Service -> Repository: search(request)
+activate Repository
+
+Repository -> DB: Query Classes with Subject, Semester, Filters and Pagination
+activate DB
+DB --> Repository: Class List
+deactivate DB
+
+Repository --> Service: List<Class>
+deactivate Repository
+
+Service --> Controller: List<Class>
+deactivate Service
+
+' --- COUNT QUERY ---
+Controller -> Service: count(request)
+activate Service
+
+Service -> Repository: count(request)
+activate Repository
+
+Repository -> DB: Count Total Classes
+activate DB
+DB --> Repository: Total Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+Service --> Controller: Long
+deactivate Service
+
+' Build paging response (internal)
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

@@ -1,0 +1,90 @@
+@startuml delete_class
+!theme plain
+hide footbox
+
+actor Client
+participant ":ClassController" as Controller
+participant ":ClassService" as Service
+participant ":ClassRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: DELETE /api/v1/classes/{id}
+activate Controller
+
+Controller -> Service: delete(id)
+activate Service
+
+' --- FIND EXISTING ---
+Service -> Repository: findById(id)
+activate Repository
+
+Repository -> DB: Query Class by ID
+activate DB
+DB --> Repository: Class Record / Null
+deactivate DB
+
+Repository --> Service: Optional<AcademicClass>
+deactivate Repository
+
+alt Class not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' --- CHECK SLOTS ---
+Service -> Repository: countAllSlotsByClassId(id)
+activate Repository
+
+Repository -> DB: Count Slots by Class
+activate DB
+DB --> Repository: Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+' --- CHECK STUDENTS ---
+Service -> Repository: countAllStudentsByClassId(id)
+activate Repository
+
+Repository -> DB: Count Students by Class
+activate DB
+DB --> Repository: Count
+deactivate DB
+
+Repository --> Service: Long
+deactivate Repository
+
+alt Has slots or students
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' --- DELETE OPERATION ---
+Service -> Repository: deleteById(id)
+activate Repository
+
+Repository -> DB: Delete Class by ID
+activate DB
+
+alt Foreign key constraint violation
+    DB -->> Repository: <<throw>> DataIntegrityViolationException
+    Repository -->> Service: <<throw>> DataIntegrityViolationException
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+DB --> Repository: Success
+deactivate DB
+
+Repository --> Service: void
+deactivate Repository
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

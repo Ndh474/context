@@ -1,0 +1,168 @@
+@startuml import_csv_enrollment
+!theme plain
+hide footbox
+
+actor Client
+participant ":EnrollmentController" as Controller
+participant ":EnrollmentService" as Service
+participant ":CsvParserService" as CsvParser
+participant ":StudentProfileRepository" as StudentRepo
+participant ":ClassRepository" as ClassRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: POST /api/v1/enrollments/import
+activate Controller
+
+' File validation (internal)
+
+alt File validation fails
+    Controller --> Client: 400 Bad Request
+end
+
+Controller -> Service: importFromCsv(file, mode)
+activate Service
+
+' Mode validation (internal)
+
+alt Invalid import mode
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' --- PARSE CSV ---
+Service -> CsvParser: parseEnrollmentCsv(file)
+activate CsvParser
+
+CsvParser --> Service: List<EnrollmentCsvRow>
+deactivate CsvParser
+
+alt CSV parsing fails
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Client: 400 Bad Request
+end
+
+' CSV deduplication (internal)
+
+' --- BATCH PROCESSING LOOP ---
+loop For each unique CSV row
+    ' Row validation (internal)
+
+    ' --- FIND STUDENT ---
+    Service -> StudentRepo: findByRollNumberWithUserAndMajor(rollNumber)
+    activate StudentRepo
+
+    StudentRepo -> DB: Query Student by Roll Number
+    activate DB
+    DB --> StudentRepo: StudentProfile / Null
+    deactivate DB
+
+    StudentRepo --> Service: StudentProfile
+    deactivate StudentRepo
+
+    alt Student not found
+        Service --> Service: Collect error, continue
+    end
+
+    alt Student is inactive
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- FIND CLASS ---
+    Service -> ClassRepo: findByCodeAndSemesterCodeWithSubjectAndSemester(classCode, semesterCode)
+    activate ClassRepo
+
+    ClassRepo -> DB: Query Class by Code and Semester
+    activate DB
+    DB --> ClassRepo: AcademicClass / Null
+    deactivate DB
+
+    ClassRepo --> Service: AcademicClass
+    deactivate ClassRepo
+
+    alt Class not found
+        Service --> Service: Collect error, continue
+    end
+
+    alt Class is inactive
+        Service --> Service: Collect error, continue
+    end
+
+    ' Validation logic (internal)
+
+    alt Student major not eligible for class subject
+        Service --> Service: Collect error, continue
+    end
+
+    alt Semester has ended
+        Service --> Service: Collect error, continue
+    end
+
+    ' --- CHECK EXISTING ENROLLMENT ---
+    Service -> EnrollmentRepo: existsById(enrollmentId)
+    activate EnrollmentRepo
+
+    EnrollmentRepo -> DB: Check Enrollment Exists
+    activate DB
+    DB --> EnrollmentRepo: boolean
+    deactivate DB
+
+    EnrollmentRepo --> Service: boolean
+    deactivate EnrollmentRepo
+
+    alt Enrollment exists and is enrolled
+        alt Mode is AddOnly
+            Service --> Service: Collect error, continue
+        else Mode is AddAndUpdate
+            Service --> Service: Skip, no update needed
+        end
+    else Enrollment exists but withdrawn
+        Service -> EnrollmentRepo: findById(enrollmentId)
+        activate EnrollmentRepo
+
+        EnrollmentRepo -> DB: Query Enrollment
+        activate DB
+        DB --> EnrollmentRepo: Enrollment
+        deactivate DB
+
+        EnrollmentRepo --> Service: Enrollment
+        deactivate EnrollmentRepo
+
+        ' Re-enrollment logic (internal)
+
+        Service -> EnrollmentRepo: save(enrollment)
+        activate EnrollmentRepo
+
+        EnrollmentRepo -> DB: Update Enrollment
+        activate DB
+        DB --> EnrollmentRepo: Updated Enrollment
+        deactivate DB
+
+        EnrollmentRepo --> Service: Enrollment
+        deactivate EnrollmentRepo
+    else Enrollment does not exist
+        ' Create new enrollment (internal)
+
+        Service -> EnrollmentRepo: save(enrollment)
+        activate EnrollmentRepo
+
+        EnrollmentRepo -> DB: Insert Enrollment
+        activate DB
+        DB --> EnrollmentRepo: New Enrollment
+        deactivate DB
+
+        EnrollmentRepo --> Service: Enrollment
+        deactivate EnrollmentRepo
+    end
+end
+
+' Build result with success/failure counts (internal)
+
+Service --> Controller: Import Result
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

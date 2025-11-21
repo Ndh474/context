@@ -1,0 +1,76 @@
+@startuml unenroll_student_from_class
+!theme plain
+hide footbox
+
+actor Client
+participant ":EnrollmentController" as Controller
+participant ":EnrollmentService" as Service
+participant ":EnrollmentRepository" as Repository
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Client -> Controller: PUT /api/v1/enrollments/{classId}/{studentUserId}
+activate Controller
+
+' Request validation (internal)
+
+Controller -> Service: update(classId, studentUserId, request)
+activate Service
+
+' --- FIND ENROLLMENT ---
+Service -> Repository: findById(enrollmentId)
+activate Repository
+
+Repository -> DB: Query Enrollment by Composite Key
+activate DB
+DB --> Repository: Enrollment / Null
+deactivate DB
+
+Repository --> Service: Optional<Enrollment>
+deactivate Repository
+
+alt Enrollment not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Client: 404 Not Found
+end
+
+' Validation logic (internal)
+
+alt Semester has ended
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Client: 403 Forbidden
+end
+
+' Update enrollment status (internal)
+
+' --- SAVE ENROLLMENT ---
+Service -> Repository: save(enrollment)
+activate Repository
+
+Repository -> DB: Update Enrollment Status
+activate DB
+DB --> Repository: Updated Enrollment
+deactivate DB
+
+Repository --> Service: Enrollment
+deactivate Repository
+
+' --- GET FULL DETAILS ---
+Service -> Repository: findByEnrollmentId(enrollmentId)
+activate Repository
+
+Repository -> DB: Query Enrollment with Student and Class Details
+activate DB
+DB --> Repository: Enrollment with Details
+deactivate DB
+
+Repository --> Service: Enrollment
+deactivate Repository
+
+Service --> Controller: Enrollment
+deactivate Service
+
+Controller --> Client: 200 OK
+deactivate Controller
+
+@enduml

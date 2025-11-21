@@ -1,0 +1,66 @@
+@startuml unenroll_student_from_class
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class EnrollmentController {
+  + update(classId, studentUserId, request) : Response
+}
+
+' --- SERVICE ---
+class EnrollmentService {
+  + update(classId, studentUserId, request) : Enrollment
+}
+
+' --- REPOSITORY ---
+interface EnrollmentRepository <<interface>> {
+  + findById(id) : Optional<Enrollment>
+  + findByEnrollmentId(id) : Enrollment
+  + save(enrollment) : Enrollment
+}
+
+' --- ENTITIES ---
+class Enrollment {
+  - id : EnrollmentId
+  - isEnrolled : boolean
+  - createdAt : Instant
+  - updatedAt : Instant
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - startDate : LocalDate
+  - endDate : LocalDate
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - fullName : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+EnrollmentController -down-> EnrollmentService
+EnrollmentService -down-> EnrollmentRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+EnrollmentRepository .down.> Enrollment
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Enrollment o-right- AcademicClass
+Enrollment o-right- User
+AcademicClass o-right- Semester
+
+@enduml

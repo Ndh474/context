@@ -1,0 +1,75 @@
+@startuml delete_class
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ClassController {
+  + delete(id) : Response
+}
+
+' --- SERVICE ---
+class ClassService {
+  + delete(id) : void
+}
+
+' --- REPOSITORY ---
+interface ClassRepository <<interface>> {
+  + findById(id : Short) : Optional<AcademicClass>
+  + countAllSlotsByClassId(id : Short) : long
+  + countAllStudentsByClassId(id : Short) : long
+  + deleteById(id : Short) : void
+}
+
+' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - code : String
+  - isActive : Boolean
+  - subject : Subject
+  - semester : Semester
+  - enrollments : Set<Enrollment>
+  - slots : Set<Slot>
+}
+
+class Subject {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Enrollment {
+  - id : Integer
+  - isEnrolled : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - isActive : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ClassController -down-> ClassService
+ClassService -down-> ClassRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+ClassRepository .down.> AcademicClass
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AcademicClass o-right- Subject
+AcademicClass o-right- Semester
+AcademicClass o-down- Enrollment
+AcademicClass o-down- Slot
+
+@enduml
