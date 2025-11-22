@@ -1,0 +1,93 @@
+@startuml view_teaching_schedule_lecturer
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class DashboardController {
+  + getLecturerDashboard(semesterId) : Response
+}
+
+' --- SERVICE ---
+class LecturerDashboardService {
+  + getDashboardData(lecturerId, semesterId) : LecturerDashboardResponse
+}
+
+' --- REPOSITORY ---
+interface SemesterRepository <<interface>> {
+  + findSemestersWithSlotsByLecturerId(lecturerId) : List<Semester>
+  + findIndependentSemestersWithSlotsByLecturerId(lecturerId) : List<Semester>
+  + findCurrentSemesters() : List<Semester>
+}
+
+interface SlotRepository <<interface>> {
+  + calculateLecturerStats(lecturerId, semesterId) : DashboardStatsDTO
+  + calculateLecturerStatsAllSemesters(lecturerId) : DashboardStatsDTO
+  + findUpcomingSlotsForNextDay(lecturerId, semesterId, start, end) : List<TodaySlotDTO>
+  + findUpcomingSlotsForNextDayAllSemesters(lecturerId, start, end) : List<TodaySlotDTO>
+  + getAttendanceStats(slotId) : AttendanceStatsDTO
+}
+
+interface ClassRepository <<interface>> {
+  + findClassesWithStatsByLecturerAndSemester(lecturerId, semesterId) : List<MyClassDTO>
+  + findClassesWithStatsByLecturer(lecturerId) : List<MyClassDTO>
+  + findUpcomingSlotsForClass(classId, limit) : List<TodaySlotDTO>
+}
+
+' --- ENTITIES ---
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+  - startDate : LocalDate
+  - endDate : LocalDate
+  - isActive : Boolean
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - slotCategory : SlotCategory
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - sessionStatus : SessionStatus
+  - staff : User
+  - room : Room
+  - academicClass : AcademicClass
+}
+
+class AcademicClass {
+  - id : Short
+  - code : String
+  - name : String
+  - semester : Semester
+  - subject : Subject
+}
+
+class Room {
+  - id : Short
+  - name : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+DashboardController -down-> LecturerDashboardService
+LecturerDashboardService -down-> SemesterRepository
+LecturerDashboardService -down-> SlotRepository
+LecturerDashboardService -down-> ClassRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SemesterRepository .down.> Semester
+SlotRepository .down.> Slot
+ClassRepository .down.> AcademicClass
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- AcademicClass
+Slot o-right- Room
+AcademicClass o-right- Semester
+
+@enduml
