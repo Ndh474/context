@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "script",
-    "generated_at": "2025-11-20T20:18:33.151705",
+    "generated_at": "2025-11-24T20:05:17.525330",
     "total_files": 1,
     "total_lines": 247,
     "total_bytes": 7782
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\scripts\\setup.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\scripts\\setup.py",
       "relative_path": "scripts/setup.py",
       "filename": "setup.py",
       "size_bytes": 7782,

@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "hook_other",
-    "generated_at": "2025-11-20T20:18:33.077100",
+    "generated_at": "2025-11-24T20:05:17.462108",
     "total_files": 3,
     "total_lines": 85,
     "total_bytes": 2593
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useCurrentUser.ts",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useCurrentUser.ts",
       "relative_path": "hooks/useCurrentUser.ts",
       "filename": "useCurrentUser.ts",
       "size_bytes": 621,
@@ -20,7 +20,7 @@
       "content": "\"use client\";\n\nimport { useState, useEffect } from \"react\";\nimport { getAuthUser } from \"@/lib/auth\";\nimport { AuthenticatedUser } from \"@/types\";\n\n/**\n * Hook to get current authenticated user\n * Returns user information from localStorage\n */\nexport function useCurrentUser() {\n  const [user, setUser] = useState<AuthenticatedUser | null>(null);\n  const [isLoading, setIsLoading] = useState(true);\n\n  useEffect(() => {\n    // Only access localStorage on client-side\n    const currentUser = getAuthUser();\n    setUser(currentUser);\n    setIsLoading(false);\n  }, []);\n\n  return { user, isLoading };\n}"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useDebounce.ts",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useDebounce.ts",
       "relative_path": "hooks/useDebounce.ts",
       "filename": "useDebounce.ts",
       "size_bytes": 409,
@@ -31,7 +31,7 @@
       "content": "import { useEffect, useState } from \"react\";\n\nexport function useDebounce<T>(value: T, delay: number = 500): T {\n  const [debouncedValue, setDebouncedValue] = useState<T>(value);\n\n  useEffect(() => {\n    const handler = setTimeout(() => {\n      setDebouncedValue(value);\n    }, delay);\n\n    return () => {\n      clearTimeout(handler);\n    };\n  }, [value, delay]);\n\n  return debouncedValue;\n}\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useSessionState.ts",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\hooks\\useSessionState.ts",
       "relative_path": "hooks/useSessionState.ts",
       "filename": "useSessionState.ts",
       "size_bytes": 1563,

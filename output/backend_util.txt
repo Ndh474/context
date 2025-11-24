@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "backend",
     "category": "util",
-    "generated_at": "2025-11-20T20:18:28.658451",
+    "generated_at": "2025-11-24T20:05:13.460503",
     "total_files": 2,
     "total_lines": 214,
     "total_bytes": 8464
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\util\\SecurityUtil.java",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\util\\SecurityUtil.java",
       "relative_path": "src/main/java/com/fuacs/backend/util/SecurityUtil.java",
       "filename": "SecurityUtil.java",
       "size_bytes": 2530,
@@ -20,7 +20,7 @@
       "content": "package com.fuacs.backend.util;\n\nimport com.fuacs.backend.config.UserAuthentication;\nimport com.fuacs.backend.constant.ErrorCode;\nimport com.fuacs.backend.exception.OperationNotAllowedException;\nimport org.springframework.security.authentication.AnonymousAuthenticationToken;\nimport org.springframework.security.core.Authentication;\nimport org.springframework.security.core.context.SecurityContextHolder;\nimport org.springframework.security.core.userdetails.UserDetails;\n\nimport java.util.Optional;\n\npublic final class SecurityUtil {\n\n    public static Optional<String> getLoginUserName() {\n        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();\n\n        if (authentication == null\n                || !authentication.isAuthenticated()\n                || authentication instanceof AnonymousAuthenticationToken) {\n            return Optional.empty();\n        }\n\n        Object principal = authentication.getPrincipal();\n\n        if (principal instanceof UserDetails springUser) {\n            return Optional.of(springUser.getUsername());\n        } else if (principal instanceof String username) {\n            return Optional.of(username);\n        }\n\n        return Optional.ofNullable(authentication.getName());\n    }\n\n    public static Optional<Integer> getLoginUserId() {\n        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())\n                .filter(UserAuthentication.class::isInstance)\n                .map(UserAuthentication.class::cast)\n                .map(UserAuthentication::getUserId);\n    }\n\n    /**\n     * Get the current authenticated user ID with proper exception handling.\n     * This method extracts the user ID from the security context and throws\n     * an appropriate exception if the user is not authenticated.\n     * \n     * @return The current authenticated user ID\n     * @throws OperationNotAllowedException if the user is not authenticated\n     */\n    public static Integer getCurrentUserId() {\n        return getLoginUserId()\n                .orElseThrow(() -> new OperationNotAllowedException(\n                    \"User not authenticated\", ErrorCode.UN_AUTHENTICATION));\n    }\n\n    public static Optional<UserAuthentication> getUserAuthentication() {\n        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())\n                .filter(UserAuthentication.class::isInstance)\n                .map(UserAuthentication.class::cast);\n    }\n}\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\util\\TokenProviderUtil.java",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\backend\\src\\main\\java\\com\\fuacs\\backend\\util\\TokenProviderUtil.java",
       "relative_path": "src/main/java/com/fuacs/backend/util/TokenProviderUtil.java",
       "filename": "TokenProviderUtil.java",
       "size_bytes": 5934,

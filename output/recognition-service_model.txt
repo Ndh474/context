@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "model",
-    "generated_at": "2025-11-20T20:18:33.151705",
+    "generated_at": "2025-11-24T20:05:17.525330",
     "total_files": 5,
     "total_lines": 258,
-    "total_bytes": 6641
+    "total_bytes": 6674
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\__init__.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\__init__.py",
       "relative_path": "src/recognition_service/models/__init__.py",
       "filename": "__init__.py",
       "size_bytes": 37,
@@ -20,18 +20,18 @@
       "content": "\"\"\"Models package initialization\"\"\"\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\recognition_requests.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\recognition_requests.py",
       "relative_path": "src/recognition_service/models/recognition_requests.py",
       "filename": "recognition_requests.py",
-      "size_bytes": 1414,
+      "size_bytes": 1447,
       "lines": 47,
-      "last_modified": "2025-11-04T12:11:49.299487",
+      "last_modified": "2025-11-22T23:32:45.546497",
       "encoding": "utf-8",
       "language": "python",
-      "content": "\"\"\"\nRecognition Request Models\nMirrors Java Backend DTOs for session management\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import List, Optional\nfrom enum import Enum\n\nclass ScanMode(str, Enum):\n    \"\"\"Scan mode for recognition session\"\"\"\n    INITIAL = \"INITIAL\"\n    RESCAN = \"RESCAN\"\n\nclass StudentEmbeddingDTO(BaseModel):\n    \"\"\"Student with face embedding\"\"\"\n    userId: int\n    fullName: str\n    rollNumber: str\n    embeddingVector: List[float] = Field(..., min_length=512, max_length=512)\n    embeddingVersion: int\n\nclass CameraDTO(BaseModel):\n    \"\"\"Camera configuration\"\"\"\n    id: int\n    name: str\n    rtspUrl: str\n\nclass SessionConfigDTO(BaseModel):\n    \"\"\"Recognition session configuration\"\"\"\n    similarityThreshold: float = Field(default=0.85, ge=0.0, le=1.0)\n    scanInterval: int = Field(default=5, ge=1, le=60)\n    callbackUrl: str\n\nclass StartSessionRequest(BaseModel):\n    \"\"\"Request to start recognition session\"\"\"\n    slotId: int\n    roomId: int\n    mode: ScanMode = ScanMode.INITIAL\n    students: List[StudentEmbeddingDTO] = Field(..., min_length=1)\n    cameras: List[CameraDTO] = Field(..., min_length=1)\n    config: SessionConfigDTO\n    callbackType: str = \"REGULAR\"  # \"REGULAR\" or \"EXAM\" - routes callback to correct backend table\n\nclass StopSessionRequest(BaseModel):\n    \"\"\"Request to stop recognition session\"\"\"\n    slotId: int\n"
+      "content": "\"\"\"\nRecognition Request Models\nMirrors Java Backend DTOs for session management\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import List, Optional\nfrom enum import Enum\n\nclass ScanMode(str, Enum):\n    \"\"\"Scan mode for recognition session\"\"\"\n    INITIAL = \"INITIAL\"\n    RESCAN = \"RESCAN\"\n\nclass StudentEmbeddingDTO(BaseModel):\n    \"\"\"Student with face embedding\"\"\"\n    userId: int\n    fullName: str\n    rollNumber: str\n    embeddingVector: List[float] = Field(..., min_length=512, max_length=512)\n    embeddingVersion: int\n\nclass CameraDTO(BaseModel):\n    \"\"\"Camera configuration\"\"\"\n    id: int\n    name: str\n    rtspUrl: str\n\nclass SessionConfigDTO(BaseModel):\n    \"\"\"Recognition session configuration\"\"\"\n    similarityThreshold: float = Field(default=0.85, ge=0.0, le=1.0)\n    scanInterval: float = Field(default=1.5, ge=0.5, le=60)  # Support decimal seconds\n    callbackUrl: str\n\nclass StartSessionRequest(BaseModel):\n    \"\"\"Request to start recognition session\"\"\"\n    slotId: int\n    roomId: int\n    mode: ScanMode = ScanMode.INITIAL\n    students: List[StudentEmbeddingDTO] = Field(..., min_length=1)\n    cameras: List[CameraDTO] = Field(..., min_length=1)\n    config: SessionConfigDTO\n    callbackType: str = \"REGULAR\"  # \"REGULAR\" or \"EXAM\" - routes callback to correct backend table\n\nclass StopSessionRequest(BaseModel):\n    \"\"\"Request to stop recognition session\"\"\"\n    slotId: int\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\recognition_responses.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\recognition_responses.py",
       "relative_path": "src/recognition_service/models/recognition_responses.py",
       "filename": "recognition_responses.py",
       "size_bytes": 1002,
@@ -42,7 +42,7 @@
       "content": "\"\"\"\nRecognition Response Models\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import Optional, List\nfrom datetime import datetime\n\nclass SessionDataDTO(BaseModel):\n    \"\"\"Session data for responses\"\"\"\n    slotId: int\n    roomId: int\n    mode: str = \"INITIAL\"  # INITIAL or RESCAN\n    totalStudents: int\n    totalCameras: int\n    activeCameras: int\n    failedCameras: int\n    sessionStartedAt: Optional[str] = None\n    sessionStoppedAt: Optional[str] = None\n    sessionDuration: Optional[int] = None  # seconds\n    totalRecognitions: Optional[int] = None\n    recognizedStudentIds: Optional[List[int]] = None  # List of student IDs detected during session (for RESCAN mode)\n\n    class Config:\n        json_encoders = {\n            datetime: lambda v: v.isoformat() + \"Z\"\n        }\n\nclass RecognitionResponse(BaseModel):\n    \"\"\"Standard response format\"\"\"\n    status: int\n    message: str\n    data: Optional[SessionDataDTO] = None\n    code: Optional[str] = None\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\requests.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\requests.py",
       "relative_path": "src/recognition_service/models/requests.py",
       "filename": "requests.py",
       "size_bytes": 252,
@@ -53,7 +53,7 @@
       "content": "\"\"\"\nRequest Models for Embeddings Endpoints\n\"\"\"\n\nfrom pydantic import BaseModel, Field\n\n\n# Note: /embeddings/generate endpoint uses multipart/form-data (UploadFile + Form)\n# No Pydantic model needed - FastAPI handles it with File() and Form()\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\responses.py",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\src\\recognition_service\\models\\responses.py",
       "relative_path": "src/recognition_service/models/responses.py",
       "filename": "responses.py",
       "size_bytes": 3936,

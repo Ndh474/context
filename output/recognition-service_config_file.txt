@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "config_file",
-    "generated_at": "2025-11-20T20:18:33.150705",
+    "generated_at": "2025-11-24T20:05:17.524330",
     "total_files": 1,
     "total_lines": 49,
     "total_bytes": 1160
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\recognition-service\\pyproject.toml",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\recognition-service\\pyproject.toml",
       "relative_path": "pyproject.toml",
       "filename": "pyproject.toml",
       "size_bytes": 1160,

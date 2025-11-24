@@ -2,14 +2,14 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "component_provider",
-    "generated_at": "2025-11-20T20:18:33.070573",
+    "generated_at": "2025-11-24T20:05:17.457095",
     "total_files": 2,
     "total_lines": 36,
     "total_bytes": 982
   },
   "files": [
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\query-provider.tsx",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\query-provider.tsx",
       "relative_path": "components/providers/query-provider.tsx",
       "filename": "query-provider.tsx",
       "size_bytes": 672,
@@ -20,7 +20,7 @@
       "content": "\"use client\";\nimport { QueryClient, QueryClientProvider } from \"@tanstack/react-query\";\nimport { ReactQueryDevtools } from \"@tanstack/react-query-devtools\";\nimport { useState } from \"react\";\n\nexport function QueryProvider({ children }: { children: React.ReactNode }) {\n  const [queryClient] = useState(\n    () =>\n      new QueryClient({\n        defaultOptions: {\n          queries: {\n            staleTime: 1000 * 60 * 5,\n            retry: false,\n          },\n        },\n      })\n  );\n\n  return (\n    <QueryClientProvider client={queryClient}>\n      {children}\n      <ReactQueryDevtools initialIsOpen={false} />\n    </QueryClientProvider>\n  );\n}\n"
     },
     {
-      "path": "d:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\theme-provider.tsx",
+      "path": "D:\\Work\\do_an_fall25\\fuacs\\frontend-web\\components\\providers\\theme-provider.tsx",
       "relative_path": "components/providers/theme-provider.tsx",
       "filename": "theme-provider.tsx",
       "size_bytes": 310,
