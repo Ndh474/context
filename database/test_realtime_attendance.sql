@@ -2,6 +2,7 @@
 -- TEST DATA SCRIPT: Real-time Attendance Testing
 -- ============================================================================
 -- Purpose: Create test environment for real-time attendance with 5 SE students
+--          Includes both LECTURE slot (lecturer01) and FINAL_EXAM slot (supervisor01)
 --
 -- IDEMPOTENT: Safe to run multiple times
 -- Strategy: Delete old test data first, then create fresh data
@@ -11,11 +12,34 @@
 --   - Camera 101-A must exist in Room 101
 --   - 5 SE students must exist (hieundhe180314, vuongvt181386, anhtd180577, tuanpa171369, baodn182129)
 --   - Face embeddings must exist in V18__Seed_face_embeddings.sql migration
+--   - supervisor01 user must exist with SUPERVISOR role
 -- ============================================================================
 
 -- ============================================================================
 -- PHASE 1: CLEANUP - Remove old test data
 -- ============================================================================
+
+-- Delete old exam slot participants (for test FINAL_EXAM slot)
+DELETE FROM exam_slot_participants
+WHERE exam_slot_subject_id IN (
+    SELECT ess.id FROM exam_slot_subjects ess
+    JOIN slots s ON ess.slot_id = s.id
+    WHERE s.title = 'PRO192 - Final Exam Test'
+      AND s.slot_category = 'FINAL_EXAM'
+);
+
+-- Delete old exam slot subjects
+DELETE FROM exam_slot_subjects
+WHERE slot_id IN (
+    SELECT id FROM slots
+    WHERE title = 'PRO192 - Final Exam Test'
+      AND slot_category = 'FINAL_EXAM'
+);
+
+-- Delete old test FINAL_EXAM slot
+DELETE FROM slots
+WHERE title = 'PRO192 - Final Exam Test'
+  AND slot_category = 'FINAL_EXAM';
 
 -- Delete old slots for SE999 class
 -- This will CASCADE delete attendance_records (slots FK has ON DELETE CASCADE to attendance_records)
@@ -57,7 +81,7 @@ VALUES
     ((SELECT id FROM users WHERE username = 'tuanpa171369'), (SELECT id FROM classes WHERE code = 'SE999'), true),
     ((SELECT id FROM users WHERE username = 'baodn182129'), (SELECT id FROM classes WHERE code = 'SE999'), true);
 
--- Create slot for SE999 class
+-- Create LECTURE slot for SE999 class
 -- Note: Uses existing Room 101 and Camera 101-A
 -- Note: Timestamps are fixed for easy editing - change as needed for your test
 INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count)
@@ -77,8 +101,71 @@ VALUES (
 );
 
 -- ============================================================================
--- PHASE 3: VERIFICATION QUERIES
+-- PHASE 3: CREATE FINAL_EXAM SLOT (supervisor01)
 -- ============================================================================
+
+-- Create FINAL_EXAM slot (NO class_id - exam slots don't link to class directly)
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count)
+VALUES (
+    '2025-11-07T05:00:00.977724+00:00',  -- Edit this timestamp as needed
+    '2025-11-07T07:00:00.977724+00:00',  -- Edit this timestamp as needed
+    NULL,  -- IMPORTANT: FINAL_EXAM slots don't link to class
+    (SELECT id FROM semesters WHERE code = 'FA25'),
+    (SELECT id FROM rooms WHERE name = 'Room 101'),  -- Same Room 101
+    (SELECT id FROM users WHERE username = 'supervisor01'),
+    'FINAL_EXAM',
+    'PRO192 - Final Exam Test',
+    'Test exam slot for 5 SE students - Real-time Attendance Testing',
+    true,
+    'NOT_STARTED',
+    0,
+    'NOT_STARTED',
+    0
+);
+
+-- Create exam_slot_subjects entry to link the slot to PRO192 subject
+INSERT INTO exam_slot_subjects (slot_id, subject_id, is_active, created_at)
+VALUES (
+    (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM'),
+    (SELECT id FROM subjects WHERE code = 'PRO192'),
+    true,
+    NOW()
+);
+
+-- Add 5 SE students as exam participants
+INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled, created_at, updated_at)
+VALUES
+    (
+        (SELECT id FROM exam_slot_subjects WHERE slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192')),
+        (SELECT id FROM users WHERE username = 'hieundhe180314'),
+        true, NOW(), NOW()
+    ),
+    (
+        (SELECT id FROM exam_slot_subjects WHERE slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192')),
+        (SELECT id FROM users WHERE username = 'vuongvt181386'),
+        true, NOW(), NOW()
+    ),
+    (
+        (SELECT id FROM exam_slot_subjects WHERE slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192')),
+        (SELECT id FROM users WHERE username = 'anhtd180577'),
+        true, NOW(), NOW()
+    ),
+    (
+        (SELECT id FROM exam_slot_subjects WHERE slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192')),
+        (SELECT id FROM users WHERE username = 'tuanpa171369'),
+        true, NOW(), NOW()
+    ),
+    (
+        (SELECT id FROM exam_slot_subjects WHERE slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192')),
+        (SELECT id FROM users WHERE username = 'baodn182129'),
+        true, NOW(), NOW()
+    );
+
+-- ============================================================================
+-- PHASE 4: VERIFICATION QUERIES
+-- ============================================================================
+
+SELECT '========== LECTURE SLOT (lecturer01) ==========' as section;
 
 SELECT 'Class created' as status,
        c.id as class_id,
@@ -98,20 +185,66 @@ FROM enrollments e
 JOIN users u ON e.student_user_id = u.id
 WHERE class_id = (SELECT id FROM classes WHERE code = 'SE999');
 
-SELECT 'Slot created' as status,
+SELECT 'LECTURE Slot created' as status,
        sl.id as slot_id,
+       sl.title,
+       sl.slot_category,
        sl.start_time,
        sl.end_time,
        c.code as class,
        r.name as room,
-       cam.name as camera,
-       cam.rtsp_url as camera_url,
+       u.username as staff,
        sl.session_status
 FROM slots sl
 JOIN classes c ON sl.class_id = c.id
 JOIN rooms r ON sl.room_id = r.id
-LEFT JOIN cameras cam ON cam.room_id = r.id AND cam.is_active = true
+JOIN users u ON sl.staff_user_id = u.id
 WHERE c.code = 'SE999';
+
+SELECT '========== FINAL_EXAM SLOT (supervisor01) ==========' as section;
+
+SELECT 'FINAL_EXAM Slot created' as status,
+       sl.id as slot_id,
+       sl.title,
+       sl.slot_category,
+       sl.start_time,
+       sl.end_time,
+       r.name as room,
+       u.username as staff,
+       sl.session_status,
+       sl.exam_session_status
+FROM slots sl
+JOIN rooms r ON sl.room_id = r.id
+JOIN users u ON sl.staff_user_id = u.id
+WHERE sl.title = 'PRO192 - Final Exam Test' AND sl.slot_category = 'FINAL_EXAM';
+
+SELECT 'Exam subjects assigned' as status,
+       ess.id as exam_slot_subject_id,
+       sub.code as subject_code,
+       sub.name as subject_name
+FROM exam_slot_subjects ess
+JOIN subjects sub ON ess.subject_id = sub.id
+WHERE ess.slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM')
+  AND ess.is_active = true;
+
+SELECT 'Exam participants enrolled' as status,
+       COUNT(*) as count,
+       STRING_AGG(u.username, ', ') as students
+FROM exam_slot_participants esp
+JOIN users u ON esp.student_user_id = u.id
+JOIN exam_slot_subjects ess ON esp.exam_slot_subject_id = ess.id
+WHERE ess.slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test' AND slot_category = 'FINAL_EXAM')
+  AND esp.is_enrolled = true;
+
+SELECT '========== SHARED INFO ==========' as section;
+
+SELECT 'Room & Camera info' as status,
+       r.name as room,
+       cam.name as camera,
+       cam.rtsp_url as camera_url
+FROM rooms r
+LEFT JOIN cameras cam ON cam.room_id = r.id AND cam.is_active = true
+WHERE r.name = 'Room 101';
 
 SELECT 'Face embeddings available' as status,
        COUNT(*) as count,
@@ -125,4 +258,5 @@ WHERE fe.student_user_id IN (
 
 SELECT '============================================' as separator;
 SELECT 'TEST ENVIRONMENT READY!' as status;
+SELECT 'Both LECTURE (lecturer01) and FINAL_EXAM (supervisor01) slots created!' as note;
 SELECT '============================================' as separator;
