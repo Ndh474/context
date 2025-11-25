@@ -8,11 +8,13 @@
 -- Strategy: Delete old test data first, then create fresh data
 --
 -- Prerequisites:
---   - Room 101 must exist
---   - Camera 101-A must exist in Room 101
+--   - Room 102 must exist with Camera 102-A (rtsp://hieund99:hieund99@192.168.0.122:9999/h264_ulaw.sdp)
+--   - Room 103 must exist with Camera 103-A (rtsp://admin:admin@192.168.0.137:8554/live)
 --   - 5 SE students must exist (hieundhe180314, vuongvt181386, anhtd180577, tuanpa171369, baodn182129)
 --   - Face embeddings must exist in V18__Seed_face_embeddings.sql migration
 --   - supervisor01 user must exist with SUPERVISOR role
+--
+-- Note: LECTURE (Room 102) and FINAL_EXAM (Room 103) can run at the same time since different rooms
 -- ============================================================================
 
 -- ============================================================================
@@ -82,19 +84,19 @@ VALUES
     ((SELECT id FROM users WHERE username = 'baodn182129'), (SELECT id FROM classes WHERE code = 'SE999'), true);
 
 -- Create LECTURE slot for SE999 class
--- Note: Uses existing Room 101 and Camera 101-A
--- Note: Timestamps are fixed for easy editing - change as needed for your test
+-- Note: Uses Room 102 with Camera 102-A
+-- Note: Same time as FINAL_EXAM slot (different rooms = OK)
 INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count)
 VALUES (
-    '2025-11-06T23:00:00.977724+00:00',  -- Edit this timestamp as needed
-    '2025-11-07T01:00:00.977724+00:00',  -- Edit this timestamp as needed
+    '2025-11-07T05:00:00.000000+00:00',  -- Same time as exam (different room)
+    '2025-11-07T07:00:00.000000+00:00',  -- Same time as exam (different room)
     (SELECT id FROM classes WHERE code = 'SE999'),
     (SELECT id FROM semesters WHERE code = 'FA25'),
-    (SELECT id FROM rooms WHERE name = 'Room 101'),  -- Using existing Room 101
+    (SELECT id FROM rooms WHERE name = 'Room 102'),  -- Room 102 with Camera 102-A
     (SELECT id FROM users WHERE username = 'lecturer01'),
     'LECTURE',
     'PRO192 - OOP Test Class',
-    'Test class for 5 SE students - Real-time Attendance Testing',
+    'Test class for 5 SE students - Real-time Attendance Testing (Room 102)',
     true,
     'NOT_STARTED',
     0
@@ -105,17 +107,19 @@ VALUES (
 -- ============================================================================
 
 -- Create FINAL_EXAM slot (NO class_id - exam slots don't link to class directly)
+-- Note: Uses Room 103 with Camera 103-A
+-- Note: Same time as LECTURE slot (different rooms = OK)
 INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count)
 VALUES (
-    '2025-11-07T05:00:00.977724+00:00',  -- Edit this timestamp as needed
-    '2025-11-07T07:00:00.977724+00:00',  -- Edit this timestamp as needed
+    '2025-11-07T05:00:00.000000+00:00',  -- Same time as lecture (different room)
+    '2025-11-07T07:00:00.000000+00:00',  -- Same time as lecture (different room)
     NULL,  -- IMPORTANT: FINAL_EXAM slots don't link to class
     (SELECT id FROM semesters WHERE code = 'FA25'),
-    (SELECT id FROM rooms WHERE name = 'Room 101'),  -- Same Room 101
+    (SELECT id FROM rooms WHERE name = 'Room 103'),  -- Room 103 with Camera 103-A
     (SELECT id FROM users WHERE username = 'supervisor01'),
     'FINAL_EXAM',
     'PRO192 - Final Exam Test',
-    'Test exam slot for 5 SE students - Real-time Attendance Testing',
+    'Test exam slot for 5 SE students - Real-time Attendance Testing (Room 103)',
     true,
     'NOT_STARTED',
     0,
@@ -238,13 +242,21 @@ WHERE ess.slot_id = (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Tes
 
 SELECT '========== SHARED INFO ==========' as section;
 
-SELECT 'Room & Camera info' as status,
+SELECT 'Room 102 Camera info (LECTURE)' as status,
        r.name as room,
        cam.name as camera,
        cam.rtsp_url as camera_url
 FROM rooms r
 LEFT JOIN cameras cam ON cam.room_id = r.id AND cam.is_active = true
-WHERE r.name = 'Room 101';
+WHERE r.name = 'Room 102';
+
+SELECT 'Room 103 Camera info (FINAL_EXAM)' as status,
+       r.name as room,
+       cam.name as camera,
+       cam.rtsp_url as camera_url
+FROM rooms r
+LEFT JOIN cameras cam ON cam.room_id = r.id AND cam.is_active = true
+WHERE r.name = 'Room 103';
 
 SELECT 'Face embeddings available' as status,
        COUNT(*) as count,
@@ -258,5 +270,7 @@ WHERE fe.student_user_id IN (
 
 SELECT '============================================' as separator;
 SELECT 'TEST ENVIRONMENT READY!' as status;
-SELECT 'Both LECTURE (lecturer01) and FINAL_EXAM (supervisor01) slots created!' as note;
+SELECT 'LECTURE slot: Room 102 (Camera 102-A) - lecturer01' as slot1;
+SELECT 'FINAL_EXAM slot: Room 103 (Camera 103-A) - supervisor01' as slot2;
+SELECT 'Both slots run at SAME TIME (05:00-07:00 UTC) - different rooms!' as note;
 SELECT '============================================' as separator;
