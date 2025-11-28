@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "backend",
     "category": "uncategorized",
-    "generated_at": "2025-11-24T20:05:13.460503",
+    "generated_at": "2025-11-28T09:26:36.248030",
     "total_files": 6,
     "total_lines": 194,
     "total_bytes": 7730
@@ -14,7 +14,7 @@
       "filename": "sonar-project.properties",
       "size_bytes": 337,
       "lines": 9,
-      "last_modified": "2025-10-29T20:56:54.530219",
+      "last_modified": "2025-11-28T08:56:32.952446",
       "encoding": "utf-8",
       "language": "properties",
       "content": "sonar.projectKey=fuacs_backend\nsonar.sources=src/main\nsonar.host.url=https://sonarcloud.io\nsonar.organization=fuacs\nsonar.token=131ec49cdd0c8a4eaa4374843730f1ba90cb7575\nsonar.java.binaries=target/classes\nsonar.sourceEncoding=UTF-8\nsonar.coverage.jacoco.xmlReportPaths=target/jacoco/jacoco.xml\nsonar.java.codeCoveragePlugin=jacoco"
@@ -25,7 +25,7 @@
       "filename": "BackendApplication.java",
       "size_bytes": 424,
       "lines": 15,
-      "last_modified": "2025-11-24T19:31:34.741970",
+      "last_modified": "2025-11-28T08:56:32.952446",
       "encoding": "utf-8",
       "language": "java",
       "content": "package com.fuacs.backend;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\nimport org.springframework.scheduling.annotation.EnableScheduling;\n\n@SpringBootApplication\n@EnableScheduling\npublic class BackendApplication {\n\n    public static void main(String[] args) {\n        SpringApplication.run(BackendApplication.class, args);\n    }\n\n}\n"
@@ -36,7 +36,7 @@
       "filename": "AttendanceUpdateEvent.java",
       "size_bytes": 3513,
       "lines": 86,
-      "last_modified": "2025-11-11T13:24:54.490099",
+      "last_modified": "2025-11-28T08:56:32.969606",
       "encoding": "utf-8",
       "language": "java",
       "content": "package com.fuacs.backend.dto.realtime;\n\nimport com.fasterxml.jackson.annotation.JsonInclude;\n\n@JsonInclude(JsonInclude.Include.NON_NULL)\npublic class AttendanceUpdateEvent {\n    private Integer slotId;\n    private Integer studentUserId;\n    private String kind; // \"regular\" | \"exam\"\n    private Long recordId;\n    private String status; // not_yet | present | absent\n    private String method; // auto | manual | system_finalize\n    private String recordedAt; // ISO string for simplicity\n    private String evidenceImageUrl;\n    private Boolean needsReview; // Flag indicating attendance needs manual review\n\n    public AttendanceUpdateEvent() {\n    }\n\n    public AttendanceUpdateEvent(Integer slotId,\n                                 Integer studentUserId,\n                                 String kind,\n                                 Long recordId,\n                                 String status,\n                                 String method,\n                                 String recordedAt,\n                                 String evidenceImageUrl) {\n        this.slotId = slotId;\n        this.studentUserId = studentUserId;\n        this.kind = kind;\n        this.recordId = recordId;\n        this.status = status;\n        this.method = method;\n        this.recordedAt = recordedAt;\n        this.evidenceImageUrl = evidenceImageUrl;\n        this.needsReview = null; // Default null (not included in JSON)\n    }\n\n    public AttendanceUpdateEvent(Integer slotId,\n                                 Integer studentUserId,\n                                 String kind,\n                                 Long recordId,\n                                 String status,\n                                 String method,\n                                 String recordedAt,\n                                 String evidenceImageUrl,\n                                 Boolean needsReview) {\n        this.slotId = slotId;\n        this.studentUserId = studentUserId;\n        this.kind = kind;\n        this.recordId = recordId;\n        this.status = status;\n        this.method = method;\n        this.recordedAt = recordedAt;\n        this.evidenceImageUrl = evidenceImageUrl;\n        this.needsReview = needsReview;\n    }\n\n    public Integer getSlotId() { return slotId; }\n    public void setSlotId(Integer slotId) { this.slotId = slotId; }\n\n    public Integer getStudentUserId() { return studentUserId; }\n    public void setStudentUserId(Integer studentUserId) { this.studentUserId = studentUserId; }\n\n    public String getKind() { return kind; }\n    public void setKind(String kind) { this.kind = kind; }\n\n    public Long getRecordId() { return recordId; }\n    public void setRecordId(Long recordId) { this.recordId = recordId; }\n\n    public String getStatus() { return status; }\n    public void setStatus(String status) { this.status = status; }\n\n    public String getMethod() { return method; }\n    public void setMethod(String method) { this.method = method; }\n\n    public String getRecordedAt() { return recordedAt; }\n    public void setRecordedAt(String recordedAt) { this.recordedAt = recordedAt; }\n\n    public String getEvidenceImageUrl() { return evidenceImageUrl; }\n    public void setEvidenceImageUrl(String evidenceImageUrl) { this.evidenceImageUrl = evidenceImageUrl; }\n\n    public Boolean getNeedsReview() { return needsReview; }\n    public void setNeedsReview(Boolean needsReview) { this.needsReview = needsReview; }\n}\n\n"
@@ -47,7 +47,7 @@
       "filename": "AttendanceFinalizeScheduler.java",
       "size_bytes": 2484,
       "lines": 60,
-      "last_modified": "2025-11-24T19:39:11.283218",
+      "last_modified": "2025-11-28T08:56:33.019056",
       "encoding": "utf-8",
       "language": "java",
       "content": "package com.fuacs.backend.scheduler;\n\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;\nimport org.springframework.scheduling.annotation.Scheduled;\nimport org.springframework.stereotype.Component;\n\n/**\n * Scheduler for automatic attendance finalization.\n * This component handles scheduled tasks to automatically convert NOT_YET attendance status to ABSENT\n * based on configured rules for different slot types.\n */\n@Component\n@ConditionalOnProperty(\n    prefix = \"scheduling.attendance.finalize\",\n    name = \"enabled\",\n    havingValue = \"true\",\n    matchIfMissing = true\n)\npublic class AttendanceFinalizeScheduler {\n\n    private static final Logger log = LoggerFactory.getLogger(AttendanceFinalizeScheduler.class);\n\n    private final AttendanceFinalizeService attendanceFinalizeService;\n\n    public AttendanceFinalizeScheduler(AttendanceFinalizeService attendanceFinalizeService) {\n        this.attendanceFinalizeService = attendanceFinalizeService;\n    }\n\n    /**\n     * Scheduled task to finalize lecture attendance at the end of each day.\n     * Runs daily at 23:59 (Vietnam time).\n     * Processes LECTURE and LECTURE_WITH_PT slots that ended during the current day.\n     */\n    @Scheduled(cron = \"${scheduling.attendance.finalize.lecture-cron:0 59 23 * * *}\", zone = \"Asia/Ho_Chi_Minh\")\n    public void finalizeDailyLectureAttendance() {\n        log.info(\"Starting scheduled daily lecture attendance finalization...\");\n        try {\n            attendanceFinalizeService.finalizeLectureAttendance();\n            log.info(\"Scheduled daily lecture attendance finalization completed successfully\");\n        } catch (Exception e) {\n            log.error(\"Error during scheduled daily lecture attendance finalization\", e);\n        }\n    }\n\n    /**\n     * Scheduled task to finalize exam attendance periodically.\n     * Runs every minute to check for FINAL_EXAM slots that have expired (endTime + 10 minutes).\n     * Only processes slots that have NOT_YET attendance records.\n     */\n    @Scheduled(fixedDelayString = \"${scheduling.attendance.finalize.exam-check-interval:60000}\")\n    public void finalizeExpiredExamAttendance() {\n        try {\n            attendanceFinalizeService.finalizeExamAttendance();\n        } catch (Exception e) {\n            log.error(\"Error during scheduled exam attendance finalization\", e);\n        }\n    }\n}"
@@ -58,7 +58,7 @@
       "filename": "application-test.properties",
       "size_bytes": 611,
       "lines": 19,
-      "last_modified": "2025-10-29T20:56:54.630197",
+      "last_modified": "2025-11-28T08:56:33.051107",
       "encoding": "utf-8",
       "language": "properties",
       "content": "# Database Configuration\nspring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1\nspring.datasource.driver-class-name=org.h2.Driver\nspring.datasource.username=sa\nspring.datasource.password=\n\n# JPA Configuration\nspring.jpa.database-platform=org.hibernate.dialect.H2Dialect\nspring.jpa.hibernate.ddl-auto=create-drop\nspring.jpa.show-sql=true\nspring.jpa.properties.hibernate.format_sql=true\n\n# Logging\nlogging.level.com.fuacs.backend=DEBUG\nlogging.level.org.springframework.web=DEBUG\nlogging.level.org.hibernate.SQL=DEBUG\n\n# Test Configuration\nspring.main.allow-bean-definition-overriding=true\n"
@@ -69,7 +69,7 @@
       "filename": "test-data.sql",
       "size_bytes": 361,
       "lines": 5,
-      "last_modified": "2025-10-29T20:56:54.631196",
+      "last_modified": "2025-11-28T08:56:33.051107",
       "encoding": "utf-8",
       "language": "sql",
       "content": "-- Insert test data for integration tests\nINSERT INTO semesters (id, name, code, start_date, end_date, is_active, created_at, updated_at)\nVALUES\n    (1, 'Fall 2024', 'FA2024', '2024-09-01', '2024-12-31', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),\n    (2, 'Spring 2024', 'SP2024', '2024-01-15', '2024-05-15', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);\n"

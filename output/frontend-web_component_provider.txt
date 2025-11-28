@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "component_provider",
-    "generated_at": "2025-11-24T20:05:17.457095",
+    "generated_at": "2025-11-28T09:26:42.003387",
     "total_files": 2,
     "total_lines": 36,
     "total_bytes": 982
@@ -14,7 +14,7 @@
       "filename": "query-provider.tsx",
       "size_bytes": 672,
       "lines": 25,
-      "last_modified": "2025-10-13T21:26:33.899658",
+      "last_modified": "2025-11-28T09:21:56.251474",
       "encoding": "utf-8",
       "language": "typescript-react",
       "content": "\"use client\";\nimport { QueryClient, QueryClientProvider } from \"@tanstack/react-query\";\nimport { ReactQueryDevtools } from \"@tanstack/react-query-devtools\";\nimport { useState } from \"react\";\n\nexport function QueryProvider({ children }: { children: React.ReactNode }) {\n  const [queryClient] = useState(\n    () =>\n      new QueryClient({\n        defaultOptions: {\n          queries: {\n            staleTime: 1000 * 60 * 5,\n            retry: false,\n          },\n        },\n      })\n  );\n\n  return (\n    <QueryClientProvider client={queryClient}>\n      {children}\n      <ReactQueryDevtools initialIsOpen={false} />\n    </QueryClientProvider>\n  );\n}\n"

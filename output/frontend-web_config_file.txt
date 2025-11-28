@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "config_file",
-    "generated_at": "2025-11-24T20:05:17.460605",
+    "generated_at": "2025-11-28T09:26:42.007898",
     "total_files": 6,
     "total_lines": 245,
     "total_bytes": 7022
@@ -14,7 +14,7 @@
       "filename": "components.json",
       "size_bytes": 553,
       "lines": 26,
-      "last_modified": "2025-11-01T15:38:43.286640",
+      "last_modified": "2025-11-28T09:21:56.222890",
       "encoding": "utf-8",
       "language": "json",
       "content": "{\n  \"$schema\": \"https://ui.shadcn.com/schema.json\",\n  \"style\": \"new-york\",\n  \"rsc\": true,\n  \"tsx\": true,\n  \"tailwind\": {\n    \"config\": \"\",\n    \"css\": \"app/globals.css\",\n    \"baseColor\": \"neutral\",\n    \"cssVariables\": true,\n    \"prefix\": \"\"\n  },\n  \"iconLibrary\": \"lucide\",\n  \"aliases\": {\n    \"components\": \"@/components\",\n    \"utils\": \"@/lib/utils\",\n    \"ui\": \"@/components/ui\",\n    \"lib\": \"@/lib\",\n    \"hooks\": \"@/hooks\"\n  },\n  \"registries\": {\n    \"@my-patterns\": {\n      \"url\": \"http://localhost:3000/r/{name}.json\"\n    }\n  }\n}"
@@ -25,7 +25,7 @@
       "filename": "i18n.ts",
       "size_bytes": 401,
       "lines": 13,
-      "last_modified": "2025-11-09T20:23:57.407764",
+      "last_modified": "2025-11-28T09:21:56.276542",
       "encoding": "utf-8",
       "language": "typescript",
       "content": "import { getRequestConfig } from 'next-intl/server';\nimport { cookies } from 'next/headers';\n\nexport default getRequestConfig(async () => {\n  // Get locale from cookie, default to 'en'\n  const cookieStore = await cookies();\n  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en';\n\n  return {\n    locale,\n    messages: (await import(`./messages/${locale}.json`)).default,\n  };\n});\n"
@@ -36,7 +36,7 @@
       "filename": "middleware.ts",
       "size_bytes": 2405,
       "lines": 77,
-      "last_modified": "2025-11-09T20:23:57.417929",
+      "last_modified": "2025-11-28T09:21:56.286081",
       "encoding": "utf-8",
       "language": "typescript",
       "content": "import { NextResponse } from 'next/server';\nimport type { NextRequest } from 'next/server';\n\n// Public routes that don't require authentication\nconst PUBLIC_ROUTES = [\n  '/',\n  '/login',\n  '/forgot-password',\n  '/api',\n  '/_next',\n  '/favicon.ico',\n];\n\n// Check if route is public\nfunction isPublicRoute(pathname: string): boolean {\n  return PUBLIC_ROUTES.some(route => pathname.startsWith(route));\n}\n\n// Get the role type from pathname\nfunction getRoleFromPath(pathname: string): string | null {\n  if (pathname.startsWith('/admin')) return 'admin';\n  if (pathname.startsWith('/lecturer')) return 'lecturer';\n  if (pathname.startsWith('/supervisor')) return 'supervisor';\n  if (pathname.startsWith('/student')) return 'student';\n  return null;\n}\n\nexport function middleware(request: NextRequest) {\n  const { pathname } = request.nextUrl;\n\n  // Skip auth middleware for public routes\n  if (isPublicRoute(pathname)) {\n    return NextResponse.next();\n  }\n\n  // Get the role required for this route\n  const requiredRole = getRoleFromPath(pathname);\n\n  if (!requiredRole) {\n    // Unknown route, allow it to pass through\n    return NextResponse.next();\n  }\n\n  // Since we can't access localStorage in middleware (server-side),\n  // we'll set a header to indicate which role is required\n  // The client-side route guards will handle the actual validation\n  const response = NextResponse.next();\n  response.headers.set('x-required-role', requiredRole);\n\n  // For better UX, we can also check if there's any auth indication\n  // and redirect to login if completely unauthenticated\n  const authCookie = request.cookies.get('auth-token');\n  const authHeader = request.headers.get('authorization');\n\n  // If no auth indication at all, redirect to login\n  if (!authCookie && !authHeader) {\n    const loginUrl = new URL('/login', request.url);\n    loginUrl.searchParams.set('redirect', pathname);\n    return NextResponse.redirect(loginUrl);\n  }\n\n  return response;\n}\n\nexport const config = {\n  matcher: [\n    /*\n     * Match all request paths except for the ones starting with:\n     * - api (API routes)\n     * - _next/static (static files)\n     * - _next/image (image optimization files)\n     * - favicon.ico (favicon file)\n     * - login, forgot-password (auth pages)\n     */\n    '/((?!api|_next/static|_next/image|favicon.ico).*)',\n  ],\n};"
@@ -47,7 +47,7 @@
       "filename": "next.config.ts",
       "size_bytes": 810,
       "lines": 32,
-      "last_modified": "2025-11-09T20:23:57.417929",
+      "last_modified": "2025-11-28T09:21:56.287080",
       "encoding": "utf-8",
       "language": "typescript",
       "content": "import type { NextConfig } from \"next\";\nimport createNextIntlPlugin from 'next-intl/plugin';\n\nconst withNextIntl = createNextIntlPlugin('./i18n.ts');\n\nconst nextConfig: NextConfig = {\n  images: {\n    remotePatterns: [\n      {\n        protocol: \"https\",\n        hostname: \"placehold.co\",\n      },\n      {\n        protocol: \"http\",\n        hostname: \"localhost\",\n        port: \"8080\",\n        pathname: \"/api/v1/evidence/**\",\n      },\n      {\n        protocol: \"http\",\n        hostname: \"localhost\",\n        port: \"8080\",\n        pathname: \"/api/v1/profiles/**\",\n      },\n    ],\n    dangerouslyAllowSVG: true,\n    contentDispositionType: \"attachment\",\n    contentSecurityPolicy: \"default-src 'self'; script-src 'none'; sandbox;\",\n  },\n};\n\nexport default withNextIntl(nextConfig);\n"
@@ -58,7 +58,7 @@
       "filename": "package.json",
       "size_bytes": 2228,
       "lines": 70,
-      "last_modified": "2025-11-14T20:59:58.770018",
+      "last_modified": "2025-11-28T09:21:56.288081",
       "encoding": "utf-8",
       "language": "json",
       "content": "{\n  \"name\": \"frontend-web\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"next dev --turbopack\",\n    \"build\": \"next build --turbopack\",\n    \"start\": \"next start\",\n    \"lint\": \"eslint\",\n    \"test\": \"echo \\\"Error: no test specified\\\" && exit 0\"\n  },\n  \"dependencies\": {\n    \"@hookform/resolvers\": \"^5.2.2\",\n    \"@radix-ui/react-accordion\": \"^1.2.12\",\n    \"@radix-ui/react-alert-dialog\": \"^1.1.15\",\n    \"@radix-ui/react-avatar\": \"^1.1.10\",\n    \"@radix-ui/react-checkbox\": \"^1.3.3\",\n    \"@radix-ui/react-collapsible\": \"^1.1.12\",\n    \"@radix-ui/react-dialog\": \"^1.1.15\",\n    \"@radix-ui/react-dropdown-menu\": \"^2.1.16\",\n    \"@radix-ui/react-icons\": \"^1.3.2\",\n    \"@radix-ui/react-label\": \"^2.1.7\",\n    \"@radix-ui/react-popover\": \"^1.1.15\",\n    \"@radix-ui/react-progress\": \"^1.1.7\",\n    \"@radix-ui/react-radio-group\": \"^1.3.8\",\n    \"@radix-ui/react-scroll-area\": \"^1.2.10\",\n    \"@radix-ui/react-select\": \"^2.2.6\",\n    \"@radix-ui/react-separator\": \"^1.1.7\",\n    \"@radix-ui/react-slot\": \"^1.2.3\",\n    \"@radix-ui/react-switch\": \"^1.2.6\",\n    \"@radix-ui/react-tabs\": \"^1.1.13\",\n    \"@radix-ui/react-tooltip\": \"^1.2.8\",\n    \"@react-oauth/google\": \"^0.11.1\",\n    \"@tanstack/react-query\": \"^5.90.2\",\n    \"@tanstack/react-query-devtools\": \"^5.90.2\",\n    \"@tanstack/react-table\": \"^8.21.3\",\n    \"axios\": \"^1.12.2\",\n    \"class-variance-authority\": \"^0.7.1\",\n    \"clsx\": \"^2.1.1\",\n    \"cmdk\": \"^1.1.1\",\n    \"date-fns\": \"^4.1.0\",\n    \"date-fns-tz\": \"^3.2.0\",\n    \"lucide-react\": \"^0.544.0\",\n    \"next\": \"15.5.4\",\n    \"next-intl\": \"^4.4.0\",\n    \"next-themes\": \"^0.4.6\",\n    \"react\": \"19.1.0\",\n    \"react-day-picker\": \"^9.11.1\",\n    \"react-dom\": \"19.1.0\",\n    \"react-hook-form\": \"^7.64.0\",\n    \"sonner\": \"^2.0.7\",\n    \"tailwind-merge\": \"^3.3.1\",\n    \"xlsx\": \"^0.18.5\",\n    \"zod\": \"^4.1.11\",\n    \"zustand\": \"^5.0.8\"\n  },\n  \"devDependencies\": {\n    \"@eslint/eslintrc\": \"^3\",\n    \"@tailwindcss/postcss\": \"^4\",\n    \"@types/node\": \"^20\",\n    \"@types/react\": \"^19\",\n    \"@types/react-dom\": \"^19\",\n    \"eslint\": \"^9\",\n    \"eslint-config-next\": \"15.5.4\",\n    \"shadcn\": \"^3.4.2\",\n    \"tailwindcss\": \"^4\",\n    \"tw-animate-css\": \"^1.4.0\",\n    \"typescript\": \"^5\"\n  }\n}\n"
