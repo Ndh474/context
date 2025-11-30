@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":StudentProfileController" as Controller
 participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as StudentRepo
-participant ":UserRepository" as UserRepo
-participant ":MajorRepository" as MajorRepo
+participant ":StudentProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -18,65 +16,39 @@ Controller -> Service: update(id, request)
 activate Service
 
 ' --- FIND EXISTING ---
-Service -> StudentRepo: findById(id)
-activate StudentRepo
+Service -> Repository: findById(id)
+activate Repository
 
-StudentRepo -> DB: Query Student by ID
+Repository -> DB: Query Student by ID
 activate DB
-DB --> StudentRepo: Student Record / Null
+DB --> Repository: Student Record / Null
 deactivate DB
 
-StudentRepo --> Service: Optional<StudentProfile>
-deactivate StudentRepo
+Repository --> Service: Optional<StudentProfile>
+deactivate Repository
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: roll number/email uniqueness, major validation, username change check)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
+    Controller --> Admin: 400 Bad Request / 403 Forbidden / 404 Not Found / 409 Conflict
 end
 
-alt Username change attempted
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
+Service -> Repository: save(profile)
+activate Repository
 
-' --- FIND MAJOR IF CHANGED ---
-opt Major changed
-    Service -> MajorRepo: findById(majorId)
-    activate MajorRepo
-    
-    MajorRepo -> DB: Query Major by ID
-    activate DB
-    DB --> MajorRepo: Major Record / Null
-    deactivate DB
-    
-    MajorRepo --> Service: Optional<Major>
-    deactivate MajorRepo
-    
-    alt Major not found
-        Service -->> Controller: <<throw>> ResourceNotFoundException
-        Controller --> Admin: 404 Not Found
-    end
-end
-
-' --- UPDATE ---
-Service -> StudentRepo: save(profile)
-activate StudentRepo
-
-StudentRepo -> DB: Update Student Profile
+Repository -> DB: Update Student Profile
 activate DB
-DB --> StudentRepo: Updated Profile
+DB --> Repository: Updated Profile
 deactivate DB
 
-StudentRepo --> Service: StudentProfile
-deactivate StudentRepo
+Repository --> Service: StudentProfile
+deactivate Repository
 
 Service --> Controller: StudentProfileDTO
 deactivate Service

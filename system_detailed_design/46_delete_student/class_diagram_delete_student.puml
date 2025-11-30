@@ -28,26 +28,12 @@ interface StudentProfileRepository <<interface>> {
 class StudentProfile {
   - userId : Integer
   - user : User
-  - major : Major
   - rollNumber : String
 }
 
 class User {
   - id : Integer
   - username : String
-  - email : String
-}
-
-class Enrollment {
-  - id : EnrollmentId
-  - student : User
-  - academicClass : AcademicClass
-}
-
-class AttendanceRecord {
-  - id : Long
-  - student : User
-  - slot : Slot
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -59,7 +45,5 @@ StudentProfileRepository .down.> StudentProfile
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 StudentProfile o-right- User
-Enrollment o-right- User
-AttendanceRecord o-right- User
 
 @enduml

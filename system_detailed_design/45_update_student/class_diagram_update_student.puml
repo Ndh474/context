@@ -25,14 +25,6 @@ interface StudentProfileRepository <<interface>> {
   + save(profile : StudentProfile) : StudentProfile
 }
 
-interface UserRepository <<interface>> {
-  + existsByEmail(email : String) : boolean
-}
-
-interface MajorRepository <<interface>> {
-  + findById(id : Short) : Optional<Major>
-}
-
 ' --- ENTITIES ---
 class StudentProfile {
   - userId : Integer
@@ -46,7 +38,6 @@ class User {
   - username : String
   - email : String
   - fullName : String
-  - active : Boolean
 }
 
 class Major {
@@ -58,16 +49,12 @@ class Major {
 ' --- DEPENDENCY INJECTION (Association) ---
 StudentProfileController -down-> StudentProfileService
 StudentProfileService -down-> StudentProfileRepository
-StudentProfileService -down-> UserRepository
-StudentProfileService -down-> MajorRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StudentProfileRepository .down.> StudentProfile
-UserRepository .down.> User
-MajorRepository .down.> Major
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StudentProfile o-right- User
+StudentProfile o-left- User
 StudentProfile o-right- Major
 
 @enduml

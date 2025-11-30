@@ -5,11 +5,7 @@ hide footbox
 actor Admin
 participant ":StudentProfileController" as Controller
 participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as StudentRepo
-participant ":UserRepository" as UserRepo
-participant ":MajorRepository" as MajorRepo
-participant ":RoleRepository" as RoleRepo
-participant ":EmailService" as EmailService
+participant ":StudentProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -19,78 +15,23 @@ activate Controller
 Controller -> Service: create(request)
 activate Service
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: roll number/email/username uniqueness, major validation, role assignment, password generation & email)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
+    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
 end
 
-' --- FIND MAJOR ---
-Service -> MajorRepo: findById(majorId)
-activate MajorRepo
+Service -> Repository: save(profile)
+activate Repository
 
-MajorRepo -> DB: Query Major by ID
+Repository -> DB: Insert New Student Profile with User
 activate DB
-DB --> MajorRepo: Major Record / Null
+DB --> Repository: Saved Profile
 deactivate DB
 
-MajorRepo --> Service: Optional<Major>
-deactivate MajorRepo
-
-alt Major not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-' --- FIND STUDENT ROLE ---
-Service -> RoleRepo: findByName("STUDENT")
-activate RoleRepo
-
-RoleRepo -> DB: Query Role by Name
-activate DB
-DB --> RoleRepo: Role Record / Null
-deactivate DB
-
-RoleRepo --> Service: Optional<Role>
-deactivate RoleRepo
-
-alt Role not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-' --- GENERATE PASSWORD AND SEND EMAIL ---
-Service -> EmailService: sendPassword(email, password)
-activate EmailService
-
-EmailService --> Service: void
-deactivate EmailService
-
-' --- SAVE USER ---
-Service -> UserRepo: save(user)
-activate UserRepo
-
-UserRepo -> DB: Insert New User
-activate DB
-DB --> UserRepo: Saved User
-deactivate DB
-
-UserRepo --> Service: User
-deactivate UserRepo
-
-' --- SAVE STUDENT PROFILE ---
-Service -> StudentRepo: save(profile)
-activate StudentRepo
-
-StudentRepo -> DB: Insert New Student Profile
-activate DB
-DB --> StudentRepo: Saved Profile
-deactivate DB
-
-StudentRepo --> Service: StudentProfile
-deactivate StudentRepo
+Repository --> Service: StudentProfile
+deactivate Repository
 
 Service --> Controller: StudentProfileDTO
 deactivate Service

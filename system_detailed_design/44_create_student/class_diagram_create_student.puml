@@ -28,20 +28,6 @@ interface StudentProfileRepository <<interface>> {
   + save(profile : StudentProfile) : StudentProfile
 }
 
-interface UserRepository <<interface>> {
-  + existsByEmail(email : String) : boolean
-  + existsByUsername(username : String) : boolean
-  + save(user : User) : User
-}
-
-interface MajorRepository <<interface>> {
-  + findById(id : Short) : Optional<Major>
-}
-
-interface RoleRepository <<interface>> {
-  + findByName(name : String) : Optional<Role>
-}
-
 ' --- ENTITIES ---
 class StudentProfile {
   - userId : Integer
@@ -55,8 +41,6 @@ class User {
   - username : String
   - email : String
   - fullName : String
-  - passwordHash : String
-  - roles : Set<Role>
 }
 
 class Major {
@@ -65,28 +49,15 @@ class Major {
   - code : String
 }
 
-class Role {
-  - id : Short
-  - name : String
-}
-
 ' --- DEPENDENCY INJECTION (Association) ---
 StudentProfileController -down-> StudentProfileService
 StudentProfileService -down-> StudentProfileRepository
-StudentProfileService -down-> UserRepository
-StudentProfileService -down-> MajorRepository
-StudentProfileService -down-> RoleRepository
-StudentProfileService -down-> EmailService
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StudentProfileRepository .down.> StudentProfile
-UserRepository .down.> User
-MajorRepository .down.> Major
-RoleRepository .down.> Role
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StudentProfile o-right- User
+StudentProfile o-left- User
 StudentProfile o-right- Major
-User o-right- Role
 
 @enduml

@@ -5,12 +5,7 @@ hide footbox
 actor Admin
 participant ":StudentProfileController" as Controller
 participant ":BulkPhotoUploadService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":ZipFileService" as ZipService
-participant ":StudentProfileRepository" as StudentRepo
-participant ":StudentPhotoService" as PhotoService
-participant ":PythonBackendClient" as PythonClient
-participant ":FaceEmbeddingService" as EmbeddingService
+participant ":StudentProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -26,119 +21,34 @@ end
 Controller -> Service: processBulkUpload(csvFile, zipFile, mode)
 activate Service
 
-' --- EXTRACT ZIP ---
-Service -> ZipService: extractZipToTemp(zipFile)
-activate ZipService
-
-ZipService --> Service: Path (tempDir)
-deactivate ZipService
-
-Service -> ZipService: listImageFiles(tempDir)
-activate ZipService
-
-ZipService --> Service: Map<String, Path>
-deactivate ZipService
-
-' --- PARSE CSV ---
-Service -> CsvParser: parseBulkPhotoCsv(csvFile)
-activate CsvParser
-
-CsvParser --> Service: List<BulkPhotoUploadCsvRow>
-deactivate CsvParser
+' Extract ZIP and parse CSV (internal)
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
     Controller --> Admin: 400 Bad Request
 end
 
-' CSV deduplication (internal)
-
-@enduml
-
 ' --- PARALLEL PROCESSING LOOP ---
 loop For each unique CSV row (parallel)
-    ' --- FIND STUDENT ---
-    Service -> StudentRepo: findByRollNumber(rollNumber)
-    activate StudentRepo
+    Service -> Repository: findByRollNumber(rollNumber)
+    activate Repository
     
-    StudentRepo -> DB: Query Student by Roll Number
+    Repository -> DB: Query Student by Roll Number
     activate DB
-    DB --> StudentRepo: Student / Null
+    DB --> Repository: Student / Null
     deactivate DB
     
-    StudentRepo --> Service: StudentProfile
-    deactivate StudentRepo
+    Repository --> Service: StudentProfile
+    deactivate Repository
     
-    alt Student not found
+    ' Validation and processing (internal: image validation, mode check, save photo, generate embedding, save embedding)
+    
+    alt Processing fails
         Service --> Service: Collect error, continue
     end
-    
-    ' --- VALIDATE IMAGE FILE ---
-    alt Image file not found in ZIP
-        Service --> Service: Collect error, continue
-    end
-    
-    ' --- CHECK MODE ---
-    opt Mode is AddOnly
-        Service -> PhotoService: hasExistingPhoto(userId)
-        activate PhotoService
-        
-        PhotoService --> Service: Boolean
-        deactivate PhotoService
-        
-        alt Student already has photo
-            Service --> Service: Collect error, continue
-        end
-    end
-    
-    ' --- SAVE PHOTO ---
-    Service -> PhotoService: savePhotoToUserFolder(imagePath, userId, rollNumber)
-    activate PhotoService
-    
-    PhotoService --> Service: baseUrl
-    deactivate PhotoService
-    
-    Service -> PhotoService: updateStudentProfilePhoto(userId, baseUrl)
-    activate PhotoService
-    
-    PhotoService -> DB: Update Student Profile
-    activate DB
-    DB --> PhotoService: Success
-    deactivate DB
-    
-    PhotoService --> Service: void
-    deactivate PhotoService
-    
-    ' --- GENERATE EMBEDDING ---
-    Service -> PythonClient: generateEmbedding(imagePath, userId)
-    activate PythonClient
-    
-    PythonClient --> Service: PythonEmbeddingResponse
-    deactivate PythonClient
-    
-    alt Embedding generation failed
-        Service --> Service: Collect error, continue
-    end
-    
-    ' --- SAVE EMBEDDING ---
-    Service -> EmbeddingService: saveEmbedding(userId, embeddingVector)
-    activate EmbeddingService
-    
-    EmbeddingService -> DB: Insert or Update Face Embedding
-    activate DB
-    DB --> EmbeddingService: Success
-    deactivate DB
-    
-    EmbeddingService --> Service: void
-    deactivate EmbeddingService
 end
 
-' --- CLEANUP ---
-Service -> ZipService: cleanupTempDirectory(tempDir)
-activate ZipService
-
-ZipService --> Service: void
-deactivate ZipService
+' Cleanup temp directory (internal)
 
 ' Build result with success/failure counts (internal)
 

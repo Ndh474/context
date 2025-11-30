@@ -16,31 +16,6 @@ class StudentProfileController {
 ' --- SERVICE ---
 class BulkPhotoUploadService {
   + processBulkUpload(csvFile, zipFile, mode) : ImportResultDTO
-  + processOneStudent(row, imageFiles, mode) : void
-}
-
-class CsvParserService {
-  + parseBulkPhotoCsv(file) : List<BulkPhotoUploadCsvRow>
-}
-
-class ZipFileService {
-  + extractZipToTemp(zipFile) : Path
-  + listImageFiles(tempDir) : Map<String, Path>
-  + cleanupTempDirectory(tempDir) : void
-}
-
-class StudentPhotoService {
-  + hasExistingPhoto(userId) : boolean
-  + savePhotoToUserFolder(imagePath, userId, rollNumber) : String
-  + updateStudentProfilePhoto(userId, baseUrl) : void
-}
-
-class PythonBackendClient {
-  + generateEmbedding(imagePath, userId) : PythonEmbeddingResponse
-}
-
-class FaceEmbeddingService {
-  + saveEmbedding(userId, embeddingVector) : void
 }
 
 ' --- REPOSITORY ---
@@ -59,30 +34,23 @@ class StudentProfile {
 class User {
   - id : Integer
   - username : String
-  - active : Boolean
 }
 
 class FaceEmbedding {
   - id : Long
   - user : User
   - embeddingVector : float[]
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 StudentProfileController -down-> BulkPhotoUploadService
-BulkPhotoUploadService -down-> CsvParserService
-BulkPhotoUploadService -down-> ZipFileService
-BulkPhotoUploadService -down-> StudentPhotoService
-BulkPhotoUploadService -down-> PythonBackendClient
-BulkPhotoUploadService -down-> FaceEmbeddingService
 BulkPhotoUploadService -down-> StudentProfileRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StudentProfileRepository .down.> StudentProfile
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StudentProfile o-right- User
+StudentProfile o-left- User
 FaceEmbedding o-right- User
 
 @enduml

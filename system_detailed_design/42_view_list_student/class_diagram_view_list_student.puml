@@ -57,7 +57,7 @@ StudentProfileService -down-> StudentProfileRepository
 StudentProfileRepository .down.> StudentProfile
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StudentProfile o-right- User
+StudentProfile o-left- User
 StudentProfile o-right- Major
 
 @enduml

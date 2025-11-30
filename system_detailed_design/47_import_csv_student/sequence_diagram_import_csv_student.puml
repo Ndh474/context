@@ -6,10 +6,7 @@ actor Admin
 participant ":StudentProfileController" as Controller
 participant ":StudentProfileService" as Service
 participant ":CsvParserService" as CsvParser
-participant ":MajorRepository" as MajorRepo
-participant ":StudentProfileRepository" as StudentRepo
-participant ":UserRepository" as UserRepo
-participant ":RoleRepository" as RoleRepo
+participant ":StudentProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -41,107 +38,34 @@ end
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' --- FIND MAJOR ---
-    Service -> MajorRepo: findByCode(majorCode)
-    activate MajorRepo
+    ' Row validation (internal: major validation, email/username/roll number uniqueness, role assignment)
+
+    Service -> Repository: findByRollNumber(rollNumber)
+    activate Repository
     
-    MajorRepo -> DB: Query Major by Code
+    Repository -> DB: Query Student by Roll Number
     activate DB
-    DB --> MajorRepo: Major / Null
+    DB --> Repository: Student / Null
     deactivate DB
     
-    MajorRepo --> Service: Major
-    deactivate MajorRepo
+    Repository --> Service: StudentProfile
+    deactivate Repository
     
-    alt Major not found
+    ' Business logic: create or update based on mode (internal)
+    
+    alt Validation fails
         Service --> Service: Collect error, continue
-    end
-    
-    alt Major is inactive
-        Service --> Service: Collect error, continue
-    end
-    
-    ' --- CHECK EXISTING STUDENT ---
-    Service -> StudentRepo: findByRollNumber(rollNumber)
-    activate StudentRepo
-    
-    StudentRepo -> DB: Query Student by Roll Number
-    activate DB
-    DB --> StudentRepo: Student / Null
-    deactivate DB
-    
-    StudentRepo --> Service: StudentProfile
-    deactivate StudentRepo
-    
-    alt Student exists
-        alt Mode is AddOnly
-            Service --> Service: Collect error, continue
-        else Mode is AddAndUpdate
-            ' Update existing student
-            Service -> UserRepo: save(user)
-            activate UserRepo
-            
-            UserRepo -> DB: Update User
-            activate DB
-            DB --> UserRepo: Updated User
-            deactivate DB
-            
-            UserRepo --> Service: User
-            deactivate UserRepo
-            
-            Service -> StudentRepo: save(profile)
-            activate StudentRepo
-            
-            StudentRepo -> DB: Update Student Profile
-            activate DB
-            DB --> StudentRepo: Updated Profile
-            deactivate DB
-            
-            StudentRepo --> Service: StudentProfile
-            deactivate StudentRepo
-        end
-    else Student does not exist
-        ' Validation logic (internal)
+    else Validation passes
+        Service -> Repository: save(profile)
+        activate Repository
         
-        alt Validation fails
-            Service --> Service: Collect error, continue
-        end
-        
-        ' --- FIND STUDENT ROLE ---
-        Service -> RoleRepo: findByName("STUDENT")
-        activate RoleRepo
-        
-        RoleRepo -> DB: Query Role by Name
+        Repository -> DB: Insert or Update Student Profile
         activate DB
-        DB --> RoleRepo: Role Record / Null
+        DB --> Repository: Saved Profile
         deactivate DB
         
-        RoleRepo --> Service: Optional<Role>
-        deactivate RoleRepo
-        
-        ' --- CREATE NEW USER ---
-        Service -> UserRepo: save(newUser)
-        activate UserRepo
-        
-        UserRepo -> DB: Insert New User
-        activate DB
-        DB --> UserRepo: Saved User
-        deactivate DB
-        
-        UserRepo --> Service: User
-        deactivate UserRepo
-        
-        ' --- CREATE NEW STUDENT PROFILE ---
-        Service -> StudentRepo: save(newProfile)
-        activate StudentRepo
-        
-        StudentRepo -> DB: Insert New Student Profile
-        activate DB
-        DB --> StudentRepo: Saved Profile
-        deactivate DB
-        
-        StudentRepo --> Service: StudentProfile
-        deactivate StudentRepo
+        Repository --> Service: StudentProfile
+        deactivate Repository
     end
 end
 
