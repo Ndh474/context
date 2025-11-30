@@ -24,15 +24,6 @@ interface ExamSlotParticipantRepository <<interface>> {
   + delete(participant : ExamSlotParticipant) : void
 }
 
-interface SlotRepository <<interface>> {
-  + findById(id : Integer) : Optional<Slot>
-}
-
-interface ExamAttendanceRepository <<interface>> {
-  + findBySlotIdAndStudentUserId(slotId, studentUserId) : ExamAttendance
-  + delete(attendance : ExamAttendance) : void
-}
-
 ' --- ENTITIES ---
 class ExamSlotParticipant {
   - id : Long
@@ -44,44 +35,28 @@ class ExamSlotParticipant {
 class ExamSlotSubject {
   - id : Long
   - slot : Slot
-  - subject : Subject
 }
 
 class Slot {
   - id : Integer
   - title : String
-  - slotCategory : SlotCategory
 }
 
 class User {
   - id : Integer
   - username : String
-  - email : String
-}
-
-class ExamAttendance {
-  - id : Long
-  - slot : Slot
-  - student : User
-  - status : AttendanceStatus
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 ExamSlotController -down-> ExamSlotService
 ExamSlotService -down-> ExamSlotParticipantRepository
-ExamSlotService -down-> SlotRepository
-ExamSlotService -down-> ExamAttendanceRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 ExamSlotParticipantRepository .down.> ExamSlotParticipant
-SlotRepository .down.> Slot
-ExamAttendanceRepository .down.> ExamAttendance
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-ExamSlotParticipant o-right- ExamSlotSubject
+ExamSlotParticipant o-left- ExamSlotSubject
 ExamSlotParticipant o-right- User
 ExamSlotSubject o-right- Slot
-ExamAttendance o-right- Slot
-ExamAttendance o-right- User
 
 @enduml

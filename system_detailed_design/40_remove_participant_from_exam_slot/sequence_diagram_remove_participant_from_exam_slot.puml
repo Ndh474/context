@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":ExamSlotController" as Controller
 participant ":ExamSlotService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":ExamSlotParticipantRepository" as ParticipantRepo
-participant ":ExamAttendanceRepository" as AttendanceRepo
+participant ":ExamSlotParticipantRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -17,81 +15,23 @@ activate Controller
 Controller -> Service: removeParticipant(slotId, participantId)
 activate Service
 
-' --- VALIDATE SLOT ---
-Service -> SlotRepo: findById(slotId)
-activate SlotRepo
+' Validation logic (internal: slot/participant validation, delete exam attendance)
 
-SlotRepo -> DB: Query Slot by ID
-activate DB
-DB --> SlotRepo: Slot Record / Null
-deactivate DB
-
-SlotRepo --> Service: Optional<Slot>
-deactivate SlotRepo
-
-alt Slot not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 400 Bad Request / 404 Not Found
 end
 
-' --- FIND PARTICIPANT ---
-Service -> ParticipantRepo: findById(participantId)
-activate ParticipantRepo
+Service -> Repository: delete(participant)
+activate Repository
 
-ParticipantRepo -> DB: Query Participant by ID
+Repository -> DB: Delete Participant
 activate DB
-DB --> ParticipantRepo: Participant Record / Null
+DB --> Repository: Success
 deactivate DB
 
-ParticipantRepo --> Service: Optional<ExamSlotParticipant>
-deactivate ParticipantRepo
-
-alt Participant not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-alt Participant does not belong to slot
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- DELETE EXAM ATTENDANCE ---
-Service -> AttendanceRepo: findBySlotIdAndStudentUserId(slotId, studentUserId)
-activate AttendanceRepo
-
-AttendanceRepo -> DB: Query ExamAttendance
-activate DB
-DB --> AttendanceRepo: ExamAttendance / Null
-deactivate DB
-
-AttendanceRepo --> Service: ExamAttendance
-deactivate AttendanceRepo
-
-opt Attendance exists
-    Service -> AttendanceRepo: delete(attendance)
-    activate AttendanceRepo
-    
-    AttendanceRepo -> DB: Delete ExamAttendance
-    activate DB
-    DB --> AttendanceRepo: Success
-    deactivate DB
-    
-    AttendanceRepo --> Service: void
-    deactivate AttendanceRepo
-end
-
-' --- DELETE PARTICIPANT ---
-Service -> ParticipantRepo: delete(participant)
-activate ParticipantRepo
-
-ParticipantRepo -> DB: Delete Participant
-activate DB
-DB --> ParticipantRepo: Success
-deactivate DB
-
-ParticipantRepo --> Service: void
-deactivate ParticipantRepo
+Repository --> Service: void
+deactivate Repository
 
 Service --> Controller: Success
 deactivate Service
