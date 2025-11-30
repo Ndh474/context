@@ -1,0 +1,65 @@
+@startuml rescan_student_for_class
+!theme plain
+hide footbox
+
+actor Lecturer
+participant ":SlotController" as Controller
+participant ":SlotSessionService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":PythonBackendClient" as PythonClient
+participant "Recognition Service" as RecognitionService
+
+' --- MAIN FLOW ---
+Lecturer -> Controller: POST /api/v1/slots/{id}/session/rescan
+activate Controller
+
+Controller -> Service: startSession(slotId, currentUserId, RESCAN)
+activate Service
+
+Service -> SlotRepo: findById(slotId)
+activate SlotRepo
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Lecturer: 404 Not Found
+end
+
+' Validation logic (internal: authorization, session conflict check)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Lecturer: 403 Forbidden
+end
+
+' Get students with embeddings and cameras (internal)
+
+' Update slot status and increment scan count
+Service -> SlotRepo: save(slot)
+activate SlotRepo
+
+SlotRepo --> Service: Slot
+deactivate SlotRepo
+
+' Call Python recognition service with RESCAN mode
+Service -> PythonClient: startRecognitionSession(request)
+activate PythonClient
+
+PythonClient -> RecognitionService: POST /api/v1/sessions/start (mode=RESCAN)
+activate RecognitionService
+
+RecognitionService --> PythonClient: SessionDataDTO
+deactivate RecognitionService
+
+PythonClient --> Service: PythonSessionResponse
+deactivate PythonClient
+
+Service --> Controller: SessionStatusResponse
+deactivate Service
+
+Controller --> Lecturer: 200 OK
+deactivate Controller
+
+@enduml

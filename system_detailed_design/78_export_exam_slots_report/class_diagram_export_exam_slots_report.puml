@@ -1,0 +1,71 @@
+@startuml export_exam_slots_report
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ExportController {
+  + exportExamSlotsToExcel(request) : ResponseEntity
+  + exportExamSlotsToCsv(request) : ResponseEntity
+}
+
+' --- SERVICE ---
+class ExportService {
+  + exportExamSlotsToExcel(request) : ByteArrayOutputStream
+  + exportExamSlotsToCsvZip(request) : ByteArrayOutputStream
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findBySemesterId(semesterId) : List<Slot>
+  + findAllById(ids) : List<Slot>
+}
+
+interface ExamSlotParticipantRepository <<interface>> {
+  + findStudentsWithAttendanceBySlotId(slotId) : List<StudentAttendanceInfoDTO>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - endTime : LocalDateTime
+  - slotCategory : SlotCategory
+  - room : Room
+  - staff : User
+}
+
+class ExamSlotParticipant {
+  - id : Long
+  - slot : Slot
+  - studentUser : User
+  - subject : Subject
+}
+
+class ExamAttendance {
+  - id : Long
+  - status : AttendanceStatus
+  - checkInTime : Instant
+  - remark : String
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ExportController -down-> ExportService
+ExportService -down-> SlotRepository
+ExportService -down-> ExamSlotParticipantRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+ExamSlotParticipantRepository .down.> ExamSlotParticipant
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+ExamSlotParticipant o-right- Slot
+ExamAttendance o-right- Slot
+
+@enduml

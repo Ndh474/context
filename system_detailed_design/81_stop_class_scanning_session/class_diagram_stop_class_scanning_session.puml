@@ -1,0 +1,69 @@
+@startuml stop_class_scanning_session
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + stopSession(slotId, currentUserId) : Response
+}
+
+' --- SERVICE ---
+class SlotSessionService {
+  + stopSession(slotId, currentUserId) : SessionStatusResponse
+}
+
+class AttendanceRecordService {
+  + applyRescanReviewFlags(slot, detectedStudentIds) : Map
+}
+
+class PythonBackendClient <<external>> {
+  + stopRecognitionSession(slotId) : PythonSessionResponse
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id) : Optional<Slot>
+  + save(slot) : Slot
+}
+
+interface AttendanceRecordRepository <<interface>> {
+  + findBySlotIdAndStatus(slotId, status) : List<AttendanceRecord>
+  + saveAll(records) : List<AttendanceRecord>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - sessionStatus : SessionStatus
+  - lastSessionStoppedAt : Instant
+  - staff : User
+}
+
+class AttendanceRecord {
+  - id : Long
+  - status : AttendanceStatus
+  - method : AttendanceMethod
+  - needsReview : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotSessionService
+SlotSessionService -down-> SlotRepository
+SlotSessionService -down-> AttendanceRecordRepository
+SlotSessionService -down-> AttendanceRecordService
+SlotSessionService -down-> PythonBackendClient
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+AttendanceRecordRepository .down.> AttendanceRecord
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+AttendanceRecord o-right- Slot
+
+@enduml

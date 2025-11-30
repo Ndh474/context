@@ -1,0 +1,71 @@
+@startuml export_classes_report
+!theme plain
+hide footbox
+
+actor Admin
+participant ":ExportController" as Controller
+participant ":ExportService" as Service
+participant ":ClassRepository" as ClassRepo
+participant ":SlotRepository" as SlotRepo
+participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":AttendanceRecordRepository" as AttendanceRepo
+participant "Database" as DB
+
+' --- MAIN FLOW ---
+Admin -> Controller: POST /api/v1/export/classes/excel
+activate Controller
+
+Controller -> Service: exportClassesToExcel(request)
+activate Service
+
+' Get classes to export (internal: filter by semesterId, exportAll or specific ids)
+
+Service -> ClassRepo: findAll() or findAllById(ids)
+activate ClassRepo
+
+ClassRepo -> DB: Query Classes
+activate DB
+DB --> ClassRepo: Class List
+deactivate DB
+
+ClassRepo --> Service: List<AcademicClass>
+deactivate ClassRepo
+
+' Generate Excel workbook (internal: create overview sheet)
+
+' --- FOR EACH CLASS ---
+loop For each class
+    Service -> SlotRepo: findByClassId(classId)
+    activate SlotRepo
+    
+    SlotRepo -> DB: Query Slots by Class
+    activate DB
+    DB --> SlotRepo: Slot List
+    deactivate DB
+    
+    SlotRepo --> Service: List<Slot>
+    deactivate SlotRepo
+    
+    Service -> EnrollmentRepo: findAllByAcademicClassId(classId)
+    activate EnrollmentRepo
+    
+    EnrollmentRepo -> DB: Query Enrollments
+    activate DB
+    DB --> EnrollmentRepo: Enrollment List
+    deactivate DB
+    
+    EnrollmentRepo --> Service: List<Enrollment>
+    deactivate EnrollmentRepo
+    
+    ' Build attendance matrix (internal: query attendance for each student-slot pair)
+end
+
+' Write workbook to output stream (internal)
+
+Service --> Controller: ByteArrayOutputStream
+deactivate Service
+
+Controller --> Admin: 200 OK (Excel File Download)
+deactivate Controller
+
+@enduml

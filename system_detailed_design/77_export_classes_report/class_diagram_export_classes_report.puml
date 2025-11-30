@@ -1,0 +1,88 @@
+@startuml export_classes_report
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class ExportController {
+  + exportClassesToExcel(request) : ResponseEntity
+  + exportClassesToCsv(request) : ResponseEntity
+}
+
+' --- SERVICE ---
+class ExportService {
+  + exportClassesToExcel(request) : ByteArrayOutputStream
+  + exportClassesToCsvZip(request) : ByteArrayOutputStream
+}
+
+' --- REPOSITORY ---
+interface ClassRepository <<interface>> {
+  + findAll() : List<AcademicClass>
+  + findAllById(ids) : List<AcademicClass>
+}
+
+interface SlotRepository <<interface>> {
+  + findByClassId(classId) : List<Slot>
+}
+
+interface EnrollmentRepository <<interface>> {
+  + findAllByAcademicClassId(classId) : List<Enrollment>
+}
+
+interface AttendanceRecordRepository <<interface>> {
+  + findBySlotIdAndStudentUserId(slotId, studentId) : AttendanceRecord
+}
+
+' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - code : String
+  - name : String
+  - semester : Semester
+  - subject : Subject
+}
+
+class Slot {
+  - id : Integer
+  - title : String
+  - startTime : LocalDateTime
+  - slotCategory : SlotCategory
+}
+
+class Enrollment {
+  - id : EnrollmentId
+  - student : User
+  - academicClass : AcademicClass
+}
+
+class AttendanceRecord {
+  - id : Long
+  - status : AttendanceStatus
+  - slot : Slot
+  - student : User
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+ExportController -down-> ExportService
+ExportService -down-> ClassRepository
+ExportService -down-> SlotRepository
+ExportService -down-> EnrollmentRepository
+ExportService -down-> AttendanceRecordRepository
+
+' --- REPOSITORY USAGE (Dependency) ---
+ClassRepository .down.> AcademicClass
+SlotRepository .down.> Slot
+EnrollmentRepository .down.> Enrollment
+AttendanceRecordRepository .down.> AttendanceRecord
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- AcademicClass
+Enrollment o-right- AcademicClass
+AttendanceRecord o-right- Slot
+
+@enduml

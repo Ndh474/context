@@ -1,0 +1,74 @@
+@startuml rescan_candidate_for_exam
+!theme plain
+hide circle
+skinparam classAttributeIconSize 0
+
+' --- CẤU HÌNH "ORTHO" (BẮT BUỘC) ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- CONTROLLER ---
+class SlotController {
+  + rescanExamSession(slotId, currentUserId) : Response
+}
+
+' --- SERVICE ---
+class SlotSessionService {
+  + rescanExamSession(slotId, currentUserId) : SessionStatusResponse
+}
+
+class FaceEmbeddingService {
+  + getActiveEmbedding(userId) : Optional<FaceEmbedding>
+}
+
+class PythonBackendClient <<external>> {
+  + startRecognitionSession(request) : PythonSessionResponse
+}
+
+' --- REPOSITORY ---
+interface SlotRepository <<interface>> {
+  + findById(id) : Optional<Slot>
+  + save(slot) : Slot
+}
+
+interface ExamSlotParticipantRepository <<interface>> {
+  + findBySlotIdWithStudents(slotId) : List<ExamSlotParticipant>
+}
+
+interface CameraRepository <<interface>> {
+  + findByRoom_Id(roomId) : List<Camera>
+}
+
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - examSessionStatus : SessionStatus
+  - examScanCount : Integer
+  - staff : User
+  - room : Room
+}
+
+class Camera {
+  - id : Short
+  - name : String
+  - rtspUrl : String
+  - active : Boolean
+}
+
+' --- DEPENDENCY INJECTION (Association) ---
+SlotController -down-> SlotSessionService
+SlotSessionService -down-> SlotRepository
+SlotSessionService -down-> ExamSlotParticipantRepository
+SlotSessionService -down-> CameraRepository
+SlotSessionService -down-> FaceEmbeddingService
+SlotSessionService -down-> PythonBackendClient
+
+' --- REPOSITORY USAGE (Dependency) ---
+SlotRepository .down.> Slot
+CameraRepository .down.> Camera
+
+' --- ENTITY RELATIONSHIPS (Aggregation) ---
+Slot o-right- Camera
+
+@enduml

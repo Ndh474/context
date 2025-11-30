@@ -1,0 +1,77 @@
+@startuml start_class_attendance_scanning
+!theme plain
+hide footbox
+
+actor Lecturer
+participant ":SlotController" as Controller
+participant ":SlotSessionService" as Service
+participant ":SlotRepository" as SlotRepo
+participant ":PythonBackendClient" as PythonClient
+participant "Recognition Service" as RecognitionService
+
+' --- MAIN FLOW ---
+Lecturer -> Controller: POST /api/v1/slots/{id}/session/start
+activate Controller
+
+Controller -> Service: startSession(slotId, currentUserId, INITIAL)
+activate Service
+
+Service -> SlotRepo: findById(slotId)
+activate SlotRepo
+
+SlotRepo --> Service: Optional<Slot>
+deactivate SlotRepo
+
+alt Slot not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller --> Lecturer: 404 Not Found
+end
+
+' Validation logic (internal: authorization, active status, session conflict check)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller --> Lecturer: 403 Forbidden
+end
+
+' Get students with embeddings (internal: query enrollments, filter active embeddings)
+
+alt No students with embeddings
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Lecturer: 400 Bad Request
+end
+
+' Get active cameras for room (internal)
+
+alt No active cameras
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller --> Lecturer: 400 Bad Request
+end
+
+' Update slot status
+Service -> SlotRepo: save(slot)
+activate SlotRepo
+
+SlotRepo --> Service: Slot
+deactivate SlotRepo
+
+' Call Python recognition service
+Service -> PythonClient: startRecognitionSession(request)
+activate PythonClient
+
+PythonClient -> RecognitionService: POST /api/v1/sessions/start
+activate RecognitionService
+
+RecognitionService --> PythonClient: SessionDataDTO
+deactivate RecognitionService
+
+PythonClient --> Service: PythonSessionResponse
+deactivate PythonClient
+
+Service --> Controller: SessionStatusResponse
+deactivate Service
+
+Controller --> Lecturer: 200 OK
+deactivate Controller
+
+@enduml
