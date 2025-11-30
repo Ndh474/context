@@ -6,8 +6,7 @@ actor Admin
 participant ":CameraController" as Controller
 participant ":CameraService" as Service
 participant ":CsvParserService" as CsvParser
-participant ":RoomRepository" as RoomRepo
-participant ":CameraRepository" as CameraRepo
+participant ":CameraRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -39,102 +38,34 @@ end
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal)
+    ' Row validation (internal: room validation, name/RTSP URL uniqueness)
+
+    Service -> Repository: findByName(name)
+    activate Repository
+    
+    Repository -> DB: Query Camera by Name
+    activate DB
+    DB --> Repository: Camera / Null
+    deactivate DB
+    
+    Repository --> Service: Camera
+    deactivate Repository
+    
+    ' Business logic: create or update based on mode (internal)
     
     alt Validation fails
         Service --> Service: Collect error, continue
-    end
-    
-    ' --- FIND ROOM ---
-    Service -> RoomRepo: findByName(roomName)
-    activate RoomRepo
-    
-    RoomRepo -> DB: Query Room by Name
-    activate DB
-    DB --> RoomRepo: Room / Null
-    deactivate DB
-    
-    RoomRepo --> Service: Room
-    deactivate RoomRepo
-    
-    alt Room not found
-        Service --> Service: Collect error, continue
-    end
-    
-    ' --- CHECK EXISTING CAMERA ---
-    Service -> CameraRepo: findByName(name)
-    activate CameraRepo
-    
-    CameraRepo -> DB: Query Camera by Name
-    activate DB
-    DB --> CameraRepo: Camera / Null
-    deactivate DB
-    
-    CameraRepo --> Service: Camera
-    deactivate CameraRepo
-    
-    alt Camera exists
-        alt Mode is AddOnly
-            Service --> Service: Collect error, continue
-        else Mode is AddAndUpdate
-            ' Check RTSP URL uniqueness if changed
-            opt RTSP URL changed
-                Service -> CameraRepo: existsByRtspUrlAndIdNot(rtspUrl, id)
-                activate CameraRepo
-                
-                CameraRepo -> DB: Check RTSP URL Uniqueness
-                activate DB
-                DB --> CameraRepo: Boolean
-                deactivate DB
-                
-                CameraRepo --> Service: Boolean
-                deactivate CameraRepo
-                
-                alt RTSP URL already exists
-                    Service --> Service: Collect error, continue
-                end
-            end
-            
-            ' Update existing camera
-            Service -> CameraRepo: save(camera)
-            activate CameraRepo
-            
-            CameraRepo -> DB: Update Camera
-            activate DB
-            DB --> CameraRepo: Updated Camera
-            deactivate DB
-            
-            CameraRepo --> Service: Camera
-            deactivate CameraRepo
-        end
-    else Camera does not exist
-        ' Check RTSP URL uniqueness
-        Service -> CameraRepo: existsByRtspUrl(rtspUrl)
-        activate CameraRepo
+    else Validation passes
+        Service -> Repository: save(camera)
+        activate Repository
         
-        CameraRepo -> DB: Check RTSP URL Existence
+        Repository -> DB: Insert or Update Camera
         activate DB
-        DB --> CameraRepo: Boolean
+        DB --> Repository: Saved Camera
         deactivate DB
         
-        CameraRepo --> Service: Boolean
-        deactivate CameraRepo
-        
-        alt RTSP URL already exists
-            Service --> Service: Collect error, continue
-        end
-        
-        ' Create new camera
-        Service -> CameraRepo: save(newCamera)
-        activate CameraRepo
-        
-        CameraRepo -> DB: Insert New Camera
-        activate DB
-        DB --> CameraRepo: Saved Camera
-        deactivate DB
-        
-        CameraRepo --> Service: Camera
-        deactivate CameraRepo
+        Repository --> Service: Camera
+        deactivate Repository
     end
 end
 

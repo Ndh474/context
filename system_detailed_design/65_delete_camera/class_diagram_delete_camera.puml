@@ -30,19 +30,6 @@ class Camera {
   - id : Short
   - name : String
   - rtspUrl : String
-  - room : Room
-}
-
-class Room {
-  - id : Short
-  - name : String
-  - slots : Set<Slot>
-}
-
-class Slot {
-  - id : Integer
-  - startTime : LocalDateTime
-  - active : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -51,9 +38,5 @@ CameraService -down-> CameraRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 CameraRepository .down.> Camera
-
-' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Camera o-right- Room
-Room o-right- Slot
 
 @enduml

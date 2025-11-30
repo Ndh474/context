@@ -5,8 +5,7 @@ hide footbox
 actor Admin
 participant ":CameraController" as Controller
 participant ":CameraService" as Service
-participant ":RoomRepository" as RoomRepo
-participant ":CameraRepository" as CameraRepo
+participant ":CameraRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -16,67 +15,23 @@ activate Controller
 Controller -> Service: create(request)
 activate Service
 
-' --- VALIDATE ROOM ---
-Service -> RoomRepo: findById(roomId)
-activate RoomRepo
+' Validation logic (internal: room validation, name/RTSP URL uniqueness)
 
-RoomRepo -> DB: Query Room by ID
-activate DB
-DB --> RoomRepo: Room Record / Null
-deactivate DB
-
-RoomRepo --> Service: Optional<Room>
-deactivate RoomRepo
-
-alt Room not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
 end
 
-' --- VALIDATION LOGIC ---
-Service -> CameraRepo: existsByName(name)
-activate CameraRepo
+Service -> Repository: save(camera)
+activate Repository
 
-CameraRepo -> DB: Check Name Existence
+Repository -> DB: Insert New Camera
 activate DB
-DB --> CameraRepo: Boolean
+DB --> Repository: Saved Camera
 deactivate DB
 
-CameraRepo --> Service: Boolean
-deactivate CameraRepo
-
-alt Name already exists
-    Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Admin: 409 Conflict
-end
-
-Service -> CameraRepo: existsByRtspUrl(rtspUrl)
-activate CameraRepo
-
-CameraRepo -> DB: Check RTSP URL Existence
-activate DB
-DB --> CameraRepo: Boolean
-deactivate DB
-
-CameraRepo --> Service: Boolean
-deactivate CameraRepo
-
-alt RTSP URL already exists
-    Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Admin: 409 Conflict
-end
-
-' --- SAVE TO DATABASE ---
-Service -> CameraRepo: save(camera)
-activate CameraRepo
-
-CameraRepo -> DB: Insert New Camera
-activate DB
-DB --> CameraRepo: Saved Camera
-deactivate DB
-
-CameraRepo --> Service: Camera
-deactivate CameraRepo
+Repository --> Service: Camera
+deactivate Repository
 
 Service --> Controller: CameraDTO
 deactivate Service

@@ -38,13 +38,8 @@ end
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal)
-    
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    end
-    
-    ' --- CHECK EXISTING ROOM ---
+    ' Row validation (internal: name validation)
+
     Service -> Repository: findByName(name)
     activate Repository
     
@@ -56,28 +51,15 @@ loop For each unique CSV row
     Repository --> Service: Room
     deactivate Repository
     
-    alt Room exists
-        alt Mode is AddOnly
-            Service --> Service: Collect error, continue
-        else Mode is AddAndUpdate
-            ' Update existing room
-            Service -> Repository: save(room)
-            activate Repository
-            
-            Repository -> DB: Update Room
-            activate DB
-            DB --> Repository: Updated Room
-            deactivate DB
-            
-            Repository --> Service: Room
-            deactivate Repository
-        end
-    else Room does not exist
-        ' Create new room
-        Service -> Repository: save(newRoom)
+    ' Business logic: create or update based on mode (internal)
+    
+    alt Validation fails
+        Service --> Service: Collect error, continue
+    else Validation passes
+        Service -> Repository: save(room)
         activate Repository
         
-        Repository -> DB: Insert New Room
+        Repository -> DB: Insert or Update Room
         activate DB
         DB --> Repository: Saved Room
         deactivate DB

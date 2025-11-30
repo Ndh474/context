@@ -31,13 +31,6 @@ class Room {
   - name : String
   - location : String
   - active : Boolean
-  - cameras : Set<Camera>
-}
-
-class Camera {
-  - id : Integer
-  - name : String
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -46,8 +39,5 @@ RoomService -down-> RoomRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 RoomRepository .down.> Room
-
-' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Room o-right- Camera
 
 @enduml

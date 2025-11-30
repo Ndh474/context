@@ -25,10 +25,6 @@ interface CameraRepository <<interface>> {
   + save(camera : Camera) : Camera
 }
 
-interface RoomRepository <<interface>> {
-  + findById(id : Short) : Optional<Room>
-}
-
 ' --- ENTITIES ---
 class Camera {
   - id : Short
@@ -47,11 +43,9 @@ class Room {
 ' --- DEPENDENCY INJECTION (Association) ---
 CameraController -down-> CameraService
 CameraService -down-> CameraRepository
-CameraService -down-> RoomRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 CameraRepository .down.> Camera
-RoomRepository .down.> Room
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Camera o-right- Room

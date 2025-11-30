@@ -15,7 +15,6 @@ activate Controller
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
 Service -> Repository: findById(id)
 activate Repository
 
@@ -32,61 +31,13 @@ alt Room not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-opt Name changed
-    Service -> Repository: existsByNameAndIdNot(name, id)
-    activate Repository
-    
-    Repository -> DB: Check Name Uniqueness
-    activate DB
-    DB --> Repository: Boolean
-    deactivate DB
-    
-    Repository --> Service: Boolean
-    deactivate Repository
-    
-    alt Name already exists
-        Service -->> Controller: <<throw>> ResourceExistsException
-        Controller --> Admin: 409 Conflict
-    end
+' Validation logic (internal: name uniqueness, deactivation checks for cameras/slots)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 403 Forbidden / 409 Conflict
 end
 
-' --- CHECK DEACTIVATION ---
-opt Deactivating room
-    Service -> Repository: countActiveCamerasByRoomId(id)
-    activate Repository
-    
-    Repository -> DB: Count Active Cameras
-    activate DB
-    DB --> Repository: Count
-    deactivate DB
-    
-    Repository --> Service: Long
-    deactivate Repository
-    
-    alt Has active cameras
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Admin: 403 Forbidden
-    end
-    
-    Service -> Repository: countActiveSlotsByRoomId(id, now)
-    activate Repository
-    
-    Repository -> DB: Count Active Slots
-    activate DB
-    DB --> Repository: Count
-    deactivate DB
-    
-    Repository --> Service: Long
-    deactivate Repository
-    
-    alt Has active slots
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Admin: 403 Forbidden
-    end
-end
-
-' --- UPDATE ---
 Service -> Repository: save(room)
 activate Repository
 

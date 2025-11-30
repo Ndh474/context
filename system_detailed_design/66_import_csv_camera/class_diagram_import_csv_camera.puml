@@ -31,10 +31,6 @@ interface CameraRepository <<interface>> {
   + save(camera : Camera) : Camera
 }
 
-interface RoomRepository <<interface>> {
-  + findByName(name : String) : Room
-}
-
 ' --- ENTITIES ---
 class Camera {
   - id : Short
@@ -54,11 +50,9 @@ class Room {
 CameraController -down-> CameraService
 CameraService -down-> CsvParserService
 CameraService -down-> CameraRepository
-CameraService -down-> RoomRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 CameraRepository .down.> Camera
-RoomRepository .down.> Room
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Camera o-right- Room
