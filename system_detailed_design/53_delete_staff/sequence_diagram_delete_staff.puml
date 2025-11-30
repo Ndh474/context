@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":StaffProfileController" as Controller
 participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as StaffRepo
-participant ":SlotRepository" as SlotRepo
-participant ":UserRepository" as UserRepo
+participant ":StaffProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -17,63 +15,39 @@ activate Controller
 Controller -> Service: delete(id)
 activate Service
 
-' --- FIND EXISTING ---
-Service -> StaffRepo: findById(id)
-activate StaffRepo
+Service -> Repository: findById(id)
+activate Repository
 
-StaffRepo -> DB: Query Staff by ID
+Repository -> DB: Query Staff by ID
 activate DB
-DB --> StaffRepo: Staff Record / Null
+DB --> Repository: Staff Record / Null
 deactivate DB
 
-StaffRepo --> Service: Optional<StaffProfile>
-deactivate StaffRepo
+Repository --> Service: Optional<StaffProfile>
+deactivate Repository
 
 alt Staff not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' --- CHECK ACTIVE SLOTS ---
-Service -> SlotRepo: findByStaffUserId(userId)
-activate SlotRepo
+' Validation logic (internal: check active slots)
 
-SlotRepo -> DB: Query Slots by Staff User ID
-activate DB
-DB --> SlotRepo: Slot List
-deactivate DB
-
-SlotRepo --> Service: List<Slot>
-deactivate SlotRepo
-
-alt Has active slots
+alt Has dependencies
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Admin: 403 Forbidden
 end
 
-' --- DELETE STAFF PROFILE ---
-Service -> StaffRepo: deleteById(id)
-activate StaffRepo
+Service -> Repository: deleteById(id)
+activate Repository
 
-StaffRepo -> DB: Delete Staff Profile
+Repository -> DB: Delete Staff Profile and User
 activate DB
-DB --> StaffRepo: Success
+DB --> Repository: Success
 deactivate DB
 
-StaffRepo --> Service: void
-deactivate StaffRepo
-
-' --- DELETE USER ---
-Service -> UserRepo: deleteById(userId)
-activate UserRepo
-
-UserRepo -> DB: Delete User
-activate DB
-DB --> UserRepo: Success
-deactivate DB
-
-UserRepo --> Service: void
-deactivate UserRepo
+Repository --> Service: void
+deactivate Repository
 
 Service --> Controller: Success
 deactivate Service

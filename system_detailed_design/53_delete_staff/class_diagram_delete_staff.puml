@@ -24,14 +24,6 @@ interface StaffProfileRepository <<interface>> {
   + deleteById(id : Integer) : void
 }
 
-interface SlotRepository <<interface>> {
-  + findByStaffUserId(userId : Integer) : List<Slot>
-}
-
-interface UserRepository <<interface>> {
-  + deleteById(id : Integer) : void
-}
-
 ' --- ENTITIES ---
 class StaffProfile {
   - userId : Integer
@@ -42,28 +34,16 @@ class StaffProfile {
 class User {
   - id : Integer
   - username : String
-  - email : String
-}
-
-class Slot {
-  - id : Integer
-  - title : String
-  - staff : User
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 StaffProfileController -down-> StaffProfileService
 StaffProfileService -down-> StaffProfileRepository
-StaffProfileService -down-> SlotRepository
-StaffProfileService -down-> UserRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StaffProfileRepository .down.> StaffProfile
-SlotRepository .down.> Slot
-UserRepository .down.> User
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StaffProfile o-right- User
-Slot o-right- User
+StaffProfile o-left- User
 
 @enduml

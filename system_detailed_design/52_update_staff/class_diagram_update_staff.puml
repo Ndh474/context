@@ -25,15 +25,6 @@ interface StaffProfileRepository <<interface>> {
   + save(profile : StaffProfile) : StaffProfile
 }
 
-interface UserRepository <<interface>> {
-  + existsByEmailAndIdNot(email, id) : boolean
-  + save(user : User) : User
-}
-
-interface RoleRepository <<interface>> {
-  + findByNameIn(names : Set<String>) : List<Role>
-}
-
 ' --- ENTITIES ---
 class StaffProfile {
   - userId : Integer
@@ -46,28 +37,16 @@ class User {
   - username : String
   - email : String
   - fullName : String
-  - active : Boolean
-  - roles : Set<Role>
-}
-
-class Role {
-  - id : Short
-  - name : String
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 StaffProfileController -down-> StaffProfileService
 StaffProfileService -down-> StaffProfileRepository
-StaffProfileService -down-> UserRepository
-StaffProfileService -down-> RoleRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StaffProfileRepository .down.> StaffProfile
-UserRepository .down.> User
-RoleRepository .down.> Role
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-StaffProfile o-right- User
-User o-right- Role
+StaffProfile o-left- User
 
 @enduml

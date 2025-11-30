@@ -18,10 +18,6 @@ class StudentProfileService {
   + create(request) : StudentProfileDTO
 }
 
-class EmailService {
-  + sendPassword(email, password) : void
-}
-
 ' --- REPOSITORY ---
 interface StudentProfileRepository <<interface>> {
   + existsByRollNumber(rollNumber : String) : boolean

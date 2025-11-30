@@ -6,9 +6,7 @@ actor Admin
 participant ":StaffProfileController" as Controller
 participant ":StaffProfileService" as Service
 participant ":CsvParserService" as CsvParser
-participant ":RoleRepository" as RoleRepo
-participant ":StaffProfileRepository" as StaffRepo
-participant ":UserRepository" as UserRepo
+participant ":StaffProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -40,80 +38,34 @@ end
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' --- VALIDATE ROLES ---
-    Service -> RoleRepo: findByNameIn(roleNames)
-    activate RoleRepo
+    ' Row validation (internal: role validation, email/username/staff code uniqueness)
+
+    Service -> Repository: findByStaffCode(staffCode)
+    activate Repository
     
-    RoleRepo -> DB: Query Roles by Names
+    Repository -> DB: Query Staff by Staff Code
     activate DB
-    DB --> RoleRepo: Role List
+    DB --> Repository: Staff / Null
     deactivate DB
     
-    RoleRepo --> Service: List<Role>
-    deactivate RoleRepo
+    Repository --> Service: StaffProfile
+    deactivate Repository
     
-    alt Invalid roles or STUDENT role
+    ' Business logic: create or update based on mode (internal)
+    
+    alt Validation fails
         Service --> Service: Collect error, continue
-    end
-    
-    ' --- CHECK EXISTING STAFF ---
-    Service -> StaffRepo: findByStaffCode(staffCode)
-    activate StaffRepo
-    
-    StaffRepo -> DB: Query Staff by Staff Code
-    activate DB
-    DB --> StaffRepo: Staff / Null
-    deactivate DB
-    
-    StaffRepo --> Service: StaffProfile
-    deactivate StaffRepo
-    
-    alt Staff exists
-        alt Mode is AddOnly
-            Service --> Service: Collect error, continue
-        else Mode is AddAndUpdate
-            ' Update existing staff
-            Service -> UserRepo: save(user)
-            activate UserRepo
-            
-            UserRepo -> DB: Update User
-            activate DB
-            DB --> UserRepo: Updated User
-            deactivate DB
-            
-            UserRepo --> Service: User
-            deactivate UserRepo
-        end
-    else Staff does not exist
-        ' Validation logic (internal)
+    else Validation passes
+        Service -> Repository: save(profile)
+        activate Repository
         
-        alt Validation fails
-            Service --> Service: Collect error, continue
-        end
-        
-        ' --- CREATE NEW USER ---
-        Service -> UserRepo: save(newUser)
-        activate UserRepo
-        
-        UserRepo -> DB: Insert New User
+        Repository -> DB: Insert or Update Staff Profile
         activate DB
-        DB --> UserRepo: Saved User
+        DB --> Repository: Saved Profile
         deactivate DB
         
-        UserRepo --> Service: User
-        deactivate UserRepo
-        
-        ' --- CREATE NEW STAFF PROFILE ---
-        Service -> StaffRepo: save(newProfile)
-        activate StaffRepo
-        
-        StaffRepo -> DB: Insert New Staff Profile
-        activate DB
-        DB --> StaffRepo: Saved Profile
-        deactivate DB
-        
-        StaffRepo --> Service: StaffProfile
-        deactivate StaffRepo
+        Repository --> Service: StaffProfile
+        deactivate Repository
     end
 end
 

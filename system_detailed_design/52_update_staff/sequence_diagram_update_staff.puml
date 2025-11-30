@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":StaffProfileController" as Controller
 participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as StaffRepo
-participant ":UserRepository" as UserRepo
-participant ":RoleRepository" as RoleRepo
+participant ":StaffProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -17,71 +15,39 @@ activate Controller
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
-Service -> StaffRepo: findById(id)
-activate StaffRepo
+Service -> Repository: findById(id)
+activate Repository
 
-StaffRepo -> DB: Query Staff by ID
+Repository -> DB: Query Staff by ID
 activate DB
-DB --> StaffRepo: Staff Record / Null
+DB --> Repository: Staff Record / Null
 deactivate DB
 
-StaffRepo --> Service: Optional<StaffProfile>
-deactivate StaffRepo
+Repository --> Service: Optional<StaffProfile>
+deactivate Repository
 
 alt Staff not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: staff code/email uniqueness, role validation)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
     Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- VALIDATE ROLES ---
-Service -> RoleRepo: findByNameIn(roleNames)
-activate RoleRepo
+Service -> Repository: save(profile)
+activate Repository
 
-RoleRepo -> DB: Query Roles by Names
+Repository -> DB: Update Staff Profile
 activate DB
-DB --> RoleRepo: Role List
+DB --> Repository: Updated Profile
 deactivate DB
 
-RoleRepo --> Service: List<Role>
-deactivate RoleRepo
-
-alt Invalid roles or STUDENT role
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- UPDATE USER ---
-Service -> UserRepo: save(user)
-activate UserRepo
-
-UserRepo -> DB: Update User
-activate DB
-DB --> UserRepo: Updated User
-deactivate DB
-
-UserRepo --> Service: User
-deactivate UserRepo
-
-' --- UPDATE STAFF PROFILE ---
-Service -> StaffRepo: save(profile)
-activate StaffRepo
-
-StaffRepo -> DB: Update Staff Profile
-activate DB
-DB --> StaffRepo: Updated Profile
-deactivate DB
-
-StaffRepo --> Service: StaffProfile
-deactivate StaffRepo
+Repository --> Service: StaffProfile
+deactivate Repository
 
 Service --> Controller: StaffProfileDTO
 deactivate Service

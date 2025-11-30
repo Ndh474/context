@@ -5,10 +5,7 @@ hide footbox
 actor Admin
 participant ":StaffProfileController" as Controller
 participant ":StaffProfileService" as Service
-participant ":UserRepository" as UserRepo
-participant ":StaffProfileRepository" as StaffRepo
-participant ":RoleRepository" as RoleRepo
-participant ":EmailService" as EmailService
+participant ":StaffProfileRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -18,63 +15,23 @@ activate Controller
 Controller -> Service: create(request)
 activate Service
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: staff code/email/username uniqueness, role validation, password generation & email)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
     Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- VALIDATE ROLES ---
-Service -> RoleRepo: findByNameIn(roleNames)
-activate RoleRepo
+Service -> Repository: save(profile)
+activate Repository
 
-RoleRepo -> DB: Query Roles by Names
+Repository -> DB: Insert New Staff Profile with User
 activate DB
-DB --> RoleRepo: Role List
+DB --> Repository: Saved Profile
 deactivate DB
 
-RoleRepo --> Service: List<Role>
-deactivate RoleRepo
-
-alt Invalid roles or STUDENT role
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- GENERATE PASSWORD AND SEND EMAIL ---
-opt Password not provided
-    Service -> EmailService: sendPassword(email, password)
-    activate EmailService
-    
-    EmailService --> Service: void
-    deactivate EmailService
-end
-
-' --- SAVE USER ---
-Service -> UserRepo: save(user)
-activate UserRepo
-
-UserRepo -> DB: Insert New User
-activate DB
-DB --> UserRepo: Saved User
-deactivate DB
-
-UserRepo --> Service: User
-deactivate UserRepo
-
-' --- SAVE STAFF PROFILE ---
-Service -> StaffRepo: save(profile)
-activate StaffRepo
-
-StaffRepo -> DB: Insert New Staff Profile
-activate DB
-DB --> StaffRepo: Saved Profile
-deactivate DB
-
-StaffRepo --> Service: StaffProfile
-deactivate StaffRepo
+Repository --> Service: StaffProfile
+deactivate Repository
 
 Service --> Controller: StaffProfileDTO
 deactivate Service
