@@ -30,18 +30,12 @@ class Major {
   - code : String
   - isActive : Boolean
   - subjects : Set<Subject>
-  - studentProfiles : Set<StudentProfile>
 }
 
 class Subject {
   - id : Integer
   - name : String
   - code : String
-}
-
-class StudentProfile {
-  - id : Integer
-  - studentCode : String
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -52,7 +46,6 @@ MajorService -down-> MajorRepository
 MajorRepository .down.> Major
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Major o-left- Subject
-Major o-right- StudentProfile
+Major o-right- Subject
 
 @enduml

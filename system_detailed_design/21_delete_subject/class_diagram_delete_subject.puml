@@ -58,6 +58,6 @@ SubjectRepository .down.> Subject
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Subject o-right- Major
-Subject o-down- AcademicClass
+Subject o-left- AcademicClass
 
 @enduml

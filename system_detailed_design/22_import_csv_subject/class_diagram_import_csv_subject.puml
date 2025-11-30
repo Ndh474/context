@@ -32,10 +32,6 @@ interface SubjectRepository <<interface>> {
   + save(subject : Subject) : Subject
 }
 
-interface MajorRepository <<interface>> {
-  + findByCode(code : String) : Major
-}
-
 ' --- ENTITIES ---
 class Subject {
   - id : Short
@@ -43,18 +39,10 @@ class Subject {
   - code : String
   - isActive : Boolean
   - majors : Set<Major>
-  - academicClasses : Set<AcademicClass>
 }
 
 class Major {
   - id : Short
-  - name : String
-  - code : String
-  - isActive : Boolean
-}
-
-class AcademicClass {
-  - id : Integer
   - name : String
   - code : String
 }
@@ -62,15 +50,12 @@ class AcademicClass {
 ' --- DEPENDENCY INJECTION (Association) ---
 SubjectController -down-> SubjectService
 SubjectService -down-> SubjectRepository
-SubjectService -down-> MajorRepository
 SubjectService -down-> CsvParserService
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SubjectRepository .down.> Subject
-MajorRepository .down.> Major
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Subject o-right- Major
-Subject o-down- AcademicClass
 
 @enduml

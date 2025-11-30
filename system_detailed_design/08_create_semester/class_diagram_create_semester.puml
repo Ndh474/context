@@ -34,13 +34,6 @@ class Semester {
   - startDate : LocalDate
   - endDate : LocalDate
   - isActive : Boolean
-  - academicClasses : Set<AcademicClass>
-}
-
-class AcademicClass {
-  - id : Integer
-  - name : String
-  - code : String
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -49,8 +42,5 @@ SemesterService -down-> SemesterRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SemesterRepository .down.> Semester
-
-' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Semester o-right- AcademicClass
 
 @enduml

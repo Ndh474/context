@@ -32,24 +32,13 @@ alt Subject not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- CHECK CLASSES ---
-Service -> Repository: countAllClassesBySubjectId(id)
-activate Repository
+' Validation logic (internal: check classes count)
 
-Repository -> DB: Count Classes by Subject
-activate DB
-DB --> Repository: Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-alt Has classes
+alt Has dependencies
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Admin: 403 Forbidden
 end
 
-' --- DELETE OPERATION ---
 Service -> Repository: deleteById(id)
 activate Repository
 

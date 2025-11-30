@@ -32,29 +32,6 @@ alt Subject not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- COUNT CLASSES ---
-Service -> Repository: countAllClassesBySubjectId(id)
-activate Repository
-
-Repository -> DB: Count All Classes
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-Service -> Repository: countActiveClassesBySubjectId(id)
-activate Repository
-
-Repository -> DB: Count Active Classes
-activate DB
-DB --> Repository: Active Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
 Service --> Controller: Subject
 deactivate Service
 

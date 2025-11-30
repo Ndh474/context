@@ -40,7 +40,6 @@ class AcademicClass {
   - id : Integer
   - name : String
   - code : String
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---

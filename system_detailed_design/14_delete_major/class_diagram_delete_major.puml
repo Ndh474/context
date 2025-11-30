@@ -40,7 +40,6 @@ class Subject {
   - id : Integer
   - name : String
   - code : String
-  - isActive : Boolean
 }
 
 class StudentProfile {

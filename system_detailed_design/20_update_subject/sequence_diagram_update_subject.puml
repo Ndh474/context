@@ -5,8 +5,7 @@ hide footbox
 actor Admin
 participant ":SubjectController" as Controller
 participant ":SubjectService" as Service
-participant ":SubjectRepository" as SubjectRepo
-participant ":MajorRepository" as MajorRepo
+participant ":SubjectRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -17,58 +16,39 @@ Controller -> Service: update(id, request)
 activate Service
 
 ' --- FIND EXISTING ---
-Service -> SubjectRepo: findById(id)
-activate SubjectRepo
+Service -> Repository: findById(id)
+activate Repository
 
-SubjectRepo -> DB: Query Subject by ID
+Repository -> DB: Query Subject by ID
 activate DB
-DB --> SubjectRepo: Subject Record / Null
+DB --> Repository: Subject Record / Null
 deactivate DB
 
-SubjectRepo --> Service: Optional<Subject>
-deactivate SubjectRepo
+Repository --> Service: Optional<Subject>
+deactivate Repository
 
 alt Subject not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: code/name uniqueness, major validation)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
     Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- VALIDATE MAJORS ---
-Service -> MajorRepo: findByIdIn(majorIds)
-activate MajorRepo
+Service -> Repository: save(subject)
+activate Repository
 
-MajorRepo -> DB: Query Majors by IDs
+Repository -> DB: Update Subject with Majors
 activate DB
-DB --> MajorRepo: Major List
+DB --> Repository: Updated Subject
 deactivate DB
 
-MajorRepo --> Service: List<Major>
-deactivate MajorRepo
-
-alt Major not found or inactive
-    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Admin: 404 Not Found / 403 Forbidden
-end
-
-' --- UPDATE ---
-Service -> SubjectRepo: save(subject)
-activate SubjectRepo
-
-SubjectRepo -> DB: Update Subject with Majors
-activate DB
-DB --> SubjectRepo: Updated Subject
-deactivate DB
-
-SubjectRepo --> Service: Subject
-deactivate SubjectRepo
+Repository --> Service: Subject
+deactivate Repository
 
 Service --> Controller: Subject
 deactivate Service

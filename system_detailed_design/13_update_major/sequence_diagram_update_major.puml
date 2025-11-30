@@ -32,41 +32,13 @@ alt Major not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- CHECK CODE UNIQUENESS (if changed) ---
-Service -> Repository: existsByCodeAndIdNot(code, id)
-activate Repository
+' Validation logic (internal: code/name uniqueness if changed)
 
-Repository -> DB: Query Major by Code excluding current ID
-activate DB
-DB --> Repository: Boolean
-deactivate DB
-
-Repository --> Service: Boolean
-deactivate Repository
-
-alt Code already exists
-    Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Admin: 409 Conflict
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- CHECK NAME UNIQUENESS (if changed) ---
-Service -> Repository: existsByNameAndIdNot(name, id)
-activate Repository
-
-Repository -> DB: Query Major by Name excluding current ID
-activate DB
-DB --> Repository: Boolean
-deactivate DB
-
-Repository --> Service: Boolean
-deactivate Repository
-
-alt Name already exists
-    Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Admin: 409 Conflict
-end
-
-' --- UPDATE ---
 Service -> Repository: save(major)
 activate Repository
 

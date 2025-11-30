@@ -5,8 +5,7 @@ hide footbox
 actor Admin
 participant ":SubjectController" as Controller
 participant ":SubjectService" as Service
-participant ":SubjectRepository" as SubjectRepo
-participant ":MajorRepository" as MajorRepo
+participant ":SubjectRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -16,42 +15,23 @@ activate Controller
 Controller -> Service: create(request)
 activate Service
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: code/name uniqueness, major validation)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
     Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- VALIDATE MAJORS ---
-Service -> MajorRepo: findByIdIn(majorIds)
-activate MajorRepo
+Service -> Repository: save(subject)
+activate Repository
 
-MajorRepo -> DB: Query Majors by IDs
+Repository -> DB: Insert New Subject with Majors
 activate DB
-DB --> MajorRepo: Major List
+DB --> Repository: Saved Subject
 deactivate DB
 
-MajorRepo --> Service: List<Major>
-deactivate MajorRepo
-
-alt Major not found or inactive
-    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Admin: 404 Not Found / 403 Forbidden
-end
-
-' --- SAVE TO DATABASE ---
-Service -> SubjectRepo: save(subject)
-activate SubjectRepo
-
-SubjectRepo -> DB: Insert New Subject with Majors
-activate DB
-DB --> SubjectRepo: Saved Subject
-deactivate DB
-
-SubjectRepo --> Service: Subject
-deactivate SubjectRepo
+Repository --> Service: Subject
+deactivate Repository
 
 Service --> Controller: Subject
 deactivate Service

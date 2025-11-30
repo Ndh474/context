@@ -38,21 +38,12 @@ class Subject {
   - code : String
   - isActive : Boolean
   - majors : Set<Major>
-  - academicClasses : Set<AcademicClass>
 }
 
 class Major {
   - id : Short
   - name : String
   - code : String
-  - isActive : Boolean
-}
-
-class AcademicClass {
-  - id : Integer
-  - name : String
-  - code : String
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -64,6 +55,5 @@ SubjectRepository .down.> Subject
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Subject o-right- Major
-Subject o-down- AcademicClass
 
 @enduml

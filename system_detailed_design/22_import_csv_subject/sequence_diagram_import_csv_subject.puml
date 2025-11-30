@@ -6,8 +6,7 @@ actor Admin
 participant ":SubjectController" as Controller
 participant ":SubjectService" as Service
 participant ":CsvParserService" as CsvParser
-participant ":SubjectRepository" as SubjectRepo
-participant ":MajorRepository" as MajorRepo
+participant ":SubjectRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -40,53 +39,34 @@ deactivate CsvParser
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal)
+    ' Row validation (internal: majors, code/name uniqueness)
 
-    ' --- VALIDATE MAJORS ---
-    loop For each major code
-        Service -> MajorRepo: findByCode(majorCode)
-        activate MajorRepo
+    Service -> Repository: findByCode(code)
+    activate Repository
 
-        MajorRepo -> DB: Query Major by Code
-        activate DB
-        DB --> MajorRepo: Major / Null
-        deactivate DB
-
-        MajorRepo --> Service: Major
-        deactivate MajorRepo
-
-        alt Major not found or inactive
-            Service --> Service: Collect error, continue
-        end
-    end
-
-    ' --- CHECK EXISTING SUBJECT ---
-    Service -> SubjectRepo: findByCode(code)
-    activate SubjectRepo
-
-    SubjectRepo -> DB: Query Subject by Code
+    Repository -> DB: Query Subject by Code
     activate DB
-    DB --> SubjectRepo: Subject / Null
+    DB --> Repository: Subject / Null
     deactivate DB
 
-    SubjectRepo --> Service: Subject
-    deactivate SubjectRepo
+    Repository --> Service: Subject
+    deactivate Repository
 
     ' Business logic: create or update based on mode (internal)
 
     alt Validation fails
         Service --> Service: Collect error, continue
     else Validation passes
-        Service -> SubjectRepo: save(subject)
-        activate SubjectRepo
+        Service -> Repository: save(subject)
+        activate Repository
 
-        SubjectRepo -> DB: Insert or Update Subject with Majors
+        Repository -> DB: Insert or Update Subject with Majors
         activate DB
-        DB --> SubjectRepo: Saved Subject
+        DB --> Repository: Saved Subject
         deactivate DB
 
-        SubjectRepo --> Service: Subject
-        deactivate SubjectRepo
+        Repository --> Service: Subject
+        deactivate Repository
     end
 end
 

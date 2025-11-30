@@ -32,36 +32,13 @@ alt Major not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- CHECK SUBJECTS ---
-Service -> Repository: countSubjectsByMajorId(id)
-activate Repository
+' Validation logic (internal: check subjects/students count)
 
-Repository -> DB: Count Subjects by Major
-activate DB
-DB --> Repository: Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-' --- CHECK STUDENTS ---
-Service -> Repository: countStudentsByMajorId(id)
-activate Repository
-
-Repository -> DB: Count Students by Major
-activate DB
-DB --> Repository: Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-alt Has subjects or students
+alt Has dependencies
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Admin: 403 Forbidden
 end
 
-' --- DELETE OPERATION ---
 Service -> Repository: deleteById(id)
 activate Repository
 

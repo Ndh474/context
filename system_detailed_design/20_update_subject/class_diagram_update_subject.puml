@@ -26,10 +26,6 @@ interface SubjectRepository <<interface>> {
   + save(subject : Subject) : Subject
 }
 
-interface MajorRepository <<interface>> {
-  + findByIdIn(ids : Set<Short>) : List<Major>
-}
-
 ' --- ENTITIES ---
 class Subject {
   - id : Short
@@ -43,17 +39,14 @@ class Major {
   - id : Short
   - name : String
   - code : String
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 SubjectController -down-> SubjectService
 SubjectService -down-> SubjectRepository
-SubjectService -down-> MajorRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SubjectRepository .down.> Subject
-MajorRepository .down.> Major
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Subject o-right- Major
