@@ -19,10 +19,6 @@ class StudentDashboardService {
 }
 
 ' --- REPOSITORY ---
-interface StudentProfileRepository <<interface>> {
-  + existsById(id) : Boolean
-}
-
 interface SemesterRepository <<interface>> {
   + findCurrentSemesters() : List<Semester>
   + findAll() : List<Semester>
@@ -73,7 +69,6 @@ class Room {
 
 ' --- DEPENDENCY INJECTION (Association) ---
 DashboardController -down-> StudentDashboardService
-StudentDashboardService -down-> StudentProfileRepository
 StudentDashboardService -down-> SemesterRepository
 StudentDashboardService -down-> SlotRepository
 StudentDashboardService -down-> EnrollmentRepository

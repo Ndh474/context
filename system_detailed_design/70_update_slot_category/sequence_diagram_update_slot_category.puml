@@ -33,51 +33,13 @@ alt Slot not found
     Controller --> Lecturer: 404 Not Found
 end
 
-' --- CHECK AUTHORIZATION ---
-alt Not assigned staff
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
+' Validation logic (internal: authorization, category transition validation, exam data check with conditional delete)
+
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Lecturer: 400 Bad Request / 403 Forbidden
 end
 
-' --- VALIDATE CATEGORY TRANSITION ---
-' Validation logic (internal)
-
-alt Invalid category transition
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Lecturer: 400 Bad Request
-end
-
-' --- CHECK EXAM DATA (if LECTURE_WITH_PT → LECTURE) ---
-opt Category change to LECTURE
-    Service -> ExamRepo: countBySlotIdAndStatusNot(id, NOT_YET)
-    activate ExamRepo
-    
-    ExamRepo -> DB: Count Exam Attendance with Data
-    activate DB
-    DB --> ExamRepo: Count
-    deactivate DB
-    
-    ExamRepo --> Service: Long
-    deactivate ExamRepo
-    
-    alt Has exam data
-        Service -->> Controller: <<throw>> BadRequestException
-        Controller --> Lecturer: 400 Bad Request
-    else All NOT_YET
-        Service -> ExamRepo: deleteBySlotId(id)
-        activate ExamRepo
-        
-        ExamRepo -> DB: Delete NOT_YET Exam Attendance
-        activate DB
-        DB --> ExamRepo: Success
-        deactivate DB
-        
-        ExamRepo --> Service: void
-        deactivate ExamRepo
-    end
-end
-
-' --- UPDATE ---
 Service -> SlotRepo: save(slot)
 activate SlotRepo
 

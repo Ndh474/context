@@ -18,10 +18,6 @@ class ClassSummaryService {
   + getClassSummary(classId, semesterId) : ClassSummaryDTO
 }
 
-class ClassService {
-  + findById(id) : ClassDTO
-}
-
 ' --- REPOSITORY ---
 interface ClassRepository <<interface>> {
   + findById(id : Short) : Optional<AcademicClass>
@@ -35,24 +31,20 @@ interface EnrollmentRepository <<interface>> {
   + countByClassIdAndEnrolled(classId, enrolled) : Long
 }
 
-interface AttendanceRecordRepository <<interface>> {
-  + countBySlotIdAndStatus(slotId, status) : Long
+' --- ENTITIES ---
+class Slot {
+  - id : Integer
+  - title : String
+  - staff : User
+  - academicClass : AcademicClass
 }
 
-' --- ENTITIES ---
 class AcademicClass {
   - id : Short
   - name : String
   - code : String
   - semester : Semester
   - subject : Subject
-}
-
-class Slot {
-  - id : Integer
-  - title : String
-  - staff : User
-  - academicClass : AcademicClass
 }
 
 class Enrollment {
@@ -64,11 +56,9 @@ class Enrollment {
 
 ' --- DEPENDENCY INJECTION (Association) ---
 ClassController -down-> ClassSummaryService
-ClassSummaryService -down-> ClassService
 ClassSummaryService -down-> ClassRepository
 ClassSummaryService -down-> SlotRepository
 ClassSummaryService -down-> EnrollmentRepository
-ClassSummaryService -down-> AttendanceRecordRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 ClassRepository .down.> AcademicClass
@@ -77,6 +67,6 @@ EnrollmentRepository .down.> Enrollment
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Slot o-right- AcademicClass
-Enrollment o-right- AcademicClass
+AcademicClass -right-o Enrollment
 
 @enduml

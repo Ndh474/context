@@ -8,7 +8,6 @@ participant ":ClassSummaryService" as Service
 participant ":ClassRepository" as ClassRepo
 participant ":SlotRepository" as SlotRepo
 participant ":EnrollmentRepository" as EnrollmentRepo
-participant ":AttendanceRecordRepository" as AttendanceRepo
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -35,28 +34,15 @@ alt Class not found
     Controller --> Lecturer: 404 Not Found
 end
 
-alt Class not in semester
+' Authorization logic (internal: check class in semester, check staff assignment)
+
+alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Lecturer: 403 Forbidden
 end
 
-Service -> SlotRepo: findByClassIdAndStaffUserId(classId, currentUserId)
-activate SlotRepo
+' Get enrollment summary (internal)
 
-SlotRepo -> DB: Query Slots by Class and Staff
-activate DB
-DB --> SlotRepo: Slot List
-deactivate DB
-
-SlotRepo --> Service: List<Slot>
-deactivate SlotRepo
-
-alt Not assigned to class
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
-end
-
-' --- GET ENROLLMENT SUMMARY ---
 Service -> EnrollmentRepo: countByClassIdAndEnrolled(classId, true)
 activate EnrollmentRepo
 
@@ -68,19 +54,8 @@ deactivate DB
 EnrollmentRepo --> Service: Long
 deactivate EnrollmentRepo
 
-' --- GET ATTENDANCE STATISTICS ---
-Service -> AttendanceRepo: countBySlotIdAndStatus(slotId, status)
-activate AttendanceRepo
+' Get slot list and attendance statistics (internal)
 
-AttendanceRepo -> DB: Count Attendance by Status
-activate DB
-DB --> AttendanceRepo: Count
-deactivate DB
-
-AttendanceRepo --> Service: Long
-deactivate AttendanceRepo
-
-' --- GET SLOT LIST ---
 Service -> SlotRepo: findByClassIdAndSemesterId(classId, semesterId)
 activate SlotRepo
 
@@ -91,8 +66,6 @@ deactivate DB
 
 SlotRepo --> Service: List<Slot>
 deactivate SlotRepo
-
-' Get student attendance summaries (internal)
 
 Service --> Controller: ClassSummaryDTO
 deactivate Service

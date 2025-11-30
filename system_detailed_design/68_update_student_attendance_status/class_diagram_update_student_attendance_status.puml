@@ -29,10 +29,6 @@ interface AttendanceRecordRepository <<interface>> {
   + findBySlotIdAndNeedsReview(slotId, needsReview) : List<AttendanceRecord>
 }
 
-interface UserRepository <<interface>> {
-  + findById(id : Integer) : Optional<User>
-}
-
 ' --- ENTITIES ---
 class Slot {
   - id : Integer
@@ -58,12 +54,10 @@ class User {
 SlotController -down-> SlotService
 SlotService -down-> SlotRepository
 SlotService -down-> AttendanceRecordRepository
-SlotService -down-> UserRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SlotRepository .down.> Slot
 AttendanceRecordRepository .down.> AttendanceRecord
-UserRepository .down.> User
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 AttendanceRecord o-right- Slot

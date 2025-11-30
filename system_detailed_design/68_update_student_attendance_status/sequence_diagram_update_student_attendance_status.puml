@@ -6,7 +6,6 @@ actor Lecturer
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
 participant ":SlotRepository" as SlotRepo
-participant ":UserRepository" as UserRepo
 participant ":AttendanceRecordRepository" as AttendanceRepo
 participant "Database" as DB
 
@@ -34,84 +33,24 @@ alt Slot not found
     Controller --> Lecturer: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: authorization, edit window check)
 
-alt Not authorized
+alt Validation failed
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Lecturer: 403 Forbidden
 end
 
-alt Edit window expired
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
-end
+' Process submissions loop (internal: update attendance records, handle NOT_YET resolution, clear needs review flags)
 
-' --- GET CURRENT USER ---
-Service -> UserRepo: findById(currentUserId)
-activate UserRepo
-
-UserRepo -> DB: Query User by ID
-activate DB
-DB --> UserRepo: User Record / Null
-deactivate DB
-
-UserRepo --> Service: Optional<User>
-deactivate UserRepo
-
-' --- PROCESS SUBMISSIONS LOOP ---
-loop For each submission
-    ' Process single submission (internal)
-    
-    Service -> AttendanceRepo: save(attendanceRecord)
-    activate AttendanceRepo
-    
-    AttendanceRepo -> DB: Update Attendance Record
-    activate DB
-    DB --> AttendanceRepo: Updated Record
-    deactivate DB
-    
-    AttendanceRepo --> Service: AttendanceRecord
-    deactivate AttendanceRepo
-end
-
-' --- HANDLE NOT YET RESOLUTION ---
-opt notYetResolution provided
-    ' Bulk convert NOT_YET students (internal)
-    
-    Service -> AttendanceRepo: saveAll(records)
-    activate AttendanceRepo
-    
-    AttendanceRepo -> DB: Batch Update Records
-    activate DB
-    DB --> AttendanceRepo: Updated Records
-    deactivate DB
-    
-    AttendanceRepo --> Service: List<AttendanceRecord>
-    deactivate AttendanceRepo
-end
-
-' --- CLEAR NEEDS REVIEW FLAGS ---
-Service -> AttendanceRepo: findBySlotIdAndNeedsReview(id, true)
+Service -> AttendanceRepo: save(attendanceRecord)
 activate AttendanceRepo
 
-AttendanceRepo -> DB: Query Records with Needs Review
+AttendanceRepo -> DB: Update Attendance Record
 activate DB
-DB --> AttendanceRepo: Records List
+DB --> AttendanceRepo: Updated Record
 deactivate DB
 
-AttendanceRepo --> Service: List<AttendanceRecord>
-deactivate AttendanceRepo
-
-Service -> AttendanceRepo: saveAll(records)
-activate AttendanceRepo
-
-AttendanceRepo -> DB: Clear Needs Review Flags
-activate DB
-DB --> AttendanceRepo: Success
-deactivate DB
-
-AttendanceRepo --> Service: void
+AttendanceRepo --> Service: AttendanceRecord
 deactivate AttendanceRepo
 
 Service --> Controller: SlotAttendanceSubmissionResponse

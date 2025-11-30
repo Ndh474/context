@@ -24,6 +24,18 @@ interface SlotRepository <<interface>> {
 }
 
 ' --- ENTITIES ---
+class AcademicClass {
+  - id : Short
+  - name : String
+  - code : String
+}
+
+class Semester {
+  - id : Short
+  - name : String
+  - code : String
+}
+
 class Slot {
   - id : Integer
   - title : String
@@ -36,18 +48,6 @@ class Slot {
   - room : Room
   - staff : User
   - sessionStatus : SessionStatus
-}
-
-class AcademicClass {
-  - id : Short
-  - name : String
-  - code : String
-}
-
-class Semester {
-  - id : Short
-  - name : String
-  - code : String
 }
 
 class Room {
@@ -68,8 +68,8 @@ SlotService -down-> SlotRepository
 SlotRepository .down.> Slot
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Slot o-right- AcademicClass
-Slot o-right- Semester
+AcademicClass -right-o Slot
+Semester -right-o Slot
 Slot o-right- Room
 Slot o-right- User
 

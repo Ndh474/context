@@ -40,36 +40,25 @@ deactivate DB
 SemesterRepo --> Service: List<Semester>
 deactivate SemesterRepo
 
-' --- CALCULATE SUPERVISOR STATS ---
-alt semesterId is null (All Semesters)
-    Service -> SlotRepo: calculateSupervisorStatsAllSemesters(supervisorId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Exam Slot Statistics for All Semesters
-    activate DB
-    DB --> SlotRepo: Stats Data
-    deactivate DB
-    
-    SlotRepo --> Service: SupervisorStatsDTO
-    deactivate SlotRepo
-else specific semester selected
-    Service -> SlotRepo: calculateSupervisorStats(supervisorId, semesterId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Exam Slot Statistics by Semester
-    activate DB
-    DB --> SlotRepo: Stats Data
-    deactivate DB
-    
-    SlotRepo --> Service: SupervisorStatsDTO
-    deactivate SlotRepo
-end
+' Calculate supervisor statistics (internal: all semesters or specific semester)
 
-' --- GET RECENT SUPERVISION ACTIVITY ---
+Service -> SlotRepo: calculateSupervisorStats(supervisorId, semesterId)
+activate SlotRepo
+
+SlotRepo -> DB: Query Exam Slot Statistics
+activate DB
+DB --> SlotRepo: Stats Data
+deactivate DB
+
+SlotRepo --> Service: SupervisorStatsDTO
+deactivate SlotRepo
+
+' Get recent supervision activity with attendance stats (internal: loop for each slot)
+
 Service -> SlotRepo: findRecentSupervisionActivity(supervisorId, semesterId, start, end)
 activate SlotRepo
 
-SlotRepo -> DB: Query Recent Exam Slots (Last 7 Days)
+SlotRepo -> DB: Query Recent Exam Slots
 activate DB
 DB --> SlotRepo: Recent Activity List
 deactivate DB
@@ -77,45 +66,18 @@ deactivate DB
 SlotRepo --> Service: List<RecentActivitySlotDTO>
 deactivate SlotRepo
 
-' --- GET ATTENDANCE STATS FOR RECENT SLOTS ---
-loop For each recent slot
-    Service -> SlotRepo: getAttendanceStats(slotId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Attendance Statistics
-    activate DB
-    DB --> SlotRepo: Attendance Stats
-    deactivate DB
-    
-    SlotRepo --> Service: AttendanceStatsDTO
-    deactivate SlotRepo
-end
+' Get upcoming exam slots with attendance stats (internal: loop for each slot)
 
-' --- GET UPCOMING EXAM SLOTS ---
 Service -> SlotRepo: findUpcomingExamSlots(supervisorId, semesterId, now, maxResults)
 activate SlotRepo
 
-SlotRepo -> DB: Query Upcoming Exam Slots (Next 10)
+SlotRepo -> DB: Query Upcoming Exam Slots
 activate DB
 DB --> SlotRepo: Upcoming Exam List
 deactivate DB
 
 SlotRepo --> Service: List<TodaySlotDTO>
 deactivate SlotRepo
-
-' --- GET ATTENDANCE STATS FOR UPCOMING SLOTS ---
-loop For each upcoming slot
-    Service -> SlotRepo: getAttendanceStats(slotId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Attendance Statistics
-    activate DB
-    DB --> SlotRepo: Attendance Stats
-    deactivate DB
-    
-    SlotRepo --> Service: AttendanceStatsDTO
-    deactivate SlotRepo
-end
 
 Service --> Controller: SupervisorDashboardResponse
 deactivate Service

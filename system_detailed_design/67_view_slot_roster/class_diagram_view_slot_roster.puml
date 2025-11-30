@@ -39,13 +39,6 @@ class User {
   - fullName : String
 }
 
-class AttendanceRecord {
-  - id : Long
-  - slot : Slot
-  - student : User
-  - status : AttendanceStatus
-}
-
 ' --- DEPENDENCY INJECTION (Association) ---
 SlotController -down-> SlotService
 SlotService -down-> SlotRepository
@@ -55,7 +48,5 @@ SlotRepository .down.> Slot
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 Slot o-right- User
-AttendanceRecord o-right- Slot
-AttendanceRecord o-right- User
 
 @enduml

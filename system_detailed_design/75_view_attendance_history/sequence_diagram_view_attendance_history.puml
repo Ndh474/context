@@ -5,7 +5,6 @@ hide footbox
 actor Student
 participant ":StudentProfileController" as Controller
 participant ":AttendanceHistoryService" as Service
-participant ":StudentProfileRepository" as StudentRepo
 participant ":AttendanceHistoryRepository" as AttendanceRepo
 participant "Database" as DB
 
@@ -16,24 +15,13 @@ activate Controller
 Controller -> Service: getAttendanceHistory(studentId, request)
 activate Service
 
-' --- VALIDATE STUDENT EXISTS ---
-Service -> StudentRepo: findById(studentId)
-activate StudentRepo
-
-StudentRepo -> DB: Query Student Profile by ID
-activate DB
-DB --> StudentRepo: StudentProfile Record / Null
-deactivate DB
-
-StudentRepo --> Service: Optional<StudentProfile>
-deactivate StudentRepo
+' Validation logic (internal: check student exists)
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Student: 404 Not Found
 end
 
-' --- GET ATTENDANCE HISTORY ---
 Service -> AttendanceRepo: searchByStudentId(studentId, request)
 activate AttendanceRepo
 

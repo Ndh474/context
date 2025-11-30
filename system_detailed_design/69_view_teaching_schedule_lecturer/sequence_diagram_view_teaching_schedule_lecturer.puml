@@ -52,108 +52,44 @@ deactivate DB
 SemesterRepo --> Service: List<Semester>
 deactivate SemesterRepo
 
-' --- CALCULATE LECTURER STATS ---
-alt semesterId is null (All Semesters)
-    Service -> SlotRepo: calculateLecturerStatsAllSemesters(lecturerId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Teaching Statistics for All Semesters
-    activate DB
-    DB --> SlotRepo: Stats Data
-    deactivate DB
-    
-    SlotRepo --> Service: DashboardStatsDTO
-    deactivate SlotRepo
-else specific semester selected
-    Service -> SlotRepo: calculateLecturerStats(lecturerId, semesterId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Teaching Statistics by Semester
-    activate DB
-    DB --> SlotRepo: Stats Data
-    deactivate DB
-    
-    SlotRepo --> Service: DashboardStatsDTO
-    deactivate SlotRepo
-end
+' Calculate lecturer statistics (internal: all semesters or specific semester)
 
-' --- GET NEXT DAY SLOTS ---
-alt semesterId is null
-    Service -> SlotRepo: findUpcomingSlotsForNextDayAllSemesters(lecturerId, start, end)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Next Day Slots (All Semesters)
-    activate DB
-    DB --> SlotRepo: Upcoming Slot List
-    deactivate DB
-    
-    SlotRepo --> Service: List<TodaySlotDTO>
-    deactivate SlotRepo
-else specific semester
-    Service -> SlotRepo: findUpcomingSlotsForNextDay(lecturerId, semesterId, start, end)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Next Day Slots by Semester
-    activate DB
-    DB --> SlotRepo: Upcoming Slot List
-    deactivate DB
-    
-    SlotRepo --> Service: List<TodaySlotDTO>
-    deactivate SlotRepo
-end
+Service -> SlotRepo: calculateLecturerStats(lecturerId, semesterId)
+activate SlotRepo
 
-' --- GET ATTENDANCE STATS FOR NEXT DAY SLOTS ---
-loop For each next day slot
-    Service -> SlotRepo: getAttendanceStats(slotId)
-    activate SlotRepo
-    
-    SlotRepo -> DB: Query Attendance Statistics
-    activate DB
-    DB --> SlotRepo: Attendance Stats
-    deactivate DB
-    
-    SlotRepo --> Service: AttendanceStatsDTO
-    deactivate SlotRepo
-end
+SlotRepo -> DB: Query Teaching Statistics
+activate DB
+DB --> SlotRepo: Stats Data
+deactivate DB
 
-' --- GET MY CLASSES ---
-alt semesterId is null
-    Service -> ClassRepo: findClassesWithStatsByLecturer(lecturerId)
-    activate ClassRepo
-    
-    ClassRepo -> DB: Query Classes with Stats (All Semesters)
-    activate DB
-    DB --> ClassRepo: Class List with Stats
-    deactivate DB
-    
-    ClassRepo --> Service: List<MyClassDTO>
-    deactivate ClassRepo
-else specific semester
-    Service -> ClassRepo: findClassesWithStatsByLecturerAndSemester(lecturerId, semesterId)
-    activate ClassRepo
-    
-    ClassRepo -> DB: Query Classes with Stats by Semester
-    activate DB
-    DB --> ClassRepo: Class List with Stats
-    deactivate DB
-    
-    ClassRepo --> Service: List<MyClassDTO>
-    deactivate ClassRepo
-end
+SlotRepo --> Service: DashboardStatsDTO
+deactivate SlotRepo
 
-' --- GET UPCOMING SLOTS FOR EACH CLASS ---
-loop For each class
-    Service -> ClassRepo: findUpcomingSlotsForClass(classId, limit)
-    activate ClassRepo
-    
-    ClassRepo -> DB: Query Upcoming Slots for Class
-    activate DB
-    DB --> ClassRepo: Upcoming Slot List
-    deactivate DB
-    
-    ClassRepo --> Service: List<TodaySlotDTO>
-    deactivate ClassRepo
-end
+' Get next day slots with attendance stats (internal: loop for each slot)
+
+Service -> SlotRepo: findUpcomingSlotsForNextDay(lecturerId, semesterId, start, end)
+activate SlotRepo
+
+SlotRepo -> DB: Query Next Day Slots
+activate DB
+DB --> SlotRepo: Upcoming Slot List
+deactivate DB
+
+SlotRepo --> Service: List<TodaySlotDTO>
+deactivate SlotRepo
+
+' Get classes with stats and upcoming slots (internal: loop for each class)
+
+Service -> ClassRepo: findClassesWithStatsByLecturerAndSemester(lecturerId, semesterId)
+activate ClassRepo
+
+ClassRepo -> DB: Query Classes with Stats
+activate DB
+DB --> ClassRepo: Class List with Stats
+deactivate DB
+
+ClassRepo --> Service: List<MyClassDTO>
+deactivate ClassRepo
 
 Service --> Controller: LecturerDashboardResponse
 deactivate Service

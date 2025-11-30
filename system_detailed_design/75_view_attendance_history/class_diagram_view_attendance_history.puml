@@ -28,10 +28,6 @@ interface AttendanceHistoryRepository <<interface>> {
   + getDetailedSummary(studentId, request) : AttendanceSummaryDetailsDTO
 }
 
-interface StudentProfileRepository <<interface>> {
-  + findById(id) : Optional<StudentProfile>
-}
-
 ' --- ENTITIES ---
 class AttendanceRecord {
   - id : Long
@@ -60,12 +56,10 @@ class Slot {
 ' --- DEPENDENCY INJECTION (Association) ---
 StudentProfileController -down-> AttendanceHistoryService
 AttendanceHistoryService -down-> AttendanceHistoryRepository
-AttendanceHistoryService -down-> StudentProfileRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 AttendanceHistoryRepository .down.> AttendanceRecord
 AttendanceHistoryRepository .down.> ExamAttendance
-StudentProfileRepository .down.> StudentProfile
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 AttendanceRecord o-right- Slot

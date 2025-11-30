@@ -5,7 +5,6 @@ hide footbox
 actor Student
 participant ":DashboardController" as Controller
 participant ":StudentDashboardService" as Service
-participant ":StudentProfileRepository" as StudentRepo
 participant ":SemesterRepository" as SemesterRepo
 participant ":SlotRepository" as SlotRepo
 participant ":EnrollmentRepository" as EnrollmentRepo
@@ -18,24 +17,13 @@ activate Controller
 Controller -> Service: getDashboardData(studentUserId, semesterId)
 activate Service
 
-' --- VALIDATE STUDENT EXISTS ---
-Service -> StudentRepo: existsById(studentUserId)
-activate StudentRepo
-
-StudentRepo -> DB: Check Student Profile Exists
-activate DB
-DB --> StudentRepo: Boolean
-deactivate DB
-
-StudentRepo --> Service: Boolean
-deactivate StudentRepo
+' Validation logic (internal: check student exists)
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Student: 404 Not Found
 end
 
-' --- GET CURRENT SEMESTER IF NOT PROVIDED ---
 alt semesterId is null
     Service -> SemesterRepo: findCurrentSemesters()
     activate SemesterRepo
