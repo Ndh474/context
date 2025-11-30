@@ -24,14 +24,6 @@ interface ClassRepository <<interface>> {
   + save(class : AcademicClass) : AcademicClass
 }
 
-interface SubjectRepository <<interface>> {
-  + findById(id : Short) : Optional<Subject>
-}
-
-interface SemesterRepository <<interface>> {
-  + findById(id : Short) : Optional<Semester>
-}
-
 ' --- ENTITIES ---
 class AcademicClass {
   - id : Short
@@ -45,31 +37,23 @@ class Subject {
   - id : Short
   - name : String
   - code : String
-  - isActive : Boolean
 }
 
 class Semester {
   - id : Short
   - name : String
   - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
-  - isActive : Boolean
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
 ClassController -down-> ClassService
 ClassService -down-> ClassRepository
-ClassService -down-> SubjectRepository
-ClassService -down-> SemesterRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 ClassRepository .down.> AcademicClass
-SubjectRepository .down.> Subject
-SemesterRepository .down.> Semester
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-AcademicClass o-right- Subject
+AcademicClass o-left- Subject
 AcademicClass o-right- Semester
 
 @enduml

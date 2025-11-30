@@ -6,8 +6,7 @@ actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as ClassService
 participant ":EnrollmentService" as EnrollmentService
-participant ":ClassRepository" as ClassRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":EnrollmentRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -18,16 +17,7 @@ activate Controller
 Controller -> ClassService: getClassDetailsForRoster(id)
 activate ClassService
 
-ClassService -> ClassRepo: findById(id)
-activate ClassRepo
-
-ClassRepo -> DB: Query Class by ID
-activate DB
-DB --> ClassRepo: AcademicClass / Null
-deactivate DB
-
-ClassRepo --> ClassService: Optional<AcademicClass>
-deactivate ClassRepo
+' Class validation (internal)
 
 alt Class not found
     ClassService -->> Controller: <<throw>> ResourceNotFoundException
@@ -41,86 +31,42 @@ deactivate ClassService
 Controller -> EnrollmentService: findByClassId(id, request)
 activate EnrollmentService
 
-EnrollmentService -> ClassRepo: existsById(id)
-activate ClassRepo
-
-ClassRepo -> DB: Check Class Exists
-activate DB
-DB --> ClassRepo: boolean
-deactivate DB
-
-ClassRepo --> EnrollmentService: boolean
-deactivate ClassRepo
+' Class validation (internal)
 
 alt Class not found
     EnrollmentService -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-EnrollmentService -> EnrollmentRepo: findByClassId(id, request)
-activate EnrollmentRepo
+EnrollmentService -> Repository: findByClassId(id, request)
+activate Repository
 
-EnrollmentRepo -> DB: Query Students with Enrollment Status
+Repository -> DB: Query Students with Enrollment Status
 activate DB
-DB --> EnrollmentRepo: Student List
+DB --> Repository: Student List
 deactivate DB
 
-EnrollmentRepo --> EnrollmentService: List<StudentProfile>
-deactivate EnrollmentRepo
+Repository --> EnrollmentService: List<StudentProfile>
+deactivate Repository
 
 EnrollmentService --> Controller: List<StudentProfile>
 deactivate EnrollmentService
 
-' --- COUNT TOTAL ---
+' Count queries (internal: total, enrolled, withdrawn)
+
 Controller -> EnrollmentService: countByClassId(id, request)
 activate EnrollmentService
 
-EnrollmentService -> EnrollmentRepo: countByClassId(id, request)
-activate EnrollmentRepo
+EnrollmentService -> Repository: countByClassId(id, request)
+activate Repository
 
-EnrollmentRepo -> DB: Count Total Students
+Repository -> DB: Count Total Students
 activate DB
-DB --> EnrollmentRepo: Total Count
+DB --> Repository: Total Count
 deactivate DB
 
-EnrollmentRepo --> EnrollmentService: Long
-deactivate EnrollmentRepo
-
-EnrollmentService --> Controller: Long
-deactivate EnrollmentService
-
-' --- COUNT ENROLLED ---
-Controller -> EnrollmentService: countEnrolledByClassId(id)
-activate EnrollmentService
-
-EnrollmentService -> EnrollmentRepo: countEnrolledByClassId(id)
-activate EnrollmentRepo
-
-EnrollmentRepo -> DB: Count Enrolled Students
-activate DB
-DB --> EnrollmentRepo: Enrolled Count
-deactivate DB
-
-EnrollmentRepo --> EnrollmentService: Long
-deactivate EnrollmentRepo
-
-EnrollmentService --> Controller: Long
-deactivate EnrollmentService
-
-' --- COUNT WITHDRAWN ---
-Controller -> EnrollmentService: countWithdrawnByClassId(id)
-activate EnrollmentService
-
-EnrollmentService -> EnrollmentRepo: countWithdrawnByClassId(id)
-activate EnrollmentRepo
-
-EnrollmentRepo -> DB: Count Withdrawn Students
-activate DB
-DB --> EnrollmentRepo: Withdrawn Count
-deactivate DB
-
-EnrollmentRepo --> EnrollmentService: Long
-deactivate EnrollmentRepo
+Repository --> EnrollmentService: Long
+deactivate Repository
 
 EnrollmentService --> Controller: Long
 deactivate EnrollmentService

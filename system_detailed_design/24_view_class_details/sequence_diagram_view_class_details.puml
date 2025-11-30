@@ -32,51 +32,7 @@ alt Class not found
     Controller --> Admin: 404 Not Found
 end
 
-' --- COUNT STUDENTS ---
-Service -> Repository: countAllStudentsByClassId(id)
-activate Repository
-
-Repository -> DB: Count All Students
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-Service -> Repository: countEnrolledStudentsByClassId(id)
-activate Repository
-
-Repository -> DB: Count Enrolled Students
-activate DB
-DB --> Repository: Enrolled Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-' --- COUNT SLOTS ---
-Service -> Repository: countAllSlotsByClassId(id)
-activate Repository
-
-Repository -> DB: Count All Slots
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
-
-Service -> Repository: countActiveSlotsByClassId(id)
-activate Repository
-
-Repository -> DB: Count Active Slots
-activate DB
-DB --> Repository: Active Count
-deactivate DB
-
-Repository --> Service: Long
-deactivate Repository
+' Count queries (internal: students, slots)
 
 Service --> Controller: Class
 deactivate Service

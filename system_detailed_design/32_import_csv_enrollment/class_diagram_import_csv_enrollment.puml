@@ -30,14 +30,6 @@ interface EnrollmentRepository <<interface>> {
   + save(enrollment) : Enrollment
 }
 
-interface StudentProfileRepository <<interface>> {
-  + findByRollNumberWithUserAndMajor(rollNumber) : StudentProfile
-}
-
-interface ClassRepository <<interface>> {
-  + findByCodeAndSemesterCodeWithSubjectAndSemester(classCode, semesterCode) : AcademicClass
-}
-
 ' --- ENTITIES ---
 class Enrollment {
   - id : EnrollmentId
@@ -49,34 +41,12 @@ class Enrollment {
 class AcademicClass {
   - id : Short
   - code : String
-  - active : boolean
-}
-
-class Subject {
-  - id : Integer
-  - name : String
-  - code : String
-}
-
-class Major {
-  - id : Short
-  - name : String
-  - code : String
-}
-
-class Semester {
-  - id : Short
-  - code : String
-  - startDate : LocalDate
-  - endDate : LocalDate
 }
 
 class User {
   - id : Integer
   - username : String
-  - email : String
   - fullName : String
-  - active : boolean
 }
 
 class StudentProfile {
@@ -88,21 +58,13 @@ class StudentProfile {
 EnrollmentController -down-> EnrollmentService
 EnrollmentService -down-> CsvParserService
 EnrollmentService -down-> EnrollmentRepository
-EnrollmentService -down-> StudentProfileRepository
-EnrollmentService -down-> ClassRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 EnrollmentRepository .down.> Enrollment
-StudentProfileRepository .down.> StudentProfile
-ClassRepository .down.> AcademicClass
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Enrollment o-right- AcademicClass
+Enrollment o-left- AcademicClass
 Enrollment o-right- User
-AcademicClass o-right- Subject
-AcademicClass o-right- Semester
-Subject o-right- Major
 User o-right- StudentProfile
-StudentProfile o-right- Major
 
 @enduml

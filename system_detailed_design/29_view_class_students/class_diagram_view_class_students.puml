@@ -33,11 +33,6 @@ interface EnrollmentRepository <<interface>> {
   + countWithdrawnByClassId(classId) : Long
 }
 
-interface ClassRepository <<interface>> {
-  + findById(id) : Optional<AcademicClass>
-  + existsById(id) : boolean
-}
-
 ' --- ENTITIES ---
 class Enrollment {
   - id : EnrollmentId
@@ -54,7 +49,6 @@ class AcademicClass {
 class User {
   - id : Integer
   - username : String
-  - email : String
   - fullName : String
 }
 
@@ -73,15 +67,12 @@ class Major {
 ClassController -down-> EnrollmentService
 ClassController -down-> ClassService
 EnrollmentService -down-> EnrollmentRepository
-EnrollmentService -down-> ClassRepository
-ClassService -down-> ClassRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 EnrollmentRepository .down.> Enrollment
-ClassRepository .down.> AcademicClass
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Enrollment o-right- AcademicClass
+Enrollment o-left- AcademicClass
 Enrollment o-right- User
 User o-right- StudentProfile
 StudentProfile o-right- Major

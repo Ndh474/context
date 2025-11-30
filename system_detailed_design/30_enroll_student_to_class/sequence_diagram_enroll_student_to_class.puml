@@ -5,129 +5,33 @@ hide footbox
 actor Admin
 participant ":EnrollmentController" as Controller
 participant ":EnrollmentService" as Service
-participant ":ClassRepository" as ClassRepo
-participant ":StudentProfileRepository" as StudentRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":EnrollmentRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
 Admin -> Controller: POST /api/v1/enrollments
 activate Controller
 
-' Request validation (internal)
-
 Controller -> Service: create(request)
 activate Service
 
-' --- VALIDATE CLASS ---
-Service -> ClassRepo: findById(classId)
-activate ClassRepo
+' Validation logic (internal: class/student validation, major eligibility, semester check)
 
-ClassRepo -> DB: Query Class by ID
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
+end
+
+Service -> Repository: save(enrollment)
+activate Repository
+
+Repository -> DB: Insert or Update Enrollment
 activate DB
-DB --> ClassRepo: AcademicClass / Null
+DB --> Repository: Saved Enrollment
 deactivate DB
 
-ClassRepo --> Service: Optional<AcademicClass>
-deactivate ClassRepo
-
-alt Class not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-alt Class is inactive
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- VALIDATE STUDENT ---
-Service -> StudentRepo: findById(studentUserId)
-activate StudentRepo
-
-StudentRepo -> DB: Query Student Profile by User ID
-activate DB
-DB --> StudentRepo: StudentProfile / Null
-deactivate DB
-
-StudentRepo --> Service: Optional<StudentProfile>
-deactivate StudentRepo
-
-alt Student not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-alt Student is inactive
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' Validation logic (internal)
-
-alt Student major not eligible for class subject
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-alt Semester has ended
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
-' --- CHECK EXISTING ENROLLMENT ---
-Service -> EnrollmentRepo: existsById(enrollmentId)
-activate EnrollmentRepo
-
-EnrollmentRepo -> DB: Check Enrollment Exists
-activate DB
-DB --> EnrollmentRepo: boolean
-deactivate DB
-
-EnrollmentRepo --> Service: boolean
-deactivate EnrollmentRepo
-
-alt Enrollment exists and is enrolled
-    Service -->> Controller: <<throw>> ResourceExistsException
-    Controller --> Admin: 409 Conflict
-else Enrollment exists but withdrawn
-    Service -> EnrollmentRepo: findById(enrollmentId)
-    activate EnrollmentRepo
-
-    EnrollmentRepo -> DB: Query Enrollment
-    activate DB
-    DB --> EnrollmentRepo: Enrollment
-    deactivate DB
-
-    EnrollmentRepo --> Service: Enrollment
-    deactivate EnrollmentRepo
-
-    ' Re-enrollment logic (internal)
-
-    Service -> EnrollmentRepo: save(enrollment)
-    activate EnrollmentRepo
-
-    EnrollmentRepo -> DB: Update Enrollment
-    activate DB
-    DB --> EnrollmentRepo: Updated Enrollment
-    deactivate DB
-
-    EnrollmentRepo --> Service: Enrollment
-    deactivate EnrollmentRepo
-else Enrollment does not exist
-    ' Create new enrollment (internal)
-
-    Service -> EnrollmentRepo: save(enrollment)
-    activate EnrollmentRepo
-
-    EnrollmentRepo -> DB: Insert Enrollment
-    activate DB
-    DB --> EnrollmentRepo: New Enrollment
-    deactivate DB
-
-    EnrollmentRepo --> Service: Enrollment
-    deactivate EnrollmentRepo
-end
+Repository --> Service: Enrollment
+deactivate Repository
 
 Service --> Controller: Enrollment
 deactivate Service

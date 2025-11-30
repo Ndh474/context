@@ -33,8 +33,6 @@ class AcademicClass {
   - isActive : Boolean
   - subject : Subject
   - semester : Semester
-  - enrollments : Set<Enrollment>
-  - slots : Set<Slot>
 }
 
 class Subject {
@@ -49,16 +47,6 @@ class Semester {
   - code : String
 }
 
-class Enrollment {
-  - id : Integer
-  - isEnrolled : Boolean
-}
-
-class Slot {
-  - id : Integer
-  - isActive : Boolean
-}
-
 ' --- DEPENDENCY INJECTION (Association) ---
 ClassController -down-> ClassService
 ClassService -down-> ClassRepository
@@ -67,9 +55,7 @@ ClassService -down-> ClassRepository
 ClassRepository .down.> AcademicClass
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-AcademicClass o-right- Subject
+AcademicClass o-left- Subject
 AcademicClass o-right- Semester
-AcademicClass o-down- Enrollment
-AcademicClass o-down- Slot
 
 @enduml

@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":ClassController" as Controller
 participant ":ClassService" as Service
-participant ":ClassRepository" as ClassRepo
-participant ":SubjectRepository" as SubjectRepo
-participant ":SemesterRepository" as SemesterRepo
+participant ":ClassRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -18,94 +16,39 @@ Controller -> Service: update(id, request)
 activate Service
 
 ' --- FIND EXISTING ---
-Service -> ClassRepo: findById(id)
-activate ClassRepo
+Service -> Repository: findById(id)
+activate Repository
 
-ClassRepo -> DB: Query Class by ID
+Repository -> DB: Query Class by ID
 activate DB
-DB --> ClassRepo: Class Record / Null
+DB --> Repository: Class Record / Null
 deactivate DB
 
-ClassRepo --> Service: Optional<AcademicClass>
-deactivate ClassRepo
+Repository --> Service: Optional<AcademicClass>
+deactivate Repository
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
+' Validation logic (internal: code uniqueness, subject/semester validation, deactivation check)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
     Controller --> Admin: 400 Bad Request / 409 Conflict
 end
 
-' --- VALIDATE SUBJECT ---
-Service -> SubjectRepo: findById(subjectId)
-activate SubjectRepo
+Service -> Repository: save(class)
+activate Repository
 
-SubjectRepo -> DB: Query Subject by ID
+Repository -> DB: Update Class
 activate DB
-DB --> SubjectRepo: Subject / Null
+DB --> Repository: Updated Class
 deactivate DB
 
-SubjectRepo --> Service: Optional<Subject>
-deactivate SubjectRepo
-
-alt Subject not found or inactive
-    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Admin: 404 Not Found / 403 Forbidden
-end
-
-' --- VALIDATE SEMESTER ---
-Service -> SemesterRepo: findById(semesterId)
-activate SemesterRepo
-
-SemesterRepo -> DB: Query Semester by ID
-activate DB
-DB --> SemesterRepo: Semester / Null
-deactivate DB
-
-SemesterRepo --> Service: Optional<Semester>
-deactivate SemesterRepo
-
-alt Semester not found or inactive
-    Service -->> Controller: <<throw>> ResourceNotFoundException / OperationNotAllowedException
-    Controller --> Admin: 404 Not Found / 403 Forbidden
-end
-
-' --- DEACTIVATION CHECK ---
-opt Deactivating class
-    Service -> ClassRepo: findLastActiveSlotEndTimeByClassId(id)
-    activate ClassRepo
-
-    ClassRepo -> DB: Query Last Active Slot End Time
-    activate DB
-    DB --> ClassRepo: LocalDateTime / Null
-    deactivate DB
-
-    ClassRepo --> Service: LocalDateTime
-    deactivate ClassRepo
-
-    alt Class not finished
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Admin: 403 Forbidden
-    end
-end
-
-' --- UPDATE ---
-Service -> ClassRepo: save(class)
-activate ClassRepo
-
-ClassRepo -> DB: Update Class
-activate DB
-DB --> ClassRepo: Updated Class
-deactivate DB
-
-ClassRepo --> Service: AcademicClass
-deactivate ClassRepo
+Repository --> Service: AcademicClass
+deactivate Repository
 
 Service --> Controller: Class
 deactivate Service

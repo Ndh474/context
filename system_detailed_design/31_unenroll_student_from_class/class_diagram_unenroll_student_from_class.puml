@@ -38,16 +38,9 @@ class AcademicClass {
   - code : String
 }
 
-class Semester {
-  - id : Short
-  - startDate : LocalDate
-  - endDate : LocalDate
-}
-
 class User {
   - id : Integer
   - username : String
-  - email : String
   - fullName : String
 }
 
@@ -59,8 +52,7 @@ EnrollmentService -down-> EnrollmentRepository
 EnrollmentRepository .down.> Enrollment
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Enrollment o-right- AcademicClass
+Enrollment o-left- AcademicClass
 Enrollment o-right- User
-AcademicClass o-right- Semester
 
 @enduml

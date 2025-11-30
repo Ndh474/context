@@ -6,9 +6,7 @@ actor Admin
 participant ":EnrollmentController" as Controller
 participant ":EnrollmentService" as Service
 participant ":CsvParserService" as CsvParser
-participant ":StudentProfileRepository" as StudentRepo
-participant ":ClassRepository" as ClassRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
+participant ":EnrollmentRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -47,113 +45,34 @@ end
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal)
+    ' Row validation (internal: student/class validation, major eligibility, semester check)
 
-    ' --- FIND STUDENT ---
-    Service -> StudentRepo: findByRollNumberWithUserAndMajor(rollNumber)
-    activate StudentRepo
+    Service -> Repository: existsById(enrollmentId)
+    activate Repository
 
-    StudentRepo -> DB: Query Student by Roll Number
+    Repository -> DB: Check Enrollment Exists
     activate DB
-    DB --> StudentRepo: StudentProfile / Null
+    DB --> Repository: boolean
     deactivate DB
 
-    StudentRepo --> Service: StudentProfile
-    deactivate StudentRepo
+    Repository --> Service: boolean
+    deactivate Repository
 
-    alt Student not found
+    ' Business logic: create or update based on mode and enrollment status (internal)
+
+    alt Validation fails
         Service --> Service: Collect error, continue
-    end
+    else Validation passes
+        Service -> Repository: save(enrollment)
+        activate Repository
 
-    alt Student is inactive
-        Service --> Service: Collect error, continue
-    end
-
-    ' --- FIND CLASS ---
-    Service -> ClassRepo: findByCodeAndSemesterCodeWithSubjectAndSemester(classCode, semesterCode)
-    activate ClassRepo
-
-    ClassRepo -> DB: Query Class by Code and Semester
-    activate DB
-    DB --> ClassRepo: AcademicClass / Null
-    deactivate DB
-
-    ClassRepo --> Service: AcademicClass
-    deactivate ClassRepo
-
-    alt Class not found
-        Service --> Service: Collect error, continue
-    end
-
-    alt Class is inactive
-        Service --> Service: Collect error, continue
-    end
-
-    ' Validation logic (internal)
-
-    alt Student major not eligible for class subject
-        Service --> Service: Collect error, continue
-    end
-
-    alt Semester has ended
-        Service --> Service: Collect error, continue
-    end
-
-    ' --- CHECK EXISTING ENROLLMENT ---
-    Service -> EnrollmentRepo: existsById(enrollmentId)
-    activate EnrollmentRepo
-
-    EnrollmentRepo -> DB: Check Enrollment Exists
-    activate DB
-    DB --> EnrollmentRepo: boolean
-    deactivate DB
-
-    EnrollmentRepo --> Service: boolean
-    deactivate EnrollmentRepo
-
-    alt Enrollment exists and is enrolled
-        alt Mode is AddOnly
-            Service --> Service: Collect error, continue
-        else Mode is AddAndUpdate
-            Service --> Service: Skip, no update needed
-        end
-    else Enrollment exists but withdrawn
-        Service -> EnrollmentRepo: findById(enrollmentId)
-        activate EnrollmentRepo
-
-        EnrollmentRepo -> DB: Query Enrollment
+        Repository -> DB: Insert or Update Enrollment
         activate DB
-        DB --> EnrollmentRepo: Enrollment
+        DB --> Repository: Saved Enrollment
         deactivate DB
 
-        EnrollmentRepo --> Service: Enrollment
-        deactivate EnrollmentRepo
-
-        ' Re-enrollment logic (internal)
-
-        Service -> EnrollmentRepo: save(enrollment)
-        activate EnrollmentRepo
-
-        EnrollmentRepo -> DB: Update Enrollment
-        activate DB
-        DB --> EnrollmentRepo: Updated Enrollment
-        deactivate DB
-
-        EnrollmentRepo --> Service: Enrollment
-        deactivate EnrollmentRepo
-    else Enrollment does not exist
-        ' Create new enrollment (internal)
-
-        Service -> EnrollmentRepo: save(enrollment)
-        activate EnrollmentRepo
-
-        EnrollmentRepo -> DB: Insert Enrollment
-        activate DB
-        DB --> EnrollmentRepo: New Enrollment
-        deactivate DB
-
-        EnrollmentRepo --> Service: Enrollment
-        deactivate EnrollmentRepo
+        Repository --> Service: Enrollment
+        deactivate Repository
     end
 end
 
