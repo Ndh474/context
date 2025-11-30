@@ -24,18 +24,6 @@ interface SlotRepository <<interface>> {
   + deleteById(id : Integer) : void
 }
 
-interface AttendanceRecordRepository <<interface>> {
-  + countBySlotIdAndStatus(slotId, status) : Long
-  + findBySlotIdAndStatus(slotId, status) : List<AttendanceRecord>
-  + deleteAll(records) : void
-}
-
-interface ExamAttendanceRepository <<interface>> {
-  + countBySlotIdAndStatus(slotId, status) : Long
-  + findBySlotIdAndStatus(slotId, status) : List<ExamAttendance>
-  + deleteAll(records) : void
-}
-
 ' --- ENTITIES ---
 class Slot {
   - id : Integer
@@ -44,29 +32,11 @@ class Slot {
   - endTime : LocalDateTime
 }
 
-class AttendanceRecord {
-  - id : Integer
-  - status : AttendanceStatus
-}
-
-class ExamAttendance {
-  - id : Integer
-  - status : AttendanceStatus
-}
-
 ' --- DEPENDENCY INJECTION (Association) ---
 SlotController -down-> SlotService
 SlotService -down-> SlotRepository
-SlotService -down-> AttendanceRecordRepository
-SlotService -down-> ExamAttendanceRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 SlotRepository .down.> Slot
-AttendanceRecordRepository .down.> AttendanceRecord
-ExamAttendanceRepository .down.> ExamAttendance
-
-' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Slot o-right- AttendanceRecord
-Slot o-right- ExamAttendance
 
 @enduml

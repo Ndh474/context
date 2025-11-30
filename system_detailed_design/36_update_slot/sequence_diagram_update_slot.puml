@@ -5,12 +5,7 @@ hide footbox
 actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":ClassRepository" as ClassRepo
-participant ":SemesterRepository" as SemesterRepo
-participant ":RoomRepository" as RoomRepo
-participant ":UserRepository" as UserRepo
-participant ":ExamSlotSubjectRepository" as ExamSlotSubjectRepo
+participant ":SlotRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -21,191 +16,39 @@ Controller -> Service: update(id, request)
 activate Service
 
 ' --- FIND EXISTING ---
-Service -> SlotRepo: findById(id)
-activate SlotRepo
+Service -> Repository: findById(id)
+activate Repository
 
-SlotRepo -> DB: Query Slot by ID
+Repository -> DB: Query Slot by ID
 activate DB
-DB --> SlotRepo: Slot / Null
+DB --> Repository: Slot / Null
 deactivate DB
 
-SlotRepo --> Service: Optional<Slot>
-deactivate SlotRepo
+Repository --> Service: Optional<Slot>
+deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' Validation logic (internal)
+' Validation logic (internal: time range, conflicts, deactivation constraints, attendance checks, subjects for exam)
 
-alt Time range validation failed
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+alt Validation failed
+    Service -->> Controller: <<throw>> ValidationException
+    Controller --> Admin: 400 Bad Request / 403 Forbidden
 end
 
-alt Slot category validation failed
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
+Service -> Repository: save(slot)
+activate Repository
 
-' --- CHECK ROOM TIME CONFLICT ---
-Service -> SlotRepo: existsByRoomAndTimeRange(roomId, startTime, endTime, id)
-activate SlotRepo
-
-SlotRepo -> DB: Check Room Time Conflicts
+Repository -> DB: Update Slot
 activate DB
-DB --> SlotRepo: boolean
+DB --> Repository: Updated Slot
 deactivate DB
 
-SlotRepo --> Service: boolean
-deactivate SlotRepo
-
-alt Room time conflict
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- CHECK STAFF TIME CONFLICT ---
-Service -> SlotRepo: existsByStaffAndTimeRange(staffId, startTime, endTime, id)
-activate SlotRepo
-
-SlotRepo -> DB: Check Staff Time Conflicts
-activate DB
-DB --> SlotRepo: boolean
-deactivate DB
-
-SlotRepo --> Service: boolean
-deactivate SlotRepo
-
-alt Staff time conflict
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' Validation logic (internal)
-
-alt Slot time outside semester range
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-alt Update after slot end time (non-admin)
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
-' --- CHECK DEACTIVATION CONSTRAINTS ---
-opt Trying to deactivate active slot
-    alt Slot has started or passed
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Admin: 403 Forbidden
-    end
-
-    Service -> SlotRepo: countActualAttendanceRecordsBySlotId(id)
-    activate SlotRepo
-
-    SlotRepo -> DB: Count PRESENT/ABSENT Attendance
-    activate DB
-    DB --> SlotRepo: Count
-    deactivate DB
-
-    SlotRepo --> Service: long
-    deactivate SlotRepo
-
-    Service -> SlotRepo: countActualExamAttendanceRecordsBySlotId(id)
-    activate SlotRepo
-
-    SlotRepo -> DB: Count PRESENT/ABSENT Exam Attendance
-    activate DB
-    DB --> SlotRepo: Count
-    deactivate DB
-
-    SlotRepo --> Service: long
-    deactivate SlotRepo
-
-    alt Has actual attendance data
-        Service -->> Controller: <<throw>> OperationNotAllowedException
-        Controller --> Admin: 403 Forbidden
-    end
-end
-
-alt Updating inactive slot (not reactivating)
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' Update fields (internal)
-
-' --- HANDLE SUBJECTS (for FINAL_EXAM) ---
-opt Slot category is FINAL_EXAM and subjects provided
-    Service -> ExamSlotSubjectRepo: findBySlotIdAndIsActiveTrue(id)
-    activate ExamSlotSubjectRepo
-
-    ExamSlotSubjectRepo -> DB: Query Active Exam Slot Subjects
-    activate DB
-    DB --> ExamSlotSubjectRepo: List<ExamSlotSubject>
-    deactivate DB
-
-    ExamSlotSubjectRepo --> Service: List<ExamSlotSubject>
-    deactivate ExamSlotSubjectRepo
-
-    ' Calculate diff and update subjects (internal)
-
-    loop For each subject to remove
-        Service -> ExamSlotSubjectRepo: countActiveParticipants(examSlotSubjectId)
-        activate ExamSlotSubjectRepo
-
-        ExamSlotSubjectRepo -> DB: Count Active Participants
-        activate DB
-        DB --> ExamSlotSubjectRepo: Count
-        deactivate DB
-
-        ExamSlotSubjectRepo --> Service: Long
-        deactivate ExamSlotSubjectRepo
-
-        alt Subject has participants
-            Service -->> Controller: <<throw>> OperationNotAllowedException
-            Controller --> Admin: 403 Forbidden
-        end
-
-        Service -> ExamSlotSubjectRepo: save(examSlotSubject)
-        activate ExamSlotSubjectRepo
-
-        ExamSlotSubjectRepo -> DB: Soft Delete Subject
-        activate DB
-        DB --> ExamSlotSubjectRepo: Updated Record
-        deactivate DB
-
-        ExamSlotSubjectRepo --> Service: ExamSlotSubject
-        deactivate ExamSlotSubjectRepo
-    end
-
-    loop For each subject to add
-        Service -> ExamSlotSubjectRepo: save(examSlotSubject)
-        activate ExamSlotSubjectRepo
-
-        ExamSlotSubjectRepo -> DB: Insert or Reactivate Subject
-        activate DB
-        DB --> ExamSlotSubjectRepo: Saved Record
-        deactivate DB
-
-        ExamSlotSubjectRepo --> Service: ExamSlotSubject
-        deactivate ExamSlotSubjectRepo
-    end
-end
-
-' --- SAVE SLOT ---
-Service -> SlotRepo: save(slot)
-activate SlotRepo
-
-SlotRepo -> DB: Update Slot
-activate DB
-DB --> SlotRepo: Updated Slot
-deactivate DB
-
-SlotRepo --> Service: Slot
-deactivate SlotRepo
+Repository --> Service: Slot
+deactivate Repository
 
 Service --> Controller: Slot
 deactivate Service

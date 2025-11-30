@@ -27,19 +27,7 @@ deactivate DB
 Repository --> Service: List<Slot>
 deactivate Repository
 
-' --- POPULATE ATTENDANCE STATS ---
-loop For each slot
-    Service -> Repository: getAttendanceStats(slotId)
-    activate Repository
-
-    Repository -> DB: Query Attendance Statistics
-    activate DB
-    DB --> Repository: Stats
-    deactivate DB
-
-    Repository --> Service: AttendanceStats
-    deactivate Repository
-end
+' Populate attendance stats (internal)
 
 Service --> Controller: List<Slot>
 deactivate Service

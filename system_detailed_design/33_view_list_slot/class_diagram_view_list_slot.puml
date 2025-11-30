@@ -35,7 +35,6 @@ class Slot {
   - startTime : LocalDateTime
   - endTime : LocalDateTime
   - sessionStatus : SessionStatus
-  - scanCount : Integer
 }
 
 class AcademicClass {
@@ -57,12 +56,6 @@ class Room {
 class User {
   - id : Integer
   - fullName : String
-  - email : String
-}
-
-class AttendanceRecord {
-  - id : Integer
-  - status : AttendanceStatus
 }
 
 ' --- DEPENDENCY INJECTION (Association) ---
@@ -73,10 +66,9 @@ SlotService -down-> SlotRepository
 SlotRepository .down.> Slot
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
-Slot o-right- AcademicClass
-Slot o-right- Semester
+Slot o-left- AcademicClass
+Slot o-left- Semester
 Slot o-right- Room
 Slot o-right- User
-Slot o-right- AttendanceRecord
 
 @enduml

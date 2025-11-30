@@ -5,9 +5,7 @@ hide footbox
 actor Admin
 participant ":SlotController" as Controller
 participant ":SlotService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":AttendanceRecordRepository" as AttendanceRepo
-participant ":ExamAttendanceRepository" as ExamAttendanceRepo
+participant ":SlotRepository" as Repository
 participant "Database" as DB
 
 ' --- MAIN FLOW ---
@@ -18,133 +16,33 @@ Controller -> Service: delete(id)
 activate Service
 
 ' --- FIND SLOT ---
-Service -> SlotRepo: findById(id)
-activate SlotRepo
+Service -> Repository: findById(id)
+activate Repository
 
-SlotRepo -> DB: Query Slot by ID
+Repository -> DB: Query Slot by ID
 activate DB
-DB --> SlotRepo: Slot / Null
+DB --> Repository: Slot / Null
 deactivate DB
 
-SlotRepo --> Service: Optional<Slot>
-deactivate SlotRepo
+Repository --> Service: Optional<Slot>
+deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
     Controller --> Admin: 404 Not Found
 end
 
-' Validation logic (internal)
+' Validation logic (internal: slot started check, attendance records check, delete NOT_YET records)
 
-alt Slot has started
+alt Has dependencies or constraints
     Service -->> Controller: <<throw>> OperationNotAllowedException
     Controller --> Admin: 403 Forbidden
 end
 
-' --- COUNT PRESENT/ABSENT RECORDS ---
-Service -> AttendanceRepo: countBySlotIdAndStatus(id, PRESENT)
-activate AttendanceRepo
+Service -> Repository: deleteById(id)
+activate Repository
 
-AttendanceRepo -> DB: Count PRESENT Records
-activate DB
-DB --> AttendanceRepo: Count
-deactivate DB
-
-AttendanceRepo --> Service: Long
-deactivate AttendanceRepo
-
-Service -> AttendanceRepo: countBySlotIdAndStatus(id, ABSENT)
-activate AttendanceRepo
-
-AttendanceRepo -> DB: Count ABSENT Records
-activate DB
-DB --> AttendanceRepo: Count
-deactivate DB
-
-AttendanceRepo --> Service: Long
-deactivate AttendanceRepo
-
-Service -> ExamAttendanceRepo: countBySlotIdAndStatus(id, PRESENT)
-activate ExamAttendanceRepo
-
-ExamAttendanceRepo -> DB: Count PRESENT Exam Records
-activate DB
-DB --> ExamAttendanceRepo: Count
-deactivate DB
-
-ExamAttendanceRepo --> Service: Long
-deactivate ExamAttendanceRepo
-
-Service -> ExamAttendanceRepo: countBySlotIdAndStatus(id, ABSENT)
-activate ExamAttendanceRepo
-
-ExamAttendanceRepo -> DB: Count ABSENT Exam Records
-activate DB
-DB --> ExamAttendanceRepo: Count
-deactivate DB
-
-ExamAttendanceRepo --> Service: Long
-deactivate ExamAttendanceRepo
-
-alt Has PRESENT/ABSENT records
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
-' --- DELETE NOT_YET RECORDS ---
-Service -> AttendanceRepo: findBySlotIdAndStatus(id, NOT_YET)
-activate AttendanceRepo
-
-AttendanceRepo -> DB: Query NOT_YET Records
-activate DB
-DB --> AttendanceRepo: List<AttendanceRecord>
-deactivate DB
-
-AttendanceRepo --> Service: List<AttendanceRecord>
-deactivate AttendanceRepo
-
-opt Has NOT_YET records
-    Service -> AttendanceRepo: deleteAll(records)
-    activate AttendanceRepo
-
-    AttendanceRepo -> DB: Delete NOT_YET Records
-    activate DB
-    DB --> AttendanceRepo: Success
-    deactivate DB
-
-    AttendanceRepo --> Service: void
-    deactivate AttendanceRepo
-end
-
-Service -> ExamAttendanceRepo: findBySlotIdAndStatus(id, NOT_YET)
-activate ExamAttendanceRepo
-
-ExamAttendanceRepo -> DB: Query NOT_YET Exam Records
-activate DB
-DB --> ExamAttendanceRepo: List<ExamAttendance>
-deactivate DB
-
-ExamAttendanceRepo --> Service: List<ExamAttendance>
-deactivate ExamAttendanceRepo
-
-opt Has NOT_YET exam records
-    Service -> ExamAttendanceRepo: deleteAll(records)
-    activate ExamAttendanceRepo
-
-    ExamAttendanceRepo -> DB: Delete NOT_YET Exam Records
-    activate DB
-    DB --> ExamAttendanceRepo: Success
-    deactivate DB
-
-    ExamAttendanceRepo --> Service: void
-    deactivate ExamAttendanceRepo
-end
-
-' --- DELETE SLOT ---
-Service -> SlotRepo: deleteById(id)
-activate SlotRepo
-
-SlotRepo -> DB: Delete Slot by ID
+Repository -> DB: Delete Slot by ID
 activate DB
 
 alt Foreign key constraint violation
@@ -154,11 +52,11 @@ alt Foreign key constraint violation
     Controller --> Admin: 403 Forbidden
 end
 
-DB --> SlotRepo: Success
+DB --> Repository: Success
 deactivate DB
 
-SlotRepo --> Service: void
-deactivate SlotRepo
+Repository --> Service: void
+deactivate Repository
 
 Service --> Controller: Success
 deactivate Service
