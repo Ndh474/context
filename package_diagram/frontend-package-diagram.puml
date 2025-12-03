@@ -1,0 +1,96 @@
+@startuml Frontend Package Diagram
+!theme plain
+skinparam packageStyle folder
+skinparam linetype ortho
+
+title FUACS Frontend - Package Diagram
+
+' ============================================
+' PRESENTATION LAYER
+' ============================================
+package "Presentation" as presentation {
+    package "Portals" as portals {
+        [Admin]
+        [Lecturer]
+        [Supervisor]
+        [Student]
+    }
+
+    package "Components" as components {
+        [Domain UI]
+        [Shared UI]
+        [Base UI]
+    }
+}
+
+' ============================================
+' APPLICATION LAYER
+' ============================================
+package "Application" as application {
+    [State Management] as state
+    [Providers] as providers
+}
+
+' ============================================
+' DOMAIN LAYER
+' ============================================
+package "Domain" as domain {
+    [Types] as types
+    [Schemas] as schemas
+    [Adapters] as adapters
+}
+
+' ============================================
+' INFRASTRUCTURE LAYER
+' ============================================
+package "Infrastructure" as infrastructure {
+    [API Client] as api
+    [Auth] as auth
+    [Utilities] as utils
+    [i18n] as i18n
+}
+
+' ============================================
+' EXTERNAL
+' ============================================
+cloud "Backend API" as backend
+
+' ============================================
+' LAYOUT
+' ============================================
+presentation -[hidden]down-> application
+application -[hidden]down-> domain
+domain -[hidden]right-> infrastructure
+infrastructure -[hidden]down-> backend
+
+' ============================================
+' RELATIONSHIPS (Dependency - dashed lines)
+' ============================================
+
+' Presentation internal
+portals ..> components
+
+' Presentation -> Application
+presentation ..> application
+
+' Presentation -> Domain
+presentation ..> adapters
+
+' Presentation -> Infrastructure
+presentation ..> infrastructure
+
+' Application -> Domain
+application ..> domain
+
+' Application -> Infrastructure
+state ..> api
+state ..> auth
+providers ..> state
+
+' Infrastructure -> Domain
+infrastructure ..> domain
+
+' Infrastructure -> External
+api ..> backend
+
+@enduml

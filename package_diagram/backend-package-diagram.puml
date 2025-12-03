@@ -1,0 +1,113 @@
+@startuml Backend Package Diagram
+!theme plain
+skinparam packageStyle folder
+skinparam linetype ortho
+
+title FUACS Backend Services - Package Diagram
+
+' ============================================
+' JAVA SPRING BOOT BACKEND
+' ============================================
+package "Backend (Spring Boot)" as backend {
+    
+    package "Presentation" as be_presentation {
+        [Controllers] as controllers
+        [DTOs] as dtos
+    }
+    
+    package "Application" as be_application {
+        [Services] as services
+        [Schedulers] as schedulers
+    }
+    
+    package "Domain" as be_domain {
+        [Entities] as entities
+        [Constants] as constants
+    }
+    
+    package "Infrastructure" as be_infrastructure {
+        [Repositories] as repositories
+        [Config] as config
+        [Realtime (SSE)] as realtime
+        [External Clients] as clients
+    }
+}
+
+' ============================================
+' PYTHON FASTAPI RECOGNITION SERVICE
+' ============================================
+package "Recognition Service (FastAPI)" as recognition {
+    
+    package "API" as rs_api {
+        [Routes] as routes
+        [Models] as models
+    }
+    
+    package "Services" as rs_services {
+        [Recognition] as recognition_svc
+        [Camera] as camera_svc
+        [Embedding] as embedding_svc
+        [Callback] as callback_svc
+    }
+    
+    package "Core" as rs_core {
+        [Config] as rs_config
+        [Security] as rs_security
+    }
+    
+    package "ML" as rs_ml {
+        [Face Encoder] as face_encoder
+        [Model Loader] as model_loader
+    }
+}
+
+' ============================================
+' EXTERNAL SYSTEMS
+' ============================================
+database "PostgreSQL" as db
+cloud "RTSP Cameras" as cameras
+cloud "Frontend" as frontend
+
+' ============================================
+' LAYOUT
+' ============================================
+backend -[hidden]right-> recognition
+be_infrastructure -[hidden]down-> db
+rs_services -[hidden]down-> cameras
+
+' ============================================
+' RELATIONSHIPS (Dependency - dashed lines)
+' ============================================
+
+' Backend internal
+controllers ..> services
+controllers ..> dtos
+services ..> entities
+services ..> repositories
+services ..> clients
+schedulers ..> services
+repositories ..> entities
+realtime ..> services
+
+' Recognition Service internal
+routes ..> recognition_svc
+routes ..> models
+recognition_svc ..> camera_svc
+recognition_svc ..> embedding_svc
+recognition_svc ..> callback_svc
+embedding_svc ..> face_encoder
+face_encoder ..> model_loader
+rs_services ..> rs_config
+routes ..> rs_security
+
+' Backend <-> Recognition Service (HTTP)
+clients ..> routes : "<<HTTP>>"
+callback_svc ..> controllers : "<<HTTP Callback>>"
+
+' External connections
+repositories ..> db
+camera_svc ..> cameras : "<<RTSP>>"
+frontend ..> controllers : "<<REST>>"
+realtime ..> frontend : "<<SSE>>"
+
+@enduml
