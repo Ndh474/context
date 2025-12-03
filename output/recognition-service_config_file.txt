@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "config_file",
-    "generated_at": "2025-11-28T09:26:42.077886",
+    "generated_at": "2025-12-03T21:12:52.331025",
     "total_files": 1,
     "total_lines": 49,
     "total_bytes": 1160
@@ -14,7 +14,7 @@
       "filename": "pyproject.toml",
       "size_bytes": 1160,
       "lines": 49,
-      "last_modified": "2025-11-28T08:37:05.486559",
+      "last_modified": "2025-12-02T14:30:26.174844",
       "encoding": "utf-8",
       "language": "toml",
       "content": "[tool.poetry]\nname = \"recognition-service\"\nversion = \"1.0.0\"\ndescription = \"FUACS Face Recognition Service - Face detection and recognition using InsightFace\"\nauthors = [\"FUACS Team\"]\nreadme = \"README.md\"\npackages = [{include = \"recognition_service\", from = \"src\"}]\n\n[tool.poetry.dependencies]\npython = \"^3.10\"\nfastapi = \"^0.110.0\"\nuvicorn = {extras = [\"standard\"], version = \"^0.27.0\"}\npydantic = \"^2.6.0\"\npydantic-settings = \"^2.1.0\"\ninsightface = \"^0.7.3\"\nonnxruntime-gpu = \"^1.23.2\"\nopencv-python = \"^4.9.0\"\nnumpy = \"^1.26.0\"\nrequests = \"^2.31.0\"\naiohttp = \"^3.9.0\"\npython-multipart = \"^0.0.9\"\npython-json-logger = \"^2.0.7\"\npytz = \"^2025.2\"\n\n[tool.poetry.group.dev.dependencies]\npytest = \"^8.0.0\"\npytest-asyncio = \"^0.23.0\"\nhttpx = \"^0.26.0\"\nblack = \"^24.0.0\"\nruff = \"^0.2.0\"\nmypy = \"^1.8.0\"\n\n[build-system]\nrequires = [\"poetry-core\"]\nbuild-backend = \"poetry.core.masonry.api\"\n\n[tool.black]\nline-length = 100\ntarget-version = ['py310']\n\n[tool.ruff]\nline-length = 100\ntarget-version = \"py310\"\n\n[tool.mypy]\npython_version = \"3.10\"\nwarn_return_any = true\nwarn_unused_configs = true\ndisallow_untyped_defs = false"

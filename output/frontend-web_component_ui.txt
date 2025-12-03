@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "frontend-web",
     "category": "component_ui",
-    "generated_at": "2025-11-28T09:26:42.006898",
+    "generated_at": "2025-12-03T21:12:52.244643",
     "total_files": 33,
     "total_lines": 2793,
     "total_bytes": 82279

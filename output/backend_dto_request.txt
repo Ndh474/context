@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "backend",
     "category": "dto_request",
-    "generated_at": "2025-11-28T09:26:36.230566",
+    "generated_at": "2025-12-03T21:12:48.222037",
     "total_files": 84,
     "total_lines": 4618,
     "total_bytes": 131445

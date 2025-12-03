@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "recognition-service",
     "category": "model",
-    "generated_at": "2025-11-28T09:26:42.078890",
+    "generated_at": "2025-12-03T21:12:52.332030",
     "total_files": 5,
     "total_lines": 258,
     "total_bytes": 6674
@@ -14,7 +14,7 @@
       "filename": "__init__.py",
       "size_bytes": 37,
       "lines": 1,
-      "last_modified": "2025-11-28T08:37:05.491070",
+      "last_modified": "2025-11-28T09:42:55.365848",
       "encoding": "utf-8",
       "language": "python",
       "content": "\"\"\"Models package initialization\"\"\"\n"
@@ -25,7 +25,7 @@
       "filename": "recognition_requests.py",
       "size_bytes": 1447,
       "lines": 47,
-      "last_modified": "2025-11-28T08:37:05.491070",
+      "last_modified": "2025-11-28T09:42:55.365848",
       "encoding": "utf-8",
       "language": "python",
       "content": "\"\"\"\nRecognition Request Models\nMirrors Java Backend DTOs for session management\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import List, Optional\nfrom enum import Enum\n\nclass ScanMode(str, Enum):\n    \"\"\"Scan mode for recognition session\"\"\"\n    INITIAL = \"INITIAL\"\n    RESCAN = \"RESCAN\"\n\nclass StudentEmbeddingDTO(BaseModel):\n    \"\"\"Student with face embedding\"\"\"\n    userId: int\n    fullName: str\n    rollNumber: str\n    embeddingVector: List[float] = Field(..., min_length=512, max_length=512)\n    embeddingVersion: int\n\nclass CameraDTO(BaseModel):\n    \"\"\"Camera configuration\"\"\"\n    id: int\n    name: str\n    rtspUrl: str\n\nclass SessionConfigDTO(BaseModel):\n    \"\"\"Recognition session configuration\"\"\"\n    similarityThreshold: float = Field(default=0.85, ge=0.0, le=1.0)\n    scanInterval: float = Field(default=1.5, ge=0.5, le=60)  # Support decimal seconds\n    callbackUrl: str\n\nclass StartSessionRequest(BaseModel):\n    \"\"\"Request to start recognition session\"\"\"\n    slotId: int\n    roomId: int\n    mode: ScanMode = ScanMode.INITIAL\n    students: List[StudentEmbeddingDTO] = Field(..., min_length=1)\n    cameras: List[CameraDTO] = Field(..., min_length=1)\n    config: SessionConfigDTO\n    callbackType: str = \"REGULAR\"  # \"REGULAR\" or \"EXAM\" - routes callback to correct backend table\n\nclass StopSessionRequest(BaseModel):\n    \"\"\"Request to stop recognition session\"\"\"\n    slotId: int\n"
@@ -36,7 +36,7 @@
       "filename": "recognition_responses.py",
       "size_bytes": 1002,
       "lines": 34,
-      "last_modified": "2025-11-28T08:37:05.491070",
+      "last_modified": "2025-11-28T09:42:55.365848",
       "encoding": "utf-8",
       "language": "python",
       "content": "\"\"\"\nRecognition Response Models\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import Optional, List\nfrom datetime import datetime\n\nclass SessionDataDTO(BaseModel):\n    \"\"\"Session data for responses\"\"\"\n    slotId: int\n    roomId: int\n    mode: str = \"INITIAL\"  # INITIAL or RESCAN\n    totalStudents: int\n    totalCameras: int\n    activeCameras: int\n    failedCameras: int\n    sessionStartedAt: Optional[str] = None\n    sessionStoppedAt: Optional[str] = None\n    sessionDuration: Optional[int] = None  # seconds\n    totalRecognitions: Optional[int] = None\n    recognizedStudentIds: Optional[List[int]] = None  # List of student IDs detected during session (for RESCAN mode)\n\n    class Config:\n        json_encoders = {\n            datetime: lambda v: v.isoformat() + \"Z\"\n        }\n\nclass RecognitionResponse(BaseModel):\n    \"\"\"Standard response format\"\"\"\n    status: int\n    message: str\n    data: Optional[SessionDataDTO] = None\n    code: Optional[str] = None\n"
@@ -47,7 +47,7 @@
       "filename": "requests.py",
       "size_bytes": 252,
       "lines": 9,
-      "last_modified": "2025-11-28T08:37:05.492071",
+      "last_modified": "2025-11-28T09:42:55.366855",
       "encoding": "utf-8",
       "language": "python",
       "content": "\"\"\"\nRequest Models for Embeddings Endpoints\n\"\"\"\n\nfrom pydantic import BaseModel, Field\n\n\n# Note: /embeddings/generate endpoint uses multipart/form-data (UploadFile + Form)\n# No Pydantic model needed - FastAPI handles it with File() and Form()\n"
@@ -58,7 +58,7 @@
       "filename": "responses.py",
       "size_bytes": 3936,
       "lines": 167,
-      "last_modified": "2025-11-28T08:37:05.492071",
+      "last_modified": "2025-11-28T09:42:55.366855",
       "encoding": "utf-8",
       "language": "python",
       "content": "\"\"\"\nPydantic Response Models\n\nDefines response schemas for health and metrics endpoints.\nThese models ensure type safety and automatic JSON serialization.\n\"\"\"\n\nfrom pydantic import BaseModel, Field\nfrom typing import Optional, Dict, Any\n\n\n# ========== Health Endpoint Models ==========\n\n\nclass HealthData(BaseModel):\n    \"\"\"Health check data\"\"\"\n\n    service: str\n    version: str\n    status: str  # \"healthy\", \"degraded\", \"unhealthy\"\n    uptime: int  # seconds\n    activeSessions: int = Field(alias=\"activeSessions\")\n    timestamp: str  # ISO 8601 format\n    error: Optional[str] = None  # Only present if status != \"healthy\"\n\n    class Config:\n        populate_by_name = True\n\n\nclass HealthResponse(BaseModel):\n    \"\"\"Health check response\"\"\"\n\n    status: int\n    message: str\n    data: HealthData\n\n\n# ========== Metrics Endpoint Models ==========\n\n\nclass ServiceMetrics(BaseModel):\n    \"\"\"Service-level metrics\"\"\"\n\n    uptime: int\n    activeSessions: int\n    totalSessionsToday: int\n\n\nclass RecognitionMetrics(BaseModel):\n    \"\"\"Face recognition metrics\"\"\"\n\n    totalRecognitions: int\n    averageConfidence: float\n    averageProcessingTime: float\n    recognitionRate: float\n\n\nclass EmbeddingMetrics(BaseModel):\n    \"\"\"Embedding generation metrics\"\"\"\n\n    totalGenerated: int\n    averageQuality: float\n    averageProcessingTime: float\n    successRate: float\n\n\nclass CameraMetrics(BaseModel):\n    \"\"\"Camera metrics\"\"\"\n\n    totalCameras: int\n    activeCameras: int\n    failedCameras: int\n    averageFrameRate: float\n\n\nclass MetricsData(BaseModel):\n    \"\"\"Complete metrics data\"\"\"\n\n    service: ServiceMetrics\n    recognition: RecognitionMetrics\n    embedding: EmbeddingMetrics\n    cameras: CameraMetrics\n    timestamp: str\n\n\nclass MetricsResponse(BaseModel):\n    \"\"\"Metrics response\"\"\"\n\n    status: int\n    message: str\n    data: Dict[str, Any]  # Flexible structure for now\n\n\n# ========== Camera Endpoint Models ==========\n\n\nclass CameraResolution(BaseModel):\n    \"\"\"Camera resolution\"\"\"\n\n    width: int\n    height: int\n\n\nclass CameraTestData(BaseModel):\n    \"\"\"Camera connection test result\"\"\"\n\n    rtspUrl: str\n    connected: bool\n    frameRate: Optional[float] = None\n    resolution: Optional[CameraResolution] = None\n    latency: Optional[int] = None  # milliseconds\n    stability: Optional[str] = None  # \"stable\", \"unstable\", \"unknown\"\n    error: Optional[str] = None\n    testedAt: str\n\n\nclass CameraTestResponse(BaseModel):\n    \"\"\"Camera test response\"\"\"\n\n    status: int\n    message: str\n    data: CameraTestData\n\n\nclass FrameCaptureData(BaseModel):\n    \"\"\"Frame capture data\"\"\"\n\n    cameraId: Optional[int] = None\n    rtspUrl: str\n    format: str  # \"base64\" or \"file\"\n    image: Optional[str] = None  # base64 data (if format=base64)\n    filePath: Optional[str] = None  # file path (if format=file)\n    fileUrl: Optional[str] = None  # URL to access file (if format=file)\n    resolution: CameraResolution\n    capturedAt: str\n\n\nclass FrameCaptureResponse(BaseModel):\n    \"\"\"Frame capture response\"\"\"\n\n    status: int\n    message: str\n    data: FrameCaptureData\n\n\n# ========== Embedding Generation Models ==========\n\n\nclass EmbeddingGenerateData(BaseModel):\n    \"\"\"Embedding generation result data\"\"\"\n\n    submissionId: int\n    embeddingVector: list[float] = Field(\n        ..., min_length=512, max_length=512, description=\"512-dimensional face embedding\"\n    )\n    quality: float = Field(..., ge=0.0, le=1.0, description=\"Quality score\")\n    faceDetected: bool\n    processingTime: float = Field(..., description=\"Processing time in seconds\")\n\n\nclass EmbeddingGenerateResponse(BaseModel):\n    \"\"\"Response for /embeddings/generate\"\"\"\n\n    status: int\n    message: str\n    data: Optional[EmbeddingGenerateData] = None\n    code: Optional[str] = None  # Error code\n"

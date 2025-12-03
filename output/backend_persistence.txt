@@ -2,7 +2,7 @@
   "metadata": {
     "codebase": "backend",
     "category": "persistence",
-    "generated_at": "2025-11-28T09:26:36.235873",
+    "generated_at": "2025-12-03T21:12:48.227534",
     "total_files": 3,
     "total_lines": 98,
     "total_bytes": 3720
