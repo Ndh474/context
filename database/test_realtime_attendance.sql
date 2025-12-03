@@ -88,8 +88,8 @@ VALUES
 -- Note: Same time as FINAL_EXAM slot (different rooms = OK)
 INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count)
 VALUES (
-    NOW() - INTERVAL '1 hour',  -- Same time as exam (different room)
-    NOW() + INTERVAL '1 hour',  -- Same time as exam (different room)
+    (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 hour',  -- Vietnam time
+    (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 hour',  -- Vietnam time
     (SELECT id FROM classes WHERE code = 'SE999'),
     (SELECT id FROM semesters WHERE code = 'FA25'),
     (SELECT id FROM rooms WHERE name = 'Room 102'),  -- Room 102 with Camera 102-A
@@ -111,8 +111,8 @@ VALUES (
 -- Note: Same time as LECTURE slot (different rooms = OK)
 INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count)
 VALUES (
-    NOW() - INTERVAL '1 hour',  -- Same time as lecture (different room)
-    NOW() + INTERVAL '1 hour',  -- Same time as lecture (different room)
+    (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 hour',  -- Vietnam time
+    (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 hour',  -- Vietnam time
     NULL,  -- IMPORTANT: FINAL_EXAM slots don't link to class
     (SELECT id FROM semesters WHERE code = 'FA25'),
     (SELECT id FROM rooms WHERE name = 'Room 103'),  -- Room 103 with Camera 103-A
