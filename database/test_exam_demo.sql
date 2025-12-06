@@ -8,7 +8,7 @@
 -- Strategy: Delete old test data (both LECTURE and EXAM), then create EXAM data
 --
 -- Prerequisites:
---   - Room 101 must exist with Camera
+--   - Room 102 must exist with Camera
 --   - 5 SE students must exist (hieundhe180314, vuongvt181386, anhtd180577, tuanpa171369, baodn182129)
 --   - Face embeddings must exist
 --   - supervisor01 user must exist with SUPERVISOR role
@@ -84,11 +84,11 @@ VALUES (
     ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 day')::date + TIME '10:00',
     NULL,
     (SELECT id FROM semesters WHERE code = 'FA25'),
-    (SELECT id FROM rooms WHERE name = 'Room 101'),
+    (SELECT id FROM rooms WHERE name = 'Room 102'),
     (SELECT id FROM users WHERE username = 'supervisor01'),
     'FINAL_EXAM',
     'PRO192 - Final Exam Test (Yesterday)',
-    'Test exam - Yesterday slot (Room 101)',
+    'Test exam - Yesterday slot (Room 102)',
     true,
     'NOT_STARTED',
     0,
@@ -103,11 +103,11 @@ VALUES (
     (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 hour',
     NULL,
     (SELECT id FROM semesters WHERE code = 'FA25'),
-    (SELECT id FROM rooms WHERE name = 'Room 101'),
+    (SELECT id FROM rooms WHERE name = 'Room 102'),
     (SELECT id FROM users WHERE username = 'supervisor01'),
     'FINAL_EXAM',
     'PRO192 - Final Exam Test',
-    'Test exam for 5 SE students - Real-time Attendance Demo (Room 101)',
+    'Test exam for 5 SE students - Real-time Attendance Demo (Room 102)',
     true,
     'NOT_STARTED',
     0,
@@ -122,11 +122,11 @@ VALUES (
     ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 day')::date + TIME '10:00',
     NULL,
     (SELECT id FROM semesters WHERE code = 'FA25'),
-    (SELECT id FROM rooms WHERE name = 'Room 101'),
+    (SELECT id FROM rooms WHERE name = 'Room 102'),
     (SELECT id FROM users WHERE username = 'supervisor01'),
     'FINAL_EXAM',
     'PRO192 - Final Exam Test (Tomorrow)',
-    'Test exam - Tomorrow slot (Room 101)',
+    'Test exam - Tomorrow slot (Room 102)',
     true,
     'NOT_STARTED',
     0,
@@ -272,13 +272,13 @@ JOIN slots s ON ea.slot_id = s.id
 WHERE s.title = 'PRO192 - Final Exam Test (Tomorrow)'
 ORDER BY u.username;
 
-SELECT 'Room 101 Camera info' as status,
+SELECT 'Room 102 Camera info' as status,
        r.name as room,
        cam.name as camera,
        cam.rtsp_url as camera_url
 FROM rooms r
 LEFT JOIN cameras cam ON cam.room_id = r.id AND cam.is_active = true
-WHERE r.name = 'Room 101';
+WHERE r.name = 'Room 102';
 
 SELECT 'Face embeddings available' as status,
        COUNT(*) as count,
@@ -292,7 +292,7 @@ WHERE fe.student_user_id IN (
 
 SELECT '============================================' as separator;
 SELECT 'FINAL_EXAM DEMO READY!' as status;
-SELECT 'Room: Room 101' as room;
+SELECT 'Room: Room 102' as room;
 SELECT 'Staff: supervisor01' as staff;
 SELECT '3 slots: Yesterday, Today (active), Tomorrow' as slots;
 SELECT '============================================' as separator;
