@@ -1,3 +1,0 @@
-name,rtspUrl,room_name,status
-Camera Test-A,rtsp://admin:admin123@192.168.1.130:554/stream1,Room Test 99,true
-Camera Test-B,rtsp://admin:admin123@192.168.1.131:554/stream1,Room Test 99,true
