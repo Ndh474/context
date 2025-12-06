@@ -1,0 +1,9 @@
+code,name,major_codes,status
+PRF192,Programming Fundamentals,SE,true
+PRO192,Object-Oriented Programming,"SE,AI,IS",true
+SWE201,Introduction to Software Engineering,SE,true
+MAE101,Mathematics for Engineering,"AI,DS",true
+AIL302,Artificial Intelligence,AI,true
+MOB101,Introduction to Mobile Development,MC,true
+AND201,Android Development,"MC,SE",true
+IOS301,iOS Development,MC,true

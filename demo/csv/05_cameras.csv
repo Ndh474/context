@@ -1,0 +1,5 @@
+name,rtspUrl,room_name,status
+Camera 101-A,rtsp://admin:admin123@192.168.1.80:554/stream1,Room 101,true
+Camera 102-A,rtsp://hieund99:hieund99@192.168.0.122:9999/h264_ulaw.sdp,Room 102,true
+Camera Lab-A1,rtsp://labcam:labcam2026@192.168.2.90:554/live,Lab A1,true
+Camera Lab-A2,rtsp://labcam:labcam2026@192.168.2.91:554/live,Lab A2,true

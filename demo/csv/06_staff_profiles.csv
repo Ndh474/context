@@ -1,0 +1,7 @@
+full_name,email,staff_code,username,roles,status,password
+Tran Thi Lecturer 01,lecturer01@fpt.edu.vn,LEC001,lecturer01,LECTURER,true,
+Le Van Lecturer 02,lecturer02@fpt.edu.vn,LEC002,lecturer02,LECTURER,true,
+Pham Van Lecturer 20,lecturer20@fpt.edu.vn,LEC020,lecturer20,LECTURER,true,123456
+Hoang Thi Lecturer 21,lecturer21@fpt.edu.vn,LEC021,lecturer21,LECTURER,true,123456
+Vo Van Supervisor 10,supervisor10@fpt.edu.vn,SUP010,supervisor10,SUPERVISOR,true,123456
+Nguyen Van Operator 02,operator02@fpt.edu.vn,OP002,operator02,DATA_OPERATOR,true,123456

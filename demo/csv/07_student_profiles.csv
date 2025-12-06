@@ -1,0 +1,16 @@
+full_name,email,username,roll_number,major_code,status,password
+Nguyen Van SE 01,se001@fpt.edu.vn,se001,SE001,SE,true,
+Tran Thi SE 02,se002@fpt.edu.vn,se002,SE002,SE,true,
+Le Van AI 01,ai001@fpt.edu.vn,ai001,AI001,AI,true,
+Pham Thi CS 01,cs001@fpt.edu.vn,cs001,CS001,CS,true,
+Hoang Van IS 01,is001@fpt.edu.vn,is001,IS001,IS,true,
+Nguyen Thi MC 01,mc001@fpt.edu.vn,mc001,MC001,MC,true,123456
+Tran Van MC 02,mc002@fpt.edu.vn,mc002,MC002,MC,true,123456
+Le Thi MC 03,mc003@fpt.edu.vn,mc003,MC003,MC,true,123456
+Pham Van MC 04,mc004@fpt.edu.vn,mc004,MC004,MC,true,123456
+Hoang Thi MC 05,mc005@fpt.edu.vn,mc005,MC005,MC,true,123456
+Vo Van MC 06,mc006@fpt.edu.vn,mc006,MC006,MC,true,123456
+Dang Thi MC 07,mc007@fpt.edu.vn,mc007,MC007,MC,true,123456
+Bui Van MC 08,mc008@fpt.edu.vn,mc008,MC008,MC,true,123456
+Do Thi MC 09,mc009@fpt.edu.vn,mc009,MC009,MC,true,123456
+Duong Van MC 10,mc010@fpt.edu.vn,mc010,MC010,MC,true,123456

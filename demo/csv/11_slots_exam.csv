@@ -1,0 +1,4 @@
+title,start_time,end_time,slot_category,semester_code,room_name,staff_username,subject_codes
+Final Exam - Programming Fundamentals,2020-04-16T07:30:00,2020-04-16T09:50:00,FINAL_EXAM,SP20,Exam Hall 1,supervisor01,"PRF192,CSI104"
+Final Exam - Mobile Development,2026-04-20T07:30:00,2026-04-20T09:50:00,FINAL_EXAM,SP26,Exam Hall 1,supervisor10,"MOB101,AND201"
+Final Exam - iOS Development,2026-04-22T07:30:00,2026-04-22T09:50:00,FINAL_EXAM,SP26,Exam Hall 1,supervisor10,IOS301
