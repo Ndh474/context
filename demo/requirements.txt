@@ -1,5 +1,19 @@
-opencv-python
-pillow
-insightface
-onnxruntime-gpu
-numpy
+# Face Recognition Demo - FUACS
+# Cài đặt: pip install -r requirements.txt
+
+# InsightFace (Face Detection)
+insightface>=0.7.3
+onnxruntime-gpu>=1.16.0  # Hoặc onnxruntime nếu không có GPU
+
+# Silent-Face-Anti-Spoofing dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+easydict>=1.9
+
+# Common
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# GUI
+# tkinter đã có sẵn trong Python
