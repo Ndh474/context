@@ -20,7 +20,7 @@ import os
 # ============================================
 # CẤU HÌNH - THAY ĐỔI Ở ĐÂY
 # ============================================
-USE_WEBCAM = False  # True = webcam laptop, False = RTSP camera
+USE_WEBCAM = True  # True = webcam laptop, False = RTSP camera
 RTSP_URL = "rtsp://admin:admin@192.168.1.185:8554/live"
 WEBCAM_INDEX = 0  # 0 = webcam mặc định
 
@@ -427,13 +427,88 @@ class App:
         self.root.after(15, self.update_video)
     
     def snapshot(self):
+        """
+        Chụp ảnh với logic:
+        - REAL: crop mặt + padding 50px (như recognition-service)
+        - FAKE: wide crop (padding 200px) để thấy context xung quanh
+        - Không có mặt hoặc không bật anti-spoof: full frame
+        """
         frame = self.video_stream.read()
-        if frame is not None:
-            filename = f"snapshot_{int(time.time())}.jpg"
-            cv2.imwrite(filename, frame)
-            messagebox.showinfo("Thông báo", f"Đã lưu: {filename}")
-        else:
+        if frame is None:
             messagebox.showwarning("Cảnh báo", "Chưa có video!")
+            return
+        
+        timestamp = int(time.time())
+        h, w = frame.shape[:2]
+        
+        # Nếu không bật face detection hoặc anti-spoof → lưu full frame
+        if not self.face_detection_enabled.get() or self.face_model is None:
+            filename = f"snapshot_full_{timestamp}.jpg"
+            cv2.imwrite(filename, frame)
+            messagebox.showinfo("Thông báo", f"Đã lưu full frame: {filename}")
+            return
+        
+        # Detect faces
+        faces = self.face_model.get(frame)
+        if len(faces) == 0:
+            filename = f"snapshot_noface_{timestamp}.jpg"
+            cv2.imwrite(filename, frame)
+            messagebox.showinfo("Thông báo", f"Không có mặt, lưu full frame: {filename}")
+            return
+        
+        saved_files = []
+        
+        for i, face in enumerate(faces):
+            bbox = face.bbox.astype(int)
+            x1, y1, x2, y2 = bbox
+            
+            # Kiểm tra anti-spoof nếu bật
+            if self.anti_spoof_enabled.get() and self.anti_spoof.available:
+                is_real, score, label = self.anti_spoof.check(frame, face.bbox)
+                
+                if is_real:
+                    # REAL → crop nhỏ như recognition-service (padding 50px)
+                    padding = 50
+                    crop_x1 = max(0, x1 - padding)
+                    crop_y1 = max(0, y1 - padding)
+                    crop_x2 = min(w, x2 + padding)
+                    crop_y2 = min(h, y2 + padding)
+                    
+                    face_crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                    filename = f"snapshot_REAL_{score:.2f}_{timestamp}_{i}.jpg"
+                    cv2.imwrite(filename, face_crop)
+                    saved_files.append(f"✅ {filename}")
+                else:
+                    # FAKE → wide crop (padding 200px) để thấy iPad/điện thoại
+                    wide_padding = 200
+                    crop_x1 = max(0, x1 - wide_padding)
+                    crop_y1 = max(0, y1 - wide_padding)
+                    crop_x2 = min(w, x2 + wide_padding)
+                    crop_y2 = min(h, y2 + wide_padding)
+                    
+                    wide_crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                    filename = f"snapshot_FAKE_{score:.2f}_{timestamp}_{i}.jpg"
+                    cv2.imwrite(filename, wide_crop)
+                    saved_files.append(f"🚨 {filename}")
+                    
+                    # Bonus: lưu thêm full frame cho FAKE
+                    full_filename = f"snapshot_FAKE_FULL_{timestamp}_{i}.jpg"
+                    cv2.imwrite(full_filename, frame)
+                    saved_files.append(f"🚨 {full_filename} (full)")
+            else:
+                # Không bật anti-spoof → crop bình thường
+                padding = 50
+                crop_x1 = max(0, x1 - padding)
+                crop_y1 = max(0, y1 - padding)
+                crop_x2 = min(w, x2 + padding)
+                crop_y2 = min(h, y2 + padding)
+                
+                face_crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                filename = f"snapshot_face_{timestamp}_{i}.jpg"
+                cv2.imwrite(filename, face_crop)
+                saved_files.append(filename)
+        
+        messagebox.showinfo("Đã lưu", "\n".join(saved_files))
     
     def on_close(self):
         self.is_playing = False
