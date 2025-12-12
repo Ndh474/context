@@ -24,9 +24,94 @@ class ServiceConfig:
 
 
 # --- Database Config ---
+DB_CONTAINER = "7df00ff8fabca9f39cd374097e82ec6020c2bb19630307013884334eee9ec115"
 DB_USER = "postgres"
 DB_PASSWORD = "postgres"
 DB_NAME = "fuacs_dev"
+DB_HOST = "127.0.0.1"
+DB_PORT = "5432"
+
+
+def get_psql_method():
+    """Auto-detect psql method: docker or local"""
+    # Try docker first
+    try:
+        res = subprocess.run(
+            f"docker exec {DB_CONTAINER} psql -U {DB_USER} -d {DB_NAME} -c \"SELECT 1\"",
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        if res.returncode == 0:
+            return "docker"
+    except:
+        pass
+
+    # Try local psql
+    try:
+        res = subprocess.run(
+            f'psql "postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}" -c "SELECT 1"',
+            shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        if res.returncode == 0:
+            return "local"
+    except:
+        pass
+
+    return None
+
+
+def run_psql_command(sql: str, use_input: bool = True):
+    """Run SQL using detected method. Returns (cmd, input_data)"""
+    method = get_psql_method()
+    if method == "docker":
+        cmd = f"docker exec -i {DB_CONTAINER} psql -U {DB_USER} -d {DB_NAME}"
+        return cmd, sql if use_input else None
+    elif method == "local":
+        cmd = f'psql "postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"'
+        return cmd, sql if use_input else None
+    else:
+        return None, None
+
+SQL_SEED_EXAM_DEMO = """
+DELETE FROM exam_attendance WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM attendance_records WHERE slot_id IN (SELECT s.id FROM slots s JOIN classes c ON s.class_id = c.id WHERE c.code = 'SE999' AND c.semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND c.subject_id = (SELECT id FROM subjects WHERE code = 'PRO192'));
+DELETE FROM exam_slot_participants WHERE exam_slot_subject_id IN (SELECT ess.id FROM exam_slot_subjects ess JOIN slots s ON ess.slot_id = s.id WHERE s.title LIKE 'PRO192 - Final Exam Test%' AND s.slot_category = 'FINAL_EXAM');
+DELETE FROM exam_slot_subjects WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM';
+DELETE FROM slots WHERE class_id = (SELECT id FROM classes WHERE code = 'SE999' AND semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192'));
+DELETE FROM classes WHERE code = 'SE999' AND semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192');
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count) VALUES (((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 day')::date + TIME '08:00', ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 day')::date + TIME '10:00', NULL, (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'supervisor01'), 'FINAL_EXAM', 'PRO192 - Final Exam Test (Yesterday)', 'Test exam - Yesterday slot (Room 102)', true, 'NOT_STARTED', 0, 'NOT_STARTED', 0);
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count) VALUES ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 hour', (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 hour', NULL, (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'supervisor01'), 'FINAL_EXAM', 'PRO192 - Final Exam Test', 'Test exam for 5 SE students - Real-time Attendance Demo (Room 102)', true, 'NOT_STARTED', 0, 'NOT_STARTED', 0);
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count, exam_session_status, exam_scan_count) VALUES (((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 day')::date + TIME '08:00', ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 day')::date + TIME '10:00', NULL, (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'supervisor01'), 'FINAL_EXAM', 'PRO192 - Final Exam Test (Tomorrow)', 'Test exam - Tomorrow slot (Room 102)', true, 'NOT_STARTED', 0, 'NOT_STARTED', 0);
+INSERT INTO exam_slot_subjects (slot_id, subject_id, is_active, created_at) SELECT s.id, (SELECT id FROM subjects WHERE code = 'PRO192'), true, NOW() FROM slots s WHERE s.title LIKE 'PRO192 - Final Exam Test%' AND s.slot_category = 'FINAL_EXAM';
+INSERT INTO exam_slot_participants (exam_slot_subject_id, student_user_id, is_enrolled, created_at, updated_at) SELECT ess.id, u.id, true, NOW(), NOW() FROM exam_slot_subjects ess JOIN slots s ON ess.slot_id = s.id CROSS JOIN (SELECT id FROM users WHERE username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129')) u WHERE s.title LIKE 'PRO192 - Final Exam Test%' AND s.slot_category = 'FINAL_EXAM';
+INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at, created_at, updated_at) SELECT u.id, s.id, CASE WHEN random() > 0.5 THEN 'present' ELSE 'absent' END, 'auto', s.start_time + INTERVAL '30 minutes', s.start_time + INTERVAL '30 minutes', s.start_time + INTERVAL '30 minutes' FROM users u CROSS JOIN (SELECT id, start_time FROM slots WHERE title = 'PRO192 - Final Exam Test (Yesterday)' AND slot_category = 'FINAL_EXAM') s WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+UPDATE slots SET session_status = 'STOPPED', exam_session_status = 'STOPPED' WHERE title = 'PRO192 - Final Exam Test (Yesterday)' AND slot_category = 'FINAL_EXAM';
+INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at, created_at, updated_at) SELECT u.id, s.id, 'not_yet', 'auto', NOW(), NOW(), NOW() FROM users u CROSS JOIN (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test (Tomorrow)' AND slot_category = 'FINAL_EXAM') s WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+"""
+
+SQL_SEED_LECTURE_DEMO = """
+DELETE FROM exam_attendance WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM attendance_records WHERE slot_id IN (SELECT s.id FROM slots s JOIN classes c ON s.class_id = c.id WHERE c.code = 'SE999' AND c.semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND c.subject_id = (SELECT id FROM subjects WHERE code = 'PRO192'));
+DELETE FROM exam_slot_participants WHERE exam_slot_subject_id IN (SELECT ess.id FROM exam_slot_subjects ess JOIN slots s ON ess.slot_id = s.id WHERE s.title LIKE 'PRO192 - Final Exam Test%' AND s.slot_category = 'FINAL_EXAM');
+DELETE FROM exam_slot_subjects WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM';
+DELETE FROM slots WHERE class_id = (SELECT id FROM classes WHERE code = 'SE999' AND semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192'));
+DELETE FROM classes WHERE code = 'SE999' AND semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND subject_id = (SELECT id FROM subjects WHERE code = 'PRO192');
+INSERT INTO classes (subject_id, semester_id, is_active, code) VALUES ((SELECT id FROM subjects WHERE code = 'PRO192'), (SELECT id FROM semesters WHERE code = 'FA25'), true, 'SE999');
+INSERT INTO enrollments (student_user_id, class_id, is_enrolled) VALUES ((SELECT id FROM users WHERE username = 'hieundhe180314'), (SELECT id FROM classes WHERE code = 'SE999'), true), ((SELECT id FROM users WHERE username = 'vuongvt181386'), (SELECT id FROM classes WHERE code = 'SE999'), true), ((SELECT id FROM users WHERE username = 'anhtd180577'), (SELECT id FROM classes WHERE code = 'SE999'), true), ((SELECT id FROM users WHERE username = 'tuanpa171369'), (SELECT id FROM classes WHERE code = 'SE999'), true), ((SELECT id FROM users WHERE username = 'baodn182129'), (SELECT id FROM classes WHERE code = 'SE999'), true);
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count) VALUES (((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 day')::date + TIME '08:00', ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 day')::date + TIME '10:00', (SELECT id FROM classes WHERE code = 'SE999'), (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'lecturer01'), 'LECTURE', 'PRO192 - OOP Test Class (Yesterday)', 'Test class - Yesterday slot (Room 102)', true, 'NOT_STARTED', 0);
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count) VALUES ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') - INTERVAL '1 hour', (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 hour', (SELECT id FROM classes WHERE code = 'SE999'), (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'lecturer01'), 'LECTURE', 'PRO192 - OOP Test Class', 'Test class for 5 SE students - Real-time Attendance Demo (Room 102)', true, 'NOT_STARTED', 0);
+INSERT INTO slots (start_time, end_time, class_id, semester_id, room_id, staff_user_id, slot_category, title, description, is_active, session_status, scan_count) VALUES (((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 day')::date + TIME '08:00', ((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh') + INTERVAL '1 day')::date + TIME '10:00', (SELECT id FROM classes WHERE code = 'SE999'), (SELECT id FROM semesters WHERE code = 'FA25'), (SELECT id FROM rooms WHERE name = 'Room 102'), (SELECT id FROM users WHERE username = 'lecturer01'), 'LECTURE', 'PRO192 - OOP Test Class (Tomorrow)', 'Test class - Tomorrow slot (Room 102)', true, 'NOT_STARTED', 0);
+INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at, created_at, updated_at) SELECT u.id, s.id, CASE WHEN random() > 0.5 THEN 'present' ELSE 'absent' END, 'auto', s.start_time + INTERVAL '30 minutes', s.start_time + INTERVAL '30 minutes', s.start_time + INTERVAL '30 minutes' FROM users u CROSS JOIN (SELECT id, start_time FROM slots WHERE title = 'PRO192 - OOP Test Class (Yesterday)' AND slot_category = 'LECTURE') s WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+UPDATE slots SET session_status = 'STOPPED' WHERE title = 'PRO192 - OOP Test Class (Yesterday)' AND slot_category = 'LECTURE';
+INSERT INTO attendance_records (student_user_id, slot_id, status, method, recorded_at, created_at, updated_at) SELECT u.id, s.id, 'not_yet', 'auto', NOW(), NOW(), NOW() FROM users u CROSS JOIN (SELECT id FROM slots WHERE title = 'PRO192 - OOP Test Class (Tomorrow)' AND slot_category = 'LECTURE') s WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+"""
 
 SERVICES_CONFIG = [
     ServiceConfig(
@@ -62,9 +147,19 @@ SERVICES_CONFIG = [
         actions=[
             {
                 "label": "💣 Reset DB & Run",
-                "command": f'psql "postgres://{DB_USER}:{DB_PASSWORD}@127.0.0.1:5432/{DB_NAME}" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"',
+                "sql": "DROP SCHEMA public CASCADE; CREATE SCHEMA public;",
                 "restart": True,
-            }
+            },
+            {
+                "label": "📝 Seed Exam Demo",
+                "sql": SQL_SEED_EXAM_DEMO,
+                "restart": False,
+            },
+            {
+                "label": "📝 Seed Lecture Demo",
+                "sql": SQL_SEED_LECTURE_DEMO,
+                "restart": False,
+            },
         ],
     ),
 ]
@@ -327,32 +422,72 @@ class ServiceApp(tk.Tk):
             threading.Thread(target=mgr.start).start()
 
     def run_custom_action(self, name, action_config):
-        # Action config can be: {"label": "...", "arg": "..."} (Legacy/Default)
-        # or {"label": "...", "command": "...", "restart": True}
-
         mgr = self.managers[name]
-        # Force switch to this service to see logs
         self.show_service(name)
 
         def _action_thread():
             try:
-                if mgr.is_running():
+                if action_config.get("restart", False) and mgr.is_running():
                     mgr.stop()
-                    # Wait a bit for port release if needed
                     import time
-
                     time.sleep(1)
 
-                # If it's a shell command type
-                if "command" in action_config:
+                mgr.log_queue.put(
+                    (name, f"Running action: {action_config['label']}...", "yellow")
+                )
+
+                # SQL action - auto-detect docker or local psql
+                if "sql" in action_config:
+                    sql_content = action_config["sql"]
+                    cmd, input_data = run_psql_command(sql_content)
+
+                    if cmd is None:
+                        mgr.log_queue.put((name, "ERROR: Cannot connect to PostgreSQL (tried docker and local)", "red"))
+                        self.after(0, lambda: messagebox.showerror("Action Failed", "Cannot connect to PostgreSQL"))
+                        return
+
+                    method = "docker" if "docker" in cmd else "local"
+                    mgr.log_queue.put((name, f"> psql ({method}) [SQL]", "gray"))
+
+                    try:
+                        res = subprocess.run(
+                            cmd,
+                            shell=True,
+                            input=input_data,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            encoding="utf-8",
+                            errors="replace",
+                        )
+                        if res.stdout:
+                            mgr.log_queue.put((name, res.stdout.strip(), "white"))
+                        if res.stderr:
+                            mgr.log_queue.put((name, res.stderr.strip(), "red"))
+
+                        if res.returncode != 0:
+                            mgr.log_queue.put(
+                                (name, f"Action failed with code {res.returncode}", "red")
+                            )
+                            self.after(
+                                0,
+                                lambda: messagebox.showerror(
+                                    "Action Failed", "SQL execution failed. See logs."
+                                ),
+                            )
+                            return
+                        else:
+                            mgr.log_queue.put((name, "SQL executed successfully!", "green"))
+                    except Exception as e:
+                        mgr.log_queue.put((name, f"SQL error: {e}", "red"))
+                        return
+
+                # Shell command action
+                elif "command" in action_config:
                     cmd = action_config["command"]
-                    mgr.log_queue.put(
-                        (name, f"Running action: {action_config['label']}...", "yellow")
-                    )
                     mgr.log_queue.put((name, f"> {cmd}", "gray"))
 
                     try:
-                        # Run the command synchronously
                         res = subprocess.run(
                             cmd,
                             shell=True,
@@ -368,16 +503,14 @@ class ServiceApp(tk.Tk):
                             mgr.log_queue.put((name, res.stderr.strip(), "red"))
 
                         if res.returncode != 0:
-                            err_msg = (
-                                f"Action failed with code {res.returncode}. check logs."
+                            mgr.log_queue.put(
+                                (name, f"Action failed with code {res.returncode}", "red")
                             )
-                            mgr.log_queue.put((name, err_msg, "red"))
-                            # Show error popup on main thread
                             self.after(
                                 0,
                                 lambda: messagebox.showerror(
                                     "Action Failed",
-                                    f"Command failed:\n{cmd}\n\nSee logs for details.",
+                                    f"Command failed:\n{cmd}\n\nSee logs.",
                                 ),
                             )
                             return
@@ -389,13 +522,15 @@ class ServiceApp(tk.Tk):
                         )
                         return
 
-                    # After command, do we restart?
-                    if action_config.get("restart", False):
-                        mgr.start()
-
+                # Legacy args mode
                 elif "arg" in action_config:
-                    # Legacy args mode
                     mgr.start([action_config["arg"]])
+                    return
+
+                # Restart if needed
+                if action_config.get("restart", False):
+                    mgr.start()
+
             except Exception as e:
                 print(f"Critical error in action thread: {e}")
 
