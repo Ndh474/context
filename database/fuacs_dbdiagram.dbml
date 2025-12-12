@@ -1,0 +1,414 @@
+// FUACS - FPT University Attendance Control System
+// Database Schema for dbdiagram.io
+// Generated from Flyway migrations V1-V22
+
+// ============================================================================
+// CORE USER MANAGEMENT
+// ============================================================================
+
+Table users {
+  id serial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  username varchar(50) [not null, unique]
+  email varchar(128) [not null, unique]
+  full_name varchar(150) [not null]
+  password_hash varchar(255) [null]
+}
+
+Table password_reset_tokens {
+  id serial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  expires_at timestamp [not null]
+  email varchar(128) [not null]
+  token_hash varchar(100) [not null, unique]
+  user_id integer [null, ref: > users.id]
+
+  indexes {
+    user_id
+  }
+}
+
+// ============================================================================
+// RBAC (Role-Based Access Control)
+// ============================================================================
+
+Table roles {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(100) [not null, unique]
+}
+
+Table permissions {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(100) [not null, unique]
+}
+
+Table user_roles {
+  user_id integer [not null, ref: > users.id]
+  role_id smallint [not null, ref: > roles.id]
+
+  indexes {
+    (user_id, role_id) [pk]
+  }
+}
+
+Table role_permissions {
+  role_id smallint [not null, ref: > roles.id]
+  permission_id smallint [not null, ref: > permissions.id]
+
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+}
+
+// ============================================================================
+// ACADEMIC STRUCTURE
+// ============================================================================
+
+Table majors {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(150) [not null, unique]
+  code varchar(20) [not null, unique]
+}
+
+Table student_profiles {
+  user_id integer [pk, ref: - users.id]
+  major_id smallint [not null, ref: > majors.id]
+  roll_number varchar(20) [not null, unique]
+  base_photo_url varchar(255) [null]
+}
+
+Table staff_profiles {
+  user_id integer [pk, ref: - users.id]
+  staff_code varchar(20) [not null, unique]
+}
+
+Table semesters {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(20) [not null, unique]
+  code varchar(10) [not null, unique]
+  start_date date [not null]
+  end_date date [not null]
+}
+
+Table subjects {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(150) [not null]
+  code varchar(20) [not null, unique]
+}
+
+Table subject_majors {
+  subject_id smallint [not null, ref: > subjects.id]
+  major_id smallint [not null, ref: > majors.id]
+
+  indexes {
+    (subject_id, major_id) [pk]
+  }
+}
+
+Table classes {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  subject_id smallint [not null, ref: > subjects.id]
+  semester_id smallint [not null, ref: > semesters.id]
+  is_active boolean [not null, default: true]
+  code varchar(20) [not null]
+
+  indexes {
+    (subject_id, semester_id, code) [unique]
+    semester_id
+    subject_id
+  }
+}
+
+Table enrollments {
+  class_id smallint [not null, ref: > classes.id]
+  student_user_id integer [not null, ref: > users.id]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_enrolled boolean [not null, default: true]
+
+  indexes {
+    (class_id, student_user_id) [pk]
+    (class_id, is_enrolled)
+    student_user_id
+  }
+}
+
+// ============================================================================
+// FACILITY MANAGEMENT
+// ============================================================================
+
+Table rooms {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  name varchar(150) [not null, unique]
+  location varchar(255) [null]
+}
+
+Table cameras {
+  id smallserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  room_id smallint [not null, ref: > rooms.id]
+  is_active boolean [not null, default: true]
+  name varchar(150) [not null, unique]
+  rtsp_url varchar(512) [not null, unique]
+}
+
+// ============================================================================
+// SCHEDULING AND SESSION MANAGEMENT
+// ============================================================================
+
+Table slots {
+  id serial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone (Asia/Ho_Chi_Minh)']
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  start_time timestamp [not null, note: 'Vietnam timezone (Asia/Ho_Chi_Minh)']
+  end_time timestamp [not null, note: 'Vietnam timezone (Asia/Ho_Chi_Minh)']
+  class_id smallint [null, ref: > classes.id]
+  semester_id smallint [not null, ref: > semesters.id]
+  room_id smallint [not null, ref: > rooms.id]
+  staff_user_id integer [not null, ref: > users.id]
+  slot_category varchar(20) [not null, note: 'LECTURE, LECTURE_WITH_PT, FINAL_EXAM']
+  title varchar(255) [null]
+  description text [null]
+  is_active boolean [not null, default: true]
+  // Regular session tracking
+  session_status varchar(20) [not null, default: 'NOT_STARTED', note: 'NOT_STARTED, RUNNING, STOPPED']
+  scan_count integer [not null, default: 0]
+  last_session_stopped_at timestamp [null]
+  // Exam session tracking (V16)
+  exam_session_status varchar(20) [not null, default: 'NOT_STARTED', note: 'PT/Final Exam: NOT_STARTED, RUNNING, STOPPED']
+  exam_scan_count integer [not null, default: 0]
+  last_exam_session_stopped_at timestamp [null]
+
+  indexes {
+    class_id
+    semester_id
+    staff_user_id
+    room_id
+    start_time
+    session_status
+  }
+}
+
+// ============================================================================
+// REGULAR ATTENDANCE TRACKING
+// ============================================================================
+
+Table attendance_records {
+  id bigserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  recorded_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  student_user_id integer [not null, ref: > users.id]
+  slot_id integer [not null, ref: > slots.id]
+  status varchar(20) [not null, note: 'not_yet, present, absent']
+  method varchar(20) [not null, note: 'auto, manual, system_finalize']
+  remark text [null, note: 'Single remark, overwrites on update (V19)']
+  needs_review boolean [not null, default: false, note: 'Flag for lecturer review (V20)']
+
+  indexes {
+    (student_user_id, slot_id) [unique]
+    (slot_id, student_user_id) [unique, name: 'uk_attendance_slot_student']
+    slot_id
+    status
+    (slot_id, needs_review) [name: 'idx_attendance_records_needs_review']
+  }
+}
+
+Table regular_attendance_evidences {
+  id bigserial [pk]
+  attendance_record_id bigint [not null, unique, ref: - attendance_records.id]
+  image_url varchar(255) [not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+// ============================================================================
+// EXAM ATTENDANCE TRACKING
+// ============================================================================
+
+Table exam_attendance {
+  id bigserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  recorded_at timestamp [not null, default: `CURRENT_TIMESTAMP`, note: 'Vietnam timezone']
+  student_user_id integer [not null, ref: > users.id]
+  slot_id integer [not null, ref: > slots.id]
+  status varchar(20) [not null, note: 'not_yet, present, absent']
+  method varchar(20) [not null, note: 'auto, manual, system_finalize']
+  remark text [null, note: 'Single remark, overwrites on update (V19)']
+  needs_review boolean [not null, default: false, note: 'Flag for supervisor review (V20)']
+
+  indexes {
+    (student_user_id, slot_id) [unique]
+    (slot_id, student_user_id) [unique, name: 'uk_exam_attendance_slot_student']
+    slot_id
+    status
+    (slot_id, needs_review) [name: 'idx_exam_attendance_needs_review']
+  }
+}
+
+Table exam_slot_subjects {
+  id bigserial [pk]
+  slot_id integer [not null, ref: > slots.id]
+  subject_id smallint [not null, ref: > subjects.id]
+  is_active boolean [not null, default: true, note: 'Soft delete flag']
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  deactivated_at timestamp [null, note: 'When subject was removed from exam slot']
+  deactivated_by_user_id integer [null, ref: > users.id, note: 'Audit trail']
+
+  indexes {
+    (slot_id, subject_id) [unique]
+    slot_id
+  }
+}
+
+Table exam_slot_participants {
+  id bigserial [pk]
+  exam_slot_subject_id bigint [not null, ref: > exam_slot_subjects.id]
+  student_user_id integer [not null, ref: > users.id]
+  is_enrolled boolean [not null, default: true]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (exam_slot_subject_id, student_user_id) [unique]
+    student_user_id
+  }
+}
+
+Table exam_attendance_evidences {
+  id bigserial [pk]
+  exam_attendance_id bigint [not null, unique, ref: - exam_attendance.id]
+  image_url varchar(255) [not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+// ============================================================================
+// FACE RECOGNITION
+// ============================================================================
+
+Table face_embeddings {
+  id serial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  student_user_id integer [not null, ref: > users.id]
+  version integer [not null]
+  is_active boolean [not null, default: false]
+  embedding_vector vector_512 [not null, note: 'pgvector 512-dim for InsightFace']
+
+  indexes {
+    student_user_id [unique, note: 'Only one active embedding per student']
+  }
+}
+
+// ============================================================================
+// NOTIFICATION SYSTEM
+// ============================================================================
+
+Table system_notifications {
+  id bigserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_active boolean [not null, default: true]
+  notification_type varchar(50) [not null]
+  title varchar(255) [not null]
+  content text [not null]
+
+  indexes {
+    notification_type
+  }
+}
+
+Table notification_deliveries {
+  id bigserial [pk]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  read_at timestamp [null]
+  notification_id bigint [not null, ref: > system_notifications.id]
+  recipient_user_id integer [not null, ref: > users.id]
+  is_active boolean [not null, default: true]
+
+  indexes {
+    (recipient_user_id, read_at)
+    (recipient_user_id, created_at)
+  }
+}
+
+// ============================================================================
+// TABLE GROUPS FOR VISUALIZATION
+// ============================================================================
+
+TableGroup user_management {
+  users
+  password_reset_tokens
+  student_profiles
+  staff_profiles
+}
+
+TableGroup rbac {
+  roles
+  permissions
+  user_roles
+  role_permissions
+}
+
+TableGroup academic {
+  semesters
+  majors
+  subjects
+  subject_majors
+  classes
+  enrollments
+}
+
+TableGroup facility {
+  rooms
+  cameras
+}
+
+TableGroup scheduling {
+  slots
+}
+
+TableGroup regular_attendance {
+  attendance_records
+  regular_attendance_evidences
+}
+
+TableGroup exam_attendance {
+  exam_attendance
+  exam_slot_subjects
+  exam_slot_participants
+  exam_attendance_evidences
+}
+
+TableGroup face_recognition {
+  face_embeddings
+}
+
+TableGroup notifications {
+  system_notifications
+  notification_deliveries
+}
