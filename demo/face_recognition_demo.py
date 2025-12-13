@@ -20,8 +20,8 @@ import os
 # ============================================
 # CẤU HÌNH - THAY ĐỔI Ở ĐÂY
 # ============================================
-USE_WEBCAM = True  # True = webcam laptop, False = RTSP camera
-RTSP_URL = "rtsp://admin:admin@192.168.1.185:8554/live"
+USE_WEBCAM = False  # True = webcam laptop, False = RTSP camera
+RTSP_URL = "rtsp://C200C_FUACS:12345678@192.168.0.111:554/stream1"
 WEBCAM_INDEX = 0  # 0 = webcam mặc định
 
 # Đường dẫn

@@ -9,7 +9,7 @@
 --
 -- Prerequisites:
 --   - Room 102 must exist with Camera
---   - 5 SE students must exist (hieundhe180314, vuongvt181386, anhtd180577, tuanpa171369, baodn182129)
+--   - 6 SE students must exist (hieundhe180314, vuongvt181386, anhtd180577, tuanpa171369, baodn182129, nghiadt181793)
 --   - Face embeddings must exist
 --   - supervisor01 user must exist with SUPERVISOR role
 -- ============================================================================
@@ -156,7 +156,7 @@ SELECT
 FROM exam_slot_subjects ess
 JOIN slots s ON ess.slot_id = s.id
 CROSS JOIN (
-    SELECT id FROM users WHERE username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129')
+    SELECT id FROM users WHERE username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129', 'nghiadt181793')
 ) u
 WHERE s.title LIKE 'PRO192 - Final Exam Test%'
   AND s.slot_category = 'FINAL_EXAM';
@@ -181,7 +181,7 @@ CROSS JOIN (
     WHERE title = 'PRO192 - Final Exam Test (Yesterday)' 
       AND slot_category = 'FINAL_EXAM'
 ) s
-WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129', 'nghiadt181793');
 
 -- Update yesterday slot to STOPPED (completed)
 UPDATE slots 
@@ -205,7 +205,7 @@ CROSS JOIN (
     WHERE title = 'PRO192 - Final Exam Test (Tomorrow)' 
       AND slot_category = 'FINAL_EXAM'
 ) s
-WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129');
+WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129', 'nghiadt181793');
 
 -- ============================================================================
 -- PHASE 5: VERIFICATION QUERIES
@@ -287,7 +287,7 @@ FROM face_embeddings fe
 JOIN users u ON fe.student_user_id = u.id
 WHERE fe.student_user_id IN (
     SELECT id FROM users
-    WHERE username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129')
+    WHERE username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129', 'nghiadt181793')
 ) AND fe.is_active = true;
 
 SELECT '============================================' as separator;
