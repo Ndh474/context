@@ -16,16 +16,23 @@ from PIL import Image, ImageTk
 import time
 import numpy as np
 import os
+import json
 
 # ============================================
 # CẤU HÌNH - THAY ĐỔI Ở ĐÂY
 # ============================================
 USE_WEBCAM = False  # True = webcam laptop, False = RTSP camera
-RTSP_URL = "rtsp://C200C_FUACS:12345678@192.168.0.111:554/stream1"
+# RTSP_URL = "rtsp://C200C_FUACS:12345678@192.168.0.113:554/stream1"
+RTSP_URL = "rtsp://admin:admin@192.168.0.228:8554/live"
 WEBCAM_INDEX = 0  # 0 = webcam mặc định
 
 # Đường dẫn
 ANTISPOOF_DIR = os.path.join(os.path.dirname(__file__), "anti_spoof")
+FACE_DATABASE_PATH = os.path.join(os.path.dirname(__file__), "face_database.json")
+
+# Face Recognition config
+RECOGNITION_THRESHOLD = 0.5  # Cosine similarity threshold (0.5 = 50%)
+DET_SIZE = (1280, 1280)  # Detection size: (640, 640), (1280, 1280), (1920, 1920)
 
 # ============================================
 # IMPORTS
@@ -90,6 +97,59 @@ class RTSPVideoStream:
 
     def stop(self):
         self.stop_event = True
+
+
+def load_face_database(path):
+    """Load face database từ JSON file"""
+    if not os.path.exists(path):
+        print(f"⚠️ Không tìm thấy face database: {path}")
+        return []
+    
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        persons = data.get('persons', [])
+        # Convert embedding list to numpy array
+        for p in persons:
+            p['embedding'] = np.array(p['embedding'], dtype=np.float32)
+        print(f"✅ Loaded {len(persons)} persons from face database")
+        return persons
+    except Exception as e:
+        print(f"❌ Lỗi load face database: {e}")
+        return []
+
+
+def cosine_similarity(emb1, emb2):
+    """Tính cosine similarity giữa 2 embedding vectors"""
+    dot = np.dot(emb1, emb2)
+    norm1 = np.linalg.norm(emb1)
+    norm2 = np.linalg.norm(emb2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return dot / (norm1 * norm2)
+
+
+def recognize_face(embedding, database, threshold=RECOGNITION_THRESHOLD):
+    """
+    So sánh embedding với database, trả về person match nhất
+    Returns: (person_id, person_name, similarity) hoặc (None, "Unknown", best_sim)
+    """
+    if not database:
+        return None, "No DB", 0.0
+    
+    best_match = None
+    best_sim = -1.0
+    
+    for person in database:
+        sim = cosine_similarity(embedding, person['embedding'])
+        if sim > best_sim:
+            best_sim = sim
+            best_match = person
+    
+    if best_sim >= threshold and best_match:
+        return best_match['id'], best_match['name'], best_sim
+    
+    return None, "Unknown", best_sim
 
 
 def is_frontal_face(kps, threshold=0.25):
@@ -238,8 +298,10 @@ class App:
         # --- AI Models ---
         self.face_detection_enabled = BooleanVar(value=False)
         self.anti_spoof_enabled = BooleanVar(value=False)
+        self.face_recognition_enabled = BooleanVar(value=False)
         self.face_model = None
         self.anti_spoof = AntiSpoofEngine(device_id=0)
+        self.face_database = []
         
         # --- Statistics ---
         self.stats = {"real": 0, "fake": 0, "total": 0}
@@ -274,6 +336,12 @@ class App:
                     bg="#34495e", fg="white", selectcolor="#2c3e50", font=("Arial", 10, "bold"),
                     activebackground="#34495e", activeforeground="white",
                     state=tk.NORMAL if ANTISPOOF_AVAILABLE else tk.DISABLED
+        ).pack(side=tk.LEFT, padx=15)
+        
+        Checkbutton(row1, text="👤 Face Recognition", variable=self.face_recognition_enabled,
+                    bg="#34495e", fg="white", selectcolor="#2c3e50", font=("Arial", 10, "bold"),
+                    activebackground="#34495e", activeforeground="white",
+                    state=tk.NORMAL if INSIGHTFACE_AVAILABLE else tk.DISABLED
         ).pack(side=tk.LEFT, padx=15)
         
         self.lbl_status = Label(row1, text="Status: Đang tải...", 
@@ -326,7 +394,7 @@ class App:
                 print("🔄 Đang tải Face Detection...")
                 self.face_model = FaceAnalysis(name='buffalo_l',
                     providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-                self.face_model.prepare(ctx_id=0, det_size=(640, 640))
+                self.face_model.prepare(ctx_id=0, det_size=DET_SIZE)
                 status_parts.append("Face ✓")
             else:
                 status_parts.append("Face ✗")
@@ -336,6 +404,13 @@ class App:
                     status_parts.append("AntiSpoof ✓")
                 else:
                     status_parts.append("AntiSpoof ✗")
+            
+            # Load face database
+            self.face_database = load_face_database(FACE_DATABASE_PATH)
+            if self.face_database:
+                status_parts.append(f"DB: {len(self.face_database)}")
+            else:
+                status_parts.append("DB ✗")
             
             status_text = " | ".join(status_parts)
             self.root.after(0, lambda: self.lbl_status.configure(text=f"Status: {status_text}", fg="#27ae60"))
@@ -364,6 +439,7 @@ class App:
                     for face in faces:
                         bbox = face.bbox.astype(int)
                         
+                        # Anti-Spoofing check (chỉ kiểm tra frontal khi bật anti-spoof)
                         if self.anti_spoof_enabled.get():
                             # Kiểm tra mặt có nhìn thẳng không
                             is_frontal, yaw_ratio = is_frontal_face(face.kps, threshold=0.25)
@@ -379,23 +455,42 @@ class App:
                                     for kp in face.kps.astype(int):
                                         cv2.circle(display_frame, (kp[0], kp[1]), 2, (255, 0, 0), -1)
                                 continue
-                            
-                            is_real, score, label = self.anti_spoof.check(frame, face.bbox)
+                            is_real, spoof_score, spoof_label = self.anti_spoof.check(frame, face.bbox)
                             
                             # Update stats
                             self.stats["total"] += 1
                             if is_real:
                                 self.stats["real"] += 1
-                                color = (0, 255, 0)  # Green
                             else:
                                 self.stats["fake"] += 1
-                                color = (0, 0, 255)  # Red
-                            
-                            display_label = f"{label} {score:.2f}"
+                                color = (0, 0, 255)  # Red for FAKE
+                                display_label = f"FAKE {spoof_score:.2f}"
+                                cv2.rectangle(display_frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+                                cv2.putText(display_frame, display_label, (bbox[0], bbox[1] - 10),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                                if face.kps is not None:
+                                    for kp in face.kps.astype(int):
+                                        cv2.circle(display_frame, (kp[0], kp[1]), 2, (255, 0, 0), -1)
+                                self.lbl_stats.configure(
+                                    text=f"Real: {self.stats['real']} | Fake: {self.stats['fake']} | Total: {self.stats['total']}")
+                                continue
                             
                             self.lbl_stats.configure(
                                 text=f"Real: {self.stats['real']} | Fake: {self.stats['fake']} | Total: {self.stats['total']}")
-                            self.lbl_model_info.configure(text=f"score={score:.3f}")
+                        
+                        # Face Recognition
+                        if self.face_recognition_enabled.get() and face.embedding is not None:
+                            person_id, person_name, similarity = recognize_face(
+                                face.embedding, self.face_database, RECOGNITION_THRESHOLD)
+                            
+                            if person_id:
+                                color = (0, 255, 0)  # Green - recognized
+                                display_label = f"{person_id} ({similarity:.2f})"
+                                self.lbl_model_info.configure(text=f"{person_name} | sim={similarity:.3f}")
+                            else:
+                                color = (0, 165, 255)  # Orange - unknown
+                                display_label = f"Unknown ({similarity:.2f})"
+                                self.lbl_model_info.configure(text=f"Unknown | best_sim={similarity:.3f}")
                         else:
                             color = (0, 255, 0)
                             display_label = f"{face.det_score:.2f}"
