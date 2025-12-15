@@ -22,8 +22,8 @@ import json
 # CẤU HÌNH - THAY ĐỔI Ở ĐÂY
 # ============================================
 USE_WEBCAM = False  # True = webcam laptop, False = RTSP camera
-# RTSP_URL = "rtsp://C200C_FUACS:12345678@192.168.0.113:554/stream1"
-RTSP_URL = "rtsp://admin:admin@192.168.0.228:8554/live"
+RTSP_URL = "rtsp://C200C_FUACS:12345678@192.168.0.113:554/stream1"
+# RTSP_URL = "rtsp://admin:admin@192.168.137.201:8554/live"
 WEBCAM_INDEX = 0  # 0 = webcam mặc định
 
 # Đường dẫn
@@ -32,7 +32,7 @@ FACE_DATABASE_PATH = os.path.join(os.path.dirname(__file__), "face_database.json
 
 # Face Recognition config
 RECOGNITION_THRESHOLD = 0.5  # Cosine similarity threshold (0.5 = 50%)
-DET_SIZE = (1280, 1280)  # Detection size: (640, 640), (1280, 1280), (1920, 1920)
+DET_SIZE = (1920, 1920)  # Detection size: (640, 640), (1280, 1280), (1920, 1920)
 
 # ============================================
 # IMPORTS
@@ -562,14 +562,22 @@ class App:
                 is_real, score, label = self.anti_spoof.check(frame, face.bbox)
                 
                 if is_real:
-                    # REAL → crop nhỏ như recognition-service (padding 50px)
-                    padding = 50
+                    # REAL → crop với padding đủ lớn
+                    padding = 100  # Tăng từ 50 lên 100
                     crop_x1 = max(0, x1 - padding)
                     crop_y1 = max(0, y1 - padding)
                     crop_x2 = min(w, x2 + padding)
                     crop_y2 = min(h, y2 + padding)
                     
                     face_crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                    
+                    # Đảm bảo ảnh đủ lớn cho recognition-service (min 300x300)
+                    crop_h, crop_w = face_crop.shape[:2]
+                    if crop_w < 300 or crop_h < 300:
+                        scale = max(300 / crop_w, 300 / crop_h)
+                        new_w, new_h = int(crop_w * scale), int(crop_h * scale)
+                        face_crop = cv2.resize(face_crop, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+                    
                     filename = f"snapshot_REAL_{score:.2f}_{timestamp}_{i}.jpg"
                     cv2.imwrite(filename, face_crop)
                     saved_files.append(f"✅ {filename}")
@@ -591,14 +599,22 @@ class App:
                     cv2.imwrite(full_filename, frame)
                     saved_files.append(f"🚨 {full_filename} (full)")
             else:
-                # Không bật anti-spoof → crop bình thường
-                padding = 50
+                # Không bật anti-spoof → crop với padding lớn hơn
+                padding = 100  # Tăng từ 50 lên 100
                 crop_x1 = max(0, x1 - padding)
                 crop_y1 = max(0, y1 - padding)
                 crop_x2 = min(w, x2 + padding)
                 crop_y2 = min(h, y2 + padding)
                 
                 face_crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+                
+                # Đảm bảo ảnh đủ lớn cho recognition-service (min 300x300)
+                crop_h, crop_w = face_crop.shape[:2]
+                if crop_w < 300 or crop_h < 300:
+                    scale = max(300 / crop_w, 300 / crop_h)
+                    new_w, new_h = int(crop_w * scale), int(crop_h * scale)
+                    face_crop = cv2.resize(face_crop, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+                
                 filename = f"snapshot_face_{timestamp}_{i}.jpg"
                 cv2.imwrite(filename, face_crop)
                 saved_files.append(filename)
