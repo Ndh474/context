@@ -95,6 +95,20 @@ UPDATE slots SET session_status = 'STOPPED', exam_session_status = 'STOPPED' WHE
 INSERT INTO exam_attendance (student_user_id, slot_id, status, method, recorded_at, created_at, updated_at) SELECT u.id, s.id, 'not_yet', 'auto', NOW(), NOW(), NOW() FROM users u CROSS JOIN (SELECT id FROM slots WHERE title = 'PRO192 - Final Exam Test (Tomorrow)' AND slot_category = 'FINAL_EXAM') s WHERE u.username IN ('hieundhe180314', 'vuongvt181386', 'anhtd180577', 'tuanpa171369', 'baodn182129', 'nghiadt181793');
 """
 
+SQL_CLEAR_DEMO_DATA = """
+-- Clear Exam Demo data
+DELETE FROM exam_attendance WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM exam_slot_participants WHERE exam_slot_subject_id IN (SELECT ess.id FROM exam_slot_subjects ess JOIN slots s ON ess.slot_id = s.id WHERE s.title LIKE 'PRO192 - Final Exam Test%' AND s.slot_category = 'FINAL_EXAM');
+DELETE FROM exam_slot_subjects WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
+DELETE FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM';
+
+-- Clear Lecture Demo data (class SE999)
+DELETE FROM attendance_records WHERE slot_id IN (SELECT s.id FROM slots s JOIN classes c ON s.class_id = c.id WHERE c.code = 'SE999');
+DELETE FROM enrollments WHERE class_id = (SELECT id FROM classes WHERE code = 'SE999');
+DELETE FROM slots WHERE class_id = (SELECT id FROM classes WHERE code = 'SE999');
+DELETE FROM classes WHERE code = 'SE999';
+"""
+
 SQL_SEED_LECTURE_DEMO = """
 DELETE FROM exam_attendance WHERE slot_id IN (SELECT id FROM slots WHERE title LIKE 'PRO192 - Final Exam Test%' AND slot_category = 'FINAL_EXAM');
 DELETE FROM attendance_records WHERE slot_id IN (SELECT s.id FROM slots s JOIN classes c ON s.class_id = c.id WHERE c.code = 'SE999' AND c.semester_id = (SELECT id FROM semesters WHERE code = 'FA25') AND c.subject_id = (SELECT id FROM subjects WHERE code = 'PRO192'));
@@ -158,6 +172,11 @@ SERVICES_CONFIG = [
             {
                 "label": "📝 Seed Lecture Demo",
                 "sql": SQL_SEED_LECTURE_DEMO,
+                "restart": False,
+            },
+            {
+                "label": "🗑️ Clear Demo Data",
+                "sql": SQL_CLEAR_DEMO_DATA,
                 "restart": False,
             },
         ],
@@ -319,6 +338,9 @@ class ServiceApp(tk.Tk):
         ttk.Button(btn_frame, text="▶ Start All", command=self.start_all).pack(
             side="left", fill="x", expand=True, padx=(0, 2)
         )
+        ttk.Button(btn_frame, text="🔄 Restart All", command=self.restart_all).pack(
+            side="left", fill="x", expand=True, padx=(2, 2)
+        )
         ttk.Button(btn_frame, text="☠ Kill All", command=self.kill_all_orphans).pack(
             side="left", fill="x", expand=True, padx=(2, 0)
         )
@@ -365,6 +387,15 @@ class ServiceApp(tk.Tk):
                 command=lambda n=conf.name: self.show_service(n),
             )
             btn_view.pack(side="right", padx=2)
+
+            # Restart Button
+            btn_restart = ttk.Button(
+                ctrl_frame,
+                text="🔄",
+                width=3,
+                command=lambda n=conf.name: self.restart_service(n),
+            )
+            btn_restart.pack(side="right", padx=2)
 
             # Action Button (Run/Stop)
             btn_action = ttk.Button(
@@ -420,6 +451,34 @@ class ServiceApp(tk.Tk):
             threading.Thread(target=mgr.stop).start()
         else:
             threading.Thread(target=mgr.start).start()
+
+    def restart_service(self, name):
+        """Restart a single service"""
+        mgr = self.managers[name]
+
+        def _restart():
+            if mgr.is_running():
+                mgr.stop()
+                import time
+                time.sleep(1)
+            mgr.start()
+
+        threading.Thread(target=_restart).start()
+
+    def restart_all(self):
+        """Restart all services"""
+        def _restart_all():
+            import time
+            # Stop all first
+            for mgr in self.managers.values():
+                if mgr.is_running():
+                    mgr.stop()
+            time.sleep(1)
+            # Start all
+            for mgr in self.managers.values():
+                mgr.start()
+
+        threading.Thread(target=_restart_all).start()
 
     def run_custom_action(self, name, action_config):
         mgr = self.managers[name]
