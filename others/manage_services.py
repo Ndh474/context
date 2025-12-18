@@ -775,13 +775,6 @@ class ServiceApp(tk.Tk):
     def stop_service(self, name):
         threading.Thread(target=self.managers[name].stop).start()
 
-    def restart_service(self, name):
-        def _restart():
-            self.managers[name].stop()
-            self.managers[name].start()
-
-        threading.Thread(target=_restart).start()
-
     def start_all(self):
         for name in self.managers:
             self.start_service(name)
