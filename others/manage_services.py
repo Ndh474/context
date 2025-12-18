@@ -10,6 +10,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+    print("WARNING: psutil not installed. Install with 'pip install psutil' for safer process management.")
+
 # --- Configuration ---
 
 
@@ -252,15 +259,21 @@ class ServiceManager:
             return
 
         self._log(f"Stopping {self.config.name}...", "red")
+        self._stop_event.set()
 
         try:
-            # Taskkill for windows tree kill
-            subprocess.run(
-                f"taskkill /F /T /PID {self.process.pid}",
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            if HAS_PSUTIL:
+                # Use psutil to safely kill only child processes
+                self._kill_process_tree_safe(self.process.pid)
+            else:
+                # Fallback: kill only the direct process, not tree
+                # Avoid /T flag which can kill parent processes
+                subprocess.run(
+                    f"taskkill /F /PID {self.process.pid}",
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
         except Exception as e:
             self._log(f"Error stopping: {e}", "red")
 
@@ -275,6 +288,57 @@ class ServiceManager:
         self.process = None
         self.status_callback(self.config.name, False)
         self._log("Stopped", "black")
+
+    def _kill_process_tree_safe(self, pid):
+        """Kill a process and all its children safely using psutil.
+        This avoids killing the parent (manage_services.py) by only
+        traversing DOWN the process tree from the given PID.
+        """
+        try:
+            parent = psutil.Process(pid)
+            # Get all children recursively
+            children = parent.children(recursive=True)
+            
+            # Kill children first (bottom-up)
+            for child in reversed(children):
+                try:
+                    child.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+            
+            # Wait briefly for graceful termination
+            _, alive = psutil.wait_procs(children, timeout=2)
+            
+            # Force kill any remaining children
+            for child in alive:
+                try:
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+            
+            # Finally kill the parent process
+            try:
+                parent.terminate()
+                parent.wait(timeout=2)
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.TimeoutExpired:
+                try:
+                    parent.kill()
+                except psutil.NoSuchProcess:
+                    pass
+                    
+        except psutil.NoSuchProcess:
+            self._log(f"Process {pid} already terminated", "gray")
+        except Exception as e:
+            self._log(f"Error in safe kill: {e}", "red")
+            # Fallback to simple taskkill without /T
+            subprocess.run(
+                f"taskkill /F /PID {pid}",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
     def is_running(self):
         return self.process is not None and self.process.poll() is None
