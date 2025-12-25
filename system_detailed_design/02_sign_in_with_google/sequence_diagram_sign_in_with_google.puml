@@ -2,62 +2,68 @@
 !theme plain
 hide footbox
 
-actor Client
-participant ":AuthenticationController" as Controller
-participant ":AuthenticationService" as Service
-participant ":UserRepository" as Repository
-participant "Database" as DB
+actor User
 
-' --- MAIN FLOW ---
-Client -> Controller: POST /api/v1/auth/google/login
+participant "«user interaction»\n:LoginPage" as UI
+participant "«control»\n:AuthenticationController" as Controller
+participant "«service»\n:AuthenticationService" as Service
+participant "«database wrapper»\n:UserRepository" as Repository
+
+' === MAIN FLOW ===
+User -> UI: Click "Sign in with Google"
+activate UI
+
+UI -> UI: Open Google OAuth popup
+
+User -> UI: Select Google account & authorize
+
+UI -> Controller: POST /api/v1/auth/google/login\n(idToken)
 activate Controller
 
 Controller -> Service: googleLogin(request)
 activate Service
 
-' --- GOOGLE TOKEN VERIFICATION ---
-' Google token verification (internal)
+' === GOOGLE TOKEN VERIFICATION (internal) ===
 
-alt Invalid token
+alt Invalid Google token
     Service -->> Controller: <<throw>> InvalidBearerTokenException
-    Controller --> Client: 401 Unauthorized
+    Controller -->> UI: 401 Unauthorized
+    UI -->> User: Show error message
 end
 
 alt Email not found in token
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> User: Show error message
 end
 
-' --- USER LOOKUP ---
+' === USER LOOKUP ===
 Service -> Repository: findByEmail(email)
 activate Repository
-
-Repository -> DB: Query User by Email
-activate DB
-DB --> Repository: User Record / Null
-deactivate DB
-
-Repository --> Service: Optional<User>
+Repository -->> Service: Optional<User>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt User not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Client: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> User: Show error message\n"Account not registered"
 end
 
 alt User is inactive
     Service -->> Controller: <<throw>> AccessDeniedException
-    Controller --> Client: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> User: Show error message
 end
 
-' --- TOKEN GENERATION ---
-' Token generation (internal)
+' === TOKEN GENERATION (internal) ===
 
-Service --> Controller: TokenResponse
+Service -->> Controller: TokenResponse
 deactivate Service
 
-Controller --> Client: 200 OK
+Controller -->> UI: 200 OK (TokenResponse)
 deactivate Controller
+
+UI -->> User: Redirect to Dashboard
+deactivate UI
 
 @enduml
