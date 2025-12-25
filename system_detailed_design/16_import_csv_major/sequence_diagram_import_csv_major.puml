@@ -2,71 +2,80 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":MajorController" as Controller
-participant ":MajorService" as Service
-participant ":MajorRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/majors/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:MajorController" as Controller
+participant "«service»\n:MajorService" as Service
+participant "«database wrapper»\n:MajorRepository" as Repository
+participant "«entity»\n:Major" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+
+DataOperator -> UI: Select CSV file & import mode
+
+DataOperator -> UI: Submit
+UI -> Controller: POST /api/v1/majors/import\n(file, mode)
 activate Controller
 
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
+alt File is empty
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' CSV parsing and deduplication (internal)
-
+' === PARSE CSV ===
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-' --- BATCH PROCESSING LOOP ---
+' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' Row validation (internal)
-
     Service -> Repository: findByCode(code)
     activate Repository
-
-    Repository -> DB: Query Major by Code
-    activate DB
-    DB --> Repository: Major / Null
-    deactivate DB
-
-    Repository --> Service: Major
+    Repository -->> Service: Major / null
     deactivate Repository
 
-    ' Business logic: create or update based on mode (internal)
+    alt Row validation fails
+        Service -> Service: Collect error, continue
+    else Create new major
+        Service -> Entity: new Major(row)
+        activate Entity
+        Entity -->> Service: major
+        deactivate Entity
 
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
         Service -> Repository: save(major)
         activate Repository
+        Repository -->> Service: savedMajor
+        deactivate Repository
+    else Update existing major
+        Service -> Entity: updateFromRow(row)
+        activate Entity
+        Entity -->> Service: major
+        deactivate Entity
 
-        Repository -> DB: Insert or Update Major
-        activate DB
-        DB --> Repository: Saved Major
-        deactivate DB
-
-        Repository --> Service: Major
+        Service -> Repository: save(major)
+        activate Repository
+        Repository -->> Service: savedMajor
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: Import Result
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK (ImportResultDTO)
 deactivate Controller
+
+UI -->> DataOperator: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml

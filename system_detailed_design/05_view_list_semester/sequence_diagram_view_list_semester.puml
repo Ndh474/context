@@ -40,7 +40,7 @@ deactivate Repository
 Service -->> Controller: Long
 deactivate Service
 
-Controller -->> UI: 200 OK (PagingResponse<SemesterDTO>)
+Controller -->> UI: 200 OK
 deactivate Controller
 
 UI -->> DataOperator: Display semester table\nwith pagination

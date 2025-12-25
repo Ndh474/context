@@ -2,41 +2,71 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":MajorController" as Controller
-participant ":MajorService" as Service
-participant ":MajorRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/majors
+participant "«user interaction»\n:MajorFormDialog" as UI
+participant "«control»\n:MajorController" as Controller
+participant "«service»\n:MajorService" as Service
+participant "«database wrapper»\n:MajorRepository" as Repository
+participant "«entity»\n:Major" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Major"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input major data\n(name, code)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/majors
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: code/name uniqueness)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-Service -> Repository: save(major)
+' === VALIDATION ===
+Service -> Repository: existsByCode(code)
 activate Repository
-
-Repository -> DB: Insert New Major
-activate DB
-DB --> Repository: Saved Major
-deactivate DB
-
-Repository --> Service: Major
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: MajorDTO
+alt code exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+Service -> Repository: existsByName(name)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt name exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === CREATE ENTITY ===
+Service -> Entity: new Major(request)
+activate Entity
+Entity -->> Service: major
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(major)
+activate Repository
+Repository -->> Service: savedMajor
+deactivate Repository
+
+Service -->> Controller: MajorDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml
