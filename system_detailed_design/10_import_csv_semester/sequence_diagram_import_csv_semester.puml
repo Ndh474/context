@@ -2,71 +2,80 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SemesterController" as Controller
-participant ":SemesterService" as Service
-participant ":SemesterRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/semesters/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:SemesterController" as Controller
+participant "«service»\n:SemesterService" as Service
+participant "«database wrapper»\n:SemesterRepository" as Repository
+participant "«entity»\n:Semester" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+
+DataOperator -> UI: Select CSV file & import mode
+
+DataOperator -> UI: Submit
+UI -> Controller: POST /api/v1/semesters/import\n(file, mode)
 activate Controller
 
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
+alt File is empty
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' CSV parsing and deduplication (internal)
-
+' === PARSE CSV ===
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-' --- BATCH PROCESSING LOOP ---
+' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' Row validation (internal)
-
     Service -> Repository: findByCode(code)
     activate Repository
-
-    Repository -> DB: Query Semester by Code
-    activate DB
-    DB --> Repository: Semester / Null
-    deactivate DB
-
-    Repository --> Service: Semester
+    Repository -->> Service: Semester / null
     deactivate Repository
 
-    ' Business logic: create or update based on mode (internal)
+    alt Row validation fails
+        Service -> Service: Collect error, continue
+    else Create new semester
+        Service -> Entity: new Semester(row)
+        activate Entity
+        Entity -->> Service: semester
+        deactivate Entity
 
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
         Service -> Repository: save(semester)
         activate Repository
+        Repository -->> Service: savedSemester
+        deactivate Repository
+    else Update existing semester
+        Service -> Entity: updateFromRow(row)
+        activate Entity
+        Entity -->> Service: semester
+        deactivate Entity
 
-        Repository -> DB: Insert or Update Semester
-        activate DB
-        DB --> Repository: Saved Semester
-        deactivate DB
-
-        Repository --> Service: Semester
+        Service -> Repository: save(semester)
+        activate Repository
+        Repository -->> Service: savedSemester
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: Import Result
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK (ImportResultDTO)
 deactivate Controller
+
+UI -->> DataOperator: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml

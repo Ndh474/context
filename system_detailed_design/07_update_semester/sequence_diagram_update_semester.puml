@@ -2,66 +2,109 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SemesterController" as Controller
-participant ":SemesterService" as Service
-participant ":SemesterRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/semesters/{id}
+participant "«user interaction»\n:SemesterFormDialog" as UI
+participant "«control»\n:SemesterController" as Controller
+participant "«service»\n:SemesterService" as Service
+participant "«database wrapper»\n:SemesterRepository" as Repository
+participant "«entity»\n:Semester" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Edit semester data\n(name, code, startDate, endDate, isActive)
+activate UI
+
+DataOperator -> UI: Submit form
+UI -> Controller: PUT /api/v1/semesters/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Semester by ID
-activate DB
-DB --> Repository: Semester Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Semester>
+Repository -->> Service: Optional<Semester>
 deactivate Repository
 
 alt Semester not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' --- VALIDATION LOGIC ---
-' Validation logic (internal)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-' --- ONGOING CHECK ---
-opt Ongoing semester & modifying dates/status
+' === BUSINESS RULES ===
+alt Semester ended & modifying non-status fields
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message
 end
 
-' --- UPDATE ---
-Service -> Repository: save(semester)
+alt Semester ongoing & modifying dates/status
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION ===
+alt startDate >= endDate
+    Service -->> Controller: <<throw>> InvalidDateException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+Service -> Repository: existsByCodeAndIdNot(code, id)
 activate Repository
-
-Repository -> DB: Update Semester
-activate DB
-DB --> Repository: Updated Semester
-deactivate DB
-
-Repository --> Service: Semester
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Semester
+alt code exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+Service -> Repository: existsByNameAndIdNot(name, id)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt name exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+Service -> Repository: existsByDateRangeOverlapAndIdNot(startDate, endDate, id)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt date range overlaps
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: updateFromRequest(request)
+activate Entity
+Entity -->> Service: semester
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(semester)
+activate Repository
+Repository -->> Service: savedSemester
+deactivate Repository
+
+Service -->> Controller: SemesterDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

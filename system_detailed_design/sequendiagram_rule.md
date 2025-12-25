@@ -1,64 +1,12 @@
-# **Sequence Diagram Rules - PlantUML (Logical Style)**
+# **Sequence Diagram Rules - PlantUML (COMET Method)**
 
 Triết lý: Vẽ để THIẾT KẾ (Design), không phải để MÔ TẢ LẠI CODE (Document).
 
-Nếu biểu đồ chứa quá nhiều chi tiết kỹ thuật mà Business không hiểu -> XÓA BỎ CHI TIẾT ĐÓ.
+Áp dụng phương pháp COMET (Concurrent Object Modeling and Architectural Design Method) của Hassan Gomaa.
 
-## **1. Quick Start (Template Chuẩn)**
+---
 
-Copy đoạn code này vào đầu mọi file .puml. Đây là style "Phác thảo Logic" (Draw.io style), tập trung vào luồng đi của dữ liệu hơn là cú pháp code.
-
-1.  @startuml [Feature_Name]
-2.  !theme plain
-3.  hide footbox
-4.
-5.  actor Client
-6.  participant ":Controller" as Ctrl
-7.  participant ":Service" as Svc
-8.  participant ":Repository" as Repo
-9.  ' Dùng participant cho DB để đồng bộ hình dạng (hình chữ nhật)
-10. participant "Database" as DB
-11.
-12. ' --- MAIN FLOW ---
-13. Client -> Ctrl: POST /api/resource
-14. activate Ctrl
-15.
-16. Ctrl -> Svc: process(request)
-17. activate Svc
-18.
-19. Svc -> Repo: findData()
-20. activate Repo
-21.
-22.     ' Database interaction: Mô tả logic, không cần SQL phức tạp
-23.     Repo -> DB: Query Data by ID
-24.     activate DB
-25.     DB --> Repo: Record / Null
-26.     deactivate DB
-27.
-28. Repo --> Svc: Optional<Data>
-29. deactivate Repo
-30.
-31. ' --- LOGIC BRANCHES ---
-32. alt data not found
-33.     Svc -->> Ctrl: <<throw>> NotFoundException
-34.     Ctrl --> Client: 404 Not Found
-35. end
-36.
-37. ' --- INTERNAL LOGIC GROUPING ---
-38. group Complex Calculation
-39.     Svc -> Svc: validate logic
-40.     Svc -> Svc: transform data
-41. end
-42.
-43. Svc --> Ctrl: Response
-44. deactivate Svc
-45.
-46. Ctrl --> Client: 200 OK
-47. deactivate Ctrl
-48.
-49. @enduml
-
-## **2. Nguyên Tắc Cốt Lõi (Core Principles)**
+## **1. Nguyên Tắc Cốt Lõi**
 
 ### **Tư Duy "Logic Flow > Implementation Detail"**
 
@@ -66,261 +14,282 @@ Sequence Diagram dùng để giao tiếp về **Luồng xử lý**, không phả
 
 #### **✅ NÊN (Do)**
 
-- Tập trung thể hiện **Logic**: "Lấy user từ DB", "Kiểm tra mật khẩu", "Tạo Token".
-- Sử dụng ngôn ngữ tự nhiên (Natural Language) cho các bước tương tác hạ tầng (Database, External API).
-- Dùng **Group** để gom các bước xử lý nội bộ phức tạp.
+- Tập trung thể hiện **Logic nghiệp vụ**: "Validate input", "Check uniqueness", "Save entity"
+- Sử dụng **Stereotypes** để phân loại rõ vai trò của từng component
+- Thể hiện đầy đủ luồng từ **User → UI → Backend → Database**
 
 #### **❌ KHÔNG NÊN (Don't)**
 
-- Viết câu SQL dài dòng (SELECT \* FROM ... JOIN ...).
-- Viết chính xác kiểu dữ liệu trả về (ResponseEntity<Map<String, Object>>). Chỉ cần ghi 200 OK hoặc Response.
-- Vẽ quá chi tiết các hàm private nhỏ nhặt (Self-calls rối rắm).
+- Viết câu SQL chi tiết
+- Viết chính xác kiểu dữ liệu trả về (`ResponseEntity<Map<String, Object>>`)
+- Vẽ quá chi tiết các hàm private/internal
 
-## **3. Thành Phần Tham Gia (Participants)**
+---
 
-### **Đồng Bộ Hình Dạng (Consistency)**
+## **2. Stereotypes (Phân loại theo COMET)**
 
-Để biểu đồ nhìn "sạch" và giống bản vẽ tay logic (Draw.io style), chúng ta thống nhất hình dạng.
+### **Bảng Stereotypes chuẩn**
 
-| Thành phần     | Keyword PlantUML | Hình dạng    | Ghi chú                                                                      |
-| :------------- | :--------------- | :----------- | :--------------------------------------------------------------------------- |
-| **User**       | actor            | Người        | Người dùng hoặc hệ thống ngoài.                                              |
-| **Code Class** | participant      | Chữ nhật     | Controller, Service, Repo, Utils.                                            |
-| **Database**   | participant      | **Chữ nhật** | **QUAN TRỌNG:** Không dùng database (hình trụ). Đặt tên chung là "Database". |
+| Stereotype           | Vai trò                                      | Ví dụ trong project   |
+| -------------------- | -------------------------------------------- | --------------------- |
+| `«user interaction»` | Giao diện người dùng (FE component)          | `:SemesterFormDialog` |
+| `«control»`          | Điều phối request, không chứa business logic | `:SemesterController` |
+| `«service»`          | Chứa business logic, validation              | `:SemesterService`    |
+| `«database wrapper»` | Truy xuất dữ liệu, bao bọc DB operations     | `:SemesterRepository` |
+| `«entity»`           | Domain object, thực thể dữ liệu              | `:Semester`           |
 
-#### **Ví dụ chuẩn:**
-
-participant ":AuthenticationService" as Service
-participant "Database" as DB
-
-### **Đơn Giản Hóa Repository (Repository Simplification) - QUAN TRỌNG**
-
-Ở mức High-Level Design, **không cần vẽ** chi tiết implementation pattern của Repository.
-
-#### **✅ NÊN (Do) - Gọn gàng**
-
-Chỉ vẽ 1 participant đại diện cho toàn bộ Data Access Layer:
+### **Cấu trúc Lifelines chuẩn**
 
 ```
-participant ":SemesterRepository" as Repository
+Actor → «user interaction» → «control» → «service» → «database wrapper» → «entity»
 ```
 
-Trong code có thể có: `JpaRepository`, `CustomSemesterRepository`, `SemesterRepositoryImpl` → **Nhưng trong diagram chỉ cần 1 Repository**.
+### **Lưu ý quan trọng**
 
-#### **❌ KHÔNG NÊN (Don't) - Rối rắm**
+- **KHÔNG** có lane `Database` vật lý. `«database wrapper»` (Repository) là đại diện cho việc tương tác với DB.
+- **Repository**: Chỉ dùng 1 participant, không tách `CustomRepository`, `RepositoryImpl`.
+- **Entity lane**: Chỉ thêm khi có tạo/cập nhật entity (create, update). Với các flow chỉ đọc dữ liệu (view list, view details), không cần Entity lane.
 
+---
+
+## **3. Arrow Types (Loại mũi tên)**
+
+Theo chuẩn UML 2.5 và COMET method:
+
+### **Bảng quy ước mũi tên**
+
+| Loại                  | PlantUML | Đường    | Đầu mũi tên  | Khi nào dùng                            |
+| --------------------- | -------- | -------- | ------------ | --------------------------------------- |
+| **Synchronous call**  | `->`     | Liền     | Đặc (filled) | Gọi method, HTTP request (đợi response) |
+| **Asynchronous call** | `->>`    | Liền     | Hở (open)    | Fire-and-forget, message queue          |
+| **Reply message**     | `-->>`   | Đứt đoạn | Hở (open)    | Trả về kết quả, exception               |
+
+### **Ví dụ**
+
+```plantuml
+' Synchronous call (đợi response)
+Controller -> Service: create(request)
+
+' Reply message
+Service -->> Controller: SemesterDTO
+
+' Exception (vẫn là reply)
+Service -->> Controller: <<throw>> ValidationException
 ```
-participant ":SemesterRepository" as Repo1
-participant ":CustomSemesterRepository" as Repo2
-participant ":SemesterRepositoryImpl" as Impl
+
+### **Lưu ý**
+
+- Trong context REST API + Spring Boot, hầu hết đều là **synchronous** (`->`)
+- **Exception** cũng là reply message, dùng `-->>` với stereotype `<<throw>>`
+
+---
+
+## **4. Template Chuẩn**
+
+Copy đoạn code này làm khung cho mọi sequence diagram:
+
+```plantuml
+@startuml [feature_name]
+!theme plain
+hide footbox
+
+actor [ActorName]
+
+participant "«user interaction»\n:[UIComponent]" as UI
+participant "«control»\n:[Controller]" as Controller
+participant "«service»\n:[Service]" as Service
+participant "«database wrapper»\n:[Repository]" as Repository
+participant "«entity»\n:[Entity]" as Entity
+
+' === MAIN FLOW ===
+[ActorName] -> UI: [User action]
+activate UI
+
+UI -> Controller: [HTTP Method] [Endpoint]
+activate Controller
+
+Controller -> Service: [method(params)]
+activate Service
+
+' === VALIDATION ===
+alt [validation condition]
+    Service -->> Controller: <<throw>> [Exception]
+    Controller -->> UI: [HTTP Status]
+    UI -->> [ActorName]: [Error message]
+end
+
+' === DATABASE OPERATIONS ===
+Service -> Repository: [query method]
+activate Repository
+Repository -->> Service: [result]
+deactivate Repository
+
+' === CREATE/UPDATE ENTITY ===
+Service -> Entity: new [Entity](data)
+activate Entity
+Entity -->> Service: [entity]
+deactivate Entity
+
+Service -> Repository: save([entity])
+activate Repository
+Repository -->> Service: [savedEntity]
+deactivate Repository
+
+' === RESPONSE ===
+Service -->> Controller: [DTO]
+deactivate Service
+
+Controller -->> UI: [HTTP Status]
+deactivate Controller
+
+UI -->> [ActorName]: [Success message]
+deactivate UI
+
+@enduml
 ```
 
-#### **Lý do:**
+---
 
-- Architect chỉ quan tâm **Repository có khả năng gì** (search, count, save...).
-- **Không quan tâm** việc code implement bằng Spring Data JPA pattern hay custom query.
-- Tách interface là **implementation detail**, không phải **design decision**.
-
-#### **Ví dụ thực tế:**
-
-**❌ SAI (quá chi tiết):**
-```
-Service -> JpaRepository: findById(id)
-Service -> CustomRepository: search(request)
-Service -> CustomRepository: count(request)
-```
-
-**✅ ĐÚNG (đơn giản):**
-```
-Service -> Repository: findById(id)
-Service -> Repository: search(request)
-Service -> Repository: count(request)
-```
-
-## **4. Thông Điệp & Tương Tác (Messages)**
-
-### **A. Code Interaction (Controller -> Service -> Repo)**
-
-Giữ nguyên tên method nếu ngắn gọn.
-
-- **Call:** Service -> Repository: findByUsername(username)
-- **Return:** Repository --> Service: User Record (hoặc Optional<User>)
-
-### **B. Database Interaction (Repo -> DB)**
-
-Ưu tiên mô tả hành động logic.
-
-- **✅ ĐÚNG:**
-
-52. Repo -> DB: Query User by Username
-53. DB --> Repo: User Record
-
--
-- **❌ SAI (Quá kỹ thuật/Rối):**
-
-54. Repo -> DB: SELECT u.\* FROM users u WHERE u.username = ?
-55. DB --> Repo: ResultSet row 1
-
--
-
-### **C. Return Values**
-
-Không cần đúng cú pháp Java, chỉ cần người đọc hiểu trả về cái gì.
-
-- **✅ ĐÚNG:** Token, User Info, True/False, 200 OK
-- **❌ SAI:** ResponseEntity<TokenResponse>, java.lang.Boolean
-
-## **5. Cấu Trúc Logic (Logic Structures)**
+## **5. Cấu Trúc Logic**
 
 ### **A. Xử Lý Lỗi (Exceptions)**
 
-Sử dụng alt hoặc opt kết hợp với stereotype <<throw>>.
+Sử dụng `alt` với stereotype `<<throw>>`:
 
-56. alt User not found
-57.     Service -->> Controller: <<throw>> ResourceNotFoundException
-58.     Controller --> Client: 404 Not Found
-59. end
+```plantuml
+alt startDate >= endDate
+    Service -->> Controller: <<throw>> InvalidDateException
+    Controller -->> UI: 400 Bad Request
+    UI -->> [ActorName]: Show error message
+end
+```
 
-### **B. Logic Nội Bộ (Grouping) - QUAN TRỌNG**
+### **B. Điều kiện (Conditional)**
 
-#### **KHI NÀO DÙNG `group`**
+```plantuml
+alt [condition A]
+    ' Flow A
+else [condition B]
+    ' Flow B
+end
+```
 
-Dùng `group` **CHỈ KHI** gom nhiều external interactions (calls to other services/components) vào một sub-flow logic.
+### **C. Optional Flow**
 
-**✅ NÊN (Do) - Có nhiều external calls:**
+```plantuml
+opt [condition]
+    ' Optional flow
+end
+```
 
-```puml
+### **D. Vòng Lặp (Loops)**
+
+Mô tả ý nghĩa nghiệp vụ, không viết cú pháp code:
+
+```plantuml
+loop For each Student in Class
+    Service -> Repository: updateAttendance(studentId)
+end
+```
+
+### **E. Group - Khi nào dùng**
+
+**CHỈ DÙNG** khi gom nhiều **external calls** vào một sub-flow logic:
+
+```plantuml
+' ✅ ĐÚNG - Gom nhiều external calls
 group Token Generation
     Service -> TokenProvider: createAccessToken()
     Service -> TokenProvider: createRefreshToken()
     Service -> RedisCache: storeTokens()
 end
-```
 
-**Lý do:** Gom 3 external calls (TokenProvider x2, RedisCache) thành 1 logical unit.
-
----
-
-#### **KHI NÀO KHÔNG DÙNG `group`**
-
-**❌ KHÔNG NÊN (Don't) - Chỉ có self-calls:**
-
-```puml
-' SAI: Vẽ implementation details
+' ❌ SAI - Chỉ có self-calls (validation logic)
 group Business Rules Validation
     Service -> Service: validate date range
-    Service -> Service: check code uniqueness
-    Service -> Service: check name uniqueness
-    Service -> Service: check date overlap
-end
-```
-
-**Lý do:** Đây là **implementation detail** (code nội bộ), không phải design decision. Architect chỉ quan tâm "Service validate business rules", không quan tâm validate bao nhiêu rules.
-
-**✅ ĐÚNG - Bỏ group, dùng comment hoặc note:**
-
-```puml
-' Validation logic (internal)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request
-end
-```
-
-**HOẶC nếu cần làm rõ:**
-
-```puml
-note right of Service
-    Validate business rules:
-    date range, uniqueness, overlap
-end note
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
+    Service -> Service: check uniqueness
 end
 ```
 
 ---
 
-#### **So Sánh: Khi Nào Dùng vs Không Dùng**
+## **6. Quy Trình Vẽ Diagram**
 
-| Tình huống | Dùng `group`? | Lý do |
-|------------|---------------|-------|
-| **Multiple external calls** (Service → Provider, Cache, Queue) | ✅ CÓ | Gom sub-flow logic với external dependencies |
-| **Self-calls validation** (Service → Service x5) | ❌ KHÔNG | Implementation detail, không phải design |
-| **Single operation** (Service → Service: applyChanges) | ❌ KHÔNG | Thừa, chỉ là step trước save() |
-| **Loop with external calls** | ✅ CÓ (dùng `loop`) | Cần thể hiện iteration pattern |
-| **Conditional logic** | ❌ KHÔNG (dùng `alt`/`opt`) | Đã có cấu trúc branching rồi |
+### **Bước 1: Nghiên cứu Frontend**
+
+Scan codebase `frontend-web/` để xác định:
+
+- **Page component**: `app/admin/[feature]/page.tsx`
+- **Form/Dialog component**: `components/admin/[feature]/[feature]-form-dialog.tsx`
+- **API hooks**: `hooks/api/use[Feature].ts`
+- **User interactions**: Click, Submit, Input...
+
+### **Bước 2: Nghiên cứu Backend**
+
+Scan codebase `backend/src/main/java/com/fuacs/backend/` để xác định:
+
+- **Controller**: `controller/[Feature]Controller.java` → Endpoints, HTTP methods
+- **Service**: `service/[Feature]Service.java` → Business logic, validation rules
+- **Repository**: `repository/[Feature]Repository.java` → Database operations
+- **Entity**: `entity/[Feature].java` → Domain model
+- **DTOs**: `dto/request/`, `dto/response/` → Request/Response structures
+
+### **Bước 3: Xác định luồng chính**
+
+1. Actor là ai? (Admin, Lecturer, Student...)
+2. User action là gì? (Click button, Submit form...)
+3. API endpoint nào được gọi?
+4. Service method nào xử lý?
+5. Validation rules nào cần check?
+6. Database operations nào được thực hiện?
+7. Response trả về là gì?
+
+### **Bước 4: Vẽ diagram**
+
+1. Tạo file `sequence_diagram_[action]_[feature].puml`
+2. Copy template từ section 4
+3. Điền thông tin từ bước 1-3
+4. Thêm các `alt` blocks cho error handling
+5. Review theo checklist section 8
+
+### **Ví dụ quy trình cho Create Semester**
+
+```
+1. FE: app/admin/semesters/page.tsx
+   → SemesterFormDialog (components/admin/semesters/semester-form-dialog.tsx)
+   → useCreateSemester hook
+
+2. BE: SemesterController.create()
+   → SemesterService.create()
+   → Validations: date range, code unique, name unique, date overlap
+   → SemesterRepository.save()
+   → Return SemesterDTO
+
+3. Diagram: sequence_diagram_create_semester.puml
+```
 
 ---
 
-#### **Ví Dụ Thực Tế: Update Semester**
+## **7. Ví Dụ Tham Khảo**
 
-**❌ SAI (Over-engineering):**
+Xem các diagram mẫu của module Semester:
 
-```puml
-group Business Rules Validation
-    Service -> Service: validate date range (start < end)
-    Service -> Service: check code uniqueness (if changed)
-    Service -> Service: check name uniqueness (if changed)
-    Service -> Service: check date overlap (if changed)
-end
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-end
-
-group Update Semester
-    Service -> Service: apply changes to semester entity
-end
-
-Service -> Repository: save(semester)
-```
-
-**✅ ĐÚNG (High-level design):**
-
-```puml
-' Validation logic (internal)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Client: 400 Bad Request
-end
-
-Service -> Repository: save(semester)
-activate Repository
-Repository -> DB: Update Semester
-...
-```
-
-**Giải thích:**
-- Bỏ `group Business Rules Validation` → chỉ giữ `alt` cho error handling
-- Bỏ `group Update Semester` → thừa, giống như save() bên dưới
-- Kết quả: Gọn gàng, focus vào design flow, không rối bởi implementation details
+| Use Case | File |
+|----------|------|
+| View List | `08_create_semester/sequence_diagram_create_semester.puml` |
+| View List | `05_view_list_semester/sequence_diagram_view_list_semester.puml` |
+| View Details | `06_view_semester_details/sequence_diagram_view_semester_details.puml` |
+| Update | `07_update_semester/sequence_diagram_update_semester.puml` |
+| Delete | `09_delete_semester/sequence_diagram_delete_semester.puml` |
+| Import CSV | `10_import_csv_semester/sequence_diagram_import_csv_semester.puml` |
 
 ---
 
-### **C. Vòng Lặp (Loops) - MỚI**
+## **8. Checklist Trước Khi Commit**
 
-Đừng bê nguyên vòng for/while của code vào. Hãy mô tả ý nghĩa của việc lặp.
-
-#### **✅ NÊN (Do)**
-
-64. loop For each Student in Class
-65.     Service -> Repository: calculateGPA(studentId)
-66. end
-
-#### **❌ KHÔNG NÊN (Don't)**
-
-- Ghi cú pháp code: loop for (int i = 0; i < students.size(); i++).
-
-## **6. Checklist Trước Khi Commit**
-
-1. [ ] **Visual:** Database có phải là hình chữ nhật (participant) không? (Không dùng hình trụ).
-2. [ ] **Flow:** Database query có dễ đọc không? (Tránh SQL dài).
-3. [ ] **Repository:** Chỉ có 1 Repository participant chưa? Đã gộp Custom + Impl vào 1 participant chưa?
-4. [ ] **Group Usage:** `group` chỉ dùng cho external calls, KHÔNG dùng cho self-calls validation hay single operations.
-5. [ ] **Over-Engineering:** Đã bỏ các `group` cho validation logic (Service -> Service) chưa? Chỉ giữ `alt`/`opt` cho branching.
-6. [ ] **Logic:** Vòng lặp (loop) có mô tả nghiệp vụ thay vì cú pháp code không?
-7. [ ] **Naming:** Tên file có đúng format sequence_diagram\_[feature].puml không?
+- [ ] **Stereotypes**: Tất cả participants có stereotype đúng (`«user interaction»`, `«control»`, `«service»`, `«database wrapper»`, `«entity»`)
+- [ ] **Không có Database lane**: Repository là đại diện cho DB
+- [ ] **Arrow types đúng**: `->` cho calls, `-->>` cho replies
+- [ ] **Exception handling**: Dùng `<<throw>>` stereotype
+- [ ] **Naming**: File đặt tên `sequence_diagram_[feature].puml`
+- [ ] **Flow đầy đủ**: Actor → UI → Controller → Service → Repository → Entity
