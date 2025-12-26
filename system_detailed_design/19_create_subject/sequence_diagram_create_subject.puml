@@ -2,41 +2,86 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SubjectController" as Controller
-participant ":SubjectService" as Service
-participant ":SubjectRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/subjects
+participant "«user interaction»\n:SubjectFormDialog" as UI
+participant "«control»\n:SubjectController" as Controller
+participant "«service»\n:SubjectService" as Service
+participant "«database wrapper»\n:SubjectRepository" as Repository
+participant "«database wrapper»\n:MajorRepository" as MajorRepository
+participant "«entity»\n:Subject" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Subject"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input subject data\n(name, code, majorIds)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/subjects
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: code/name uniqueness, major validation)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-Service -> Repository: save(subject)
+' === VALIDATION: CODE UNIQUE ===
+Service -> Repository: existsByCode(code)
 activate Repository
-
-Repository -> DB: Insert New Subject with Majors
-activate DB
-DB --> Repository: Saved Subject
-deactivate DB
-
-Repository --> Service: Subject
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Subject
+alt Code exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: MAJOR IDS ===
+alt majorIds is empty
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"At least one major must be specified"
+end
+
+' === LOOKUP MAJORS ===
+Service -> MajorRepository: findByIdIn(majorIds)
+activate MajorRepository
+MajorRepository -->> Service: List<Major>
+deactivate MajorRepository
+
+alt Major not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+alt Major is inactive
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"Cannot assign to inactive major"
+end
+
+' === CREATE ENTITY ===
+Service -> Entity: new Subject(request)
+activate Entity
+Entity -->> Service: subject
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(subject)
+activate Repository
+Repository -->> Service: savedSubject
+deactivate Repository
+
+Service -->> Controller: SubjectDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

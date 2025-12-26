@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SubjectController" as Controller
-participant ":SubjectService" as Service
-participant ":SubjectRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/subjects/{id}
+participant "«user interaction»\n:SubjectFormDialog" as UI
+participant "«control»\n:SubjectController" as Controller
+participant "«service»\n:SubjectService" as Service
+participant "«database wrapper»\n:SubjectRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Edit" on subject row
+activate UI
+
+UI -> Controller: GET /api/v1/subjects/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,25 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Subject by ID with Majors
-activate DB
-DB --> Repository: Subject Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Subject>
+Repository -->> Service: Optional<Subject>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Subject not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-Service --> Controller: Subject
+Service -->> Controller: SubjectDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display subject details\nin edit form
+deactivate UI
 
 @enduml

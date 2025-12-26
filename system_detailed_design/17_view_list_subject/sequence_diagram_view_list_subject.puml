@@ -2,55 +2,48 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SubjectController" as Controller
-participant ":SubjectService" as Service
-participant ":SubjectRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/subjects
+participant "«user interaction»\n:SubjectsPage" as UI
+participant "«control»\n:SubjectController" as Controller
+participant "«service»\n:SubjectService" as Service
+participant "«database wrapper»\n:SubjectRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Navigate to Subjects page
+activate UI
+
+UI -> UI: Initialize filters\n(search, sort, pagination, majorId)
+
+UI -> Controller: GET /api/v1/subjects?page=1&pageSize=10&...
 activate Controller
 
 Controller -> Service: search(request)
 activate Service
 
-' --- SEARCH QUERY ---
 Service -> Repository: search(request)
 activate Repository
-
-Repository -> DB: Query Subjects with Filters and Pagination
-activate DB
-DB --> Repository: Subject List with Majors
-deactivate DB
-
-Repository --> Service: List<Subject>
+Repository -->> Service: List<SubjectDTO>
 deactivate Repository
 
-Service --> Controller: List<Subject>
+Service -->> Controller: List<SubjectDTO>
 deactivate Service
 
-' --- COUNT QUERY ---
 Controller -> Service: count(request)
 activate Service
 
 Service -> Repository: count(request)
 activate Repository
-
-Repository -> DB: Count Total Subjects
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: Long
 deactivate Repository
 
-Service --> Controller: Long
+Service -->> Controller: Long
 deactivate Service
 
-' Build paging response (internal)
-
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display subject table\nwith pagination
+deactivate UI
 
 @enduml

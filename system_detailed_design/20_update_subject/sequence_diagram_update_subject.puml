@@ -2,58 +2,94 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SubjectController" as Controller
-participant ":SubjectService" as Service
-participant ":SubjectRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/subjects/{id}
+participant "«user interaction»\n:SubjectFormDialog" as UI
+participant "«control»\n:SubjectController" as Controller
+participant "«service»\n:SubjectService" as Service
+participant "«database wrapper»\n:SubjectRepository" as Repository
+participant "«database wrapper»\n:MajorRepository" as MajorRepository
+participant "«entity»\n:Subject" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Edit subject data\n(name, code, majorIds, isActive)
+activate UI
+
+DataOperator -> UI: Submit form
+UI -> Controller: PUT /api/v1/subjects/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Subject by ID
-activate DB
-DB --> Repository: Subject Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Subject>
+Repository -->> Service: Optional<Subject>
 deactivate Repository
 
 alt Subject not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: code/name uniqueness, major validation)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-Service -> Repository: save(subject)
+' === VALIDATION: CODE UNIQUE ===
+Service -> Repository: existsByCode(code)
 activate Repository
-
-Repository -> DB: Update Subject with Majors
-activate DB
-DB --> Repository: Updated Subject
-deactivate DB
-
-Repository --> Service: Subject
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Subject
+alt Code exists (different from current)
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: MAJOR IDS ===
+alt majorIds is empty
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"At least one major must be specified"
+end
+
+' === LOOKUP MAJORS ===
+Service -> MajorRepository: findByIdIn(majorIds)
+activate MajorRepository
+MajorRepository -->> Service: List<Major>
+deactivate MajorRepository
+
+alt Major not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+alt Major is inactive
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"Cannot assign to inactive major"
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: updateFromRequest(request)
+activate Entity
+Entity -->> Service: subject
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(subject)
+activate Repository
+Repository -->> Service: savedSubject
+deactivate Repository
+
+Service -->> Controller: SubjectDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml
