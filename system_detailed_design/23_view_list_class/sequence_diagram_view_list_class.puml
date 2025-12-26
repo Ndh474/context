@@ -2,55 +2,48 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/classes
+participant "«user interaction»\n:ClassesPage" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Navigate to Classes page
+activate UI
+
+UI -> UI: Initialize filters\n(search, sort, pagination, semesterId, subjectId)
+
+UI -> Controller: GET /api/v1/classes?page=1&pageSize=10&...
 activate Controller
 
 Controller -> Service: search(request)
 activate Service
 
-' --- SEARCH QUERY ---
 Service -> Repository: search(request)
 activate Repository
-
-Repository -> DB: Query Classes with Subject, Semester, Filters and Pagination
-activate DB
-DB --> Repository: Class List
-deactivate DB
-
-Repository --> Service: List<Class>
+Repository -->> Service: List<ClassDTO>
 deactivate Repository
 
-Service --> Controller: List<Class>
+Service -->> Controller: List<ClassDTO>
 deactivate Service
 
-' --- COUNT QUERY ---
 Controller -> Service: count(request)
 activate Service
 
 Service -> Repository: count(request)
 activate Repository
-
-Repository -> DB: Count Total Classes
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: Long
 deactivate Repository
 
-Service --> Controller: Long
+Service -->> Controller: Long
 deactivate Service
 
-' Build paging response (internal)
-
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display class table\nwith pagination
+deactivate UI
 
 @enduml

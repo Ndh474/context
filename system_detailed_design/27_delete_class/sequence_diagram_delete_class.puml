@@ -2,66 +2,83 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: DELETE /api/v1/classes/{id}
+participant "«user interaction»\n:DeleteClassDialog" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Delete" button
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+DataOperator -> UI: Confirm delete
+UI -> Controller: DELETE /api/v1/classes/{id}
 activate Controller
 
 Controller -> Service: delete(id)
 activate Service
 
-' --- FIND EXISTING ---
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Class by ID
-activate DB
-DB --> Repository: Class Record / Null
-deactivate DB
-
-Repository --> Service: Optional<AcademicClass>
+Repository -->> Service: Optional<AcademicClass>
 deactivate Repository
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: check slots/students count)
+' === CHECK SLOTS ===
+Service -> Repository: countAllSlotsByClassId(id)
+activate Repository
+Repository -->> Service: Long
+deactivate Repository
 
-alt Has dependencies
+alt Has slots
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message\n"Cannot delete class with slots"
 end
 
+' === CHECK ENROLLMENTS ===
+Service -> Repository: countAllStudentsByClassId(id)
+activate Repository
+Repository -->> Service: Long
+deactivate Repository
+
+alt Has enrollments
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message\n"Cannot delete class with enrollments"
+end
+
+' === DELETE OPERATION ===
 Service -> Repository: deleteById(id)
 activate Repository
 
-Repository -> DB: Delete Class by ID
-activate DB
-
 alt Foreign key constraint violation
-    DB -->> Repository: <<throw>> DataIntegrityViolationException
     Repository -->> Service: <<throw>> DataIntegrityViolationException
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message
 end
 
-DB --> Repository: Success
-deactivate DB
-
-Repository --> Service: void
+Repository -->> Service: void
 deactivate Repository
 
-Service --> Controller: Success
+Service -->> Controller: void
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

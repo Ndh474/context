@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/classes/{id}
+participant "«user interaction»\n:ClassFormDialog" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Edit" on class row
+activate UI
+
+UI -> Controller: GET /api/v1/classes/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,27 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Class by ID with Subject and Semester
-activate DB
-DB --> Repository: Class Record / Null
-deactivate DB
-
-Repository --> Service: Optional<AcademicClass>
+Repository -->> Service: Optional<AcademicClass>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Count queries (internal: students, slots)
-
-Service --> Controller: Class
+Service -->> Controller: ClassDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display class details\nin edit form
+deactivate UI
 
 @enduml

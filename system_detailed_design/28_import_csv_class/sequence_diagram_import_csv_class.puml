@@ -2,80 +2,102 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/classes/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+participant "«database wrapper»\n:SubjectRepository" as SubjectRepository
+participant "«database wrapper»\n:SemesterRepository" as SemesterRepository
+participant "«entity»\n:AcademicClass" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+
+DataOperator -> UI: Select CSV file & import mode
+
+DataOperator -> UI: Submit
+UI -> Controller: POST /api/v1/classes/import\n(file, mode)
 activate Controller
 
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
+alt File is empty
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' --- CSV PARSING ---
-Service -> CsvParser: parseClassCsv(file)
-activate CsvParser
-
+' === PARSE CSV ===
 alt CSV parsing fails
-    CsvParser -->> Service: <<throw>> Exception
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-CsvParser --> Service: List<ClassCsvRow>
-deactivate CsvParser
-
-' CSV deduplication (internal)
-
-' --- BATCH PROCESSING LOOP ---
+' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' Row validation (internal: subject/semester validation, code uniqueness)
+    ' === LOOKUP SUBJECT BY CODE ===
+    Service -> SubjectRepository: findByCode(subjectCode)
+    activate SubjectRepository
+    SubjectRepository -->> Service: Subject / null
+    deactivate SubjectRepository
+
+    alt Subject not found
+        Service -> Service: Collect error, continue
+    end
+
+    ' === LOOKUP SEMESTER BY CODE ===
+    Service -> SemesterRepository: findByCode(semesterCode)
+    activate SemesterRepository
+    SemesterRepository -->> Service: Semester / null
+    deactivate SemesterRepository
+
+    alt Semester not found
+        Service -> Service: Collect error, continue
+    end
 
     Service -> Repository: findByCodeAndSubjectIdAndSemesterId(code, subjectId, semesterId)
     activate Repository
-
-    Repository -> DB: Query Class by Code, Subject, Semester
-    activate DB
-    DB --> Repository: Class / Null
-    deactivate DB
-
-    Repository --> Service: AcademicClass
+    Repository -->> Service: AcademicClass / null
     deactivate Repository
 
-    ' Business logic: create or update based on mode (internal)
+    alt Row validation fails
+        Service -> Service: Collect error, continue
+    else Create new class
+        Service -> Entity: new AcademicClass(row)
+        activate Entity
+        Entity -->> Service: academicClass
+        deactivate Entity
 
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
-        Service -> Repository: save(class)
+        Service -> Repository: save(academicClass)
         activate Repository
+        Repository -->> Service: savedClass
+        deactivate Repository
+    else Update existing class
+        Service -> Entity: updateFromRow(row)
+        activate Entity
+        Entity -->> Service: academicClass
+        deactivate Entity
 
-        Repository -> DB: Insert or Update Class
-        activate DB
-        DB --> Repository: Saved Class
-        deactivate DB
-
-        Repository --> Service: AcademicClass
+        Service -> Repository: save(academicClass)
+        activate Repository
+        Repository -->> Service: savedClass
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: Import Result
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml

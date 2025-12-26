@@ -2,58 +2,113 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/classes/{id}
+participant "«user interaction»\n:ClassFormDialog" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+participant "«database wrapper»\n:SubjectRepository" as SubjectRepository
+participant "«database wrapper»\n:SemesterRepository" as SemesterRepository
+participant "«entity»\n:AcademicClass" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Edit class data\n(code, subjectId, semesterId, isActive)
+activate UI
+
+DataOperator -> UI: Submit form
+UI -> Controller: PUT /api/v1/classes/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Class by ID
-activate DB
-DB --> Repository: Class Record / Null
-deactivate DB
-
-Repository --> Service: Optional<AcademicClass>
+Repository -->> Service: Optional<AcademicClass>
 deactivate Repository
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: code uniqueness, subject/semester validation, deactivation check)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-Service -> Repository: save(class)
+' === VALIDATION: UNIQUE CONSTRAINT ===
+Service -> Repository: existsByCodeAndSubjectIdAndSemesterIdAndIdNot(code, subjectId, semesterId, id)
 activate Repository
-
-Repository -> DB: Update Class
-activate DB
-DB --> Repository: Updated Class
-deactivate DB
-
-Repository --> Service: AcademicClass
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Class
+alt Class already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === LOOKUP SUBJECT ===
+Service -> SubjectRepository: findById(subjectId)
+activate SubjectRepository
+SubjectRepository -->> Service: Optional<Subject>
+deactivate SubjectRepository
+
+alt Subject not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+' === LOOKUP SEMESTER ===
+Service -> SemesterRepository: findById(semesterId)
+activate SemesterRepository
+SemesterRepository -->> Service: Optional<Semester>
+deactivate SemesterRepository
+
+alt Semester not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+' === CHECK ACTIVE STATUS ===
+alt Subject or Semester is inactive
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"Cannot update class with inactive subject/semester"
+end
+
+' === DEACTIVATION CHECK ===
+alt Deactivating class with unfinished slots
+    Service -> Repository: findLastActiveSlotEndTimeByClassId(id)
+    activate Repository
+    Repository -->> Service: LocalDateTime
+    deactivate Repository
+
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message\n"Cannot deactivate class that hasn't finished"
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: updateFromRequest(request)
+activate Entity
+Entity -->> Service: academicClass
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(academicClass)
+activate Repository
+Repository -->> Service: savedClass
+deactivate Repository
+
+Service -->> Controller: ClassDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

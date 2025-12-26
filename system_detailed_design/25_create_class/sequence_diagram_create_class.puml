@@ -2,41 +2,93 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as Service
-participant ":ClassRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/classes
+participant "«user interaction»\n:ClassFormDialog" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as Service
+participant "«database wrapper»\n:ClassRepository" as Repository
+participant "«database wrapper»\n:SubjectRepository" as SubjectRepository
+participant "«database wrapper»\n:SemesterRepository" as SemesterRepository
+participant "«entity»\n:AcademicClass" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Class"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input class data\n(code, subjectId, semesterId)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/classes
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: code uniqueness, subject/semester validation)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
-end
-
-Service -> Repository: save(class)
+' === VALIDATION: UNIQUE CONSTRAINT ===
+Service -> Repository: existsByCodeAndSubjectIdAndSemesterId(code, subjectId, semesterId)
 activate Repository
-
-Repository -> DB: Insert New Class
-activate DB
-DB --> Repository: Saved Class
-deactivate DB
-
-Repository --> Service: AcademicClass
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Class
+alt Class already exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
+end
+
+' === LOOKUP SUBJECT ===
+Service -> SubjectRepository: findById(subjectId)
+activate SubjectRepository
+SubjectRepository -->> Service: Optional<Subject>
+deactivate SubjectRepository
+
+alt Subject not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+' === LOOKUP SEMESTER ===
+Service -> SemesterRepository: findById(semesterId)
+activate SemesterRepository
+SemesterRepository -->> Service: Optional<Semester>
+deactivate SemesterRepository
+
+alt Semester not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+' === CHECK ACTIVE STATUS ===
+alt Subject or Semester is inactive
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message\n"Cannot create class with inactive subject/semester"
+end
+
+' === CREATE ENTITY ===
+Service -> Entity: new AcademicClass(request)
+activate Entity
+Entity -->> Service: academicClass
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(academicClass)
+activate Repository
+Repository -->> Service: savedClass
+deactivate Repository
+
+Service -->> Controller: ClassDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml
