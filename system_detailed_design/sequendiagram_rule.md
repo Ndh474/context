@@ -274,22 +274,59 @@ Scan codebase `backend/src/main/java/com/fuacs/backend/` để xác định:
 
 Xem các diagram mẫu của module Semester:
 
-| Use Case | File |
-|----------|------|
-| View List | `08_create_semester/sequence_diagram_create_semester.puml` |
-| View List | `05_view_list_semester/sequence_diagram_view_list_semester.puml` |
+| Use Case     | File                                                                   |
+| ------------ | ---------------------------------------------------------------------- |
+| View List    | `08_create_semester/sequence_diagram_create_semester.puml`             |
+| View List    | `05_view_list_semester/sequence_diagram_view_list_semester.puml`       |
 | View Details | `06_view_semester_details/sequence_diagram_view_semester_details.puml` |
-| Update | `07_update_semester/sequence_diagram_update_semester.puml` |
-| Delete | `09_delete_semester/sequence_diagram_delete_semester.puml` |
-| Import CSV | `10_import_csv_semester/sequence_diagram_import_csv_semester.puml` |
+| Update       | `07_update_semester/sequence_diagram_update_semester.puml`             |
+| Delete       | `09_delete_semester/sequence_diagram_delete_semester.puml`             |
+| Import CSV   | `10_import_csv_semester/sequence_diagram_import_csv_semester.puml`     |
 
 ---
 
 ## **8. Checklist Trước Khi Commit**
 
-- [ ] **Stereotypes**: Tất cả participants có stereotype đúng (`«user interaction»`, `«control»`, `«service»`, `«database wrapper»`, `«entity»`)
-- [ ] **Không có Database lane**: Repository là đại diện cho DB
-- [ ] **Arrow types đúng**: `->` cho calls, `-->>` cho replies
-- [ ] **Exception handling**: Dùng `<<throw>>` stereotype
-- [ ] **Naming**: File đặt tên `sequence_diagram_[feature].puml`
 - [ ] **Flow đầy đủ**: Actor → UI → Controller → Service → Repository → Entity
+
+---
+
+## **9. Quy Tắc Đồng Bộ (Class vs Sequence Consistency)**
+
+### **Nguyên tắc "1-1 Mapping"**
+
+Sequence Diagram và Class Diagram phải nhất quán về các thành phần tham gia (Participants).
+
+1.  **Class Diagram là "Luật"**: Nếu Class Diagram của Feature đó KHÔNG vẽ mối quan hệ với một Repository/Service khác (ví dụ: `ClassService` không có dây nối sang `SubjectRepository`), thì Sequence Diagram cũng **KHÔNG ĐƯỢC** vẽ participant đó.
+2.  **Ẩn chi tiết Implementation**:
+    - Trong code thực tế, `ClassService` có thể gọi `SubjectRepository` để check tồn tại.
+    - Nhưng nếu Class Diagram muốn ẩn chi tiết này (để gọn), Sequence Diagram phải tuân thủ bằng cách dùng **Internal Call**.
+
+### **Ví dụ minh họa**
+
+**Code thực tế:**
+
+```java
+class ClassService {
+    create() {
+        subjectRepo.findById(); // Dependency
+        semesterRepo.findById(); // Dependency
+        classRepo.save();
+    }
+}
+```
+
+**Class Diagram (Design):**
+Chỉ vẽ: `ClassService` --> `ClassRepository`. (Ẩn SubjectRepo/SemesterRepo).
+
+**Sequence Diagram (ĐÚNG):**
+
+```plantuml
+' ❌ SAI: Vẽ SubjectRepository tham gia vào flow
+' Service -> SubjectRepository: findById()
+
+' ✅ ĐÚNG: Ẩn vào internal call
+Service -> Service: validateAndGetReferences(subjectId, semesterId)
+note right: Check Subject/Semester existence
+Service -> ClassRepository: save()
+```

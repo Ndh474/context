@@ -7,9 +7,8 @@ actor "Data Operator" as DataOperator
 participant "«user interaction»\n:GenericImportDialog" as UI
 participant "«control»\n:ClassController" as Controller
 participant "«service»\n:ClassService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
 participant "«database wrapper»\n:ClassRepository" as Repository
-participant "«database wrapper»\n:SubjectRepository" as SubjectRepository
-participant "«database wrapper»\n:SemesterRepository" as SemesterRepository
 participant "«entity»\n:AcademicClass" as Entity
 
 ' === MAIN FLOW ===
@@ -33,6 +32,11 @@ Controller -> Service: importFromCsv(file, mode)
 activate Service
 
 ' === PARSE CSV ===
+Service -> CsvParser: parseClassCsv(file)
+activate CsvParser
+CsvParser -->> Service: List<Row>
+deactivate CsvParser
+
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
     Controller -->> UI: 400 Bad Request
@@ -41,23 +45,10 @@ end
 
 ' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' === LOOKUP SUBJECT BY CODE ===
-    Service -> SubjectRepository: findByCode(subjectCode)
-    activate SubjectRepository
-    SubjectRepository -->> Service: Subject / null
-    deactivate SubjectRepository
-
-    alt Subject not found
-        Service -> Service: Collect error, continue
-    end
-
-    ' === LOOKUP SEMESTER BY CODE ===
-    Service -> SemesterRepository: findByCode(semesterCode)
-    activate SemesterRepository
-    SemesterRepository -->> Service: Semester / null
-    deactivate SemesterRepository
-
-    alt Semester not found
+    ' === LOOKUP REFERENCES (Internal) ===
+    Service -> Service: validateAndGetReferences(subjectCode, semesterCode)
+    
+    alt References not found
         Service -> Service: Collect error, continue
     end
 

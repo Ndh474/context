@@ -8,7 +8,6 @@ participant "«user interaction»\n:SubjectFormDialog" as UI
 participant "«control»\n:SubjectController" as Controller
 participant "«service»\n:SubjectService" as Service
 participant "«database wrapper»\n:SubjectRepository" as Repository
-participant "«database wrapper»\n:MajorRepository" as MajorRepository
 participant "«entity»\n:Subject" as Entity
 
 ' === MAIN FLOW ===
@@ -45,23 +44,9 @@ alt majorIds is empty
     UI -->> DataOperator: Show error message\n"At least one major must be specified"
 end
 
-' === LOOKUP MAJORS ===
-Service -> MajorRepository: findByIdIn(majorIds)
-activate MajorRepository
-MajorRepository -->> Service: List<Major>
-deactivate MajorRepository
-
-alt Major not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller -->> UI: 404 Not Found
-    UI -->> DataOperator: Show error message
-end
-
-alt Major is inactive
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller -->> UI: 400 Bad Request
-    UI -->> DataOperator: Show error message\n"Cannot assign to inactive major"
-end
+' === LOOKUP MAJORS (Internal) ===
+Service -> Service: validateAndGetMajors(majorIds)
+' (Omitted interactions with MajorRepository for simplicity)
 
 ' === CREATE ENTITY ===
 Service -> Entity: new Subject(request)

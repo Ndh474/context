@@ -2,66 +2,65 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: DELETE /api/v1/slots/{id}
+participant "«user interaction»\n:DeleteSlotDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Delete" on a slot
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+DataOperator -> UI: Click "Confirm"
+
+UI -> Controller: DELETE /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: delete(id)
 activate Service
 
-' --- FIND SLOT ---
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Slot by ID
-activate DB
-DB --> Repository: Slot / Null
-deactivate DB
-
-Repository --> Service: Optional<Slot>
+Repository -->> Service: Optional<Slot>
 deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
 end
 
-' Validation logic (internal: slot started check, attendance records check, delete NOT_YET records)
+' === VALIDATION ===
+Service -> Entity: getSessionStatus()
+activate Entity
+Entity -->> Service: status
+deactivate Entity
 
-alt Has dependencies or constraints
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+alt Slot already started
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
 end
 
+' === CLEANUP (Internal) ===
+Service -> Service: cleanupAssociatedRecords(id)
+' (Omitted cascading delete of attendance records for simplicity)
+
+' === DELETE ===
 Service -> Repository: deleteById(id)
 activate Repository
-
-Repository -> DB: Delete Slot by ID
-activate DB
-
-alt Foreign key constraint violation
-    DB -->> SlotRepo: <<throw>> DataIntegrityViolationException
-    SlotRepo -->> Service: <<throw>> DataIntegrityViolationException
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
-DB --> Repository: Success
-deactivate DB
-
-Repository --> Service: void
 deactivate Repository
 
-Service --> Controller: Success
+Service -->> Controller: void
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Close dialog\nRemove slot from list
+deactivate UI
 
 @enduml

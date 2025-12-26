@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/slots/{id}
+participant "«user interaction»\n:SlotFormDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "View Details" on a slot
+activate UI
+
+UI -> Controller: GET /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,24 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Slot by ID
-activate DB
-DB --> Repository: Slot / Null
-deactivate DB
-
-Repository --> Service: Optional<Slot>
+Repository -->> Service: Optional<Slot>
 deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-Service --> Controller: Slot
+Service -->> Controller: SlotDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Open dialog with slot data
+deactivate UI
 
 @enduml

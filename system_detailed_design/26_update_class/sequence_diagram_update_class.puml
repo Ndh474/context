@@ -8,8 +8,6 @@ participant "«user interaction»\n:ClassFormDialog" as UI
 participant "«control»\n:ClassController" as Controller
 participant "«service»\n:ClassService" as Service
 participant "«database wrapper»\n:ClassRepository" as Repository
-participant "«database wrapper»\n:SubjectRepository" as SubjectRepository
-participant "«database wrapper»\n:SemesterRepository" as SemesterRepository
 participant "«entity»\n:AcademicClass" as Entity
 
 ' === MAIN FLOW ===
@@ -47,29 +45,9 @@ alt Class already exists
     UI -->> DataOperator: Show error message
 end
 
-' === LOOKUP SUBJECT ===
-Service -> SubjectRepository: findById(subjectId)
-activate SubjectRepository
-SubjectRepository -->> Service: Optional<Subject>
-deactivate SubjectRepository
-
-alt Subject not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller -->> UI: 404 Not Found
-    UI -->> DataOperator: Show error message
-end
-
-' === LOOKUP SEMESTER ===
-Service -> SemesterRepository: findById(semesterId)
-activate SemesterRepository
-SemesterRepository -->> Service: Optional<Semester>
-deactivate SemesterRepository
-
-alt Semester not found
-    Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller -->> UI: 404 Not Found
-    UI -->> DataOperator: Show error message
-end
+' === LOOKUP REFERENCES (Internal) ===
+Service -> Service: validateAndGetSubjectAndSemester(subjectId, semesterId)
+' (Omitted interactions with other repositories for simplicity)
 
 ' === CHECK ACTIVE STATUS ===
 alt Subject or Semester is inactive

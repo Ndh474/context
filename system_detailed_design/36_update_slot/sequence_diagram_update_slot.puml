@@ -2,58 +2,85 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/slots/{id}
+participant "«user interaction»\n:SlotFormDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Edit" on a slot
+activate UI
+
+UI -> UI: Open form with pre-filled data
+
+DataOperator -> UI: Modify details\n(e.g., room, staff)
+DataOperator -> UI: Click "Save"
+
+UI -> Controller: PUT /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
-' --- FIND EXISTING ---
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Slot by ID
-activate DB
-DB --> Repository: Slot / Null
-deactivate DB
-
-Repository --> Service: Optional<Slot>
+Repository -->> Service: Optional<Slot>
 deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
 end
 
-' Validation logic (internal: time range, conflicts, deactivation constraints, attendance checks, subjects for exam)
+' === VALIDATIONS ===
+Service -> Entity: getSessionStatus()
+activate Entity
+Entity -->> Service: status
+deactivate Entity
 
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 403 Forbidden
+alt Slot has ended (LIMITED EDIT)
+    Service -> Service: validateActiveStatusUpdateOnly()
+else Slot ongoing (VIEW ONLY)
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
 end
 
-Service -> Repository: save(slot)
+' === CONFLICT CHECKS (If time/room changed) ===
+Service -> Repository: existsByRoomAndTimeRange(...)
 activate Repository
-
-Repository -> DB: Update Slot
-activate DB
-DB --> Repository: Updated Slot
-deactivate DB
-
-Repository --> Service: Slot
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: Slot
+alt Room conflict
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: setTitle(...)
+activate Entity
+deactivate Entity
+Service -> Entity: setDescription(...)
+activate Entity
+deactivate Entity
+' (Other setters omitted)
+
+' === SAVE ===
+Service -> Repository: save(slot)
+activate Repository
+Repository -->> Service: savedSlot
+deactivate Repository
+
+Service -->> Controller: SlotDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nRefresh list
+deactivate UI
 
 @enduml

@@ -2,75 +2,81 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/slots/import
+participant "«user interaction»\n:ImportSlotsDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:SlotRepository" as Repository
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Select CSV file & Mode\n(AddOnly/AddAndUpdate)
+activate UI
+
+DataOperator -> UI: Click "Import"
+
+UI -> Controller: POST /api/v1/slots/import
 activate Controller
-
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
-end
 
 Controller -> Service: importFromCsv(file, mode)
-activate Controller
+activate Service
 
-' Mode validation (internal)
-
-alt Invalid import mode
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- PARSE CSV ---
-Service -> CsvParser: parseSlotCsv(file)
+' === PARSE CSV ===
+Service -> CsvParser: parse(file, SlotImportDTO.class)
 activate CsvParser
-
-CsvParser --> Service: List<SlotCsvRow>
+CsvParser -->> Service: List<SlotImportDTO>
 deactivate CsvParser
 
-alt CSV parsing fails
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' CSV deduplication (internal)
-
-' --- BATCH PROCESSING LOOP ---
-loop For each unique CSV row
-    ' Row validation (internal: semester/room/staff/class validation, time conflicts)
-
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
-        Service -> Repository: save(slot)
-        activate Repository
-
-        Repository -> DB: Insert New Slot
-        activate DB
-        DB --> Repository: Saved Slot
-        deactivate DB
-
-        Repository --> Service: Slot
-        deactivate Repository
-
-        ' Create initial attendance records (internal)
+' === PROCESS LOOP ===
+loop For each row
+    Service -> Service: validateRow(row)
+    
+    ' Check existence
+    Service -> Repository: findByCriteria(...)
+    activate Repository
+    Repository -->> Service: Optional<Slot>
+    deactivate Repository
+    
+    alt Slot exists
+        alt Mode = AddAndUpdate
+             Service -> Entity: update fields
+             activate Entity
+             deactivate Entity
+             Service -> Repository: save(slot)
+             activate Repository
+             deactivate Repository
+        else Mode = AddOnly
+             Service -> Service: skip
+        end
+    else New Slot
+        Service -> Service: validateReferences(classCode, roomName, username)
+        
+        alt All references found
+            Service -> Entity: new Slot(data)
+            activate Entity
+            Entity -->> Service: slot
+            deactivate Entity
+            
+            Service -> Repository: save(slot)
+            activate Repository
+            deactivate Repository
+            
+            Service -> Service: createInitialAttendanceRecords(slot)
+        else Missing reference
+            Service -> Service: recordError("Reference not found")
+        end
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: Import Result
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK (Result summary)
 deactivate Controller
+
+UI -->> DataOperator: Show success/failure statistics
+deactivate UI
 
 @enduml

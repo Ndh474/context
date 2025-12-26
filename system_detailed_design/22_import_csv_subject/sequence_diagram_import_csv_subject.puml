@@ -7,8 +7,8 @@ actor "Data Operator" as DataOperator
 participant "«user interaction»\n:GenericImportDialog" as UI
 participant "«control»\n:SubjectController" as Controller
 participant "«service»\n:SubjectService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
 participant "«database wrapper»\n:SubjectRepository" as Repository
-participant "«database wrapper»\n:MajorRepository" as MajorRepository
 participant "«entity»\n:Subject" as Entity
 
 ' === MAIN FLOW ===
@@ -32,6 +32,11 @@ Controller -> Service: importFromCsv(file, mode)
 activate Service
 
 ' === PARSE CSV ===
+Service -> CsvParser: parseSubjectCsv(file)
+activate CsvParser
+CsvParser -->> Service: List<Row>
+deactivate CsvParser
+
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
     Controller -->> UI: 400 Bad Request
@@ -40,12 +45,9 @@ end
 
 ' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' === LOOKUP MAJORS BY CODE ===
-    Service -> MajorRepository: findByCode(majorCode)
-    activate MajorRepository
-    MajorRepository -->> Service: Major / null
-    deactivate MajorRepository
-
+    ' === LOOKUP MAJORS (Internal) ===
+    Service -> Service: validateAndGetMajor(majorCode)
+    
     alt Major not found or inactive
         Service -> Service: Collect error, continue
     end

@@ -2,43 +2,82 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/slots
+participant "«user interaction»\n:SlotFormDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Slot"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input slot data\n(time, class/semester, room, staff)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/slots
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: time range, category, conflicts, semester/class/room/staff validation, subjects for exam)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found
+' === VALIDATIONS ===
+alt End time <= Start time
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
 end
 
-Service -> Repository: save(slot)
+Service -> Repository: existsByRoomAndTimeRange(roomId, ...)
 activate Repository
-
-Repository -> DB: Insert New Slot
-activate DB
-DB --> Repository: Saved Slot
-deactivate DB
-
-Repository --> Service: Slot
+Repository -->> Service: Boolean
 deactivate Repository
 
-' Create initial attendance records (internal)
+alt Room conflict
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
+end
 
-Service --> Controller: Slot
+Service -> Repository: existsByStaffAndTimeRange(staffId, ...)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt Staff conflict
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
+end
+
+' === LOOKUP REFERENCES (Internal) ===
+Service -> Service: validateAndGetReferences(semesterId, classId, roomId, staffId)
+' (Omitted interactions with other repositories for simplicity)
+
+' === CREATE ENTITY ===
+Service -> Entity: new Slot(data)
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(slot)
+activate Repository
+Repository -->> Service: savedSlot
+deactivate Repository
+
+' === ATTENDANCE GENERATION ===
+Service -> Service: createInitialAttendanceRecords(savedSlot)
+' (Internal method call details omitted)
+
+Service -->> Controller: SlotDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml
