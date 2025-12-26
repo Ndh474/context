@@ -2,86 +2,80 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":EnrollmentController" as Controller
-participant ":EnrollmentService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":EnrollmentRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/enrollments/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:EnrollmentController" as Controller
+participant "«service»\n:EnrollmentService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:EnrollmentRepository" as Repository
+participant "«entity»\n:Enrollment" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import CSV"
+activate UI
+
+UI -> UI: Select file and parsing mode
+
+DataOperator -> UI: Click "Import"
+UI -> Controller: POST /api/v1/enrollments/import
 activate Controller
-
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
-end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' Mode validation (internal)
-
-alt Invalid import mode
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' --- PARSE CSV ---
+' === PARSE CSV ===
 Service -> CsvParser: parseEnrollmentCsv(file)
 activate CsvParser
-
-CsvParser --> Service: List<EnrollmentCsvRow>
+alt Parsing error
+    CsvParser -->> Service: <<throw>> CsvParsingException
+    Service -->> Controller: <<throw>> CsvParsingException
+    Controller -->> UI: 400 Bad Request
+end
+CsvParser -->> Service: List<EnrollmentCsvRow>
 deactivate CsvParser
 
-alt CSV parsing fails
-    Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
-end
-
-' CSV deduplication (internal)
-
-' --- BATCH PROCESSING LOOP ---
-loop For each unique CSV row
-    ' Row validation (internal: student/class validation, major eligibility, semester check)
-
-    Service -> Repository: existsById(enrollmentId)
+' === PROCESS ROWS ===
+loop For each row in CSV
+    Service -> Repository: findByClassCodeAndStudentCode(...)
     activate Repository
-
-    Repository -> DB: Check Enrollment Exists
-    activate DB
-    DB --> Repository: boolean
-    deactivate DB
-
-    Repository --> Service: boolean
+    Repository -->> Service: Optional<Enrollment>
     deactivate Repository
 
-    ' Business logic: create or update based on mode and enrollment status (internal)
-
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
-        Service -> Repository: save(enrollment)
-        activate Repository
-
-        Repository -> DB: Insert or Update Enrollment
-        activate DB
-        DB --> Repository: Saved Enrollment
-        deactivate DB
-
-        Repository --> Service: Enrollment
-        deactivate Repository
+    alt Enrollment exists
+        alt Mode = UPDATE
+            Service -> Entity: update(data)
+            activate Entity
+            Entity -->> Service: updatedEnrollment
+            deactivate Entity
+            
+            Service -> Repository: save(updatedEnrollment)
+            activate Repository
+            Repository -->> Service: savedEnrollment
+            deactivate Repository
+        end
+    else Enrollment does not exist
+        alt Mode = ADD
+            Service -> Entity: new Enrollment(data)
+            activate Entity
+            Entity -->> Service: newEnrollment
+            deactivate Entity
+            
+            Service -> Repository: save(newEnrollment)
+            activate Repository
+            Repository -->> Service: savedEnrollment
+            deactivate Repository
+        end
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: Import Result
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show result summary\n(Success/Fail counts)
+deactivate UI
 
 @enduml

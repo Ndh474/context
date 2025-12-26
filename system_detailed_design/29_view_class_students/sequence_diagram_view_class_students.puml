@@ -2,78 +2,54 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ClassController" as Controller
-participant ":ClassService" as ClassService
-participant ":EnrollmentService" as EnrollmentService
-participant ":EnrollmentRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/classes/{id}/enrollments
+participant "«user interaction»\n:ClassStudentsTable" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassService" as ClassService
+participant "«service»\n:EnrollmentService" as Service
+participant "«database wrapper»\n:EnrollmentRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "View Students" (in Class list)
+activate UI
+
+UI -> Controller: GET /api/v1/classes/{id}/enrollments
 activate Controller
 
-' --- GET CLASS DETAILS ---
+' === GET CLASS DETAILS ===
 Controller -> ClassService: getClassDetailsForRoster(id)
 activate ClassService
-
-' Class validation (internal)
-
-alt Class not found
-    ClassService -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-ClassService --> Controller: Class Details
+ClassService -->> Controller: ClassDTO
 deactivate ClassService
 
-' --- GET STUDENTS LIST ---
-Controller -> EnrollmentService: findByClassId(id, request)
-activate EnrollmentService
+' === GET STUDENTS LIST ===
+Controller -> Service: findByClassId(id, request)
+activate Service
 
-' Class validation (internal)
-
-alt Class not found
-    EnrollmentService -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
-end
-
-EnrollmentService -> Repository: findByClassId(id, request)
+Service -> Repository: findByClassId(id, request)
 activate Repository
-
-Repository -> DB: Query Students with Enrollment Status
-activate DB
-DB --> Repository: Student List
-deactivate DB
-
-Repository --> EnrollmentService: List<StudentProfile>
+Repository -->> Service: List<StudentProfile>
 deactivate Repository
 
-EnrollmentService --> Controller: List<StudentProfile>
-deactivate EnrollmentService
+Service -->> Controller: List<StudentProfile>
+deactivate Service
 
-' Count queries (internal: total, enrolled, withdrawn)
-
-Controller -> EnrollmentService: countByClassId(id, request)
-activate EnrollmentService
-
-EnrollmentService -> Repository: countByClassId(id, request)
+' === GET COUNTS ===
+Controller -> Service: countByClassId(id, request)
+activate Service
+Service -> Repository: countByClassId(id, request)
 activate Repository
-
-Repository -> DB: Count Total Students
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> EnrollmentService: Long
+Repository -->> Service: Long
 deactivate Repository
+Service -->> Controller: Long
+deactivate Service
 
-EnrollmentService --> Controller: Long
-deactivate EnrollmentService
-
-' Build roster response (internal)
-
-Controller --> Admin: 200 OK
+' === RESPONSE ===
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display list of students
+deactivate UI
 
 @enduml

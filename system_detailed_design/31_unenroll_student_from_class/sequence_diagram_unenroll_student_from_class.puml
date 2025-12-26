@@ -2,75 +2,58 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":EnrollmentController" as Controller
-participant ":EnrollmentService" as Service
-participant ":EnrollmentRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/enrollments/{classId}/{studentUserId}
+participant "«user interaction»\n:DeleteStudentDialog" as UI
+participant "«control»\n:EnrollmentController" as Controller
+participant "«service»\n:EnrollmentService" as Service
+participant "«database wrapper»\n:EnrollmentRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Delete" on student in list
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+DataOperator -> UI: Click "Confirm"
+UI -> Controller: DELETE /api/v1/enrollments/{classId}/{studentId}
 activate Controller
 
-' Request validation (internal)
-
-Controller -> Service: update(classId, studentUserId, request)
+Controller -> Service: delete(classId, studentId)
 activate Service
 
-' --- FIND ENROLLMENT ---
-Service -> Repository: findById(enrollmentId)
+' === CHECK EXISTENCE ===
+Service -> Repository: findById(classId, studentId)
 activate Repository
-
-Repository -> DB: Query Enrollment by Composite Key
-activate DB
-DB --> Repository: Enrollment / Null
-deactivate DB
-
-Repository --> Service: Optional<Enrollment>
+Repository -->> Service: Optional<Enrollment>
 deactivate Repository
 
 alt Enrollment not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal)
-
-alt Semester has ended
+' === VALIDATION ===
+alt Class already started
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-' Update enrollment status (internal)
-
-' --- SAVE ENROLLMENT ---
-Service -> Repository: save(enrollment)
+' === DELETE ===
+Service -> Repository: delete(enrollment)
 activate Repository
-
-Repository -> DB: Update Enrollment Status
-activate DB
-DB --> Repository: Updated Enrollment
-deactivate DB
-
-Repository --> Service: Enrollment
+Repository -->> Service: void
 deactivate Repository
 
-' --- GET FULL DETAILS ---
-Service -> Repository: findByEnrollmentId(enrollmentId)
-activate Repository
-
-Repository -> DB: Query Enrollment with Student and Class Details
-activate DB
-DB --> Repository: Enrollment with Details
-deactivate DB
-
-Repository --> Service: Enrollment
-deactivate Repository
-
-Service --> Controller: Enrollment
+Service -->> Controller: void
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nRefresh list
+deactivate UI
 
 @enduml
