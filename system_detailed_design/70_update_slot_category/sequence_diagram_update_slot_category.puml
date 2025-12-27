@@ -2,59 +2,96 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":ExamAttendanceRepository" as ExamRepo
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: PUT /api/v1/slots/{id}/category
+participant "«user interaction»\n:LecturerSlotFormDialog" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:ExamAttendanceRepository" as ExamRepo
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+Lecturer -> UI: Select new slot category\n(LECTURE ↔ LECTURE_WITH_PT)
+activate UI
+
+Lecturer -> UI: Submit form
+UI -> Controller: PUT /api/v1/slots/{id}/category
 activate Controller
 
 Controller -> Service: updateSlotCategory(id, request, currentUserId)
 activate Service
 
-' --- FIND EXISTING ---
+' === FIND EXISTING ===
 Service -> SlotRepo: findById(id)
 activate SlotRepo
-
-SlotRepo -> DB: Query Slot by ID
-activate DB
-DB --> SlotRepo: Slot Record / Null
-deactivate DB
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' Validation logic (internal: authorization, category transition validation, exam data check with conditional delete)
+' === CHECK AUTHORIZATION ===
+Service -> Service: checkAssignedStaff(slot, currentUserId)
+note right: Only assigned lecturer can update
 
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Lecturer: 400 Bad Request / 403 Forbidden
+alt Not assigned to slot
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
 end
 
+' === VALIDATE CATEGORY TRANSITION ===
+Service -> Service: isValidCategoryTransition(current, new)
+note right: Only LECTURE ↔ LECTURE_WITH_PT allowed
+
+alt Invalid transition
+    Service -->> Controller: <<throw>> BadRequestException
+    Controller -->> UI: 400 Bad Request
+    UI -->> Lecturer: Show error message
+end
+
+' === CHECK EXAM DATA (LECTURE_WITH_PT → LECTURE) ===
+opt Changing from LECTURE_WITH_PT to LECTURE
+    Service -> ExamRepo: countBySlotIdAndStatusNot(id, NOT_YET)
+    activate ExamRepo
+    ExamRepo -->> Service: Long
+    deactivate ExamRepo
+
+    alt Has PRESENT/ABSENT exam records
+        Service -->> Controller: <<throw>> BadRequestException
+        Controller -->> UI: 400 Bad Request
+        UI -->> Lecturer: Show error message\n"Delete exam attendance first"
+    end
+
+    Service -> ExamRepo: deleteBySlotId(id)
+    activate ExamRepo
+    ExamRepo -->> Service: void
+    deactivate ExamRepo
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: setSlotCategory(newCategory)
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
+' === SAVE ===
 Service -> SlotRepo: save(slot)
 activate SlotRepo
-
-SlotRepo -> DB: Update Slot Category
-activate DB
-DB --> SlotRepo: Updated Slot
-deactivate DB
-
-SlotRepo --> Service: Slot
+SlotRepo -->> Service: savedSlot
 deactivate SlotRepo
 
-Service --> Controller: SlotDTO
+Service -->> Controller: SlotDTO
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Show success message\nClose dialog & refresh
+deactivate UI
 
 @enduml
