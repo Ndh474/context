@@ -2,62 +2,62 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: GET /api/v1/slots/{id}/roster
+participant "«user interaction»\n:SlotRosterPage" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+
+' === MAIN FLOW ===
+Lecturer -> UI: Navigate to Slot Roster page
+activate UI
+
+UI -> Controller: GET /api/v1/slots/{id}/roster
 activate Controller
 
 Controller -> Service: getSlotRoster(id, currentUserId)
 activate Service
 
-' --- VALIDATE SLOT ---
+' === VALIDATE SLOT ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Slot by ID
-activate DB
-DB --> Repository: Slot Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Slot>
+Repository -->> Service: Optional<Slot>
 deactivate Repository
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' --- CHECK AUTHORIZATION ---
-' Authorization logic (internal)
+' === CHECK AUTHORIZATION ===
+Service -> Service: checkAuthorization(slot, currentUserId)
+note right: Verify assigned staff or data operator
 
-alt Not assigned staff and not data operator
+alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
 end
 
-' --- GET ROSTER ---
+' === GET ROSTER ===
 Service -> Repository: getSlotRoster(id)
 activate Repository
-
-Repository -> DB: Query Roster with Attendance Status
-activate DB
-DB --> Repository: Roster List
-deactivate DB
-
-Repository --> Service: List<SlotRosterItemDTO>
+Repository -->> Service: List<SlotRosterItemDTO>
 deactivate Repository
 
-' Ensure attendance records exist (internal)
+' === ENSURE ATTENDANCE RECORDS ===
+Service -> Service: ensureAttendanceRecordsExist(roster)
+note right: Lazy create missing records
 
-Service --> Controller: List<SlotRosterItemDTO>
+Service -->> Controller: List<SlotRosterItemDTO>
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Display roster table\nwith attendance status
+deactivate UI
 
 @enduml

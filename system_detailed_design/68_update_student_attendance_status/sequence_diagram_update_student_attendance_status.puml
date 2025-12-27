@@ -2,61 +2,91 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":AttendanceRecordRepository" as AttendanceRepo
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: POST /api/v1/slots/{id}/submit-attendance
+participant "«user interaction»\n:SessionControls" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:AttendanceRecordRepository" as AttendanceRepo
+participant "«entity»\n:AttendanceRecord" as Entity
+
+' === MAIN FLOW ===
+Lecturer -> UI: Edit attendance status\n(present/absent/not_yet)
+activate UI
+
+Lecturer -> UI: Click "Submit Attendance"
+UI -> Controller: POST /api/v1/slots/{id}/submit-attendance
 activate Controller
 
-Controller -> Service: submitAttendance(id, request, currentUserId)
+Controller -> Service: submitAttendance(slotId, request, currentUserId)
 activate Service
 
-' --- VALIDATE SLOT ---
-Service -> SlotRepo: findById(id)
+' === VALIDATE SLOT ===
+Service -> SlotRepo: findById(slotId)
 activate SlotRepo
-
-SlotRepo -> DB: Query Slot by ID
-activate DB
-DB --> SlotRepo: Slot Record / Null
-deactivate DB
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' Validation logic (internal: authorization, edit window check)
+' === CHECK AUTHORIZATION ===
+Service -> Service: checkAuthorization(slot, currentUserId)
+note right: Verify assigned staff or data operator
 
-alt Validation failed
+alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
 end
 
-' Process submissions loop (internal: update attendance records, handle NOT_YET resolution, clear needs review flags)
+' === CHECK EDIT WINDOW ===
+Service -> Service: checkEditWindow(slot)
+note right: Verify slot has started
 
-Service -> AttendanceRepo: save(attendanceRecord)
-activate AttendanceRepo
+alt Before slot start time
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
+end
 
-AttendanceRepo -> DB: Update Attendance Record
-activate DB
-DB --> AttendanceRepo: Updated Record
-deactivate DB
+' === PROCESS SUBMISSIONS ===
+loop For each submission in request
+    Service -> Entity: updateStatus(status, remark)
+    activate Entity
+    Entity -->> Service: attendanceRecord
+    deactivate Entity
 
-AttendanceRepo --> Service: AttendanceRecord
-deactivate AttendanceRepo
+    Service -> AttendanceRepo: save(attendanceRecord)
+    activate AttendanceRepo
+    AttendanceRepo -->> Service: savedRecord
+    deactivate AttendanceRepo
+end
 
-Service --> Controller: SlotAttendanceSubmissionResponse
+' === HANDLE NOT_YET RESOLUTION ===
+opt notYetResolution provided
+    Service -> AttendanceRepo: findBySlotIdAndNeedsReview(slotId, true)
+    activate AttendanceRepo
+    AttendanceRepo -->> Service: List<AttendanceRecord>
+    deactivate AttendanceRepo
+
+    Service -> AttendanceRepo: saveAll(updatedRecords)
+    activate AttendanceRepo
+    AttendanceRepo -->> Service: List<AttendanceRecord>
+    deactivate AttendanceRepo
+end
+
+Service -->> Controller: SlotAttendanceSubmissionResponse
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Show success message\nRefresh roster
+deactivate UI
 
 @enduml

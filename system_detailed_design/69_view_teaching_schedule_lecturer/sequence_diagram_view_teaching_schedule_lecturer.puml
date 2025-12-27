@@ -2,99 +2,69 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":DashboardController" as Controller
-participant ":LecturerDashboardService" as Service
-participant ":SemesterRepository" as SemesterRepo
-participant ":SlotRepository" as SlotRepo
-participant ":ClassRepository" as ClassRepo
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: GET /api/v1/dashboard/lecturer?semesterId={id}
+participant "«user interaction»\n:LecturerDashboardPage" as UI
+participant "«control»\n:DashboardController" as Controller
+participant "«service»\n:LecturerDashboardService" as Service
+participant "«database wrapper»\n:SemesterRepository" as SemesterRepo
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:ClassRepository" as ClassRepo
+
+' === MAIN FLOW ===
+Lecturer -> UI: Navigate to Dashboard
+activate UI
+
+UI -> UI: Initialize semester filter
+
+UI -> Controller: GET /api/v1/dashboard/lecturer?semesterId={id}
 activate Controller
 
 Controller -> Service: getDashboardData(lecturerId, semesterId)
 activate Service
 
-' --- GET SEMESTERS WITH TEACHING DATA ---
+' === GET SEMESTERS WITH TEACHING DATA ===
 Service -> SemesterRepo: findSemestersWithSlotsByLecturerId(lecturerId)
 activate SemesterRepo
-
-SemesterRepo -> DB: Query Semesters from Class-based Slots
-activate DB
-DB --> SemesterRepo: Class Semester List
-deactivate DB
-
-SemesterRepo --> Service: List<Semester>
+SemesterRepo -->> Service: List<Semester>
 deactivate SemesterRepo
 
 Service -> SemesterRepo: findIndependentSemestersWithSlotsByLecturerId(lecturerId)
 activate SemesterRepo
-
-SemesterRepo -> DB: Query Semesters from Independent Slots
-activate DB
-DB --> SemesterRepo: Independent Semester List
-deactivate DB
-
-SemesterRepo --> Service: List<Semester>
+SemesterRepo -->> Service: List<Semester>
 deactivate SemesterRepo
 
-' --- GET CURRENT SEMESTER ---
+' === GET CURRENT SEMESTER ===
 Service -> SemesterRepo: findCurrentSemesters()
 activate SemesterRepo
-
-SemesterRepo -> DB: Query Current Semesters by Date Range
-activate DB
-DB --> SemesterRepo: Current Semester List
-deactivate DB
-
-SemesterRepo --> Service: List<Semester>
+SemesterRepo -->> Service: List<Semester>
 deactivate SemesterRepo
 
-' Calculate lecturer statistics (internal: all semesters or specific semester)
-
+' === CALCULATE STATISTICS ===
 Service -> SlotRepo: calculateLecturerStats(lecturerId, semesterId)
 activate SlotRepo
-
-SlotRepo -> DB: Query Teaching Statistics
-activate DB
-DB --> SlotRepo: Stats Data
-deactivate DB
-
-SlotRepo --> Service: DashboardStatsDTO
+SlotRepo -->> Service: DashboardStatsDTO
 deactivate SlotRepo
 
-' Get next day slots with attendance stats (internal: loop for each slot)
-
+' === GET UPCOMING SLOTS ===
 Service -> SlotRepo: findUpcomingSlotsForNextDay(lecturerId, semesterId, start, end)
 activate SlotRepo
-
-SlotRepo -> DB: Query Next Day Slots
-activate DB
-DB --> SlotRepo: Upcoming Slot List
-deactivate DB
-
-SlotRepo --> Service: List<TodaySlotDTO>
+SlotRepo -->> Service: List<TodaySlotDTO>
 deactivate SlotRepo
 
-' Get classes with stats and upcoming slots (internal: loop for each class)
-
+' === GET CLASSES WITH STATS ===
 Service -> ClassRepo: findClassesWithStatsByLecturerAndSemester(lecturerId, semesterId)
 activate ClassRepo
-
-ClassRepo -> DB: Query Classes with Stats
-activate DB
-DB --> ClassRepo: Class List with Stats
-deactivate DB
-
-ClassRepo --> Service: List<MyClassDTO>
+ClassRepo -->> Service: List<MyClassDTO>
 deactivate ClassRepo
 
-Service --> Controller: LecturerDashboardResponse
+Service -->> Controller: LecturerDashboardResponse
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Display dashboard\n(stats, upcoming slots, my classes)
+deactivate UI
 
 @enduml
