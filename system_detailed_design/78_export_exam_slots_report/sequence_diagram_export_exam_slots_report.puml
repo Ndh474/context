@@ -2,59 +2,58 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ExportController" as Controller
-participant ":ExportService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":ExamSlotParticipantRepository" as ParticipantRepo
-participant "Database" as DB
+actor "Data Operator" as Admin
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/export/slots/excel
+participant "«user interaction»\n:AdminExportDialog" as UI
+participant "«control»\n:ExportController" as Controller
+participant "«service»\n:ExportService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:ExamSlotParticipantRepository" as ParticipantRepo
+
+' === MAIN FLOW ===
+Admin -> UI: Select exam slots & click Export
+activate UI
+
+UI -> Controller: POST /api/v1/export/slots/excel
 activate Controller
 
 Controller -> Service: exportExamSlotsToExcel(request)
 activate Service
 
-' Get exam slots to export (internal: filter by semesterId, FINAL_EXAM category)
+' === GET EXAM SLOTS ===
+alt Export all exam slots in semester
+    Service -> SlotRepo: findBySemesterId(semesterId)
+    activate SlotRepo
+    SlotRepo -->> Service: List<Slot>
+    deactivate SlotRepo
+else Export specific slots
+    Service -> SlotRepo: findAllById(ids)
+    activate SlotRepo
+    SlotRepo -->> Service: List<Slot>
+    deactivate SlotRepo
+end
 
-Service -> SlotRepo: findBySemesterId(semesterId) or findAllById(ids)
-activate SlotRepo
+Service -> Service: filterFinalExamSlots()
+note right: Keep only FINAL_EXAM category
 
-SlotRepo -> DB: Query Exam Slots
-activate DB
-DB --> SlotRepo: Slot List
-deactivate DB
-
-SlotRepo --> Service: List<Slot>
-deactivate SlotRepo
-
-' Filter FINAL_EXAM slots (internal)
-
-' Generate Excel workbook (internal: create overview sheet with statistics)
-
-' --- FOR EACH EXAM SLOT ---
+' === BUILD ATTENDANCE DATA FOR EACH SLOT ===
 loop For each exam slot
     Service -> ParticipantRepo: findStudentsWithAttendanceBySlotId(slotId)
     activate ParticipantRepo
-    
-    ParticipantRepo -> DB: Query Participants with Attendance
-    activate DB
-    DB --> ParticipantRepo: Student Attendance List
-    deactivate DB
-    
-    ParticipantRepo --> Service: List<StudentAttendanceInfoDTO>
+    ParticipantRepo -->> Service: List<StudentAttendanceInfoDTO>
     deactivate ParticipantRepo
-    
-    ' Create detail sheet with student attendance (internal)
 end
 
-' Write workbook to output stream (internal)
+Service -> Service: generateExcelWorkbook()
+note right: Create overview sheet\nwith statistics and\ndetail sheets per slot
 
-Service --> Controller: ByteArrayOutputStream
+Service -->> Controller: ByteArrayOutputStream
 deactivate Service
 
-Controller --> Admin: 200 OK (Excel File Download)
+Controller -->> UI: 200 OK (Excel file)
 deactivate Controller
+
+UI -->> Admin: Download Excel file
+deactivate UI
 
 @enduml

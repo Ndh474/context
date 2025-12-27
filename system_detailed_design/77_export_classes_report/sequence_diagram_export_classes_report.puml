@@ -2,70 +2,69 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ExportController" as Controller
-participant ":ExportService" as Service
-participant ":ClassRepository" as ClassRepo
-participant ":SlotRepository" as SlotRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
-participant ":AttendanceRecordRepository" as AttendanceRepo
-participant "Database" as DB
+actor "Data Operator" as Admin
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/export/classes/excel
+participant "«user interaction»\n:AdminExportDialog" as UI
+participant "«control»\n:ExportController" as Controller
+participant "«service»\n:ExportService" as Service
+participant "«database wrapper»\n:ClassRepository" as ClassRepo
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:EnrollmentRepository" as EnrollmentRepo
+participant "«database wrapper»\n:AttendanceRecordRepository" as AttendanceRepo
+
+' === MAIN FLOW ===
+Admin -> UI: Select classes & click Export
+activate UI
+
+UI -> Controller: POST /api/v1/export/classes/excel
 activate Controller
 
 Controller -> Service: exportClassesToExcel(request)
 activate Service
 
-' Get classes to export (internal: filter by semesterId, exportAll or specific ids)
+' === GET CLASSES ===
+alt Export all classes in semester
+    Service -> ClassRepo: findAll()
+    activate ClassRepo
+    ClassRepo -->> Service: List<AcademicClass>
+    deactivate ClassRepo
+else Export specific classes
+    Service -> ClassRepo: findAllById(ids)
+    activate ClassRepo
+    ClassRepo -->> Service: List<AcademicClass>
+    deactivate ClassRepo
+end
 
-Service -> ClassRepo: findAll() or findAllById(ids)
-activate ClassRepo
-
-ClassRepo -> DB: Query Classes
-activate DB
-DB --> ClassRepo: Class List
-deactivate DB
-
-ClassRepo --> Service: List<AcademicClass>
-deactivate ClassRepo
-
-' Generate Excel workbook (internal: create overview sheet)
-
-' --- FOR EACH CLASS ---
+' === BUILD ATTENDANCE MATRIX FOR EACH CLASS ===
 loop For each class
     Service -> SlotRepo: findByClassId(classId)
     activate SlotRepo
-    
-    SlotRepo -> DB: Query Slots by Class
-    activate DB
-    DB --> SlotRepo: Slot List
-    deactivate DB
-    
-    SlotRepo --> Service: List<Slot>
+    SlotRepo -->> Service: List<Slot>
     deactivate SlotRepo
-    
+
     Service -> EnrollmentRepo: findAllByAcademicClassId(classId)
     activate EnrollmentRepo
-    
-    EnrollmentRepo -> DB: Query Enrollments
-    activate DB
-    DB --> EnrollmentRepo: Enrollment List
-    deactivate DB
-    
-    EnrollmentRepo --> Service: List<Enrollment>
+    EnrollmentRepo -->> Service: List<Enrollment>
     deactivate EnrollmentRepo
-    
-    ' Build attendance matrix (internal: query attendance for each student-slot pair)
+
+    loop For each student-slot pair
+        Service -> AttendanceRepo: findBySlotIdAndStudentUserId(slotId, studentId)
+        activate AttendanceRepo
+        AttendanceRepo -->> Service: AttendanceRecord
+        deactivate AttendanceRepo
+    end
 end
 
-' Write workbook to output stream (internal)
+Service -> Service: generateExcelWorkbook()
+note right: Create overview sheet\nand detail sheets per class
 
-Service --> Controller: ByteArrayOutputStream
+Service -->> Controller: ByteArrayOutputStream
 deactivate Service
 
-Controller --> Admin: 200 OK (Excel File Download)
+Controller -->> UI: 200 OK (Excel file)
 deactivate Controller
+
+UI -->> Admin: Download Excel file
+deactivate UI
 
 @enduml

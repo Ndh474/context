@@ -2,79 +2,91 @@
 !theme plain
 hide footbox
 
-actor Supervisor
-participant ":SlotController" as Controller
-participant ":SlotSessionService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":ExamAttendanceRepository" as ExamAttendanceRepo
-participant ":PythonBackendClient" as PythonClient
-participant "Recognition Service" as RecognitionService
+actor "Supervisor" as Supervisor
 
-' --- MAIN FLOW ---
-Supervisor -> Controller: POST /api/v1/slots/{id}/exam-session/stop
+participant "«user interaction»\n:ExamSessionControls" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotSessionService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:ExamAttendanceRepository" as ExamAttendanceRepo
+participant "«service»\n:ExamAttendanceService" as ExamAttendanceService
+participant "«external»\n:PythonBackendClient" as PythonClient
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+Supervisor -> UI: Click "Stop Exam Session"
+activate UI
+
+UI -> Controller: POST /api/v1/slots/{id}/exam-session/stop
 activate Controller
 
 Controller -> Service: stopExamSession(slotId, currentUserId)
 activate Service
 
+' === FIND SLOT ===
 Service -> SlotRepo: findById(slotId)
 activate SlotRepo
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Supervisor: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Supervisor: Show error message
 end
 
-' Validation logic (internal: authorization)
+' === VALIDATION ===
+Service -> Service: validateExamAuthorization(slot, currentUserId)
 
 alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Supervisor: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Supervisor: Show error message
 end
 
-' Call Python to stop exam session
+' === CALL PYTHON TO STOP ===
 Service -> PythonClient: stopRecognitionSession(slotId)
 activate PythonClient
-
-PythonClient -> RecognitionService: POST /api/v1/sessions/{slotId}/stop
-activate RecognitionService
-
-RecognitionService --> PythonClient: SessionDataDTO
-deactivate RecognitionService
-
-PythonClient --> Service: PythonSessionResponse
+PythonClient -->> Service: PythonSessionResponse
 deactivate PythonClient
 
-' Update slot exam session status
+' === UPDATE SLOT STATUS ===
+Service -> Entity: setExamSessionStatus(STOPPED)\nsetLastExamSessionStoppedAt(now)
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
 Service -> SlotRepo: save(slot)
 activate SlotRepo
-
-SlotRepo --> Service: Slot
+SlotRepo -->> Service: Slot
 deactivate SlotRepo
 
-' Post-processing based on mode (internal: INITIAL → auto-finalize NOT_YET to ABSENT, RESCAN → apply review flags)
-
-opt INITIAL mode
+' === POST-PROCESSING ===
+alt INITIAL mode - Auto finalize
     Service -> ExamAttendanceRepo: findBySlotIdAndStatus(slotId, NOT_YET)
     activate ExamAttendanceRepo
-    
-    ExamAttendanceRepo --> Service: List<ExamAttendance>
+    ExamAttendanceRepo -->> Service: List<ExamAttendance>
     deactivate ExamAttendanceRepo
-    
+
     Service -> ExamAttendanceRepo: saveAll(records)
     activate ExamAttendanceRepo
-    
-    ExamAttendanceRepo --> Service: List<ExamAttendance>
+    note right: Convert NOT_YET → ABSENT
+    ExamAttendanceRepo -->> Service: List<ExamAttendance>
     deactivate ExamAttendanceRepo
+else RESCAN mode - Apply review flags
+    Service -> ExamAttendanceService: applyRescanReviewFlags(slot, detectedStudentIds)
+    activate ExamAttendanceService
+    ExamAttendanceService -->> Service: Map
+    deactivate ExamAttendanceService
 end
 
-Service --> Controller: SessionStatusResponse
+Service -->> Controller: SessionStatusResponse
 deactivate Service
 
-Controller --> Supervisor: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Supervisor: Show exam session stopped\nwith final results
+deactivate UI
 
 @enduml

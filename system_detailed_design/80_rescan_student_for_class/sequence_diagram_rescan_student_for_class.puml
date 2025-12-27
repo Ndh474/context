@@ -2,64 +2,92 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotSessionService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":PythonBackendClient" as PythonClient
-participant "Recognition Service" as RecognitionService
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: POST /api/v1/slots/{id}/session/rescan
+participant "«user interaction»\n:SessionControls" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotSessionService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:EnrollmentRepository" as EnrollmentRepo
+participant "«database wrapper»\n:CameraRepository" as CameraRepo
+participant "«service»\n:FaceEmbeddingService" as EmbeddingService
+participant "«external»\n:PythonBackendClient" as PythonClient
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+Lecturer -> UI: Click "Rescan"
+activate UI
+
+UI -> Controller: POST /api/v1/slots/{id}/session/rescan
 activate Controller
 
 Controller -> Service: startSession(slotId, currentUserId, RESCAN)
 activate Service
 
+' === FIND SLOT ===
 Service -> SlotRepo: findById(slotId)
 activate SlotRepo
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' Validation logic (internal: authorization, session conflict check)
+' === VALIDATION ===
+Service -> Service: validateAuthorization(slot, currentUserId)
+note right: Check staff assignment,\nsession conflict
 
 alt Validation failed
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
 end
 
-' Get students with embeddings and cameras (internal)
+' === GET STUDENTS WITH EMBEDDINGS ===
+Service -> EnrollmentRepo: findAllByAcademicClassId(classId)
+activate EnrollmentRepo
+EnrollmentRepo -->> Service: List<Enrollment>
+deactivate EnrollmentRepo
 
-' Update slot status and increment scan count
+Service -> EmbeddingService: getActiveEmbedding(userId)
+activate EmbeddingService
+EmbeddingService -->> Service: Optional<FaceEmbedding>
+deactivate EmbeddingService
+
+' === GET CAMERAS ===
+Service -> CameraRepo: findByRoom_Id(roomId)
+activate CameraRepo
+CameraRepo -->> Service: List<Camera>
+deactivate CameraRepo
+
+' === UPDATE SLOT STATUS ===
+Service -> Entity: setSessionStatus(RUNNING)\nincrementScanCount()
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
 Service -> SlotRepo: save(slot)
 activate SlotRepo
-
-SlotRepo --> Service: Slot
+SlotRepo -->> Service: Slot
 deactivate SlotRepo
 
-' Call Python recognition service with RESCAN mode
+' === CALL PYTHON SERVICE ===
 Service -> PythonClient: startRecognitionSession(request)
 activate PythonClient
-
-PythonClient -> RecognitionService: POST /api/v1/sessions/start (mode=RESCAN)
-activate RecognitionService
-
-RecognitionService --> PythonClient: SessionDataDTO
-deactivate RecognitionService
-
-PythonClient --> Service: PythonSessionResponse
+note right: mode=RESCAN
+PythonClient -->> Service: PythonSessionResponse
 deactivate PythonClient
 
-Service --> Controller: SessionStatusResponse
+Service -->> Controller: SessionStatusResponse
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Show rescan started\nwith live status
+deactivate UI
 
 @enduml

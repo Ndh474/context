@@ -2,76 +2,104 @@
 !theme plain
 hide footbox
 
-actor Supervisor
-participant ":SlotController" as Controller
-participant ":SlotSessionService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":PythonBackendClient" as PythonClient
-participant "Recognition Service" as RecognitionService
+actor "Supervisor" as Supervisor
 
-' --- MAIN FLOW ---
-Supervisor -> Controller: POST /api/v1/slots/{id}/exam-session/start
+participant "«user interaction»\n:ExamSessionControls" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotSessionService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:ExamSlotParticipantRepository" as ParticipantRepo
+participant "«database wrapper»\n:CameraRepository" as CameraRepo
+participant "«service»\n:FaceEmbeddingService" as EmbeddingService
+participant "«external»\n:PythonBackendClient" as PythonClient
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+Supervisor -> UI: Click "Start Exam Session"
+activate UI
+
+UI -> Controller: POST /api/v1/slots/{id}/exam-session/start
 activate Controller
 
 Controller -> Service: startExamSession(slotId, currentUserId)
 activate Service
 
+' === FIND SLOT ===
 Service -> SlotRepo: findById(slotId)
 activate SlotRepo
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Supervisor: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Supervisor: Show error message
 end
 
-' Validation logic (internal: authorization, active status, FINAL_EXAM category, session conflict check)
+' === VALIDATION ===
+Service -> Service: validateExamAuthorization(slot, currentUserId)
+note right: Check staff assignment,\nFINAL_EXAM category,\nactive status,\nsession conflict
 
 alt Validation failed
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Supervisor: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Supervisor: Show error message
 end
 
-' Get exam participants with embeddings (internal: query ExamSlotParticipant, filter active embeddings)
+' === GET EXAM PARTICIPANTS WITH EMBEDDINGS ===
+Service -> ParticipantRepo: findBySlotIdWithStudents(slotId)
+activate ParticipantRepo
+ParticipantRepo -->> Service: List<ExamSlotParticipant>
+deactivate ParticipantRepo
+
+Service -> EmbeddingService: getActiveEmbedding(userId)
+activate EmbeddingService
+EmbeddingService -->> Service: Optional<FaceEmbedding>
+deactivate EmbeddingService
 
 alt No participants with embeddings
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Supervisor: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> Supervisor: Show error message
 end
 
-' Get active cameras for room (internal)
+' === GET CAMERAS ===
+Service -> CameraRepo: findByRoom_Id(roomId)
+activate CameraRepo
+CameraRepo -->> Service: List<Camera>
+deactivate CameraRepo
 
 alt No active cameras
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Supervisor: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> Supervisor: Show error message
 end
 
-' Update slot exam session status
+' === UPDATE SLOT STATUS ===
+Service -> Entity: setExamSessionStatus(RUNNING)
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
 Service -> SlotRepo: save(slot)
 activate SlotRepo
-
-SlotRepo --> Service: Slot
+SlotRepo -->> Service: Slot
 deactivate SlotRepo
 
-' Call Python recognition service with callbackType=EXAM
+' === CALL PYTHON SERVICE ===
 Service -> PythonClient: startRecognitionSession(request)
 activate PythonClient
-
-PythonClient -> RecognitionService: POST /api/v1/sessions/start (callbackType=EXAM)
-activate RecognitionService
-
-RecognitionService --> PythonClient: SessionDataDTO
-deactivate RecognitionService
-
-PythonClient --> Service: PythonSessionResponse
+note right: callbackType=EXAM
+PythonClient -->> Service: PythonSessionResponse
 deactivate PythonClient
 
-Service --> Controller: SessionStatusResponse
+Service -->> Controller: SessionStatusResponse
 deactivate Service
 
-Controller --> Supervisor: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Supervisor: Show exam session started\nwith live status
+deactivate UI
 
 @enduml

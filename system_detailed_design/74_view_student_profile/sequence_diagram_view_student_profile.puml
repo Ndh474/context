@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Student
-participant ":StudentProfileController" as Controller
-participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Student" as Student
 
-' --- MAIN FLOW ---
-Student -> Controller: GET /api/v1/student-profiles/{id}
+participant "«user interaction»\n:StudentProfilePage" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:StudentProfileService" as Service
+participant "«database wrapper»\n:StudentProfileRepository" as Repository
+
+' === MAIN FLOW ===
+Student -> UI: Navigate to Profile page
+activate UI
+
+UI -> Controller: GET /api/v1/student-profiles/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,25 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Student Profile by ID
-activate DB
-DB --> Repository: StudentProfile Record / Null
-deactivate DB
-
-Repository --> Service: Optional<StudentProfile>
+Repository -->> Service: Optional<StudentProfile>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Student Profile not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Student: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Student: Show error message
 end
 
-Service --> Controller: StudentProfileDTO
+Service -->> Controller: StudentProfileDTO
 deactivate Service
 
-Controller --> Student: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Student: Display profile\n(name, rollNumber, major, photo)
+deactivate UI
 
 @enduml

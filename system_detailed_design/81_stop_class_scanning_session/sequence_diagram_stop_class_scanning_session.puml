@@ -2,79 +2,91 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotSessionService" as Service
-participant ":SlotRepository" as SlotRepo
-participant ":AttendanceRecordRepository" as AttendanceRepo
-participant ":PythonBackendClient" as PythonClient
-participant "Recognition Service" as RecognitionService
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: POST /api/v1/slots/{id}/session/stop
+participant "«user interaction»\n:SessionControls" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotSessionService" as Service
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:AttendanceRecordRepository" as AttendanceRepo
+participant "«service»\n:AttendanceRecordService" as AttendanceService
+participant "«external»\n:PythonBackendClient" as PythonClient
+participant "«entity»\n:Slot" as Entity
+
+' === MAIN FLOW ===
+Lecturer -> UI: Click "Stop Session"
+activate UI
+
+UI -> Controller: POST /api/v1/slots/{id}/session/stop
 activate Controller
 
 Controller -> Service: stopSession(slotId, currentUserId)
 activate Service
 
+' === FIND SLOT ===
 Service -> SlotRepo: findById(slotId)
 activate SlotRepo
-
-SlotRepo --> Service: Optional<Slot>
+SlotRepo -->> Service: Optional<Slot>
 deactivate SlotRepo
 
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' Validation logic (internal: authorization)
+' === VALIDATION ===
+Service -> Service: validateAuthorization(slot, currentUserId)
 
 alt Not authorized
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> Lecturer: Show error message
 end
 
-' Call Python to stop session
+' === CALL PYTHON TO STOP ===
 Service -> PythonClient: stopRecognitionSession(slotId)
 activate PythonClient
-
-PythonClient -> RecognitionService: POST /api/v1/sessions/{slotId}/stop
-activate RecognitionService
-
-RecognitionService --> PythonClient: SessionDataDTO
-deactivate RecognitionService
-
-PythonClient --> Service: PythonSessionResponse
+PythonClient -->> Service: PythonSessionResponse
 deactivate PythonClient
 
-' Update slot status
+' === UPDATE SLOT STATUS ===
+Service -> Entity: setSessionStatus(STOPPED)\nsetLastSessionStoppedAt(now)
+activate Entity
+Entity -->> Service: slot
+deactivate Entity
+
 Service -> SlotRepo: save(slot)
 activate SlotRepo
-
-SlotRepo --> Service: Slot
+SlotRepo -->> Service: Slot
 deactivate SlotRepo
 
-' Post-processing based on mode (internal: INITIAL → auto-finalize NOT_YET to ABSENT, RESCAN → apply review flags)
-
-opt INITIAL mode
+' === POST-PROCESSING ===
+alt INITIAL mode - Auto finalize
     Service -> AttendanceRepo: findBySlotIdAndStatus(slotId, NOT_YET)
     activate AttendanceRepo
-    
-    AttendanceRepo --> Service: List<AttendanceRecord>
+    AttendanceRepo -->> Service: List<AttendanceRecord>
     deactivate AttendanceRepo
-    
+
     Service -> AttendanceRepo: saveAll(records)
     activate AttendanceRepo
-    
-    AttendanceRepo --> Service: List<AttendanceRecord>
+    note right: Convert NOT_YET → ABSENT
+    AttendanceRepo -->> Service: List<AttendanceRecord>
     deactivate AttendanceRepo
+else RESCAN mode - Apply review flags
+    Service -> AttendanceService: applyRescanReviewFlags(slot, detectedStudentIds)
+    activate AttendanceService
+    AttendanceService -->> Service: Map
+    deactivate AttendanceService
 end
 
-Service --> Controller: SessionStatusResponse
+Service -->> Controller: SessionStatusResponse
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Show session stopped\nwith final results
+deactivate UI
 
 @enduml

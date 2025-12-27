@@ -2,105 +2,79 @@
 !theme plain
 hide footbox
 
-actor Student
-participant ":DashboardController" as Controller
-participant ":StudentDashboardService" as Service
-participant ":SemesterRepository" as SemesterRepo
-participant ":SlotRepository" as SlotRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
-participant "Database" as DB
+actor "Student" as Student
 
-' --- MAIN FLOW ---
-Student -> Controller: GET /api/v1/dashboard/student?semesterId={id}
+participant "«user interaction»\n:StudentDashboardPage" as UI
+participant "«control»\n:DashboardController" as Controller
+participant "«service»\n:StudentDashboardService" as Service
+participant "«database wrapper»\n:SemesterRepository" as SemesterRepo
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:EnrollmentRepository" as EnrollmentRepo
+
+' === MAIN FLOW ===
+Student -> UI: Navigate to Dashboard\nor select semester
+activate UI
+
+UI -> Controller: GET /api/v1/dashboard/student?semesterId={id}
 activate Controller
 
 Controller -> Service: getDashboardData(studentUserId, semesterId)
 activate Service
 
-' Validation logic (internal: check student exists)
+' === VALIDATION ===
+Service -> Service: validateStudentExists(studentUserId)
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Student: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Student: Show error message
 end
 
-alt semesterId is null
+' === GET CURRENT SEMESTER (if not specified) ===
+opt semesterId is null
     Service -> SemesterRepo: findCurrentSemesters()
     activate SemesterRepo
-    
-    SemesterRepo -> DB: Query Current Semesters by Date Range
-    activate DB
-    DB --> SemesterRepo: Current Semester List
-    deactivate DB
-    
-    SemesterRepo --> Service: List<Semester>
+    SemesterRepo -->> Service: List<Semester>
     deactivate SemesterRepo
 end
 
-' --- GET ALL SEMESTERS FOR DROPDOWN ---
+' === GET ALL SEMESTERS FOR DROPDOWN ===
 Service -> SemesterRepo: findAll()
 activate SemesterRepo
-
-SemesterRepo -> DB: Query All Semesters
-activate DB
-DB --> SemesterRepo: Semester List
-deactivate DB
-
-SemesterRepo --> Service: List<Semester>
+SemesterRepo -->> Service: List<Semester>
 deactivate SemesterRepo
 
-' --- GET NEXT DAY SLOTS ---
+' === GET NEXT DAY SLOTS ===
 Service -> SlotRepo: findNextDaySlotsByStudentId(studentUserId, semesterId, currentTime)
 activate SlotRepo
-
-SlotRepo -> DB: Query Next Day Slots (Dynamic)
-activate DB
-DB --> SlotRepo: Next Day Slot List
-deactivate DB
-
-SlotRepo --> Service: List<StudentSlotDTO>
+SlotRepo -->> Service: List<StudentSlotDTO>
 deactivate SlotRepo
 
-' --- GET UPCOMING LEARNING SLOTS ---
+' === GET UPCOMING LEARNING SLOTS ===
 Service -> SlotRepo: findUpcomingLearningSlotsBySemester(studentUserId, semesterId, currentTime)
 activate SlotRepo
-
-SlotRepo -> DB: Query Upcoming Learning Slots
-activate DB
-DB --> SlotRepo: Learning Slot List
-deactivate DB
-
-SlotRepo --> Service: List<StudentSlotDTO>
+SlotRepo -->> Service: List<StudentSlotDTO>
 deactivate SlotRepo
 
-' --- GET UPCOMING EXAM SLOTS ---
+' === GET UPCOMING EXAM SLOTS ===
 Service -> SlotRepo: findUpcomingExamSlotsBySemester(studentUserId, semesterId, currentTime)
 activate SlotRepo
-
-SlotRepo -> DB: Query Upcoming Exam Slots
-activate DB
-DB --> SlotRepo: Exam Slot List
-deactivate DB
-
-SlotRepo --> Service: List<StudentSlotDTO>
+SlotRepo -->> Service: List<StudentSlotDTO>
 deactivate SlotRepo
 
-' --- GET SEMESTER SUBJECTS ---
+' === GET ENROLLED SUBJECTS ===
 Service -> EnrollmentRepo: findCurrentSemesterSubjectsByStudentId(studentUserId, semesterId)
 activate EnrollmentRepo
-
-EnrollmentRepo -> DB: Query Enrolled Subjects by Semester
-activate DB
-DB --> EnrollmentRepo: Subject List
-deactivate DB
-
-EnrollmentRepo --> Service: List<StudentSubjectDTO>
+EnrollmentRepo -->> Service: List<StudentSubjectDTO>
 deactivate EnrollmentRepo
 
-Service --> Controller: StudentDashboardResponse
+Service -->> Controller: StudentDashboardResponse
 deactivate Service
 
-Controller --> Student: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Student: Display dashboard\n(timetable, upcoming slots, subjects)
+deactivate UI
 
 @enduml

@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":SlotController" as Controller
-participant ":SlotService" as Service
-participant ":SlotRepository" as Repository
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: GET /api/v1/slots/{id}
+participant "«user interaction»\n:SlotDetailPage" as UI
+participant "«control»\n:SlotController" as Controller
+participant "«service»\n:SlotService" as Service
+participant "«database wrapper»\n:SlotRepository" as Repository
+
+' === MAIN FLOW ===
+Lecturer -> UI: Click view slot details
+activate UI
+
+UI -> Controller: GET /api/v1/slots/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,25 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Slot by ID with Relations
-activate DB
-DB --> Repository: Slot Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Slot>
+Repository -->> Service: Optional<Slot>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Slot not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-Service --> Controller: SlotDTO
+Service -->> Controller: SlotDTO
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Display slot details\n(time, room, staff, class info)
+deactivate UI
 
 @enduml

@@ -2,75 +2,60 @@
 !theme plain
 hide footbox
 
-actor Lecturer
-participant ":ClassController" as Controller
-participant ":ClassSummaryService" as Service
-participant ":ClassRepository" as ClassRepo
-participant ":SlotRepository" as SlotRepo
-participant ":EnrollmentRepository" as EnrollmentRepo
-participant "Database" as DB
+actor "Lecturer" as Lecturer
 
-' --- MAIN FLOW ---
-Lecturer -> Controller: GET /api/v1/classes/{classId}/summary?semester={semesterId}
+participant "«user interaction»\n:ClassSummaryPage" as UI
+participant "«control»\n:ClassController" as Controller
+participant "«service»\n:ClassSummaryService" as Service
+participant "«database wrapper»\n:ClassRepository" as ClassRepo
+participant "«database wrapper»\n:SlotRepository" as SlotRepo
+participant "«database wrapper»\n:EnrollmentRepository" as EnrollmentRepo
+
+' === MAIN FLOW ===
+Lecturer -> UI: Select semester & class
+activate UI
+
+UI -> Controller: GET /api/v1/classes/{classId}/summary?semester={semesterId}
 activate Controller
 
 Controller -> Service: getClassSummary(classId, semesterId)
 activate Service
 
-' --- VALIDATE AUTHORIZATION ---
+' === AUTHORIZATION ===
+Service -> Service: validateLecturerAuthorization(classId, semesterId)
+note right: Check authentication,\nclass existence,\nsemester match,\nstaff assignment
+
+' === GET CLASS INFO ===
 Service -> ClassRepo: findById(classId)
 activate ClassRepo
-
-ClassRepo -> DB: Query Class by ID
-activate DB
-DB --> ClassRepo: Class Record / Null
-deactivate DB
-
-ClassRepo --> Service: Optional<AcademicClass>
+ClassRepo -->> Service: Optional<AcademicClass>
 deactivate ClassRepo
 
 alt Class not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Lecturer: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Lecturer: Show error message
 end
 
-' Authorization logic (internal: check class in semester, check staff assignment)
-
-alt Not authorized
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Lecturer: 403 Forbidden
-end
-
-' Get enrollment summary (internal)
-
+' === GET ENROLLMENT SUMMARY ===
 Service -> EnrollmentRepo: countByClassIdAndEnrolled(classId, true)
 activate EnrollmentRepo
-
-EnrollmentRepo -> DB: Count Enrolled Students
-activate DB
-DB --> EnrollmentRepo: Count
-deactivate DB
-
-EnrollmentRepo --> Service: Long
+EnrollmentRepo -->> Service: Long
 deactivate EnrollmentRepo
 
-' Get slot list and attendance statistics (internal)
-
-Service -> SlotRepo: findByClassIdAndSemesterId(classId, semesterId)
+' === GET SLOTS FOR MATRIX ===
+Service -> SlotRepo: findByClassId(classId)
 activate SlotRepo
-
-SlotRepo -> DB: Query Slots
-activate DB
-DB --> SlotRepo: Slot List
-deactivate DB
-
-SlotRepo --> Service: List<Slot>
+SlotRepo -->> Service: List<Slot>
 deactivate SlotRepo
 
-Service --> Controller: ClassSummaryDTO
+Service -->> Controller: ClassSummaryDTO
 deactivate Service
 
-Controller --> Lecturer: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Lecturer: Display class summary\nwith attendance matrix
+deactivate UI
 
 @enduml
