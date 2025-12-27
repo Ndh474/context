@@ -1,5 +1,5 @@
 """
-Merge multiple DOCX files into one.
+Merge multiple DOCX files into one using docxcompose.
 
 Usage:
     python merge_docx.py --files file1.docx file2.docx file3.docx --output merged.docx
@@ -9,44 +9,32 @@ Usage:
 import argparse
 import os
 from docx import Document
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docxcompose.composer import Composer
 
 
 def merge_docx_files(input_files: list[str], output_file: str) -> str:
     """
-    Merge multiple DOCX files into one.
-    
-    Args:
-        input_files: List of DOCX file paths to merge
-        output_file: Output merged DOCX file path
-    
-    Returns:
-        Output file path
+    Merge multiple DOCX files into one using docxcompose.
+    Properly handles images and formatting.
     """
     if not input_files:
         print("[ERROR] No input files provided")
         return None
     
-    # Create new document from first file
-    merged_doc = Document(input_files[0])
+    # Open first document as base
+    base_doc = Document(input_files[0])
+    composer = Composer(base_doc)
+    
+    print(f"[1/{len(input_files)}] Base: {os.path.basename(input_files[0])}")
     
     # Append remaining files
     for i, docx_file in enumerate(input_files[1:], 2):
-        # Add page break before each new document
-        merged_doc.add_page_break()
-        
-        # Open source document
-        source_doc = Document(docx_file)
-        
-        # Copy all elements from source to merged
-        for element in source_doc.element.body:
-            merged_doc.element.body.append(element)
-        
+        doc = Document(docx_file)
+        composer.append(doc)
         print(f"[{i}/{len(input_files)}] Merged: {os.path.basename(docx_file)}")
     
     # Save merged document
-    merged_doc.save(output_file)
+    composer.save(output_file)
     
     print(f"\n[OK] Merged {len(input_files)} files into: {output_file}")
     return output_file
@@ -71,10 +59,15 @@ def main():
         if not os.path.isdir(args.dir):
             print(f"[ERROR] Directory not found: {args.dir}")
             return 1
+        # Exclude output file and temp files
+        output_basename = os.path.basename(args.output) if args.output else None
         input_files = sorted([
             os.path.join(args.dir, f) 
             for f in os.listdir(args.dir) 
-            if f.lower().endswith('.docx')
+            if f.lower().endswith('.docx') 
+            and not f.startswith('~')
+            and f != output_basename
+            and f != 'Unit_Test.docx'
         ])
     else:
         print("[ERROR] Provide either --files or --dir")
