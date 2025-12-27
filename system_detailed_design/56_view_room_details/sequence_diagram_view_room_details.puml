@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":RoomController" as Controller
-participant ":RoomService" as Service
-participant ":RoomRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/rooms/{id}
+participant "«user interaction»\n:RoomFormDialog" as UI
+participant "«control»\n:RoomController" as Controller
+participant "«service»\n:RoomService" as Service
+participant "«database wrapper»\n:RoomRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Edit" on room row
+activate UI
+
+UI -> Controller: GET /api/v1/rooms/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,48 +21,33 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Room by ID
-activate DB
-DB --> Repository: Room Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Room>
+Repository -->> Service: Optional<Room>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Room not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' --- GET CAMERA STATISTICS ---
+' === GET CAMERA STATISTICS ===
 Service -> Repository: countAllCamerasByRoomId(id)
 activate Repository
-
-Repository -> DB: Count All Cameras
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: Long
 deactivate Repository
 
 Service -> Repository: countActiveCamerasByRoomId(id)
 activate Repository
-
-Repository -> DB: Count Active Cameras
-activate DB
-DB --> Repository: Active Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: Long
 deactivate Repository
 
-Service --> Controller: RoomDTO
+Service -->> Controller: RoomDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display room details\nin edit form
+deactivate UI
 
 @enduml

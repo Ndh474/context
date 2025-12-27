@@ -2,57 +2,82 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":RoomController" as Controller
-participant ":RoomService" as Service
-participant ":RoomRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/rooms/{id}
+participant "«user interaction»\n:RoomFormDialog" as UI
+participant "«control»\n:RoomController" as Controller
+participant "«service»\n:RoomService" as Service
+participant "«database wrapper»\n:RoomRepository" as Repository
+participant "«entity»\n:Room" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Edit room data\n(name, location, isActive)
+activate UI
+
+DataOperator -> UI: Submit form
+UI -> Controller: PUT /api/v1/rooms/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Room by ID
-activate DB
-DB --> Repository: Room Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Room>
+Repository -->> Service: Optional<Room>
 deactivate Repository
 
 alt Room not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: name uniqueness, deactivation checks for cameras/slots)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 403 Forbidden / 409 Conflict
-end
-
-Service -> Repository: save(room)
+' === VALIDATION: NAME UNIQUENESS ===
+Service -> Repository: existsByNameAndIdNot(name, id)
 activate Repository
-
-Repository -> DB: Update Room
-activate DB
-DB --> Repository: Updated Room
-deactivate DB
-
-Repository --> Service: Room
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: RoomDTO
+alt name exists in another room
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: DEACTIVATION CHECK ===
+opt Deactivating room (isActive: true → false)
+    Service -> Repository: countActiveSlotsByRoomId(id)
+    activate Repository
+    Repository -->> Service: Long
+    deactivate Repository
+
+    alt Has active/future slots
+        Service -->> Controller: <<throw>> OperationNotAllowedException
+        Controller -->> UI: 403 Forbidden
+        UI -->> DataOperator: Show error message
+    end
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: updateFromRequest(request)
+activate Entity
+Entity -->> Service: room
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(room)
+activate Repository
+Repository -->> Service: savedRoom
+deactivate Repository
+
+Service -->> Controller: RoomDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

@@ -2,41 +2,60 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":RoomController" as Controller
-participant ":RoomService" as Service
-participant ":RoomRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/rooms
+participant "«user interaction»\n:RoomFormDialog" as UI
+participant "«control»\n:RoomController" as Controller
+participant "«service»\n:RoomService" as Service
+participant "«database wrapper»\n:RoomRepository" as Repository
+participant "«entity»\n:Room" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Room"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input room data\n(name, location)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/rooms
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: name uniqueness)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 409 Conflict
-end
-
-Service -> Repository: save(room)
+' === VALIDATION ===
+Service -> Repository: existsByName(name)
 activate Repository
-
-Repository -> DB: Insert New Room
-activate DB
-DB --> Repository: Saved Room
-deactivate DB
-
-Repository --> Service: Room
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: RoomDTO
+alt name exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === CREATE ENTITY ===
+Service -> Entity: new Room(request)
+activate Entity
+Entity -->> Service: room
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(room)
+activate Repository
+Repository -->> Service: savedRoom
+deactivate Repository
+
+Service -->> Controller: RoomDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

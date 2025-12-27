@@ -2,79 +2,86 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":RoomController" as Controller
-participant ":RoomService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":RoomRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/rooms/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:RoomController" as Controller
+participant "«service»\n:RoomService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:RoomRepository" as Repository
+participant "«entity»\n:Room" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+
+DataOperator -> UI: Select CSV file & import mode
+
+DataOperator -> UI: Submit
+UI -> Controller: POST /api/v1/rooms/import\n(file, mode)
 activate Controller
 
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
+alt File is empty
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' --- PARSE CSV ---
+' === PARSE CSV ===
 Service -> CsvParser: parseRoomCsv(file)
 activate CsvParser
-
-CsvParser --> Service: List<RoomCsvRow>
+CsvParser -->> Service: List<RoomCsvRow>
 deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-' CSV deduplication (internal)
-
-' --- BATCH PROCESSING LOOP ---
+' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' Row validation (internal: name validation)
-
     Service -> Repository: findByName(name)
     activate Repository
-    
-    Repository -> DB: Query Room by Name
-    activate DB
-    DB --> Repository: Room / Null
-    deactivate DB
-    
-    Repository --> Service: Room
+    Repository -->> Service: Room / null
     deactivate Repository
-    
-    ' Business logic: create or update based on mode (internal)
-    
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
+
+    alt Row validation fails
+        Service -> Service: Collect error, continue
+    else Create new room
+        Service -> Entity: new Room(row)
+        activate Entity
+        Entity -->> Service: room
+        deactivate Entity
+
         Service -> Repository: save(room)
         activate Repository
-        
-        Repository -> DB: Insert or Update Room
-        activate DB
-        DB --> Repository: Saved Room
-        deactivate DB
-        
-        Repository --> Service: Room
+        Repository -->> Service: savedRoom
+        deactivate Repository
+    else Update existing room (ADD_AND_UPDATE mode)
+        Service -> Entity: updateFromRow(row)
+        activate Entity
+        Entity -->> Service: room
+        deactivate Entity
+
+        Service -> Repository: save(room)
+        activate Repository
+        Repository -->> Service: savedRoom
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: ImportResultDTO
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml
