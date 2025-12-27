@@ -24,6 +24,10 @@ interface StudentProfileRepository <<interface>> {
   + save(profile : StudentProfile) : StudentProfile
 }
 
+interface UserRepository <<interface>> {
+  + save(user : User) : User
+}
+
 ' --- ENTITIES ---
 class StudentProfile {
   - userId : Integer
@@ -48,9 +52,11 @@ class Major {
 ' --- DEPENDENCY INJECTION (Association) ---
 StudentProfileController -down-> StudentProfileService
 StudentProfileService -down-> StudentProfileRepository
+StudentProfileService -down-> UserRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StudentProfileRepository .down.> StudentProfile
+UserRepository .down.> User
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 StudentProfile o-left- User

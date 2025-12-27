@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StudentProfileController" as Controller
-participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:StudentDetailsDialog" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:StudentProfileService" as Service
+participant "«database wrapper»\n:StudentProfileRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/student-profiles/{id}
+Admin -> UI: Click "View" on a student
+activate UI
+
+UI -> Controller: GET /api/v1/student-profiles/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,25 +21,23 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Student by ID
-activate DB
-DB --> Repository: Student Record / Null
-deactivate DB
-
-Repository --> Service: Optional<StudentProfile>
+Repository -->> Service: Optional<StudentProfile>
 deactivate Repository
 
 ' --- VALIDATION LOGIC ---
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> Admin: Show error
 end
 
-Service --> Controller: StudentProfileDTO
+Service -->> Controller: StudentProfileDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Display student details
+deactivate UI
 
 @enduml

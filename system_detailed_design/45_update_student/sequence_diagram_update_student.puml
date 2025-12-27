@@ -2,14 +2,19 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StudentProfileController" as Controller
-participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:EditStudentDialog" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:StudentProfileService" as Service
+participant "«database wrapper»\n:StudentProfileRepository" as Repository
+participant "«entity»\n:StudentProfile" as Entity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/student-profiles/{id}
+Admin -> UI: Edit details & Submit
+activate UI
+
+UI -> Controller: PUT /api/v1/student-profiles/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
@@ -18,42 +23,43 @@ activate Service
 ' --- FIND EXISTING ---
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Student by ID
-activate DB
-DB --> Repository: Student Record / Null
-deactivate DB
-
-Repository --> Service: Optional<StudentProfile>
+Repository -->> Service: Optional<StudentProfile>
 deactivate Repository
 
 alt Student not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
 end
 
-' Validation logic (internal: roll number/email uniqueness, major validation, username change check)
+' Validation (Internal)
+Service -> Service: validateUpdate(request)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 403 Forbidden / 404 Not Found / 409 Conflict
+    Controller -->> UI: 400 Bad Request
 end
+
+' --- UPDATE ---
+Service -> Entity: setMajor(newMajor)
+activate Entity
+deactivate Entity
+
+Service -> Entity: setRollNumber(newRollNumber)
+activate Entity
+deactivate Entity
 
 Service -> Repository: save(profile)
 activate Repository
-
-Repository -> DB: Update Student Profile
-activate DB
-DB --> Repository: Updated Profile
-deactivate DB
-
-Repository --> Service: StudentProfile
+Repository -->> Service: updatedProfile
 deactivate Repository
 
-Service --> Controller: StudentProfileDTO
+Service -->> Controller: StudentProfileDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Close dialog\nRefresh list
+deactivate UI
 
 @enduml

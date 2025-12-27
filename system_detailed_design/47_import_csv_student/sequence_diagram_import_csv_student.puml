@@ -2,22 +2,23 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StudentProfileController" as Controller
-participant ":StudentProfileService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:ImportStudentDialog" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:StudentProfileService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:UserRepository" as UserRepo
+participant "«database wrapper»\n:StudentProfileRepository" as ProfileRepo
+participant "«entity»\n:User" as UserEntity
+participant "«entity»\n:StudentProfile" as ProfileEntity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/student-profiles/import
+Admin -> UI: Select File & Submit
+activate UI
+
+UI -> Controller: POST /api/v1/student-profiles/import
 activate Controller
-
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
-end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
@@ -25,56 +26,53 @@ activate Service
 ' --- PARSE CSV ---
 Service -> CsvParser: parseStudentProfileCsv(file)
 activate CsvParser
-
-CsvParser --> Service: List<StudentProfileCsvRow>
+CsvParser -->> Service: List<StudentProfileCsvRow>
 deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
 end
-
-' CSV deduplication (internal)
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal: major validation, email/username/roll number uniqueness, role assignment)
+    ' Validation (Internal)
+    Service -> Service: validateRow(row)
 
-    Service -> Repository: findByRollNumber(rollNumber)
-    activate Repository
-    
-    Repository -> DB: Query Student by Roll Number
-    activate DB
-    DB --> Repository: Student / Null
-    deactivate DB
-    
-    Repository --> Service: StudentProfile
-    deactivate Repository
-    
-    ' Business logic: create or update based on mode (internal)
-    
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
-        Service -> Repository: save(profile)
-        activate Repository
+    alt row invalid
+        Service -> Service: Collect error, continue
+    else Create New Student
+        ' --- CREATE USER ---
+        Service -> UserEntity: new User(row.username, row.email, ...)
+        activate UserEntity
+        UserEntity -->> Service: user
+        deactivate UserEntity
         
-        Repository -> DB: Insert or Update Student Profile
-        activate DB
-        DB --> Repository: Saved Profile
-        deactivate DB
-        
-        Repository --> Service: StudentProfile
-        deactivate Repository
+        Service -> UserRepo: save(user)
+        activate UserRepo
+        UserRepo -->> Service: savedUser
+        deactivate UserRepo
+
+        ' --- CREATE PROFILE ---
+        Service -> ProfileEntity: new StudentProfile(savedUser, major, ...)
+        activate ProfileEntity
+        ProfileEntity -->> Service: profile
+        deactivate ProfileEntity
+
+        Service -> ProfileRepo: save(profile)
+        activate ProfileRepo
+        ProfileRepo -->> Service: savedProfile
+        deactivate ProfileRepo
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: ImportResultDTO
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Show result summary
+deactivate UI
 
 @enduml

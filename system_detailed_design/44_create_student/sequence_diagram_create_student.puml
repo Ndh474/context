@@ -2,41 +2,64 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StudentProfileController" as Controller
-participant ":StudentProfileService" as Service
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:CreateStudentDialog" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:StudentProfileService" as Service
+participant "«database wrapper»\n:UserRepository" as UserRepo
+participant "«database wrapper»\n:StudentProfileRepository" as ProfileRepo
+participant "«entity»\n:User" as UserEntity
+participant "«entity»\n:StudentProfile" as ProfileEntity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/student-profiles
+Admin -> UI: Fill form & Submit
+activate UI
+
+UI -> Controller: POST /api/v1/student-profiles
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: roll number/email/username uniqueness, major validation, role assignment, password generation & email)
+' Validation (Internal)
+Service -> Service: validateUniqueness(username, email, rollNumber)
 
 alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> Admin: Show error
 end
 
-Service -> Repository: save(profile)
-activate Repository
+' --- CREATE USER ---
+Service -> UserEntity: new User(username, email, ...)
+activate UserEntity
+UserEntity -->> Service: user
+deactivate UserEntity
 
-Repository -> DB: Insert New Student Profile with User
-activate DB
-DB --> Repository: Saved Profile
-deactivate DB
+Service -> UserRepo: save(user)
+activate UserRepo
+UserRepo -->> Service: savedUser
+deactivate UserRepo
 
-Repository --> Service: StudentProfile
-deactivate Repository
+' --- CREATE PROFILE ---
+Service -> ProfileEntity: new StudentProfile(user, major, ...)
+activate ProfileEntity
+ProfileEntity -->> Service: profile
+deactivate ProfileEntity
 
-Service --> Controller: StudentProfileDTO
+Service -> ProfileRepo: save(profile)
+activate ProfileRepo
+ProfileRepo -->> Service: savedProfile
+deactivate ProfileRepo
+
+Service -->> Controller: StudentProfileDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> Admin: Show success message
+deactivate UI
 
 @enduml

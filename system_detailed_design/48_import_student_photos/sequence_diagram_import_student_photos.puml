@@ -2,60 +2,53 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StudentProfileController" as Controller
-participant ":BulkPhotoUploadService" as Service
-participant ":StudentProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:ImportPhotosDialog" as UI
+participant "«control»\n:StudentProfileController" as Controller
+participant "«service»\n:BulkPhotoUploadService" as Service
+participant "«database wrapper»\n:StudentProfileRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/student-profiles/bulk-upload-photos-embeddings
+Admin -> UI: Upload CSV & ZIP
+activate UI
+
+UI -> Controller: POST /api/v1/student-profiles/bulk-upload-photos-embeddings
 activate Controller
-
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
-end
 
 Controller -> Service: processBulkUpload(csvFile, zipFile, mode)
 activate Service
 
-' Extract ZIP and parse CSV (internal)
+' Internal: Extract ZIP & Parse CSV
+Service -> Service: extractZipAndParseCsv()
 
-alt CSV parsing fails
+alt CSV/ZIP parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
 end
 
-' --- PARALLEL PROCESSING LOOP ---
-loop For each unique CSV row (parallel)
+' --- PROCESSING LOOP ---
+loop For each unique CSV row
     Service -> Repository: findByRollNumber(rollNumber)
     activate Repository
-    
-    Repository -> DB: Query Student by Roll Number
-    activate DB
-    DB --> Repository: Student / Null
-    deactivate DB
-    
-    Repository --> Service: StudentProfile
+    Repository -->> Service: StudentProfile?
     deactivate Repository
     
-    ' Validation and processing (internal: image validation, mode check, save photo, generate embedding, save embedding)
-    
-    alt Processing fails
-        Service --> Service: Collect error, continue
+    alt Student Found
+        ' Internal: Process image -> Upload -> Generate Embedding -> Save
+        Service -> Service: processAndSavePhoto(student, image)
+    else Not Found
+         Service -> Service: Log error (Student not found)
     end
 end
 
-' Cleanup temp directory (internal)
-
-' Build result with success/failure counts (internal)
-
-Service --> Controller: ImportResultDTO
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Show result summary
+deactivate UI
 
 @enduml
