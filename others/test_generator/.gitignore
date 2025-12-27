@@ -1,0 +1,21 @@
+# Generated images
+test_images/**/*.png
+test_images/**/*.jpg
+test_images/**/*.jpeg
+
+# Generated JSON test data
+test_json/*.json
+
+# Generated output files
+test_output/*.xlsx
+test_output/*.docx
+
+# Keep folder structure
+!test_images/.gitkeep
+!test_images/**/.gitkeep
+!test_json/.gitkeep
+!test_output/.gitkeep
+
+# Python cache
+__pycache__/
+*.pyc
