@@ -13,6 +13,8 @@ participant "«database wrapper»\n:StudentProfileRepository" as Repository
 Admin -> UI: View Student List
 activate UI
 
+UI -> UI: Initialize filters\n(search, pagination)
+
 UI -> Controller: GET /api/v1/student-profiles
 activate Controller
 
@@ -40,7 +42,7 @@ deactivate Repository
 Service -->> Controller: totalCount
 deactivate Service
 
-Controller -->> UI: 200 OK (Page<StudentProfileDTO>)
+Controller -->> UI: 200 OK
 deactivate Controller
 
 UI -->> Admin: Show student list

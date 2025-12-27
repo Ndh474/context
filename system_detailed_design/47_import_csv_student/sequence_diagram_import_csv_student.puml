@@ -14,8 +14,13 @@ participant "«entity»\n:User" as UserEntity
 participant "«entity»\n:StudentProfile" as ProfileEntity
 
 ' --- MAIN FLOW ---
-Admin -> UI: Select File & Submit
+Admin -> UI: Click "Import CSV"
 activate UI
+
+UI -> UI: Open import dialog
+
+Admin -> UI: Select CSV File & Mode
+Admin -> UI: Submit
 
 UI -> Controller: POST /api/v1/student-profiles/import
 activate Controller

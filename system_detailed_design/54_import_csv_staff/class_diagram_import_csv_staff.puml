@@ -29,6 +29,10 @@ interface StaffProfileRepository <<interface>> {
   + save(profile : StaffProfile) : StaffProfile
 }
 
+interface UserRepository <<interface>> {
+  + save(user : User) : User
+}
+
 ' --- ENTITIES ---
 class StaffProfile {
   - userId : Integer
@@ -47,9 +51,11 @@ class User {
 StaffProfileController -down-> StaffProfileService
 StaffProfileService -down-> CsvParserService
 StaffProfileService -down-> StaffProfileRepository
+StaffProfileService -down-> UserRepository
 
 ' --- REPOSITORY USAGE (Dependency) ---
 StaffProfileRepository .down.> StaffProfile
+UserRepository .down.> User
 
 ' --- ENTITY RELATIONSHIPS (Aggregation) ---
 StaffProfile o-left- User

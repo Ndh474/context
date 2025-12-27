@@ -13,6 +13,8 @@ participant "«database wrapper»\n:StudentProfileRepository" as Repository
 Admin -> UI: Click "View" on a student
 activate UI
 
+UI -> UI: Open details dialog
+
 UI -> Controller: GET /api/v1/student-profiles/{id}
 activate Controller
 

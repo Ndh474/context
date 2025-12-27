@@ -2,57 +2,65 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StaffProfileController" as Controller
-participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:EditStaffDialog" as UI
+participant "«control»\n:StaffProfileController" as Controller
+participant "«service»\n:StaffProfileService" as Service
+participant "«database wrapper»\n:StaffProfileRepository" as Repository
+participant "«entity»\n:StaffProfile" as Entity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/staff-profiles/{id}
+Admin -> UI: Click "Edit" on a staff
+activate UI
+
+UI -> UI: Open edit dialog\n(Load existing data)
+
+Admin -> UI: Modify details
+Admin -> UI: Submit form
+
+UI -> Controller: PUT /api/v1/staff-profiles/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
+' --- FIND EXISTING ---
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Staff by ID
-activate DB
-DB --> Repository: Staff Record / Null
-deactivate DB
-
-Repository --> Service: Optional<StaffProfile>
+Repository -->> Service: Optional<StaffProfile>
 deactivate Repository
 
 alt Staff not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
 end
 
-' Validation logic (internal: staff code/email uniqueness, role validation)
+' Validation (Internal)
+Service -> Service: validateUpdate(request)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
+    Controller -->> UI: 400 Bad Request / 409 Conflict
 end
+
+' --- UPDATE ---
+Service -> Entity: setStaffCode(newCode)
+activate Entity
+deactivate Entity
 
 Service -> Repository: save(profile)
 activate Repository
-
-Repository -> DB: Update Staff Profile
-activate DB
-DB --> Repository: Updated Profile
-deactivate DB
-
-Repository --> Service: StaffProfile
+Repository -->> Service: updatedProfile
 deactivate Repository
 
-Service --> Controller: StaffProfileDTO
+Service -->> Controller: StaffProfileDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Close dialog\nRefresh list
+deactivate UI
 
 @enduml

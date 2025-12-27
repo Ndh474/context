@@ -13,8 +13,13 @@ participant "«entity»\n:User" as UserEntity
 participant "«entity»\n:StudentProfile" as ProfileEntity
 
 ' --- MAIN FLOW ---
-Admin -> UI: Fill form & Submit
+Admin -> UI: Click "Create Student"
 activate UI
+
+UI -> UI: Open create dialog
+
+Admin -> UI: Fill form (username, email, major...)
+Admin -> UI: Submit form
 
 UI -> Controller: POST /api/v1/student-profiles
 activate Controller

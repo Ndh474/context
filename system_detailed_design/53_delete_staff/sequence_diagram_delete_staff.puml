@@ -2,57 +2,61 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StaffProfileController" as Controller
-participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:DeleteStaffDialog" as UI
+participant "«control»\n:StaffProfileController" as Controller
+participant "«service»\n:StaffProfileService" as Service
+participant "«database wrapper»\n:StaffProfileRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> Controller: DELETE /api/v1/staff-profiles/{id}
+Admin -> UI: Click "Delete" icon
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+Admin -> UI: Confirm Delete
+
+UI -> Controller: DELETE /api/v1/staff-profiles/{id}
 activate Controller
 
 Controller -> Service: delete(id)
 activate Service
 
-Service -> Repository: findById(id)
+' --- CHECK EXISTENCE ---
+Service -> Repository: existsById(id)
 activate Repository
-
-Repository -> DB: Query Staff by ID
-activate DB
-DB --> Repository: Staff Record / Null
-deactivate DB
-
-Repository --> Service: Optional<StaffProfile>
+Repository -->> Service: boolean
 deactivate Repository
 
 alt Staff not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
 end
 
-' Validation logic (internal: check active slots)
-
-alt Has dependencies
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
+' --- DELETE OPERATION ---
 Service -> Repository: deleteById(id)
 activate Repository
 
-Repository -> DB: Delete Staff Profile and User
-activate DB
-DB --> Repository: Success
-deactivate DB
+alt Foreign key violation
+    Repository -->> Service: <<throw>> DataIntegrityViolationException
+    deactivate Repository
+    Service -->> Controller: <<throw>> OperationNotAllowedException
+    Controller -->> UI: 403 Forbidden
+    UI -->> Admin: Show error: "Staff linked to other data"
+else Success
+    activate Repository
+    Repository -->> Service: void
+    deactivate Repository
 
-Repository --> Service: void
-deactivate Repository
+    Service -->> Controller: void
+    deactivate Service
 
-Service --> Controller: Success
-deactivate Service
+    Controller -->> UI: 200 OK
+    deactivate Controller
 
-Controller --> Admin: 200 OK
-deactivate Controller
+    UI -->> Admin: Remove from list
+    deactivate UI
+end
 
 @enduml

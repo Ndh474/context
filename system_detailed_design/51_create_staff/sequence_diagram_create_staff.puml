@@ -2,41 +2,69 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StaffProfileController" as Controller
-participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:CreateStaffDialog" as UI
+participant "«control»\n:StaffProfileController" as Controller
+participant "«service»\n:StaffProfileService" as Service
+participant "«database wrapper»\n:UserRepository" as UserRepo
+participant "«database wrapper»\n:StaffProfileRepository" as ProfileRepo
+participant "«entity»\n:User" as UserEntity
+participant "«entity»\n:StaffProfile" as ProfileEntity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/staff-profiles
+Admin -> UI: Click "Create Staff"
+activate UI
+
+UI -> UI: Open create dialog
+
+Admin -> UI: Fill form (username, email, staff code...)
+Admin -> UI: Submit form
+
+UI -> Controller: POST /api/v1/staff-profiles
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: staff code/email/username uniqueness, role validation, password generation & email)
+' Validation (Internal)
+Service -> Service: validateUniqueness(username, email, staffCode)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 409 Conflict
+    Controller -->> UI: 400 Bad Request / 409 Conflict
+    UI -->> Admin: Show error
 end
 
-Service -> Repository: save(profile)
-activate Repository
+' --- CREATE USER ---
+Service -> UserEntity: new User(username, email, ...)
+activate UserEntity
+UserEntity -->> Service: user
+deactivate UserEntity
 
-Repository -> DB: Insert New Staff Profile with User
-activate DB
-DB --> Repository: Saved Profile
-deactivate DB
+Service -> UserRepo: save(user)
+activate UserRepo
+UserRepo -->> Service: savedUser
+deactivate UserRepo
 
-Repository --> Service: StaffProfile
-deactivate Repository
+' --- CREATE PROFILE ---
+Service -> ProfileEntity: new StaffProfile(user, staffCode, ...)
+activate ProfileEntity
+ProfileEntity -->> Service: profile
+deactivate ProfileEntity
 
-Service --> Controller: StaffProfileDTO
+Service -> ProfileRepo: save(profile)
+activate ProfileRepo
+ProfileRepo -->> Service: savedProfile
+deactivate ProfileRepo
+
+Service -->> Controller: StaffProfileDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> Admin: Show success message
+deactivate UI
 
 @enduml

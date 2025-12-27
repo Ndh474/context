@@ -11,8 +11,13 @@ participant "«database wrapper»\n:StudentProfileRepository" as Repository
 participant "«entity»\n:StudentProfile" as Entity
 
 ' --- MAIN FLOW ---
-Admin -> UI: Edit details & Submit
+Admin -> UI: Click "Edit" on a student
 activate UI
+
+UI -> UI: Open edit dialog\n(Load existing data)
+
+Admin -> UI: Modify details
+Admin -> UI: Submit form
 
 UI -> Controller: PUT /api/v1/student-profiles/{id}
 activate Controller

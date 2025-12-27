@@ -10,8 +10,13 @@ participant "«service»\n:BulkPhotoUploadService" as Service
 participant "«database wrapper»\n:StudentProfileRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> UI: Upload CSV & ZIP
+Admin -> UI: Click "Import Photos"
 activate UI
+
+UI -> UI: Open import dialog
+
+Admin -> UI: Select CSV & ZIP Files
+Admin -> UI: Submit
 
 UI -> Controller: POST /api/v1/student-profiles/bulk-upload-photos-embeddings
 activate Controller

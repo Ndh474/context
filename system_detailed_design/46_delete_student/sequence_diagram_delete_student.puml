@@ -13,9 +13,10 @@ participant "«database wrapper»\n:StudentProfileRepository" as Repository
 Admin -> UI: Click "Delete" icon
 activate UI
 
-UI -> UI: Show confirmation
+UI -> UI: Show confirmation dialog
 
 Admin -> UI: Confirm Delete
+
 UI -> Controller: DELETE /api/v1/student-profiles/{id}
 activate Controller
 

@@ -2,14 +2,20 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":StaffProfileController" as Controller
-participant ":StaffProfileService" as Service
-participant ":StaffProfileRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:StaffPage" as UI
+participant "«control»\n:StaffProfileController" as Controller
+participant "«service»\n:StaffProfileService" as Service
+participant "«database wrapper»\n:StaffProfileRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/staff-profiles
+Admin -> UI: View Staff List
+activate UI
+
+UI -> UI: Initialize filters\n(search, pagination)
+
+UI -> Controller: GET /api/v1/staff-profiles
 activate Controller
 
 Controller -> Service: search(request)
@@ -18,30 +24,28 @@ activate Service
 ' --- SEARCH QUERY ---
 Service -> Repository: search(request)
 activate Repository
-
-Repository -> DB: Query Staff with Filters and Pagination
-activate DB
-DB --> Repository: Staff List
-deactivate DB
-
-Repository --> Service: List<StaffProfileDTO>
+Repository -->> Service: List<StaffProfileDTO>
 deactivate Repository
+
+Service -->> Controller: List<StaffProfileDTO>
+deactivate Service
+
+' --- COUNT QUERY ---
+Controller -> Service: count(request)
+activate Service
 
 Service -> Repository: count(request)
 activate Repository
-
-Repository -> DB: Count Total Staff
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: totalCount
 deactivate Repository
 
-Service --> Controller: PagingResponse
+Service -->> Controller: totalCount
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Show staff list
+deactivate UI
 
 @enduml
