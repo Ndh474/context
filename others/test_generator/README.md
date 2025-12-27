@@ -9,6 +9,7 @@ Generate Excel test case documents and DOCX evidence reports from Java test file
 | `json_to_excel.py` | Generate Excel test case sheets          | JSON file     | Excel (.xlsx) |
 | `code_to_image.py` | Render Java test methods as images       | Java file     | PNG images    |
 | `image_to_docx.py` | Generate DOCX with images and references | Images + JSON | DOCX file     |
+| `merge_docx.py`    | Merge multiple DOCX files into one       | DOCX files    | DOCX file     |
 
 ## Installation
 
@@ -71,6 +72,13 @@ python image_to_docx.py --images test_images/MST --json test_json/my_test.json -
 - `created_by`: "Developer" (or specify team member name)
 - `executed_by`: "Developer" (or specify team member name)
 - `executed_date`: Current date in YYYY-MM-DD format
+
+**Important Rules:**
+
+- JSON must cover ALL test methods in the Java file (unless user explicitly specifies subset)
+- Each test method = 1 test case in JSON
+- Generated images must match 1:1 with test cases in JSON
+- `note` field in test_cases should match the Java method name for image-to-docx mapping
 
 ### Sheet Naming Convention
 
@@ -214,6 +222,24 @@ Format: `TCXX` (2 digits, no prefix)
 | `--output` | Yes      | Output DOCX file path            |
 | `--append` | No       | Append to existing DOCX file     |
 | `--title`  | No       | Document/section title           |
+
+### merge_docx.py
+
+| Option     | Required | Description                          |
+| ---------- | -------- | ------------------------------------ |
+| `--files`  | No*      | List of DOCX files to merge          |
+| `--dir`    | No*      | Directory containing DOCX files      |
+| `--output` | Yes      | Output merged DOCX file              |
+
+*Either `--files` or `--dir` is required.
+
+```bash
+# Merge specific files
+python merge_docx.py --files Service1Test.docx Service2Test.docx --output Report5.1_Evidence.docx
+
+# Merge all DOCX files in a directory
+python merge_docx.py --dir test_output --output Report5.1_Evidence.docx
+```
 
 ## Directory Structure
 
