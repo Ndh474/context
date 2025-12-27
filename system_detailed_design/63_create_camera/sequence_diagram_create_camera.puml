@@ -2,41 +2,82 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/cameras
+participant "«user interaction»\n:CameraFormDialog" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«database wrapper»\n:CameraRepository" as Repository
+participant "«entity»\n:Camera" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Create Camera"
+activate UI
+
+UI -> UI: Open form dialog
+
+DataOperator -> UI: Input camera data\n(name, rtspUrl, roomId)
+
+DataOperator -> UI: Submit form
+UI -> Controller: POST /api/v1/cameras
 activate Controller
 
 Controller -> Service: create(request)
 activate Service
 
-' Validation logic (internal: room validation, name/RTSP URL uniqueness)
+' === VALIDATION: ROOM EXISTS ===
+Service -> Service: validateRoom(roomId)
+note right: Check room existence
 
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
+alt Room not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-Service -> Repository: save(camera)
+' === VALIDATION: NAME UNIQUENESS ===
+Service -> Repository: existsByName(name)
 activate Repository
-
-Repository -> DB: Insert New Camera
-activate DB
-DB --> Repository: Saved Camera
-deactivate DB
-
-Repository --> Service: Camera
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: CameraDTO
+alt name exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: RTSP URL UNIQUENESS ===
+Service -> Repository: existsByRtspUrl(rtspUrl)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt rtspUrl exists
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === CREATE ENTITY ===
+Service -> Entity: new Camera(request)
+activate Entity
+Entity -->> Service: camera
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(camera)
+activate Repository
+Repository -->> Service: savedCamera
+deactivate Repository
+
+Service -->> Controller: CameraDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

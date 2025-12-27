@@ -2,55 +2,48 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/cameras
+participant "«user interaction»\n:CamerasPage" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«database wrapper»\n:CameraRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Navigate to Cameras page
+activate UI
+
+UI -> UI: Initialize filters\n(search, isActive, roomId, sort, pagination)
+
+UI -> Controller: GET /api/v1/cameras?page=1&pageSize=10&...
 activate Controller
 
 Controller -> Service: search(request)
 activate Service
 
-' --- SEARCH QUERY ---
 Service -> Repository: search(request)
 activate Repository
-
-Repository -> DB: Query Cameras with Filters and Pagination
-activate DB
-DB --> Repository: Camera List
-deactivate DB
-
-Repository --> Service: List<CameraDTO>
+Repository -->> Service: List<CameraDTO>
 deactivate Repository
 
-Service --> Controller: List<CameraDTO>
+Service -->> Controller: List<CameraDTO>
 deactivate Service
 
-' --- COUNT QUERY ---
 Controller -> Service: count(request)
 activate Service
 
 Service -> Repository: count(request)
 activate Repository
-
-Repository -> DB: Count Total Cameras
-activate DB
-DB --> Repository: Total Count
-deactivate DB
-
-Repository --> Service: Long
+Repository -->> Service: Long
 deactivate Repository
 
-Service --> Controller: Long
+Service -->> Controller: Long
 deactivate Service
 
-' Build paging response (internal)
-
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display camera table\nwith pagination
+deactivate UI
 
 @enduml

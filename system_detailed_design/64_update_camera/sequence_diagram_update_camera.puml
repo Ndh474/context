@@ -2,57 +2,90 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: PUT /api/v1/cameras/{id}
+participant "«user interaction»\n:CameraFormDialog" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«database wrapper»\n:CameraRepository" as Repository
+participant "«entity»\n:Camera" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Edit camera data\n(name, rtspUrl, roomId, isActive)
+activate UI
+
+DataOperator -> UI: Submit form
+UI -> Controller: PUT /api/v1/cameras/{id}
 activate Controller
 
 Controller -> Service: update(id, request)
 activate Service
 
+' === FIND EXISTING ===
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Camera by ID
-activate DB
-DB --> Repository: Camera Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Camera>
+Repository -->> Service: Optional<Camera>
 deactivate Repository
 
 alt Camera not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: name/RTSP URL uniqueness, room validation)
-
-alt Validation failed
-    Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
-end
-
-Service -> Repository: save(camera)
-activate CameraRepo
-
-CameraRepo -> DB: Update Camera
-activate DB
-DB --> CameraRepo: Updated Camera
-deactivate DB
-
-Repository --> Service: Camera
+' === VALIDATION: NAME UNIQUENESS ===
+Service -> Repository: existsByNameAndIdNot(name, id)
+activate Repository
+Repository -->> Service: Boolean
 deactivate Repository
 
-Service --> Controller: CameraDTO
+alt name exists in another camera
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: RTSP URL UNIQUENESS ===
+Service -> Repository: existsByRtspUrlAndIdNot(rtspUrl, id)
+activate Repository
+Repository -->> Service: Boolean
+deactivate Repository
+
+alt rtspUrl exists in another camera
+    Service -->> Controller: <<throw>> ResourceExistsException
+    Controller -->> UI: 409 Conflict
+    UI -->> DataOperator: Show error message
+end
+
+' === VALIDATION: ROOM EXISTS ===
+Service -> Service: validateRoom(roomId)
+note right: Check room existence
+
+alt Room not found
+    Service -->> Controller: <<throw>> ResourceNotFoundException
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
+end
+
+' === UPDATE ENTITY ===
+Service -> Entity: updateFromRequest(request)
+activate Entity
+Entity -->> Service: camera
+deactivate Entity
+
+' === SAVE ===
+Service -> Repository: save(camera)
+activate Repository
+Repository -->> Service: savedCamera
+deactivate Repository
+
+Service -->> Controller: CameraDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

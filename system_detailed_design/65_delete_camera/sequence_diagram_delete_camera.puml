@@ -2,65 +2,59 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: DELETE /api/v1/cameras/{id}
+participant "«user interaction»\n:DeleteCameraDialog" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«database wrapper»\n:CameraRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Delete" button
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+DataOperator -> UI: Confirm delete
+UI -> Controller: DELETE /api/v1/cameras/{id}
 activate Controller
 
 Controller -> Service: delete(id)
 activate Service
 
+' === CHECK EXISTENCE ===
 Service -> Repository: existsById(id)
 activate Repository
-
-Repository -> DB: Check Camera Existence
-activate DB
-DB --> Repository: Boolean
-deactivate DB
-
-Repository --> Service: Boolean
+Repository -->> Service: Boolean
 deactivate Repository
 
 alt Camera not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-' Validation logic (internal: check active slots)
-
-alt Has dependencies
-    Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
-end
-
+' === DELETE OPERATION ===
 Service -> Repository: deleteById(id)
 activate Repository
 
-Repository -> DB: Delete Camera by ID
-activate DB
-
 alt Foreign key constraint violation
-    DB -->> Repository: <<throw>> DataIntegrityViolationException
     Repository -->> Service: <<throw>> DataIntegrityViolationException
     Service -->> Controller: <<throw>> OperationNotAllowedException
-    Controller --> Admin: 403 Forbidden
+    Controller -->> UI: 403 Forbidden
+    UI -->> DataOperator: Show error message
 end
 
-DB --> Repository: Success
-deactivate DB
-
-Repository --> Service: void
+Repository -->> Service: void
 deactivate Repository
 
-Service --> Controller: Success
+Service -->> Controller: void
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show success message\nClose dialog & refresh list
+deactivate UI
 
 @enduml

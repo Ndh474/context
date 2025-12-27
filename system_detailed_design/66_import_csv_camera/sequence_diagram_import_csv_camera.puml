@@ -2,79 +2,93 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/cameras/import
+participant "«user interaction»\n:GenericImportDialog" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:CameraRepository" as Repository
+participant "«entity»\n:Camera" as Entity
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+
+DataOperator -> UI: Select CSV file & import mode
+
+DataOperator -> UI: Submit
+UI -> Controller: POST /api/v1/cameras/import\n(file, mode)
 activate Controller
 
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
+alt File is empty
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
 Controller -> Service: importFromCsv(file, mode)
 activate Service
 
-' --- PARSE CSV ---
+' === PARSE CSV ===
 Service -> CsvParser: parseCameraCsv(file)
 activate CsvParser
-
-CsvParser --> Service: List<CameraCsvRow>
+CsvParser -->> Service: List<CameraCsvRow>
 deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> DataOperator: Show error message
 end
 
-' CSV deduplication (internal)
-
-' --- BATCH PROCESSING LOOP ---
+' === BATCH PROCESSING ===
 loop For each unique CSV row
-    ' Row validation (internal: room validation, name/RTSP URL uniqueness)
+    Service -> Service: validateRoom(roomName)
+    note right: Lookup room by name
+
+    alt Room not found
+        Service -> Service: Collect error, continue
+    end
 
     Service -> Repository: findByName(name)
     activate Repository
-    
-    Repository -> DB: Query Camera by Name
-    activate DB
-    DB --> Repository: Camera / Null
-    deactivate DB
-    
-    Repository --> Service: Camera
+    Repository -->> Service: Camera / null
     deactivate Repository
-    
-    ' Business logic: create or update based on mode (internal)
-    
-    alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
+
+    alt Row validation fails (rtspUrl duplicate)
+        Service -> Service: Collect error, continue
+    else Create new camera
+        Service -> Entity: new Camera(row)
+        activate Entity
+        Entity -->> Service: camera
+        deactivate Entity
+
         Service -> Repository: save(camera)
         activate Repository
-        
-        Repository -> DB: Insert or Update Camera
-        activate DB
-        DB --> Repository: Saved Camera
-        deactivate DB
-        
-        Repository --> Service: Camera
+        Repository -->> Service: savedCamera
+        deactivate Repository
+    else Update existing camera (ADD_AND_UPDATE mode)
+        Service -> Entity: updateFromRow(row)
+        activate Entity
+        Entity -->> Service: camera
+        deactivate Entity
+
+        Service -> Repository: save(camera)
+        activate Repository
+        Repository -->> Service: savedCamera
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: ImportResultDTO
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml

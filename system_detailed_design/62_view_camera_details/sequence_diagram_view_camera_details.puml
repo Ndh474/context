@@ -2,14 +2,18 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":CameraController" as Controller
-participant ":CameraService" as Service
-participant ":CameraRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as DataOperator
 
-' --- MAIN FLOW ---
-Admin -> Controller: GET /api/v1/cameras/{id}
+participant "«user interaction»\n:CameraFormDialog" as UI
+participant "«control»\n:CameraController" as Controller
+participant "«service»\n:CameraService" as Service
+participant "«database wrapper»\n:CameraRepository" as Repository
+
+' === MAIN FLOW ===
+DataOperator -> UI: Click "Edit" on camera row
+activate UI
+
+UI -> Controller: GET /api/v1/cameras/{id}
 activate Controller
 
 Controller -> Service: findById(id)
@@ -17,25 +21,22 @@ activate Service
 
 Service -> Repository: findById(id)
 activate Repository
-
-Repository -> DB: Query Camera by ID
-activate DB
-DB --> Repository: Camera Record / Null
-deactivate DB
-
-Repository --> Service: Optional<Camera>
+Repository -->> Service: Optional<Camera>
 deactivate Repository
 
-' --- VALIDATION LOGIC ---
 alt Camera not found
     Service -->> Controller: <<throw>> ResourceNotFoundException
-    Controller --> Admin: 404 Not Found
+    Controller -->> UI: 404 Not Found
+    UI -->> DataOperator: Show error message
 end
 
-Service --> Controller: CameraDTO
+Service -->> Controller: CameraDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> DataOperator: Display camera details\nin edit form
+deactivate UI
 
 @enduml

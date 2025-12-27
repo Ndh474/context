@@ -301,6 +301,7 @@ Sequence Diagram và Class Diagram phải nhất quán về các thành phần t
 2.  **Ẩn chi tiết Implementation**:
     - Trong code thực tế, `ClassService` có thể gọi `SubjectRepository` để check tồn tại.
     - Nhưng nếu Class Diagram muốn ẩn chi tiết này (để gọn), Sequence Diagram phải tuân thủ bằng cách dùng **Internal Call**.
+3.  **Có trong Class thì phải có trong Sequence**: Nếu Class Diagram vẽ một class/service (ví dụ: `CsvParserService`), thì Sequence Diagram **BẮT BUỘC** phải có participant tương ứng và thể hiện interaction với nó.
 
 ### **Ví dụ minh họa**
 
