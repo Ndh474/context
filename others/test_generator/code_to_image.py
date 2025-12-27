@@ -89,7 +89,8 @@ def extract_test_methods(java_code: str) -> list[dict]:
         }
     
     # Find all @Test methods
-    test_pattern = r'(@Test\s+(?:@DisplayName\s*\(\s*"([^"]+)"\s*\)\s+)?)(void\s+(\w+)\s*\([^)]*\)\s*\{)'
+    # Pattern handles: @Test @DisplayName("...") void methodName() throws Exception {
+    test_pattern = r'(@Test\s+(?:@DisplayName\s*\(\s*"([^"]+)"\s*\)\s+)?)(void\s+(\w+)\s*\([^)]*\)(?:\s+throws\s+\w+(?:\s*,\s*\w+)*)?\s*\{)'
     
     for match in re.finditer(test_pattern, java_code):
         method_start = match.start()

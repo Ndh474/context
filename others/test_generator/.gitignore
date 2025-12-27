@@ -7,8 +7,8 @@ test_images/**/*.jpeg
 test_json/*.json
 
 # Generated output files
-test_output/*.xlsx
-test_output/*.docx
+# test_output/*.xlsx
+# test_output/*.docx
 
 # Keep folder structure
 !test_images/.gitkeep
