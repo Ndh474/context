@@ -2,41 +2,47 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ExamSlotController" as Controller
-participant ":ExamSlotService" as Service
-participant ":ExamSlotParticipantRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:DeleteParticipantDialog" as UI
+participant "«control»\n:ExamSlotController" as Controller
+participant "«service»\n:ExamSlotService" as Service
+participant "«database wrapper»\n:ExamSlotParticipantRepository" as Repository
 
 ' --- MAIN FLOW ---
-Admin -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
+Admin -> UI: Click "Remove" icon
+activate UI
+
+UI -> UI: Show confirmation dialog
+
+Admin -> UI: Click "Confirm"
+UI -> Controller: DELETE /api/v1/exam-slots/{slotId}/participants/{participantId}
 activate Controller
 
 Controller -> Service: removeParticipant(slotId, participantId)
 activate Service
 
-' Validation logic (internal: slot/participant validation, delete exam attendance)
+' Validation (Internal)
+Service -> Service: validateRemovalAllowed(slotId, participantId)
 
-alt Validation failed
+alt Validation failed (e.g. Slot started)
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found
+    Controller -->> UI: 400 Bad Request
+    UI -->> Admin: Show error message
 end
 
-Service -> Repository: delete(participant)
+' --- DELETE ---
+Service -> Repository: deleteById(participantId)
 activate Repository
-
-Repository -> DB: Delete Participant
-activate DB
-DB --> Repository: Success
-deactivate DB
-
-Repository --> Service: void
 deactivate Repository
 
-Service --> Controller: Success
+Service -->> Controller: void
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Close dialog\nRemove row from list
+deactivate UI
 
 @enduml

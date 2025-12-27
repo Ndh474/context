@@ -2,22 +2,24 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ExamSlotImportController" as Controller
-participant ":ExamSlotImportService" as Service
-participant ":CsvParserService" as CsvParser
-participant ":ExamSlotParticipantRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:ImportParticipantsDialog" as UI
+participant "«control»\n:ExamSlotImportController" as Controller
+participant "«service»\n:ExamSlotImportService" as Service
+participant "«service»\n:CsvParserService" as CsvParser
+participant "«database wrapper»\n:ExamSlotParticipantRepository" as Repository
+participant "«entity»\n:ExamSlotParticipant" as Entity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/exam-slot-participants/import
+Admin -> UI: Click "Import" button
+activate UI
+
+UI -> UI: Open import dialog
+Admin -> UI: Select CSV file & Submit
+
+UI -> Controller: POST /api/v1/exam-slot-participants/import
 activate Controller
-
-' File validation (internal)
-
-alt File validation fails
-    Controller --> Admin: 400 Bad Request
-end
 
 Controller -> Service: importParticipantsFromCsv(file, mode)
 activate Service
@@ -25,43 +27,44 @@ activate Service
 ' --- PARSE CSV ---
 Service -> CsvParser: parseExamSlotParticipantCsv(file)
 activate CsvParser
-
-CsvParser --> Service: List<ExamSlotParticipantCsvRow>
+CsvParser -->> Service: List<ExamSlotParticipantCsvRow>
 deactivate CsvParser
 
 alt CSV parsing fails
     Service -->> Controller: <<throw>> BadRequestException
-    Controller --> Admin: 400 Bad Request
+    Controller -->> UI: 400 Bad Request
+    UI -->> Admin: Show error message
 end
-
-' CSV deduplication (internal)
 
 ' --- BATCH PROCESSING LOOP ---
 loop For each unique CSV row
-    ' Row validation (internal: slot/subject/student/enrollment validation)
+    ' Validation (Internal)
+    Service -> Service: validateRow(row)
 
     alt Validation fails
-        Service --> Service: Collect error, continue
-    else Validation passes
+        Service -> Service: Collect error, continue
+    else Create new participant
+        ' --- CREATE ENTITY ---
+        Service -> Entity: new ExamSlotParticipant(row)
+        activate Entity
+        Entity -->> Service: participant
+        deactivate Entity
+        
+        ' --- SAVE ---
         Service -> Repository: save(participant)
         activate Repository
-        
-        Repository -> DB: Insert or Update Participant
-        activate DB
-        DB --> Repository: Saved Participant
-        deactivate DB
-        
-        Repository --> Service: ExamSlotParticipant
+        Repository -->> Service: savedParticipant
         deactivate Repository
     end
 end
 
-' Build result with success/failure counts (internal)
-
-Service --> Controller: ImportResultDTO
+Service -->> Controller: ImportResultDTO
 deactivate Service
 
-Controller --> Admin: 200 OK
+Controller -->> UI: 200 OK
 deactivate Controller
+
+UI -->> Admin: Show import result\n(success/failure counts)
+deactivate UI
 
 @enduml

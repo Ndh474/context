@@ -2,54 +2,58 @@
 !theme plain
 hide footbox
 
-actor Admin
-participant ":ExamSlotController" as Controller
-participant ":ExamSlotService" as Service
-participant ":ExamSlotParticipantRepository" as Repository
-participant "Database" as DB
+actor "Data Operator" as Admin
+
+participant "«user interaction»\n:ExamSlotParticipantsPage" as UI
+participant "«control»\n:ExamSlotController" as Controller
+participant "«service»\n:ExamSlotService" as Service
+participant "«database wrapper»\n:ExamSlotParticipantRepository" as Repository
+participant "«entity»\n:ExamSlotParticipant" as Entity
 
 ' --- MAIN FLOW ---
-Admin -> Controller: POST /api/v1/exam-slots/{slotId}/participants
+Admin -> UI: Click "Add Participant"
+activate UI
+
+UI -> UI: Open add dialog
+
+Admin -> UI: Select Student & Submit
+UI -> Controller: POST /api/v1/exam-slots/{slotId}/participants
 activate Controller
 
 Controller -> Service: addParticipant(slotId, request)
 activate Service
 
-' Validation logic (internal: slot/student/subject/enrollment validation, duplicate check)
+' Validation (Internal)
+Service -> Service: validateSlotAndStudent(slotId, studentId)
 
 alt Validation failed
     Service -->> Controller: <<throw>> ValidationException
-    Controller --> Admin: 400 Bad Request / 404 Not Found / 409 Conflict
+    Controller -->> UI: 400 Bad Request
+    UI -->> Admin: Show error message
 end
 
+' --- CREATE ENTITY ---
+Service -> Entity: new ExamSlotParticipant(slot, student)
+activate Entity
+Entity -->> Service: participant
+deactivate Entity
+
+' --- SAVE ---
 Service -> Repository: save(participant)
 activate Repository
-
-Repository -> DB: Insert or Update Participant
-activate DB
-DB --> Repository: Saved Participant
-deactivate DB
-
-Repository --> Service: ExamSlotParticipant
+Repository -->> Service: savedParticipant
 deactivate Repository
 
 ' Auto-create exam attendance (internal)
+Service -> Service: ensureExamAttendanceExists(slot, student)
 
-Service -> Repository: findByIdWithDetails(participantId)
-activate Repository
-
-Repository -> DB: Query Participant with Details
-activate DB
-DB --> Repository: ExamSlotParticipantDTO
-deactivate DB
-
-Repository --> Service: ExamSlotParticipantDTO
-deactivate Repository
-
-Service --> Controller: ExamSlotParticipantDTO
+Service -->> Controller: ExamSlotParticipantDTO
 deactivate Service
 
-Controller --> Admin: 201 Created
+Controller -->> UI: 201 Created
 deactivate Controller
+
+UI -->> Admin: Show success message\nRefresh list
+deactivate UI
 
 @enduml
